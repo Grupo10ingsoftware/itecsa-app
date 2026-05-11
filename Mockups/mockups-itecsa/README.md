@@ -1,6 +1,6 @@
 # Mockups estáticos ITECSA
 
-Carpeta de mockups HTML/CSS/JS estáticos para validar visualmente las pantallas M01 a M13 del sistema interno de gestión de producción de ITECSA.
+Carpeta de mockups HTML/CSS/JS estáticos para validar visualmente las pantallas M01 a M14 del sistema interno de gestión de producción de ITECSA.
 
 ## Cómo abrir
 
@@ -22,6 +22,7 @@ mockups-itecsa/
 ├── pages/login.html
 ├── pages/m02-layout.html
 ├── pages/m03-registro-pedido.html
+├── pages/m14-seguimiento-pedidos.html
 ├── pages/m04-kanban.html
 ├── pages/m05-detalle-pedido.html
 ├── pages/m06-confirmacion-pago.html

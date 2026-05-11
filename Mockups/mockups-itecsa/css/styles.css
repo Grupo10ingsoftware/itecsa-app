@@ -120,6 +120,11 @@ h3 { font-size: 15px; }
 .capacity-strip.over { background: #fffaeb; border-color: #fedf89; color: var(--warn); }
 
 .filters { display: grid; grid-template-columns: 1.5fr repeat(3, minmax(150px, .7fr)); gap: 12px; align-items: end; margin-bottom: 16px; }
+.tracking-summary { margin: 16px 0; }
+.tracking-table td { min-width: 128px; }
+.tracking-table td:first-child { min-width: 150px; }
+.tracking-table td:nth-child(2), .tracking-table td:nth-child(8) { min-width: 230px; }
+.table-note { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.35; }
 .kanban-board { display: grid; grid-template-columns: repeat(4, minmax(260px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 10px; }
 .kanban-col { background: #eef3f8; border: 1px solid var(--line); border-radius: 16px; padding: 12px; min-height: 460px; }
 .kanban-col h2 { display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: var(--blue); }

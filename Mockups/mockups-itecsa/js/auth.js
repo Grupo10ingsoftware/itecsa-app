@@ -4,7 +4,8 @@ window.ITECSA_AUTH = (() => {
   const permissions = {
     m02: ['Administrador', 'Ventas', 'Cobranzas', 'Operario', 'Gerencia'],
     m03: ['Ventas'],
-    m04: ['Operario'],
+    m14: ['Administrador', 'Ventas', 'Cobranzas', 'Operario', 'Gerencia'],
+    m04: ['Ventas', 'Cobranzas', 'Operario'],
     m05: ['Administrador', 'Ventas', 'Cobranzas', 'Operario', 'Gerencia'],
     m06: ['Cobranzas'],
     m07: ['Administrador'],
@@ -19,6 +20,7 @@ window.ITECSA_AUTH = (() => {
   const pages = [
     { id: 'm02', label: 'M02 Layout base', file: 'm02-layout.html' },
     { id: 'm03', label: 'M03 Registro NV', file: 'm03-registro-pedido.html' },
+    { id: 'm14', label: 'M14 Seguimiento pedidos', file: 'm14-seguimiento-pedidos.html' },
     { id: 'm04', label: 'M04 Kanban', file: 'm04-kanban.html' },
     { id: 'm05', label: 'M05 Detalle pedido', file: 'm05-detalle-pedido.html' },
     { id: 'm06', label: 'M06 Confirmación de pago', file: 'm06-confirmacion-pago.html' },

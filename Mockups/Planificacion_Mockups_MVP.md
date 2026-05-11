@@ -104,6 +104,7 @@ Principios recomendados:
 | M01 | Login, recuperación y primer acceso | Todos | Permitir autenticación, recuperación y cambio obligatorio de contraseña. | RF01, RF02, RF06, RF15, RF18 | Correo, contraseña, mensajes de error, estado de cuenta. | Iniciar sesión, recuperar contraseña, cambiar contraseña, cerrar sesión. | Credenciales inválidas, cuenta desactivada, enlace vencido, primer acceso. |
 | M02 | Layout base y navegación por rol | Todos | Definir la estructura común del sistema y permisos visibles por rol. | RF04, RF07, RF08, RF13, RF14, RF18 | Menú, perfil, rol, últimos registros, notificaciones. | Navegar, abrir perfil, cerrar sesión, ver acceso denegado. | Rol sin permiso, sesión expirada, menú reducido por rol. |
 | M03 | Registro de pedido desde Nota de Venta | Ventas | Crear pedido desde NV y revisar datos importados antes de enviarlo al flujo. | RF19-RF26, RF32, RF36-RF40 | Número NV, PDF, cliente, RUT, producto, cantidad, datos fabricación, fecha estimada, capacidad. | Buscar NV, adjuntar PDF, adjuntar diseño, confirmar pedido. | NV duplicada, datos incompletos, sobrecarga, fecha alternativa. |
+| M14 | Seguimiento de pedidos | Todos los roles definidos | Consultar pedidos desde un listado general sin depender del Kanban. | CU28, RF43, RF52, RF58, RF60, RF61 | NV, OP, cliente, producto, cantidad, estado, pago, fecha, responsable, etiquetas, atraso y último evento. | Filtrar, abrir detalle, abrir Kanban si el rol tiene acceso. | Sin resultados, OP pendiente, pago pendiente/rechazado, atraso crítico. |
 | M04 | Kanban productivo | Producción / Administrador | Visualizar pedidos por estado y detectar prioridades, atrasos y bloqueos. | RF43-RF46, RF52-RF58 | Columnas, tarjetas, NV, OP, cliente, producto, fecha, etiquetas, atraso, responsable. | Filtrar, buscar, arrastrar, abrir detalle, asignar etiquetas. | Pedido bloqueado, sin resultados, atraso crítico, acción no permitida. |
 | M05 | Detalle de pedido | Todos según permisos | Centralizar información completa del pedido. | RF27-RF31, RF44, RF47-RF51, RF60-RF64 | Resumen, pago, documentos, producción, comentarios, historial. | Cambiar estado según rol, comentar, adjuntar documentos, ver historial. | Documento faltante, pago pendiente, historial vacío, permisos limitados. |
 | M06 | Confirmación de pago | Cobranzas | Actualizar estado de pago y desbloquear o bloquear avance productivo. | RF27-RF30, RF33 | Pedido, estado de pago, usuario, fecha, hora, observación, firma NV. | Confirmar, rechazar, dejar pendiente, guardar observación. | Pago rechazado, pago pendiente, confirmación exitosa, intento de avance bloqueado. |
@@ -174,6 +175,20 @@ Cada mockup debe documentarse y diseñarse usando esta interfaz de traspaso:
 | Acciones | Buscar NV, adjuntar PDF, adjuntar archivos de diseño, revisar datos, confirmar creación, cancelar. |
 | Estados alternativos | NV duplicada, NV no encontrada, PDF faltante, datos incompletos, capacidad >= 90%, fecha alternativa sugerida, pedido ingresado bajo sobrecarga. |
 | Notas UX | La pantalla debe dejar claro que Manager es fuente externa de consulta/importación, pero no debe mockuparse Manager. La alerta de sobrecarga debe ser visible antes de confirmar. |
+
+#### M14 - Seguimiento de pedidos
+
+| Campo | Especificación |
+| --- | --- |
+| ID | M14 |
+| Nombre | Seguimiento de pedidos |
+| Rol principal | Todos los roles definidos |
+| Objetivo | Permitir consulta general de pedidos por listado, con filtros y acceso al detalle. |
+| Requisitos relacionados | CU28, RF43, RF52, RF58, RF60, RF61 |
+| Contenido visible | NV, OP, cliente, producto, cantidad, estado Kanban, estado de pago, fecha comprometida, fecha estimada, vendedor/responsable, etiquetas, atraso y último evento de trazabilidad. |
+| Acciones | Filtrar, abrir detalle, abrir Kanban solo si el rol tiene acceso. |
+| Estados alternativos | Sin resultados, pedido sin OP, pago pendiente/rechazado y atraso crítico. |
+| Notas UX | Debe ser una consulta operativa, no un reemplazo del Kanban ni del panel gerencial. |
 
 #### M04 - Kanban productivo
 
@@ -356,7 +371,7 @@ Formatos esperados:
 Los mockups cumplen el traspaso si:
 
 - Una persona externa puede entender el sistema sin leer Documento 0, entrevistas ni arquitectura.
-- El set cubre registro de NV, confirmación de pago, asociación de OP/ficha, Kanban, subprocesos, trazabilidad, capacidad, notificaciones, reportes y usuarios.
+- El set cubre registro de NV, seguimiento general, confirmación de pago, asociación de OP/ficha, Kanban, subprocesos, trazabilidad, capacidad, notificaciones, reportes y usuarios.
 - Cada mockup tiene rol principal, objetivo, datos visibles, acciones y estados alternativos.
 - Los permisos por rol son visibles y consistentes.
 - El Kanban muestra las cuatro columnas MVP: `Confirmación de pago`, `Listo para producción`, `En producción`, `Listo para entrega`.

@@ -1,6 +1,6 @@
 # Verificación contra criterios de aceptación de AGENT.md
 
-- [x] M01 a M13 existen y son accesibles desde `pages/`.
+- [x] M01 a M14 existen y son accesibles desde `pages/`.
 - [x] `index.html` abre la primera vista como login, sin landing page.
 - [x] Datos ficticios obligatorios de pedidos y usuarios están embebidos en `js/data.js`.
 - [x] Roles válidos usados: Administrador, Ventas, Cobranzas, Operario y Gerencia.
@@ -11,7 +11,9 @@
 - [x] Si el rol no tiene permiso, se muestra `No tienes permisos para acceder a este módulo.`.
 - [x] Estados alternativos incluidos: validación, permisos insuficientes, pago pendiente/rechazado, tarjetas bloqueadas, sobrecarga, atraso, Sin resultados, documentos faltantes y archivo inválido.
 - [x] M04 contiene las cuatro columnas del Kanban y tarjetas con cliente, NV, OP, producto, cantidad, fecha, etiquetas, responsable y estado de pago.
-- [x] M04 simula movimiento con botón `Mover →`.
+- [x] M04 simula movimiento con botón `Mover →` solo para Administrador y Operario; Ventas y Cobranzas tienen consulta.
+- [x] M14 muestra seguimiento general con filtros por NV/OP/cliente, estado, atraso y vendedor/responsable.
+- [x] M14 permite abrir el detalle de pedido y mantiene la opción de Kanban solo para roles con acceso.
 - [x] M08 contiene los subprocesos de lanyards: Impresión, Sublimación, Corte y Costura.
 - [x] M09 contiene los subprocesos de tarjetas: Revisar información, Ordenar información y Cargar datos.
 - [x] Diseño sobrio, consistente, desktop-first y con adaptación básica móvil.

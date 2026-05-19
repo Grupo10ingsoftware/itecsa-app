@@ -1,4 +1,4 @@
-/* Mockups ITECSA M01-M13. Todo es estático, con estados simulados en localStorage. */
+/* Mockups ITECSA M01-M14. Todo es estático, con estados simulados en localStorage. */
 (() => {
   const DATA = window.ITECSA_DATA;
   const AUTH = window.ITECSA_AUTH;
@@ -14,7 +14,8 @@
     m10: { title: 'M10 · Capacidad y calendario', defaultRole: 'Administrador', subtitle: 'Calendario mensual, carga diaria, sobrecarga y ajustes simulados.' },
     m11: { title: 'M11 · Anuncios y notificaciones', defaultRole: 'Administrador', subtitle: 'Comunicados internos y avisos por pedido.' },
     m12: { title: 'M12 · Reportes gerenciales', defaultRole: 'Gerencia', subtitle: 'Indicadores, gráficos estáticos y exportación simulada.' },
-    m13: { title: 'M13 · Gestión de usuarios', defaultRole: 'Administrador', subtitle: 'Usuarios, roles válidos, estado, firma e historial.' }
+    m13: { title: 'M13 · Gestión de usuarios', defaultRole: 'Administrador', subtitle: 'Usuarios, roles válidos, estado, firma e historial.' },
+    m14: { title: 'M14 · Seguimiento de pedidos', defaultRole: 'Administrador', subtitle: 'Consulta general de pedidos, estados, atrasos, pago y último evento registrado.' }
   };
 
   const columns = ['Confirmación de pago', 'Listo para producción', 'En producción', 'Listo para entrega'];
@@ -220,12 +221,12 @@
   }
 
   function renderPage(pageId, user) {
-    const map = { m02, m03, m04, m05, m06, m07, m08, m09, m10, m11, m12, m13 };
+    const map = { m02, m03, m04, m05, m06, m07, m08, m09, m10, m11, m12, m13, m14 };
     return map[pageId](user);
   }
 
   function bindPage(pageId, user) {
-    const map = { bindM02, bindM03, bindM04, bindM05, bindM06, bindM07, bindM08, bindM09, bindM10, bindM11, bindM12, bindM13 };
+    const map = { bindM02, bindM03, bindM04, bindM05, bindM06, bindM07, bindM08, bindM09, bindM10, bindM11, bindM12, bindM13, bindM14 };
     map[`bind${pageId.toUpperCase()}`]?.(user);
   }
 
@@ -329,8 +330,8 @@
   }
 
   function bindM04(user) {
-    ['kanbanSearch', 'filterColumn', 'filterLabel', 'filterResponsible'].forEach(id => qs(`#${id}`)?.addEventListener('input', renderKanban));
-    renderKanban();
+    ['kanbanSearch', 'filterColumn', 'filterLabel', 'filterResponsible'].forEach(id => qs(`#${id}`)?.addEventListener('input', () => renderKanban(user)));
+    renderKanban(user);
   }
 
   function m04(user) {
@@ -343,14 +344,15 @@
           <label>Etiqueta <select id="filterLabel">${labels.map(l => `<option>${esc(l)}</option>`).join('')}</select></label>
           <label>Responsable <select id="filterResponsible">${responsibles.map(r => `<option>${esc(r)}</option>`).join('')}</select></label>
         </div>
-        <p class="muted">El movimiento de tarjetas está simulado mediante botones. Las tarjetas con pago pendiente o rechazado muestran bloqueo visual.</p>
+        <p class="muted">Ventas y Cobranzas pueden consultar el tablero. El movimiento simulado queda disponible solo para Administrador y Operario; las tarjetas con pago pendiente o rechazado muestran bloqueo visual.</p>
         <div id="kanbanBoard" class="kanban-board"></div>
       </section>`;
   }
 
-  function renderKanban() {
+  function renderKanban(user) {
     const board = qs('#kanbanBoard');
     if (!board) return;
+    const canMove = ['Administrador', 'Operario'].includes(user?.rol);
     const search = qs('#kanbanSearch')?.value.trim().toLowerCase() || '';
     const col = qs('#filterColumn')?.value || 'Todas';
     const label = qs('#filterLabel')?.value || 'Todas';
@@ -363,13 +365,13 @@
     );
     board.innerHTML = columns.map(c => {
       const items = orders.filter(o => o.estado === c);
-      return `<section class="kanban-col"><h2>${esc(c)} <span>${items.length}</span></h2>${items.length ? items.map(kanbanCard).join('') : '<div class="empty">Sin resultados</div>'}</section>`;
+      return `<section class="kanban-col"><h2>${esc(c)} <span>${items.length}</span></h2>${items.length ? items.map(o => kanbanCard(o, canMove)).join('') : '<div class="empty">Sin resultados</div>'}</section>`;
     }).join('');
     qsa('.open-detail').forEach(btn => btn.addEventListener('click', () => { selectOrder(btn.dataset.nv); location.href = `m05-detalle-pedido.html?nv=${encodeURIComponent(btn.dataset.nv)}`; }));
-    qsa('.move-card').forEach(btn => btn.addEventListener('click', () => moveCard(btn.dataset.nv)));
+    qsa('.move-card').forEach(btn => btn.addEventListener('click', () => moveCard(btn.dataset.nv, user)));
   }
 
-  function kanbanCard(o) {
+  function kanbanCard(o, canMove) {
     const blocked = o.pago !== 'Confirmado';
     return `<article class="kanban-card ${blocked ? 'blocked' : ''} ${o.atraso === 'Crítico' ? 'late' : ''}">
       <div class="card-head"><strong>${esc(o.cliente)}</strong><span class="delay ${slug(o.atraso)}">${esc(o.atraso)}</span></div>
@@ -377,11 +379,12 @@
       <div class="tag-row">${labelBadges(o.etiqueta)}</div>
       <div class="payment-line">${paymentBadge(o.pago)}</div>
       ${blocked ? `<div class="lock-msg">${DATA.messages.paymentWait}</div>` : ''}
-      <div class="button-row"><button class="btn tiny open-detail" data-nv="${esc(o.nv)}">Detalle</button><button class="btn tiny move-card" data-nv="${esc(o.nv)}" ${blocked ? 'disabled' : ''}>Mover →</button></div>
+      <div class="button-row"><button class="btn tiny open-detail" data-nv="${esc(o.nv)}">Detalle</button><button class="btn tiny move-card" data-nv="${esc(o.nv)}" ${blocked || !canMove ? 'disabled' : ''}>Mover →</button></div>
     </article>`;
   }
 
-  function moveCard(nv) {
+  function moveCard(nv, user) {
+    if (!['Administrador', 'Operario'].includes(user?.rol)) return toast(DATA.messages.noPermission, 'danger');
     const orders = getOrders();
     const order = orders.find(o => o.nv === nv);
     if (!order) return;
@@ -391,7 +394,7 @@
     if (order.estado === 'Listo para entrega') toast(DATA.messages.readyDelivery, 'ok');
     else toast(`Movimiento simulado: ${order.nv} → ${order.estado}`, 'ok');
     saveOrders(orders);
-    renderKanban();
+    renderKanban(user);
   }
 
   function bindM05(user) {
@@ -640,6 +643,98 @@
       <div id="userModal" class="modal-backdrop hidden"><div class="modal"><h2>Crear nuevo usuario</h2><label>Nombre <input></label><label>RUT <input placeholder="XX.XXX.XXX-X"></label><label>Email <input placeholder="correo@itecsa.example"></label><label>Rol <select>${DATA.roles.map(r => `<option>${esc(r)}</option>`).join('')}</select></label><label>Firma electrónica <input placeholder="Texto de firma"></label><div id="userFormMsg" class="notice small hidden"></div><div class="button-row"><button class="btn primary" id="saveUser">Guardar</button><button class="btn" id="closeUserModal">Cerrar</button></div></div></div>`;
   }
 
+  function bindM14(user) {
+    ['trackingSearch', 'trackingState', 'trackingDelay', 'trackingOwner'].forEach(id => {
+      const el = qs(`#${id}`);
+      el?.addEventListener('input', () => renderTracking(user));
+      el?.addEventListener('change', () => renderTracking(user));
+    });
+    renderTracking(user);
+  }
+
+  function m14(user) {
+    const orders = getOrders();
+    const states = ['Todos', ...columns];
+    const delays = ['Todos', ...new Set(orders.map(o => o.atraso))];
+    const owners = ['Todos', ...new Set(orders.flatMap(o => [o.vendedor, o.responsable]).filter(Boolean))];
+    const lateCount = orders.filter(o => o.atraso !== 'Sin atraso').length;
+    const pendingPayment = orders.filter(o => o.pago !== 'Confirmado').length;
+    const missingDocs = orders.filter(o => !o.documentos.op || !o.documentos.ficha).length;
+    const kanbanLink = AUTH.canAccess(user.rol, 'm04') ? '<a class="btn secondary" href="m04-kanban.html">Abrir Kanban</a>' : '';
+    const reportLink = AUTH.canAccess(user.rol, 'm12') ? '<a class="btn ghost" href="m12-reportes.html">Ver reportes</a>' : '';
+    return `
+      <section class="page-grid one">
+        <article class="card">
+          <div class="split-title">
+            <div>
+              <h2>Vista general de seguimiento</h2>
+              <p class="muted">Listado de consulta para ubicar pedidos por NV, OP, cliente, vendedor o responsable antes de abrir su detalle.</p>
+            </div>
+            <div class="button-row">${kanbanLink}${reportLink}</div>
+          </div>
+          <div class="state-grid tracking-summary">
+            <div class="state ok">${orders.length} pedidos visibles</div>
+            <div class="state warn">${pendingPayment} con pago pendiente o rechazado</div>
+            <div class="state danger">${lateCount} con atraso</div>
+            <div class="state warn">${missingDocs} con documentos faltantes</div>
+          </div>
+          <div class="filters tracking-filters">
+            <label>NV, OP o cliente <input id="trackingSearch" placeholder="NV-2026-0148, OP-2026-0081 o cliente"></label>
+            <label>Estado <select id="trackingState">${states.map(s => `<option>${esc(s)}</option>`).join('')}</select></label>
+            <label>Atraso <select id="trackingDelay">${delays.map(d => `<option>${esc(d)}</option>`).join('')}</select></label>
+            <label>Vendedor/responsable <select id="trackingOwner">${owners.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>
+          </div>
+          <div id="trackingResults"></div>
+        </article>
+      </section>`;
+  }
+
+  function renderTracking(user) {
+    const target = qs('#trackingResults');
+    if (!target) return;
+    const search = qs('#trackingSearch')?.value.trim().toLowerCase() || '';
+    const state = qs('#trackingState')?.value || 'Todos';
+    const delay = qs('#trackingDelay')?.value || 'Todos';
+    const owner = qs('#trackingOwner')?.value || 'Todos';
+    const canOpenKanban = AUTH.canAccess(user.rol, 'm04');
+    const rows = getOrders().filter(o => {
+      const matchesSearch = !search || [o.nv, o.op, o.cliente].some(v => String(v).toLowerCase().includes(search));
+      const matchesOwner = owner === 'Todos' || o.vendedor === owner || o.responsable === owner;
+      return matchesSearch && matchesOwner && (state === 'Todos' || o.estado === state) && (delay === 'Todos' || o.atraso === delay);
+    });
+    if (!rows.length) {
+      target.innerHTML = '<div class="empty">Sin resultados</div>';
+      return;
+    }
+    target.innerHTML = `
+      <div class="table-wrap">
+        <table class="tracking-table">
+          <thead><tr><th>Pedido</th><th>Cliente y producto</th><th>Estado</th><th>Pago</th><th>Fecha</th><th>Responsable</th><th>Atraso</th><th>Último evento</th><th>Acciones</th></tr></thead>
+          <tbody>${rows.map(o => trackingRow(o, canOpenKanban)).join('')}</tbody>
+        </table>
+      </div>`;
+    qsa('.tracking-detail').forEach(btn => btn.addEventListener('click', () => {
+      selectOrder(btn.dataset.nv);
+      location.href = `m05-detalle-pedido.html?nv=${encodeURIComponent(btn.dataset.nv)}`;
+    }));
+  }
+
+  function trackingRow(o, canOpenKanban) {
+    const event = lastEvent(o.nv);
+    const rowState = o.pago !== 'Confirmado' || !o.documentos.op || !o.documentos.ficha ? 'blocked-row' : '';
+    return `<tr class="${rowState}">
+      <td><strong>${esc(o.nv)}</strong><span class="table-note">${esc(o.op)}</span></td>
+      <td><strong>${esc(o.cliente)}</strong><span class="table-note">${esc(o.producto)} · ${esc(o.cantidad)} unidades</span></td>
+      <td><span class="badge ok">${esc(o.estado)}</span><div class="tag-row">${labelBadges(o.etiqueta)}</div></td>
+      <td>${paymentBadge(o.pago)}</td>
+      <td><strong>${esc(o.fecha)}</strong><span class="table-note">Estimada: ${esc(o.fechaEstimada)}</span></td>
+      <td><strong>${esc(o.responsable)}</strong><span class="table-note">Vendedor: ${esc(o.vendedor)}</span></td>
+      <td><span class="delay ${slug(o.atraso)}">${esc(o.atraso)}</span></td>
+      <td>${event ? `<strong>${esc(event.accion)}</strong><span class="table-note">${esc(event.fecha)} · ${esc(event.hora)} · ${esc(event.usuario)}</span>` : '<span class="muted">Sin resultados</span>'}</td>
+      <td><div class="button-row"><button class="btn tiny tracking-detail" data-nv="${esc(o.nv)}">Ver detalle</button>${canOpenKanban ? '<a class="btn tiny secondary" href="m04-kanban.html">Kanban</a>' : ''}</div></td>
+    </tr>`;
+  }
+
   function stepper(stages, order, compact = false) {
     return `<ol class="stepper ${compact ? 'compact' : ''}">${stages.map((s, i) => `<li class="${i < 2 ? 'done' : i === 2 ? 'active' : ''}"><strong>${esc(s)}</strong><span>${i < 2 ? 'Completado' : i === 2 ? 'En curso' : 'Pendiente'}</span></li>`).join('')}</ol>`;
   }
@@ -650,6 +745,9 @@
     const items = DATA.histories[nv] || [];
     if (!items.length) return '<div class="empty">Sin resultados</div>';
     return `<ul class="timeline">${items.map(h => `<li><strong>${esc(h.estado)}</strong><span>${esc(h.fecha)} · ${esc(h.hora)} · ${esc(h.usuario)}</span><em>${esc(h.accion)}</em><p>${esc(h.comentario)}</p></li>`).join('')}</ul>`;
+  }
+  function lastEvent(nv) {
+    return (DATA.histories[nv] || [])[0] || null;
   }
   function notificationList(user) {
     const items = DATA.notifications.filter(n => n.destinatario === user.rol || user.rol === 'Administrador');

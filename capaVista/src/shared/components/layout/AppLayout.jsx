@@ -12,7 +12,6 @@ function AppLayout() {
         <div className="row min-vh-100 ">
             <div className={`col-2 ${styles.sidebar}` }>
                 <Sidebar/>
-
             </div>
             <div className="col-10 ">
                 a

@@ -1,11 +1,7 @@
-import { useState } from 'react'
 import Sidebar from './Sidebar'
 import styles from './Layout.module.css'
 
-
 function AppLayout() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
       <div className="container-fluid">

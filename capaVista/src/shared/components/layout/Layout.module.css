@@ -1,0 +1,14 @@
+.sidebar {
+    background-color: rgb(18, 77, 77);
+}
+
+.sidebar a {
+    text-decoration: none;
+    color: #fff;
+
+}
+
+.sidebar hr {
+    width: 100%;
+    border: 1px solid black;
+}

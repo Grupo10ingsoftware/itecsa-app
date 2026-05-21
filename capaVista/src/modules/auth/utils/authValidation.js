@@ -1,3 +1,4 @@
+// Reglas reutilizables para creacion de usuario o cambio de contrasena; no se muestran en el login.
 export const PASSWORD_RULES = Object.freeze([
   {
     id: 'length',

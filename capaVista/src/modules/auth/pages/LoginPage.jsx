@@ -1,9 +1,17 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../../../hooks/useAuth'
 import LoginForm from '../components/LoginForm'
 import styles from './LoginPage.module.css'
 
 export default function LoginPage() {
+  const { isAuthenticated } = useAuth()
   const [recoveryMessage, setRecoveryMessage] = useState('')
+
+  if (isAuthenticated) {
+    // Redireccion con sesion simulada: evita volver al login mientras el usuario visual esta activo.
+    return <Navigate replace to="/kanban" />
+  }
 
   function handleForgotPassword() {
     // Preparacion visual para RF14 / UR 1.15: no envia correos, no genera tokens y no llama backend/Auth0.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import { findMockLoginCredential } from '../mocks/authCredentials'
 
@@ -44,6 +45,8 @@ function validatePassword(password) {
 
 export default function LoginForm({ onLoginError }) {
   const { loginAsMockUser, mockUsers } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState({
@@ -88,6 +91,10 @@ export default function LoginForm({ onLoginError }) {
     }
 
     loginAsMockUser(credential.idUsuario)
+
+    // Tras login visual exitoso, vuelve a la ruta protegida solicitada o al Kanban inicial.
+    const redirectPath = location.state?.from?.pathname || '/kanban'
+    navigate(redirectPath, { replace: true })
   }
 
   return (

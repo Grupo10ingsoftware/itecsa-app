@@ -2,7 +2,8 @@
     background-color: rgb(18, 77, 77);
 }
 
-.sidebar a {
+.sidebar a,
+.sidebar span {
     text-decoration: none;
     color: #fff;
 

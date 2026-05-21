@@ -1,22 +1,10 @@
 import AppProviders from './providers/AppProviders'
-import AppLayout from '../shared/components/layout/AppLayout'
-import { useAuth } from '../hooks/useAuth'
-import LoginPage from '../modules/auth/pages/LoginPage'
-
-function AppContent() {
-  const { isAuthenticated } = useAuth()
-
-  if (!isAuthenticated) {
-    return <LoginPage />
-  }
-
-  return <AppLayout />
-}
+import AppRouter from './router'
 
 function App() {
   return (
     <AppProviders>
-      <AppContent />
+      <AppRouter />
     </AppProviders>
   )
 }

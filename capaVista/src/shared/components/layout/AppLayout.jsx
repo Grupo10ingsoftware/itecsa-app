@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import styles from './Layout.module.css'
+import KanbanBoardPage from '../../../modules/kanban/pages/KanbanBoardPage'
 
 
 function AppLayout() {
@@ -14,7 +15,7 @@ function AppLayout() {
                 <Sidebar/>
             </div>
             <div className="col-10 ">
-                a
+                <KanbanBoardPage />
             </div>
             
 

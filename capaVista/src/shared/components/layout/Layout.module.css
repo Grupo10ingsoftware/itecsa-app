@@ -24,7 +24,8 @@
     opacity: 1;
 }
 
-.sidebarUserBlock {
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    padding-top: 1rem;
+.topbar {
+    min-height: 4.5rem;
+    border-bottom: 1px solid #dde5e5;
+    background-color: #fff;
 }

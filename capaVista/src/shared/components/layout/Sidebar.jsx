@@ -21,6 +21,11 @@ export default function Sidebar() {
             </NavLink>
           </>
         )}
+        {hasPermission(PERMISSIONS.CREATE_USERS_VISUALLY) && (
+          <NavLink className="nav-link" to="/admin/usuarios/nuevo">
+            Crear usuario
+          </NavLink>
+        )}
       </div>
 
       <div className={`w-100 mt-auto ${styles.sidebarUserBlock}`}>

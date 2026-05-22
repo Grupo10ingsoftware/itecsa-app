@@ -1,23 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ROLES } from '../config/roles'
+import { PERMISSIONS } from '../config/permissions'
 import { useAuth } from '../hooks/useAuth'
 import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
 import KanbanBoardPage from '../modules/kanban/pages/KanbanBoardPage'
+import UserCreatePage from '../modules/users/pages/UserCreatePage'
 import AppLayout from '../shared/components/layout/AppLayout'
 import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
 import RoleGuard from '../shared/components/navigation/RoleGuard'
-
-function AdminPlaceholderPage() {
-  return (
-    <section className="p-4">
-      <h1 className="h4 mb-2">Administracion</h1>
-      <p className="text-secondary mb-0">
-        Ruta visual reservada para validar acceso por rol en el frontend inicial.
-      </p>
-    </section>
-  )
-}
 
 function UnknownRouteRedirect() {
   const { isAuthenticated } = useAuth()
@@ -36,11 +26,12 @@ export default function AppRouter() {
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to="/kanban" replace />} />
           <Route path="kanban" element={<KanbanBoardPage />} />
+          <Route path="admin" element={<Navigate replace to="/admin/usuarios/nuevo" />} />
           <Route
-            path="admin"
+            path="admin/usuarios/nuevo"
             element={
-              <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
-                <AdminPlaceholderPage />
+              <RoleGuard requiredPermission={PERMISSIONS.CREATE_USERS_VISUALLY}>
+                <UserCreatePage />
               </RoleGuard>
             }
           />

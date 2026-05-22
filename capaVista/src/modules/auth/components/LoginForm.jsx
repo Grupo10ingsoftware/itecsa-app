@@ -6,6 +6,21 @@ import { findMockLoginCredential } from '../mocks/authCredentials'
 const ACCOUNT_DISABLED_MESSAGE = 'Cuenta desactivada'
 const INVALID_CREDENTIALS_MESSAGE = 'Correo o contraseña incorrectos'
 
+function getSafeRedirectPath(state, search) {
+  const searchParams = new URLSearchParams(search)
+  const candidatePath = state?.fromPath ?? searchParams.get('from') ?? state?.from?.pathname
+
+  if (
+    typeof candidatePath === 'string' &&
+    candidatePath.startsWith('/') &&
+    !candidatePath.startsWith('//')
+  ) {
+    return candidatePath
+  }
+
+  return '/kanban'
+}
+
 function validateEmail(email) {
   const trimmedEmail = email.trim()
   const errors = []
@@ -21,11 +36,11 @@ function validateEmail(email) {
   }
 
   if (atMatches.length > 1) {
-    errors.push('El correo no debe contener multiples arrobas.')
+    errors.push('El correo no debe contener múltiples arrobas.')
   }
 
   if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    errors.push('Ingresa un correo con formato texto@dominio.extension.')
+    errors.push('Ingresa un correo con formato texto@dominio.extensión.')
   }
 
   if (trimmedEmail && atMatches.length === 1 && !domain.includes('.')) {
@@ -37,7 +52,7 @@ function validateEmail(email) {
 
 function validatePassword(password) {
   if (!password) {
-    return ['La contrasena es obligatoria.']
+    return ['La contraseña es obligatoria.']
   }
 
   return []
@@ -93,7 +108,7 @@ export default function LoginForm({ onLoginError }) {
     loginAsMockUser(credential.idUsuario)
 
     // Tras login visual exitoso, vuelve a la ruta protegida solicitada o al Kanban inicial.
-    const redirectPath = location.state?.from?.pathname || '/kanban'
+    const redirectPath = getSafeRedirectPath(location.state, location.search)
     navigate(redirectPath, { replace: true })
   }
 
@@ -107,7 +122,7 @@ export default function LoginForm({ onLoginError }) {
 
       <div className="mb-3">
         <label className="form-label" htmlFor="login-email">
-          Correo electronico
+          Correo electrónico
         </label>
         <input
           aria-describedby="login-email-errors"
@@ -132,7 +147,7 @@ export default function LoginForm({ onLoginError }) {
 
       <div className="mb-3">
         <label className="form-label" htmlFor="login-password">
-          Contrasena
+          Contraseña
         </label>
         <input
           aria-describedby="login-password-errors"
@@ -156,7 +171,7 @@ export default function LoginForm({ onLoginError }) {
       </div>
 
       <button className="btn btn-primary w-100" type="submit">
-        Iniciar sesion
+        Iniciar sesión
       </button>
     </form>
   )

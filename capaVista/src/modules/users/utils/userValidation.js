@@ -39,7 +39,7 @@ export function validateRut(value) {
 
 export function validateEmail(value, existingUsers) {
   const trimmedEmail = value.trim()
-  const errors = validateRequiredText(trimmedEmail, 'El correo electronico es obligatorio.')
+  const errors = validateRequiredText(trimmedEmail, 'El correo electrónico es obligatorio.')
   const atMatches = trimmedEmail.match(/@/g) ?? []
   const [, domain = ''] = trimmedEmail.split('@')
 
@@ -48,11 +48,11 @@ export function validateEmail(value, existingUsers) {
   }
 
   if (atMatches.length > 1) {
-    errors.push('El correo no debe contener multiples arrobas.')
+    errors.push('El correo no debe contener múltiples arrobas.')
   }
 
   if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    errors.push('Ingresa un correo con formato texto@dominio.extension.')
+    errors.push('Ingresa un correo con formato texto@dominio.extensión.')
   }
 
   if (trimmedEmail && atMatches.length === 1 && !domain.includes('.')) {
@@ -96,7 +96,7 @@ export function validatePassword(value) {
 
 export function validateSignatureReference(value) {
   const trimmedValue = value.trim()
-  const errors = validateRequiredText(trimmedValue, 'La firma electronica es obligatoria.')
+  const errors = validateRequiredText(trimmedValue, 'La firma electrónica es obligatoria.')
   const lowerValue = trimmedValue.toLowerCase()
   const hasAllowedExtension = ALLOWED_SIGNATURE_EXTENSIONS.some((extension) => {
     return lowerValue.endsWith(extension)
@@ -104,7 +104,7 @@ export function validateSignatureReference(value) {
 
   // En MER 06 la firma electronica se representa como referencia documental, no como binario dentro de Usuario.
   if (errors.length === 0 && !hasAllowedExtension) {
-    errors.push('La firma electronica debe tener extension .xml, .cms o .pdf.')
+    errors.push('La firma electrónica debe tener extensión .xml, .cms o .pdf.')
   }
 
   return errors

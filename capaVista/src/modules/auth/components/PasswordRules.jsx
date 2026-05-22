@@ -5,7 +5,7 @@ export default function PasswordRules({ password }) {
 
   return (
     <div className="mt-2" aria-live="polite">
-      <p className="mb-1 small fw-semibold text-secondary">Reglas de contrasena</p>
+      <p className="mb-1 small fw-semibold text-secondary">Reglas de contraseña</p>
       <ul className="list-unstyled mb-0 small">
         {ruleResults.map((rule) => (
           <li

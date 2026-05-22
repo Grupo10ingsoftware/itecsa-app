@@ -3,8 +3,7 @@ export default function KanbanBoardPage() {
     <section className="p-4">
       <h1 className="h4 mb-2">Kanban</h1>
       <p className="text-secondary mb-0">
-        Vista principal preparada para el frontend inicial. La funcionalidad Kanban real queda fuera de
-        este entregable.
+        Vista principal de seguimiento de producción.
       </p>
     </section>
   )

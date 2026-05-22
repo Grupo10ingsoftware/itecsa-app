@@ -29,7 +29,17 @@ const INITIAL_ERRORS = Object.freeze({
 })
 
 const SUCCESS_MESSAGE =
-  'Usuario preparado visualmente. La creación real queda pendiente de backend.'
+  'Usuario preparado correctamente. Los datos no se han guardado.'
+
+const PREVIEW_FIELDS = Object.freeze([
+  ['Primer nombre', 'primerNombre'],
+  ['Apellido paterno', 'apellidoPaterno'],
+  ['RUT', 'rutUsuario'],
+  ['Correo electrónico', 'correoUsuario'],
+  ['Rol', 'rolUsuario'],
+  ['Estado', 'estadoUsuario'],
+  ['Firma electrónica', 'referenciaFirmaElectronica'],
+])
 
 function FieldErrors({ errors, id }) {
   if (errors.length === 0) {
@@ -173,14 +183,14 @@ export default function UserCreateForm() {
           value={values.rutUsuario}
         />
         <div className="form-text" id="user-rut-help">
-          Validacion visual de formato; el digito verificador real queda para backend.
+          Usa el formato 12.345.678-9 o 12.345.678-K.
         </div>
         <FieldErrors errors={fieldErrors.rutUsuario} id="user-rut-errors" />
       </div>
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="user-email">
-          Correo electronico
+          Correo electrónico
         </label>
         <input
           aria-describedby="user-email-errors"
@@ -222,7 +232,7 @@ export default function UserCreateForm() {
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="user-signature">
-          Firma electronica
+          Firma electrónica
         </label>
         <input
           accept=".xml,.cms,.pdf"
@@ -238,8 +248,7 @@ export default function UserCreateForm() {
           type="file"
         />
         <div className="form-text" id="user-signature-help">
-          En MER 06 la firma electronica se representa como referencia documental, no
-          como binario dentro de Usuario.
+          Formatos permitidos: XML, CMS o PDF.
         </div>
         {values.referenciaFirmaElectronica && (
           <p className="small text-secondary mb-0 mt-1">
@@ -270,8 +279,7 @@ export default function UserCreateForm() {
           <PasswordRules password={values.password} />
         </div>
         <p className="form-text mb-0">
-          La contraseña en este formulario es solo visual/preparatoria; la base de
-          datos futura no almacena contraseñas.
+          Debe cumplir todas las reglas indicadas.
         </p>
         <FieldErrors errors={fieldErrors.password} id="user-password-errors" />
       </div>
@@ -285,12 +293,12 @@ export default function UserCreateForm() {
       {preparedUser && (
         <div className="col-12">
           <div className="border rounded p-3 bg-light">
-            <h2 className="h6 mb-3">Preview MER 06 preparado</h2>
+            <h2 className="h6 mb-3">Resumen del usuario</h2>
             <dl className="row mb-0 small">
-              {Object.entries(preparedUser).map(([field, value]) => (
+              {PREVIEW_FIELDS.map(([label, field]) => (
                 <div className="col-md-6" key={field}>
-                  <dt className="text-secondary">{field}</dt>
-                  <dd>{value}</dd>
+                  <dt className="text-secondary">{label}</dt>
+                  <dd>{preparedUser[field]}</dd>
                 </div>
               ))}
             </dl>

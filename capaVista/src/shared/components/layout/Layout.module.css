@@ -1,15 +1,30 @@
 .sidebar {
     background-color: rgb(18, 77, 77);
+    min-height: 100vh;
 }
 
-.sidebar a,
-.sidebar span {
+.sidebarNav {
+    min-height: 100vh;
+}
+
+.sidebarNav a,
+.sidebarNav span {
     text-decoration: none;
     color: #fff;
-
 }
 
-.sidebar hr {
+.sidebarNav a:hover,
+.sidebarNav a:focus {
+    color: #d8eeee;
+}
+
+.sidebarNav hr {
     width: 100%;
-    border: 1px solid black;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    opacity: 1;
+}
+
+.sidebarUserBlock {
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    padding-top: 1rem;
 }

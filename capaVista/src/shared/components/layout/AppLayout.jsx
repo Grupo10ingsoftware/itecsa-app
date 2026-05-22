@@ -1,27 +1,23 @@
-import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import Topbar from './Topbar'
 import styles from './Layout.module.css'
-import KanbanBoardPage from '../../../modules/kanban/pages/KanbanBoardPage'
-
 
 function AppLayout() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div className="container-fluid">
-        <div className="row min-vh-100 ">
-            <div className={`col-2 ${styles.sidebar}` }>
-                <Sidebar/>
-            </div>
-            <div className="col-10 ">
-                <KanbanBoardPage />
-            </div>
-            
-
+    <div className="container-fluid">
+      <div className="row min-vh-100">
+        <div className={`col-2 ${styles.sidebar}`}>
+          <Sidebar />
+        </div>
+        <div className="col-10 px-0">
+          <Topbar />
+          <main>
+            <Outlet />
+          </main>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 

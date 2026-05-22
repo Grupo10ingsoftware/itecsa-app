@@ -1,13 +1,11 @@
-import { useState } from 'react'
-// import './App.css'
-import AppLayout from '../shared/components/layout/AppLayout'
-function App() {
-  const [count, setCount] = useState(0)
+import AppProviders from './providers/AppProviders'
+import AppRouter from './router'
 
+function App() {
   return (
-    <>
-      <AppLayout></AppLayout>
-    </>
+    <AppProviders>
+      <AppRouter />
+    </AppProviders>
   )
 }
 

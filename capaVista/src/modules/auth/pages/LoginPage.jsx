@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
+import DevLoginButton from '../components/DevLoginButton'
 import LoginForm from '../components/LoginForm'
 import styles from './LoginPage.module.css'
 
@@ -45,6 +46,10 @@ export default function LoginPage() {
           </button>
         </div>
       </section>
+
+      <div className={styles.devLoginPanel}>
+        <DevLoginButton />
+      </div>
     </main>
   )
 }

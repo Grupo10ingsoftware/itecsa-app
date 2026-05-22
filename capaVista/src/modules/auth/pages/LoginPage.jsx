@@ -4,6 +4,8 @@ import { useAuth } from '../../../hooks/useAuth'
 import DevLoginButton from '../components/DevLoginButton'
 import LoginForm from '../components/LoginForm'
 import styles from './LoginPage.module.css'
+// Une usuarios mock con credenciales temporales para exponer accesos de prueba sin agregar contraseñas a MOCK_USERS.
+import { MOCK_AUTH_CREDENTIALS } from '../mocks/authCredentials'
 
 function getSafeRedirectPath(state, search) {
   const searchParams = new URLSearchParams(search)
@@ -21,7 +23,20 @@ function getSafeRedirectPath(state, search) {
 }
 
 export default function LoginPage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, mockUsers } = useAuth()
+
+const devCredentials = mockUsers.map((user) => {
+  const credential = MOCK_AUTH_CREDENTIALS.find((item) => {
+    return item.idUsuario === user.idUsuario
+  })
+
+  return {
+    idUsuario: user.idUsuario,
+    rolUsuario: user.rolUsuario,
+    correoUsuario: user.correoUsuario,
+    password: credential?.password ?? 'Sin contraseña mock',
+  }
+})
   const location = useLocation()
   const [recoveryMessage, setRecoveryMessage] = useState('')
 
@@ -64,6 +79,27 @@ export default function LoginPage() {
       </section>
 
       <div className={styles.devLoginPanel}>
+        {/* Credenciales visibles solo para facilitar pruebas del frontend inicial; no representan login real ni datos productivos. */}
+        <div className={styles.devCredentialsList}>
+          <p className={styles.devCredentialsTitle}>Credenciales simuladas</p>
+
+          {devCredentials.map((credential) => (
+            <div className={styles.devCredentialItem} key={credential.idUsuario}>
+              <div className={styles.devCredentialRole}>{credential.rolUsuario}</div>
+
+              <div className={styles.devCredentialLine}>
+                <span>Correo:</span>
+                <code>{credential.correoUsuario}</code>
+              </div>
+
+              <div className={styles.devCredentialLine}>
+                <span>Contraseña:</span>
+                <code>{credential.password}</code>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <DevLoginButton />
       </div>
     </main>

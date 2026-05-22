@@ -1,6 +1,6 @@
 // La base de datos futura no almacena contraseñas; estas credenciales son solo datos temporales para simular login visual.
 // Este fixture no representa el modelo Usuario y debe reemplazarse por backend/Auth0 en una integracion futura.
-const MOCK_AUTH_CREDENTIALS = Object.freeze([
+export const MOCK_AUTH_CREDENTIALS = Object.freeze([
   Object.freeze({
     idUsuario: 'mock-user-admin-001',
     correoUsuario: 'admin.mock@itecsa.local',

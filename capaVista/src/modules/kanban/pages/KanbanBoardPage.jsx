@@ -1,21 +1,7 @@
-const columns = [
-  {
-    title: 'Confirmación de pago',
-    color: '#B388FF',
-  },
-  {
-    title: 'Listo para producción',
-    color: '#64B5F6',
-  },
-  {
-    title: 'En producción',
-    color: '#F4A261',
-  },
-  {
-    title: 'Listo para entrega',
-    color: '#7ED957',
-  },
-]
+import KanbanCard from "../components/KanbanCard"
+import KanbanColumn from "../components/KanbanColumn"
+
+
 
 export default function KanbanBoardPage() {
   return (
@@ -26,29 +12,8 @@ export default function KanbanBoardPage() {
           Vista principal de seguimiento de producción.
         </p>
       </div>
-
-      <div className="d-flex flex-wrap gap-3 justify-content-center align-items-start">
-        {columns.map((column) => (
-          <div
-            key={column.title}
-            className="bg-light rounded p-3 shadow-sm"
-            style={{
-              width: '250px',
-              minHeight: '500px',
-            }}
-          >
-            <div
-              className="rounded text-center fw-bold mb-3"
-              style={{
-                backgroundColor: column.color,
-                padding: '10px',
-              }}
-            >
-              {column.title}
-            </div>
-          </div>
-        ))}
-      </div>
+      <KanbanColumn />
+      
     </section>
   )
 }

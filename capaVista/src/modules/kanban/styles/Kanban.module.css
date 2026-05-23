@@ -1,0 +1,72 @@
+.kanban-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: space-between;
+}
+
+.kanban-wrapper::-webkit-scrollbar {
+    height: 15px;
+}
+
+.kanban-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.kanban-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.k-columns-container {
+    flex-shrink: 0;
+    width: 15vw;
+    background-color: #e8e7e7;
+    min-height: 500px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    margin: 0 2vw;
+    
+}
+
+.column-title{
+border: solid 2px #555;
+}
+
+
+
+.order-card {
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+.order-card:hover{
+    transition: 0.3s;
+    transform: scale(1.02);
+    
+}
+
+@media (max-width: 800px) {
+    .kanban-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* display: flex; */
+    
+    }
+    .k-columns-container {
+        width: 80vw; 
+        margin: 0 1vw;
+    }
+}
+
+@media (max-width: 480px) {
+    .k-columns-container {
+        width: 80vw; 
+        margin: 0 0.5vw;
+    }
+}
+

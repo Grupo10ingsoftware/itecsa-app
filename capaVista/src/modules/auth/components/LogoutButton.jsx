@@ -7,6 +7,7 @@ export default function LogoutButton() {
   const navigate = useNavigate()
 
   function handleLogout() {
+    // Logout visual/simulado: limpia solo estado React en memoria; backend/Auth0 lo reemplazara.
     logout()
     navigate('/login', { replace: true })
   }

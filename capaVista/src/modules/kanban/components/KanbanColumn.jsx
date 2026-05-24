@@ -37,6 +37,24 @@ const initialOrders = [
       product: "Lanyards",
       date: "21-05-2026",
       paymentStatus: "",
+      orderStatus: "Confirmación de pago",
+    },
+    {
+      id: 4,
+      clientName: "Bulla de mi amor",
+      nv: "NV-6779",
+      product: "Lanyards",
+      date: "21-05-2026",
+      paymentStatus: "",
+      orderStatus: "Listo para entrega",
+    },
+    {
+      id: 5,
+      clientName: "Puro sentimiento",
+      nv: "NV-6777",
+      product: "Lanyards",
+      date: "21-05-2026",
+      paymentStatus: "",
       orderStatus: "Listo para entrega",
     },
 ]
@@ -72,6 +90,7 @@ function Droppable({id, children}) {
     </div>
   );
 }
+
 
 function KanbanColumn() {
   const [orders, setOrders] = useState(initialOrders);

@@ -1,5 +1,6 @@
 import KanbanCard from "../components/KanbanCard"
 import KanbanColumn from "../components/KanbanColumn"
+import KanbanFilters from "../components/KanbanFilters"
 
 
 
@@ -12,6 +13,10 @@ export default function KanbanBoardPage() {
           Vista principal de seguimiento de producción.
         </p>
       </div>
+      <div className="row ">
+        <KanbanFilters></KanbanFilters>
+      </div>
+      <hr />
       <div className="row">
         <KanbanColumn/>
       </div>

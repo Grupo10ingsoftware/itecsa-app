@@ -1,4 +1,5 @@
 import styles from '../styles/Kanban.module.css';
+
 import {useDraggable} from '@dnd-kit/react';
 
 
@@ -12,7 +13,7 @@ function KanbanCard({ clientName, nv, product, date }){
             <p className="card-text">NV: {nv}</p>
             <p className="card-text">Producto: {product}</p>
             <p className="card-text">Fecha: {date}</p>
-            <button className="btn btn-sm btn-outline-primary">Detalle</button>
+            <button className={`${styles['order-card-button']}`}><span>Detalle</span></button>
         </div>
     )
 }

@@ -113,7 +113,7 @@ export default function PaymentConfirmationPage() {
           paymentStatus: newStatus,
           updatedAt: new Date(),
         }
-       
+
         if (newStatus === PAYMENT_STATUS.CONFIRMADO) {
           updated.orderStatus = ACTION_STATUS.LISTO_PRODUCCION
         }

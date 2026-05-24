@@ -1,11 +1,5 @@
 import styles from '../styles/Kanban.module.css';
-
-
-
-
 import {useDraggable} from '@dnd-kit/react';
-
-
 
 
 function KanbanCard({ clientName, nv, product, date }){

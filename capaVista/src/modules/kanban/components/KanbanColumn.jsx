@@ -19,7 +19,7 @@ const initialOrders = [
       product: "Lanyards",
       date: "21-05-2026",
       paymentStatus: "",
-      orderStatus: "Confirmación de pago",
+      orderStatus: "Listo para producción",
     },
     {
       id: 2,
@@ -95,20 +95,26 @@ function KanbanColumn() {
   return (
     <DragDropProvider onDragEnd={handleDragEnd}>
       <div className={styles["kanban-wrapper"]}>
+        
         {columns.map((column) => (
-          <Droppable key={column.title} id={column.title}>
-            <div
-              className={`rounded text-center fw-bold mb-3 ${styles["column-title"]}`}
-              style={{ backgroundColor: column.color, padding: "10px" }}
+          <div key={column.title}>
+            <Droppable 
+              key={column.title} 
+              id={column.title} 
             >
-              {column.title}
-            </div>
-            {orders
-              .filter((order) => column.title === order.orderStatus)
-              .map((order) => (
-                <KanbanCard key={order.id} {...order} />
-              ))}
-          </Droppable>
+              <div
+                className={`rounded text-center fw-bold mb-3 ${styles["column-title"]}`}
+                style={{ backgroundColor: column.color, padding: "10px" }}
+              >
+                {column.title}
+              </div>
+              {orders
+                .filter((order) => column.title === order.orderStatus)
+                .map((order) => (
+                  <KanbanCard key={order.id} {...order} />
+                ))}
+            </Droppable>
+          </div>
         ))}
       </div>
     </DragDropProvider>

@@ -12,7 +12,9 @@ export default function KanbanBoardPage() {
           Vista principal de seguimiento de producción.
         </p>
       </div>
-      <KanbanColumn />
+      <div className="row">
+        <KanbanColumn/>
+      </div>
       
     </section>
   )

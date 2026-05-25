@@ -1,0 +1,105 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   OrderCreatePage.module.css
+   Estilos específicos de la página de creación de pedidos (módulo orders)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.page {
+  padding: 1.5rem 0;
+}
+
+/* ── Header ── */
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: rgb(18, 77, 77);
+  margin-bottom: 0.25rem;
+}
+
+.pageSubtitle {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+
+/* ── Formulario ── */
+.formCard {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Etiqueta de sección ── */
+.sectionTitle {
+  color: rgb(18, 77, 77);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* ── Área de comentarios ── */
+.commentArea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ── Notificaciones ── */
+.notificationWrapper {
+  position: relative;
+}
+
+/* ── Botones de acción ── */
+.actionsBar {
+  border-top: 1px solid #dee2e6;
+  padding-top: 1rem;
+}
+
+/* ── Vista previa de datos importados ── */
+.previewCard {
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.previewRow strong {
+  color: rgb(18, 77, 77);
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.1rem;
+}
+
+.previewRow span {
+  font-size: 0.95rem;
+}
+
+/* ── Badge de sobrecarga ── */
+.capacityBadge {
+  font-weight: 600;
+}
+
+/* ── Etiqueta de archivo adjunto ── */
+.attachedFile {
+  font-size: 0.85rem;
+  color: rgb(18, 77, 77);
+  background: rgba(18, 77, 77, 0.08);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ── Mensaje de duplicación ── */
+.duplicateAlert {
+  border-left: 4px solid #dc3545;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .pageTitle {
+    font-size: 1.4rem;
+  }
+}

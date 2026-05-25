@@ -7,6 +7,7 @@ import LoginPage from '../modules/auth/pages/LoginPage'
 import KanbanBoardPage from '../modules/kanban/pages/KanbanBoardPage'
 import PaymentConfirmationPage from '../modules/payments/pages/PaymentConfirmationPage'
 import UserCreatePage from '../modules/users/pages/UserCreatePage'
+import OrderCreatePage from '../modules/orders/pages/OrderCreatePage'
 import AppLayout from '../shared/components/layout/AppLayout'
 import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
 import RoleGuard from '../shared/components/navigation/RoleGuard'
@@ -36,6 +37,14 @@ export default function AppRouter() {
               </RoleGuard>
             }
           />
+          <Route
+            path="ordenes/nuevo"
+            element={
+              <RoleGuard requiredPermission={PERMISSIONS.VIEW_ORDERS_MODULE}>
+                <OrderCreatePage />
+              </RoleGuard>
+            }
+          />
           <Route path="admin" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS_CREATE} />} />
           <Route
             path="admin/usuarios/nuevo"
@@ -50,5 +59,5 @@ export default function AppRouter() {
 
       <Route path="*" element={<UnknownRouteRedirect />} />
     </Routes>
-  )
+  );
 }

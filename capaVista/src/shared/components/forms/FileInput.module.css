@@ -1,0 +1,79 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   FileInput.module.css
+   Estilos del componente de carga de archivos con drag-and-drop
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.dropzone {
+  border: 2px dashed #bdc3c7;
+  border-radius: 8px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropzone:hover {
+  border-color: rgb(18, 77, 77);
+  background-color: rgba(18, 77, 77, 0.04);
+}
+
+.dropzone.dragOver {
+  border-color: rgb(18, 77, 77);
+  border-style: solid;
+  background-color: rgba(18, 77, 77, 0.08);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: #95a5a6;
+}
+
+.emptyState p {
+  margin: 0;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.fileDetails {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+}
+
+.fileDetails span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.icon {
+  font-size: 1.5rem;
+  color: rgb(18, 77, 77);
+}
+
+.clearBtn {
+  flex-shrink: 0;
+}
+
+.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}

@@ -7,6 +7,7 @@ export const PERMISSIONS = Object.freeze({
   VIEW_OWN_PROFILE: 'view:own-profile',
   CREATE_USERS_VISUALLY: 'create:users-visually',
   MANAGE_USERS_VISUALLY: 'manage:users-visually',
+  VIEW_ORDERS_MODULE: 'view:orders-module',
 })
 
 // Estos permisos ordenan la experiencia visual del frontend y no reemplazan la autorizacion real del backend.
@@ -18,6 +19,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.VIEW_OWN_PROFILE,
     PERMISSIONS.CREATE_USERS_VISUALLY,
     PERMISSIONS.MANAGE_USERS_VISUALLY,
+    PERMISSIONS.VIEW_ORDERS_MODULE,
   ]),
   [ROLES.GERENCIA]: Object.freeze([
     PERMISSIONS.VIEW_MAIN_NAVIGATION,
@@ -34,6 +36,7 @@ export const ROLE_PERMISSIONS = Object.freeze({
     PERMISSIONS.VIEW_MAIN_NAVIGATION,
     PERMISSIONS.VIEW_KANBAN_MODULE,
     PERMISSIONS.VIEW_OWN_PROFILE,
+    PERMISSIONS.VIEW_ORDERS_MODULE,
   ]),
   [ROLES.COBRANZAS]: Object.freeze([
     PERMISSIONS.VIEW_MAIN_NAVIGATION,

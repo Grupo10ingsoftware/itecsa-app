@@ -1,0 +1,10 @@
+.select {
+  min-height: 2.25rem;
+  border-radius: 0.375rem;
+  border-color: #d2d2d2;
+}
+
+.select:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.25);
+}

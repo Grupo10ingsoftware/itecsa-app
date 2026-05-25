@@ -6,6 +6,7 @@ export const APP_ROUTES = Object.freeze({
   KANBAN: '/kanban',
   PAYMENTS: '/pagos',
   ADMIN_USERS_CREATE: '/admin/usuarios/nuevo',
+  ORDERS_CREATE: '/ordenes/nuevo',
 })
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
@@ -32,5 +33,11 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.ADMIN_USERS_CREATE,
     permission: PERMISSIONS.CREATE_USERS_VISUALLY,
     requirementIds: Object.freeze(['UR 1.4', 'UR 1.12', 'UR 1.13']),
+  },
+  {
+    label: 'Registro de Orden',
+    path: APP_ROUTES.ORDERS_CREATE,
+    permission: PERMISSIONS.VIEW_ORDERS_MODULE,
+    requirementIds: Object.freeze(['UR 19.1', 'UR 19.2', 'UR 19.3', 'UR 19.4', 'UR 19.5']),
   },
 ])

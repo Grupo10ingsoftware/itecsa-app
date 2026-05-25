@@ -5,6 +5,13 @@
 
 .sidebarNav {
     min-height: 100vh;
+    justify-content: space-between;
+}
+
+.sidebarFooter {
+    width: 100%;
+    margin-top: auto;
+    padding-top: 1rem;
 }
 
 .sidebarNav a,

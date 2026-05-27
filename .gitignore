@@ -1,2 +1,36 @@
 # Variables de entorno locales
 .env*
+
+# Dependencias
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build / cobertura
+dist/
+capaVista/**/dist-ssr/
+capaServidor/**/build/
+capaServidor/**/coverage/
+
+# Configuracion local frontend
+capaVista/**/*.local
+capaVista/**/lerna-debug.log*
+
+# Editor y sistema
+.DS_Store
+.idea/
+capaVista/**/.vscode/*
+!capaVista/**/.vscode/extensions.json
+capaServidor/**/.vscode/
+capaVista/**/*.suo
+capaVista/**/*.ntvs*
+capaVista/**/*.njsproj
+capaVista/**/*.sln
+capaVista/**/*.sw?
+capaServidor/**/*.swp

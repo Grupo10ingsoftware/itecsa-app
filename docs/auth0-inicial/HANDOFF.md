@@ -4,7 +4,7 @@
 
 - Rama: `auth0-inicial`.
 - Objetivo futuro: reemplazar la autenticacion simulada de la SPA React por Auth0 e incorporar validacion de autenticacion/autorizacion en Express.
-- Este documento registra el estado encontrado en el repositorio y los recursos Auth0 confirmados mediante auditoria de solo lectura; no confirma implementaciones pendientes.
+- Este documento registra el estado encontrado en el repositorio y los recursos Auth0 confirmados o configurados durante los pasos autorizados; no confirma implementaciones pendientes.
 
 ## Estado inicial encontrado
 
@@ -55,6 +55,23 @@
 - Duplicados o conflictos: no se observaron duplicados entre aplicaciones, APIs, Actions, usuarios o roles visibles; crear una segunda conexion Database con el mismo proposito generaria duplicacion innecesaria.
 - Auditoria ejecutada exclusivamente en modo lectura mediante MCP y revision manual del Dashboard. No se crearon, modificaron, eliminaron ni rotaron recursos; no se consultaron ni documentaron secretos o datos personales.
 
+## Recursos Auth0 base configurados
+
+- SPA creada: `ITECSA Frontend Local` (`client_id`: `hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`), tipo `spa`, OIDC conforme y autenticacion del token endpoint `none`.
+- URLs configuradas en la SPA: callback `http://localhost:5173`, logout `http://localhost:5173` y web origin `http://localhost:5173`.
+- API creada: `ITECSA API` (`id`: `6a1660a4a0a31d800e5d0509`), audience `https://api.itecsa.local`, algoritmo `RS256` y sin scopes de negocio definidos en este paso.
+- Aplicacion M2M creada: `ITECSA Backend Management` (`client_id`: `b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT`), tipo `non_interactive`, reservada para el backend Express.
+- Grant M2M creado hacia `Auth0 Management API`, audience `https://itecsa-sistema.us.auth0.com/api/v2/`, con scope unico `create:users`.
+- Conexion Database reutilizada: `Username-Password-Authentication`, previamente confirmada como administrada por Auth0. El MCP disponible no ofrece lectura o configuracion de conexiones; no se creo ni modifico ninguna conexion durante este paso.
+- `create:users` permite al backend crear usuarios indicando `Username-Password-Authentication` como conexion; no se crearon usuarios en este paso.
+- No se consultaron, guardaron ni documentaron secretos. El secret de la aplicacion M2M debe obtenerse y copiarse manualmente a un entorno local o seguro cuando se implemente el backend.
+
+## Variables de entorno pendientes
+
+- Frontend futuro: `VITE_AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `VITE_AUTH0_CLIENT_ID=hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`, `VITE_AUTH0_AUDIENCE=https://api.itecsa.local`.
+- Backend futuro: `AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `AUTH0_AUDIENCE=https://api.itecsa.local`, `AUTH0_MANAGEMENT_CLIENT_ID=b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT`, `AUTH0_MANAGEMENT_AUDIENCE=https://itecsa-sistema.us.auth0.com/api/v2/`, `AUTH0_DB_CONNECTION=Username-Password-Authentication`.
+- `AUTH0_MANAGEMENT_CLIENT_SECRET` debe completarse manualmente en el entorno local o secreto seguro del backend; su valor no se registra en este documento ni debe exponerse al frontend.
+
 ## Decisiones tecnicas aplicables
 
 - Mantener `useAuth()` como posible fachada interna durante la migracion, reemplazando su implementacion mock solo en un paso posterior.
@@ -86,7 +103,7 @@
 
 - Auditoria inicial del repositorio realizada el `2026-05-26`.
 - Auditoria Auth0 de solo lectura realizada el `2026-05-26` sobre aplicaciones, Resource Servers y Actions disponibles mediante MCP, complementada con revision manual de conexion Database, usuarios y roles.
-- No se modificaron recursos Auth0 ni se realizaron acciones de configuracion.
+- Recursos Auth0 base configurados el `2026-05-26`: SPA local, API propia, aplicacion M2M y grant minimo `create:users`.
 - No se hicieron cambios funcionales de frontend o backend.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
@@ -94,7 +111,7 @@
 
 - [x] 1. Auditoria inicial repo y handoff
 - [x] 2. Auditoria Auth0 via MCP
-- [ ] 3. Recursos Auth0 base via MCP
+- [x] 3. Recursos Auth0 base via MCP
 - [ ] 4. Action Post Login via MCP
 - [ ] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
 - [ ] 6. Variables de entorno
@@ -117,32 +134,34 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues de documentar esta auditoria; no crear ni configurar recursos en este paso.
-- En un paso posterior expresamente autorizado, reutilizar la conexion `Username-Password-Authentication` y crear la SPA `ITECSA Frontend Local`, la API con audience `https://api.itecsa.local`, la aplicacion M2M `ITECSA Backend Management`, la Action Post Login `ITECSA Add Role Claim`, el rol `Administrador` y el usuario bootstrap Administrador, o equivalentes compatibles.
-- Cuando se configure la SPA en un paso posterior, habilitar para ella la conexion Database existente; actualmente no tiene aplicaciones asociadas.
-- No implementar Prisma, MySQL, frontend, backend, variables de entorno ni persistencia de datos como parte de esta auditoria.
+- Mantener detenido el avance despues del paso `3. Recursos Auth0 base via MCP`.
+- Proximo paso numerado pendiente: `4. Action Post Login via MCP`, solo con instruccion expresa y previa confirmacion de recursos existentes.
+- Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
+- No implementar Prisma, MySQL, frontend, backend, archivos `.env*`, usuarios, roles ni persistencia de datos como parte de este paso.
 
 ## Riesgos o supuestos
 
 - Los fixtures actuales incluyen material de autenticacion de prueba visible en la interfaz; deben eliminarse al sustituir el login mock.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
-- Faltan de forma confirmada los recursos ITECSA visibles esperados: SPA, API propia, aplicacion M2M, Action Post Login, rol `Administrador` y usuario bootstrap Administrador.
-- La conexion Database esperada existe, es administrada por Auth0 y no tiene aplicaciones habilitadas actualmente.
-- No se detectaron duplicados entre los recursos visibles; se debe reutilizar la conexion existente y evitar crear otra con el mismo proposito.
+- Permanecen fuera de este paso y pendientes de autorizacion: Action Post Login, rol `Administrador` y usuario bootstrap Administrador.
+- La conexion Database esperada fue confirmada en la auditoria previa como administrada por Auth0 y sin aplicaciones habilitadas visibles; el MCP disponible en este paso no permite revalidar ni modificar conexiones.
+- No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 
 ## Ultima actualizacion del handoff
 
-- Paso completado: `2. Auditoria Auth0 via MCP`.
+- Paso completado: `3. Recursos Auth0 base via MCP`.
 - Fecha: `2026-05-26`.
-- Resumen: se auditaron en modo solo lectura aplicaciones, Resource Servers y Actions mediante MCP, y se completo la revision manual de conexion Database, usuarios y roles mediante capturas del Dashboard.
-- Comandos ejecutados:
-  - `git branch --show-current`, `git status --short --branch`, `git ls-files` y `git log`: confirmaron rama `auth0-inicial`, arbol limpio previo a esta actualizacion y handoff versionado en el commit `716b08b`.
-  - Consultas Auth0 MCP de solo lectura para aplicaciones, Resource Servers y Actions: confirmaron los recursos visibles y la ausencia de recursos ITECSA esperados.
-  - Busqueda exacta del Resource Server `https://api.itecsa.local`: no devolvio resultados.
-- Capturas revisadas:
-  - Revision manual de `Authentication > Database`: confirmo la conexion `Username-Password-Authentication`, administrada por Auth0 y sin aplicaciones asociadas visibles.
-  - Revision manual de `User Management > Users` y `Roles`: confirmo que ambas vistas se encontraban vacias.
-- Resultado: tenant `itecsa-sistema.us.auth0.com` confirmado; se observo la API interna `Auth0 Management API` y la conexion Database reutilizable `Username-Password-Authentication`, sin SPA, API propia, M2M, Action Post Login, rol ni usuario bootstrap ITECSA visibles.
-- Recursos faltantes confirmados: SPA equivalente a `ITECSA Frontend Local`, API con audience `https://api.itecsa.local`, M2M equivalente a `ITECSA Backend Management`, Action Post Login equivalente a `ITECSA Add Role Claim`, rol `Administrador` y usuario bootstrap Administrador.
-- Control de cambios Auth0: no se realizaron creaciones, modificaciones, eliminaciones ni rotaciones de secretos en el tenant.
+- Resumen: se confirmo la ausencia de recursos base ITECSA compatibles y se crearon la SPA local, la API propia y la aplicacion M2M con el grant minimo de Management API requerido para crear usuarios.
+- Verificacion previa:
+  - Aplicaciones: solo estaba visible `All Applications`; no existian `ITECSA Frontend Local` ni `ITECSA Backend Management`.
+  - APIs: solo estaba visible `Auth0 Management API`; no existia el audience `https://api.itecsa.local`.
+  - `Auth0 Management API` expuso el scope `create:users`, requerido para la creacion administrativa de usuarios.
+- Recursos creados:
+  - `ITECSA Frontend Local`, tipo `spa`, con callback/logout/web origin `http://localhost:5173`.
+  - `ITECSA API`, audience `https://api.itecsa.local`, firma `RS256`, sin scopes de negocio.
+  - `ITECSA Backend Management`, tipo `non_interactive`, con grant hacia `https://itecsa-sistema.us.auth0.com/api/v2/` limitado a `create:users`.
+- Recursos reutilizados: `Auth0 Management API` para el grant M2M y la conexion `Username-Password-Authentication` confirmada en la auditoria previa; no se crearon conexiones adicionales.
+- Verificacion posterior: existe una unica SPA ITECSA visible, una unica aplicacion M2M ITECSA visible y una unica API propia con el audience previsto y algoritmo `RS256`.
+- Pendiente controlado: el MCP habilitado no ofrece lectura o modificacion de conexiones Database; la asociacion de `Username-Password-Authentication` a flujos de login SPA debe revisarse en Dashboard en un paso expresamente autorizado.
+- Control de secretos: no se uso la operacion de guardado de credenciales, no se registro ningun secret y no se roto ninguna credencial.

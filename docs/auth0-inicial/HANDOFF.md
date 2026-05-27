@@ -120,19 +120,20 @@
 - Recursos Auth0 base configurados el `2026-05-26`: SPA local, API propia, aplicacion M2M y grant minimo `create:users`.
 - Action Post Login `ITECSA Add Role Claim` creada, desplegada y enlazada al flujo Post Login el `2026-05-26`; su validacion mediante token real queda pendiente de contar con un login y usuario controlados.
 - Revision del paso 5 realizada el `2026-05-26`: el equipo dispone de un correo bootstrap controlado, pero el MCP Auth0 expuesto no incluye operaciones para buscar, crear ni actualizar usuarios; no fue posible verificar ni crear el usuario Administrador.
+- Actualizacion manual del paso 5 informada por el equipo el `2026-05-26`: se creo el usuario bootstrap en Auth0 y se configuro `app_metadata.rolUsuario = Administrador`; esta ejecucion no puede revalidarse mediante el MCP disponible.
 - No se hicieron cambios funcionales de frontend o backend.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
 
-- Estado: pendiente de verificacion o creacion.
+- Estado: creado manualmente por el equipo y pendiente de cierre del flujo de establecimiento de contrasena administrado por Auth0.
 - Correo bootstrap: el equipo entrego un correo controlado para uso operativo en Auth0; su valor completo no se registra en este documento.
-- Usuario reutilizado o creado: ninguno confirmado. No se creo, reutilizo ni modifico ningun usuario durante este paso.
-- Rol requerido: `app_metadata.rolUsuario = Administrador`; no se confirma aplicado mientras no exista capacidad autorizada para consultar el usuario bootstrap.
+- Usuario reutilizado o creado: creado manualmente en Auth0 por el equipo; no se registra el identificador ni el correo completo.
+- Rol Administrador: el equipo informa que configuro `app_metadata.rolUsuario = Administrador` en el usuario bootstrap creado.
 - Limitacion operativa: el MCP Auth0 disponible durante este paso permite verificar Actions, pero no expone operaciones de consulta, creacion o actualizacion de usuarios ni lectura de conexiones.
-- Prevencion de duplicados: cuando exista capacidad autorizada de usuarios, se debe buscar primero el correo bootstrap controlado antes de considerar una creacion.
+- Alcance de la confirmacion: la creacion y metadata corresponden a ejecucion manual reportada por el equipo, no a verificacion independiente via MCP.
 - Contrasena: debe establecerse mediante un flujo de correo administrado por Auth0, sin generar, mostrar, transportar ni registrar contrasenas en ITECSA o en este handoff.
-- Bloqueo de creacion: si la operacion futura exige proporcionar una contrasena inicial y no permite cumplir el flujo administrado por Auth0, mantener el usuario pendiente y documentar ese bloqueo.
+- Pendiente manual: confirmar que el usuario creado pertenece a `Username-Password-Authentication` y que recibio o solicito el correo de establecimiento/restablecimiento de contrasena administrado por Auth0.
 
 ## Pasos completados
 
@@ -162,8 +163,8 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 ## Proximo paso recomendado
 
 - Mantener detenido el avance en el paso `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
-- Habilitar una operacion Auth0 autorizada para buscar el correo bootstrap controlado y verificar o crear unicamente ese usuario con `app_metadata.rolUsuario = Administrador`, sin duplicados y sin contrasenas administradas por ITECSA.
-- Una vez confirmado el usuario, solicitar el establecimiento de contrasena mediante correo administrado por Auth0 y validar el claim en un access token real.
+- Confirmar en Dashboard que el usuario bootstrap creado pertenece a `Username-Password-Authentication` y que reciba o solicite el establecimiento de contrasena mediante correo administrado por Auth0; no registrar su contrasena.
+- Cuando el login este disponible en un paso autorizado, validar el claim `https://itecsa.local/rolUsuario = Administrador` en un access token real.
 - Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
 - No avanzar a variables de entorno, frontend, backend, Prisma, MySQL ni persistencia de datos hasta cerrar expresamente este paso.
 
@@ -173,20 +174,20 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
-- La emision efectiva del claim en un access token queda pendiente de una validacion de login con usuario controlado; no se crearon usuarios ni metadata para forzar esa prueba en este paso.
+- La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
-- El usuario bootstrap y su metadata `rolUsuario = Administrador` no se pudieron verificar ni configurar porque el MCP Auth0 expuesto en este paso no ofrece operaciones de usuarios.
-- La creacion futura queda condicionada a un flujo que no requiera generar, mostrar ni registrar una contrasena inicial fuera de Auth0.
+- La creacion manual del usuario bootstrap y su metadata `rolUsuario = Administrador` fueron informadas por el equipo; no pudieron revalidarse porque el MCP Auth0 expuesto no ofrece operaciones de usuarios.
+- Queda pendiente confirmar la conexion del usuario creado y el uso del flujo de correo de Auth0 para establecer o restablecer la contrasena sin exponerla a ITECSA.
 - La conexion Database esperada fue confirmada en la auditoria previa como administrada por Auth0 y sin aplicaciones habilitadas visibles; el MCP disponible en este paso no permite revalidar ni modificar conexiones.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 
 ## Ultima actualizacion del handoff
 
-- Paso revisado: `5. Usuario bootstrap Administrador via MCP o registro manual controlado` (pendiente, no completado).
+- Paso revisado: `5. Usuario bootstrap Administrador via MCP o registro manual controlado` (usuario creado manualmente; pendiente confirmar flujo de contrasena Auth0).
 - Fecha: `2026-05-26`.
 - Verificacion de Action: se confirmo mediante MCP una unica Action `ITECSA Add Role Claim`, trigger `post-login/v3`, runtime `node22`, desplegada y sin secretos.
 - Contrato del claim: lee `event.user.app_metadata.rolUsuario` y agrega `https://itecsa.local/rolUsuario` solo al access token para los valores `Administrador`, `Gerencia`, `Operario`, `Ventas` o `Cobranzas`.
 - Conexion Database: `Username-Password-Authentication` se conserva segun la confirmacion manual registrada en pasos anteriores; el MCP expuesto no permite revalidar conexiones y no se encontro evidencia que contradiga ese estado.
-- Bootstrap: el equipo entrego un correo controlado, pero el MCP Auth0 expuesto no permite buscar, crear ni actualizar usuarios; no se verifico usuario existente ni `app_metadata.rolUsuario`.
-- Pendiente manual: contar con una operacion Auth0 autorizada para verificar primero la existencia del bootstrap y, solo si no existe, crearlo con rol `Administrador`, usando para la contrasena un flujo de correo administrado por Auth0.
+- Bootstrap: el equipo informa que creo manualmente el usuario controlado y configuro `app_metadata.rolUsuario = Administrador`; el MCP Auth0 expuesto no permite revalidar ese resultado.
+- Pendiente manual: confirmar que el bootstrap pertenece a `Username-Password-Authentication`, enviar o solicitar mediante Auth0 el correo de establecimiento/restablecimiento de contrasena y confirmar su recepcion, sin documentar la contrasena.
 - Control de secretos y alcance: no se documento el correo completo ni se guardaron secretos, tokens o contrasenas; no se modifico frontend, backend, conexiones, usuarios ni roles.

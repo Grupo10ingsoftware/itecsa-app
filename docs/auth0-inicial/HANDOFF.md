@@ -12,7 +12,7 @@
 - La sesion simulada existe solo en memoria React mediante `AuthProvider`; recargar la pagina o cerrar sesion elimina el usuario activo.
 - La proteccion de rutas y permisos actuales es visual: redirige o limita componentes, sin autorizacion de servidor.
 - La creacion de usuarios es una pantalla de preparacion/preview y no persiste informacion.
-- El backend Express mantiene una plantilla sin rutas API registradas, JWT, endpoints de auth ni servicios Auth0; ahora valida configuracion Auth0 minima y restringe CORS al origen frontend configurado.
+- El backend Express valida configuracion Auth0 minima, restringe CORS al origen frontend configurado y expone `GET /api/auth/verify` protegido por JWT Auth0.
 - No se encontraron archivos `.env*`, cliente HTTP del frontend ni dependencias Auth0/JWT en las capas auditadas.
 
 ## Frontend relevante
@@ -30,8 +30,8 @@
 - Arranque: `capaServidor/src/app/app.js` carga `dotenv` e instancia `Server`.
 - Servidor: `capaServidor/src/server.js` configura `express`, CORS restringido mediante `FRONTEND_ORIGIN`, `express.json()` y archivos estaticos.
 - Arranque: `capaServidor/src/app/app.js` exige `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN` antes de iniciar el servidor.
-- Rutas y servicios: no hay routers montados, endpoints de autenticacion, middleware de token, validacion de roles ni integracion Auth0.
-- Dependencias observadas: `express`, `cors` y `dotenv`; no se observaron dependencias JWT/Auth0.
+- Rutas y servicios: `GET /api/auth/verify` valida el access token, lee claims namespaced y devuelve identidad/rol; no existe aun autorizacion administrativa ni servicios Management API.
+- Dependencias observadas: `express`, `cors`, `dotenv` y `express-oauth2-jwt-bearer`.
 - Manejo de errores: solo captura de fallo durante el arranque; no existe middleware API de errores.
 
 ## Mocks de auth encontrados
@@ -72,13 +72,13 @@
 - Action final: `ITECSA Add Role Claim`.
 - Trigger: `Post Login` (`post-login`, version `v3`), runtime `node22`, sin dependencias ni secretos.
 - Fuente de roles: `event.authorization.roles` provisto por Auth0 Roles.
-- Claim emitido: `https://itecsa.local/roles`, como arreglo de roles permitidos.
-- Token donde se emite: access token solamente; no se agrega al ID token en este paso.
+- Claims emitidos en access token: `https://itecsa.local/roles`, como arreglo de roles permitidos, y `https://itecsa.local/email`, si Auth0 entrega correo para el usuario autenticado.
+- Token donde se emiten: access token solamente; no se agregan al ID token en este paso.
 - Valores permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 - Comportamiento: el claim contiene solamente roles asignados que coinciden con valores permitidos; ante ausencia de roles permitidos se omite sin bloquear el login.
-- Estado Auth0: la Action fue actualizada y desplegada mediante MCP; la version `2` desplegada fue verificada con `all_changes_deployed: true`.
+- Estado Auth0: la Action fue actualizada y desplegada mediante MCP; la version `3` desplegada fue verificada con `all_changes_deployed: true`.
 - Binding Post Login: se enlazo manualmente en Dashboard bajo `Actions > Triggers > Post Login`, confirmado visualmente con una sola instancia de `ITECSA Add Role Claim` entre `Start` y `Complete`, porque el MCP disponible no expone operaciones de bindings.
-- Validacion de token pendiente: cuando el rol Auth0 `Administrador` este asignado al usuario bootstrap y exista login que solicite `https://api.itecsa.local`, el access token debe contener `https://itecsa.local/roles: ["Administrador"]`.
+- Validacion de token pendiente: un login nuevo que solicite `https://api.itecsa.local` debe generar access token con `https://itecsa.local/roles: ["Administrador"]` y `https://itecsa.local/email`; no se documenta el valor real del correo.
 
 ## Variables de entorno configuradas
 
@@ -96,8 +96,10 @@
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
-- Validar al arrancar `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN`; restringir CORS al unico origen configurado sin agregar autenticacion todavia.
-- Mantener `express.json()` y no crear modulos de auth hasta que un paso funcional los requiera.
+- Validar al arrancar `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN`; restringir CORS al unico origen configurado.
+- Mantener `express.json()` y montar `GET /api/auth/verify` bajo `/api/auth` con `checkJwt` de `express-oauth2-jwt-bearer`.
+- Validar JWT con issuer `https://${AUTH0_DOMAIN}/` y audience `AUTH0_AUDIENCE`; proyectar el unico rol oficial de `https://itecsa.local/roles` a `rolUsuario`.
+- Responder `403` en `/api/auth/verify` si el token autenticado carece de email namespaced, carece de un rol oficial unico o expone mas de un rol; `requireAdministrador` sigue pendiente.
 - No cambiar formularios, mocks ni flujo funcional durante esta auditoria documental.
 
 ## Restricciones de seguridad
@@ -135,6 +137,8 @@
 - Configuracion manual de Universal Login completada por el equipo el `2026-05-27`: auto-registro deshabilitado y acceso con Google no disponible para `ITECSA Frontend Local`.
 - Login y logout reales verificados manualmente por el equipo con el usuario bootstrap controlado; no se registran correo ni contrasena.
 - Backend preparado el `2026-05-27` para exigir variables Auth0/origen al iniciar y responder CORS solo para `FRONTEND_ORIGIN`, conservando parseo JSON y sin implementar JWT.
+- Backend ampliado el `2026-05-27` con `checkJwt` Auth0 y `GET /api/auth/verify`, usando claims namespaced de email y roles sin persistencia ni Management API.
+- Action Post Login desplegada en version `3` el `2026-05-27` para conservar roles RBAC y emitir email namespaced en access tokens nuevos.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -157,7 +161,7 @@
 - [x] 7. Auth0Provider frontend
 - [x] 8. Login/logout Auth0
 - [x] 9. Backend entorno y CORS
-- [ ] 10. JWT y `/api/auth/verify`
+- [x] 10. JWT y `/api/auth/verify`
 - [ ] 11. `requireAdministrador`
 - [ ] 12. Servicio Auth0 Management API
 - [ ] 13. `POST /api/admin/users`
@@ -173,20 +177,21 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `9. Backend entorno y CORS`.
-- Proximo paso recomendado y pendiente para otro agente: `10. JWT y /api/auth/verify`, solo con instruccion expresa.
+- Mantener detenido el avance despues del paso `10. JWT y /api/auth/verify`.
+- Proximo paso recomendado y pendiente para otro agente: `11. requireAdministrador`, solo con instruccion expresa.
 - Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
-- No implementar JWT, endpoints, guards de roles, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar autorizacion administrativa, Management API, endpoints administrativos, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
 - `MOCK_USERS` se conserva temporalmente porque `UserCreateForm` lo consume para validacion visual; retirarlo requiere el paso correspondiente a esa vista.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
-- El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
+- La vista frontend `/access-denied` ya existe y `RoleGuard` la usa como control visual; no consume el `403` de `/api/auth/verify` ni representa autorizacion efectiva del backend. Esa conexion queda pendiente para `apiClient`/`authApi.verify` y guards frontend.
 - El login autentica mediante Auth0, pero los permisos de navegacion y `RoleGuard` aun no consumen roles Auth0; un usuario real puede ver accesos limitados hasta ese paso.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
-- La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
-- RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente el claim namespaced `https://itecsa.local/roles`.
+- La emision efectiva de los claims en un access token nuevo queda pendiente de una validacion de login con el usuario bootstrap controlado.
+- RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente los claims namespaced `https://itecsa.local/roles` y `https://itecsa.local/email`.
+- Aunque el requerimiento inicial mencionaba `https://itecsa.local/rolUsuario`, el endpoint consume `https://itecsa.local/roles` porque es el contrato vigente de la Action basada en Auth0 Roles/RBAC, y proyecta un unico valor a `rolUsuario`.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
 - La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; el equipo habilito/configuro manualmente el flujo necesario para `ITECSA Frontend Local`, y Universal Login presenta `Username-Password-Authentication` sin auto-registro ni Google.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
@@ -215,10 +220,21 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - Peticion con un origen distinto: la cabecera permanece fijada en `http://localhost:5173` y no coincide con el origen solicitante, por lo que el navegador no lo autoriza mediante CORS.
 - No se implementaron JWT, endpoints protegidos, Auth0 Management API, Prisma, MySQL, persistencia ni cambios frontend.
 
+## Validacion del paso 10
+
+- `npm install express-oauth2-jwt-bearer` en `capaServidor`: exitoso; se agrego la dependencia JWT y la auditoria reporto `0 vulnerabilities`.
+- `node --check` sobre `src/server.js`, `src/app/app.js`, `src/middlewares/checkJwt.js` y `src/routes/auth.routes.js`: exitoso, sin errores de sintaxis.
+- Inicio temporal en puerto `3191` con variables obligatorias y peticion `GET /api/auth/verify` sin bearer token: responde `401`.
+- Peticion `GET /api/auth/verify` con bearer token invalido: responde `401`.
+- Action `ITECSA Add Role Claim`: version `3` actualizada y desplegada mediante MCP; verificada con `all_changes_deployed: true`.
+- Prueba `200` pendiente de ejecucion manual controlada: iniciar sesion nuevamente con el usuario bootstrap, obtener un access token para `https://api.itecsa.local` sin registrarlo, e invocar `GET /api/auth/verify` con `Authorization: Bearer <token>`; debe devolver `sub`, `email`, `rolUsuario: "Administrador"` e `isAdministrador: true`.
+- Prueba `403` pendiente de contar con token valido controlado sin rol oficial unico o sin email namespaced; la API rechaza esos contratos sin implementar aun autorizacion administrativa.
+- No se implementaron `requireAdministrador`, Auth0 Management API, creacion de usuarios, Prisma, MySQL, persistencia ni cambios frontend.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `9. Backend entorno y CORS`.
+- Paso completado: `10. JWT y /api/auth/verify`.
 - Fecha: `2026-05-27`.
-- Estado vigente: el backend falla al iniciar si faltan `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` o `FRONTEND_ORIGIN`; CORS queda limitado a `FRONTEND_ORIGIN` y se conserva `express.json()`.
-- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se implementaron JWT, endpoints, Auth0 Management API, Prisma, MySQL, persistencia ni cambios frontend.
-- Proximo paso recomendado y pendiente para otro agente: `10. JWT y /api/auth/verify`, sujeto a instruccion expresa.
+- Estado vigente: el backend protege `GET /api/auth/verify` mediante JWT Auth0 validando issuer y audience, y responde identidad/rol solo con un unico rol oficial y email emitidos en access token.
+- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se implementaron autorizacion administrativa, Auth0 Management API, Prisma, MySQL, persistencia ni cambios frontend.
+- Proximo paso recomendado y pendiente para otro agente: `11. requireAdministrador`, sujeto a instruccion expresa.

@@ -129,6 +129,8 @@
 - `Auth0Provider` configurado en la SPA el `2026-05-27` mediante `@auth0/auth0-react`, usando variables `VITE_AUTH0_*` y `window.location.origin` como `redirect_uri`.
 - Login y logout visibles integrados con Auth0 Universal Login/Logout el `2026-05-27`; la fachada `useAuth()` consume el estado del SDK y conserva solo `MOCK_USERS` por compatibilidad fuera de alcance.
 - `ProtectedRoute` espera la restauracion de sesion Auth0 antes de redirigir; `RoleGuard` y los permisos basados en claims permanecen pendientes.
+- Configuracion manual de Universal Login completada por el equipo el `2026-05-27`: auto-registro deshabilitado y acceso con Google no disponible para `ITECSA Frontend Local`.
+- Login y logout reales verificados manualmente por el equipo con el usuario bootstrap controlado; no se registran correo ni contrasena.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -169,7 +171,7 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 - Mantener detenido el avance despues del paso `8. Login/logout Auth0`.
 - Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, solo con instruccion expresa.
-- Universal Login fue alcanzado desde la SPA y presento el formulario de la conexion Database para `ITECSA Frontend Local`; la autenticacion con el usuario bootstrap y el logout completo requieren prueba manual controlada.
+- Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
 - No implementar CORS, JWT, endpoints, guards de roles, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
@@ -182,7 +184,7 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente el claim namespaced `https://itecsa.local/roles`.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
-- La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; en este paso Universal Login presento el formulario `Username-Password-Authentication` al iniciar login desde `ITECSA Frontend Local`, sin modificar configuracion Auth0.
+- La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; el equipo habilito/configuro manualmente el flujo necesario para `ITECSA Frontend Local`, y Universal Login presenta `Username-Password-Authentication` sin auto-registro ni Google.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 - Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
 
@@ -195,12 +197,13 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
 - `npm run dev -- --host 127.0.0.1` y revision local en `http://localhost:5173/login`: el panel ITECSA muestra un unico boton de inicio y no presenta credenciales mock.
 - Interaccion sin credenciales sobre `Iniciar sesion`: redirige a `itecsa-sistema.us.auth0.com/u/login`, que presenta Universal Login de `ITECSA Frontend Local` con formulario Database.
-- La autenticacion manual con usuario bootstrap y la comprobacion de logout quedan a cargo del equipo con acceso a sus credenciales.
+- Revision posterior a la configuracion manual del Dashboard: Universal Login conserva el formulario Database y no presenta `Sign up` ni acceso con Google.
+- El equipo confirmo autenticacion exitosa con el usuario bootstrap y cierre de sesion con retorno a `http://localhost:5173`; no se inspeccionaron ni documentaron credenciales.
 
 ## Ultima actualizacion del handoff
 
 - Paso completado: `8. Login/logout Auth0`.
 - Fecha: `2026-05-27`.
-- Estado vigente: `/login` ejecuta `loginWithRedirect`, la fachada `useAuth()` utiliza la sesion Auth0, `logout()` cierra la sesion Auth0 con retorno al origin local y el flujo normal no expone credenciales mock.
+- Estado vigente: `/login` ejecuta `loginWithRedirect`, la fachada `useAuth()` utiliza la sesion Auth0, `logout()` cierra la sesion Auth0 con retorno al origin local y Universal Login fue validado sin auto-registro ni Google.
 - Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se modificaron `RoleGuard`, backend, vista de creacion de usuarios, Prisma, MySQL ni persistencia.
 - Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, sujeto a instruccion expresa.

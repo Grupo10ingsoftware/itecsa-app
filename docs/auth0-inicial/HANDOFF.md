@@ -90,6 +90,7 @@
 ## Decisiones tecnicas aplicables
 
 - Mantener `useAuth()` como posible fachada interna durante la migracion, reemplazando su implementacion mock solo en un paso posterior.
+- Montar `Auth0Provider` por fuera del `AuthProvider` mock para inicializar el SDK sin sustituir aun la sesion visible ni sus consumidores.
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
@@ -124,7 +125,8 @@
 - Usuario bootstrap creado manualmente por el equipo el `2026-05-26` en `Username-Password-Authentication`.
 - Rol Auth0 `Administrador` creado y asignado manualmente al usuario bootstrap; RBAC y `Add Permissions in the Access Token` habilitados para `ITECSA API`.
 - Plantillas `env.example` creadas el `2026-05-27` en frontend y backend, sin secretos reales; regla global `.env*` agregada al `.gitignore` raiz.
-- No se hicieron cambios funcionales de frontend o backend; el paso de variables solo incorpora configuracion de ejemplo y proteccion Git.
+- `Auth0Provider` configurado en la SPA el `2026-05-27` mediante `@auth0/auth0-react`, usando variables `VITE_AUTH0_*` y `window.location.origin` como `redirect_uri`.
+- La autenticacion visible continua operando mediante el `AuthProvider` mock; no se implementaron login/logout Auth0 ni cambios backend en este paso.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -144,7 +146,7 @@
 - [x] 4. Action Post Login via MCP
 - [x] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
 - [x] 6. Variables de entorno
-- [ ] 7. Auth0Provider frontend
+- [x] 7. Auth0Provider frontend
 - [ ] 8. Login/logout Auth0
 - [ ] 9. Backend entorno y CORS
 - [ ] 10. JWT y `/api/auth/verify`
@@ -163,16 +165,17 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `6. Variables de entorno`.
-- Proximo paso autorizado y pendiente para otro agente: `7. Auth0Provider frontend`, solo con instruccion expresa.
+- Mantener detenido el avance despues del paso `7. Auth0Provider frontend`.
+- Proximo paso recomendado y pendiente para otro agente: `8. Login/logout Auth0`, solo con instruccion expresa.
 - Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
-- No implementar Auth0Provider, login, JWT, endpoints, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar login, logout, JWT, endpoints, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
 - Los fixtures actuales incluyen material de autenticacion de prueba visible en la interfaz; deben eliminarse al sustituir el login mock.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
+- Aunque `Auth0Provider` ya esta inicializado, aun no existe flujo interactivo Auth0 ni validacion real del access token en la aplicacion.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente el claim namespaced `https://itecsa.local/roles`.
@@ -183,8 +186,8 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Ultima actualizacion del handoff
 
-- Paso completado: `6. Variables de entorno`.
+- Paso completado: `7. Auth0Provider frontend`.
 - Fecha: `2026-05-27`.
-- Estado vigente: existen plantillas versionadas `env.example` en ambas capas; el `.gitignore` raiz protege archivos `.env*`; la conexion Database se referencia como `AUTH0_DATABASE_CONNECTION`.
-- Control de secretos y alcance: `AUTH0_MANAGEMENT_CLIENT_SECRET` se administra mediante variable de usuario de Windows, sin valor registrado en el repositorio, archivos `.env` ni documentacion; no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica y no se implementaron login, JWT, endpoints, UI, Prisma, MySQL o persistencia.
-- Proximo paso autorizado y pendiente para otro agente: `7. Auth0Provider frontend`, sujeto a instruccion expresa.
+- Estado vigente: la SPA declara `@auth0/auth0-react` y monta `Auth0Provider` alrededor de la fachada mock existente, con `domain`, `clientId` y `audience` provistos por variables Vite y `redirect_uri` apuntando al origin actual.
+- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se modificaron login/logout mock, guards, backend, Prisma, MySQL ni persistencia.
+- Proximo paso recomendado y pendiente para otro agente: `8. Login/logout Auth0`, sujeto a instruccion expresa.

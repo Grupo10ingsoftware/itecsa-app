@@ -79,11 +79,13 @@
 - Binding Post Login: se enlazo manualmente en Dashboard bajo `Actions > Triggers > Post Login`, confirmado visualmente con una sola instancia de `ITECSA Add Role Claim` entre `Start` y `Complete`, porque el MCP disponible no expone operaciones de bindings.
 - Validacion de token pendiente: cuando el rol Auth0 `Administrador` este asignado al usuario bootstrap y exista login que solicite `https://api.itecsa.local`, el access token debe contener `https://itecsa.local/roles: ["Administrador"]`.
 
-## Variables de entorno pendientes
+## Variables de entorno configuradas
 
-- Frontend futuro: `VITE_AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `VITE_AUTH0_CLIENT_ID=hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`, `VITE_AUTH0_AUDIENCE=https://api.itecsa.local`.
-- Backend futuro: `AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `AUTH0_AUDIENCE=https://api.itecsa.local`, `AUTH0_MANAGEMENT_CLIENT_ID=b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT`, `AUTH0_MANAGEMENT_AUDIENCE=https://itecsa-sistema.us.auth0.com/api/v2/`, `AUTH0_DB_CONNECTION=Username-Password-Authentication`.
-- `AUTH0_MANAGEMENT_CLIENT_SECRET` debe completarse manualmente en el entorno local o secreto seguro del backend; su valor no se registra en este documento ni debe exponerse al frontend.
+- Frontend: `capaVista/env.example` documenta `VITE_AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `VITE_AUTH0_CLIENT_ID=hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`, `VITE_AUTH0_AUDIENCE=https://api.itecsa.local` y `VITE_API_BASE_URL=http://localhost:3000/api`.
+- Backend: `capaServidor/env.example` documenta `PORT=3000`, `FRONTEND_ORIGIN=http://localhost:5173`, `AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `AUTH0_AUDIENCE=https://api.itecsa.local`, `AUTH0_MANAGEMENT_CLIENT_ID=b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT` y `AUTH0_DATABASE_CONNECTION=Username-Password-Authentication`.
+- Los `client_id` incluidos son identificadores publicos/no secretos confirmados mediante Auth0 MCP; el client secret de Management no fue consultado ni registrado.
+- `AUTH0_MANAGEMENT_CLIENT_SECRET` se suministra al backend mediante una variable de usuario de Windows; no se registra su valor en el repositorio, archivos `.env` ni documentacion.
+- Los archivos locales `.env*` quedan excluidos de Git mediante el `.gitignore` raiz; las plantillas versionadas de frontend y backend usan el nombre `env.example`.
 
 ## Decisiones tecnicas aplicables
 
@@ -121,7 +123,8 @@
 - Action Post Login `ITECSA Add Role Claim` migrada y desplegada el `2026-05-26` para emitir roles desde Auth0 Roles; su validacion mediante token real queda pendiente de un login integrado.
 - Usuario bootstrap creado manualmente por el equipo el `2026-05-26` en `Username-Password-Authentication`.
 - Rol Auth0 `Administrador` creado y asignado manualmente al usuario bootstrap; RBAC y `Add Permissions in the Access Token` habilitados para `ITECSA API`.
-- No se hicieron cambios funcionales de frontend o backend.
+- Plantillas `env.example` creadas el `2026-05-27` en frontend y backend, sin secretos reales; regla global `.env*` agregada al `.gitignore` raiz.
+- No se hicieron cambios funcionales de frontend o backend; el paso de variables solo incorpora configuracion de ejemplo y proteccion Git.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -140,7 +143,7 @@
 - [x] 3. Recursos Auth0 base via MCP
 - [x] 4. Action Post Login via MCP
 - [x] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
-- [ ] 6. Variables de entorno
+- [x] 6. Variables de entorno
 - [ ] 7. Auth0Provider frontend
 - [ ] 8. Login/logout Auth0
 - [ ] 9. Backend entorno y CORS
@@ -160,10 +163,10 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
-- Proximo paso numerado pendiente: `6. Variables de entorno`, solo con instruccion expresa.
+- Mantener detenido el avance despues del paso `6. Variables de entorno`.
+- Proximo paso autorizado y pendiente para otro agente: `7. Auth0Provider frontend`, solo con instruccion expresa.
 - Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
-- No implementar variables de entorno, frontend, backend, Prisma, MySQL ni persistencia de datos como parte de este paso.
+- No implementar Auth0Provider, login, JWT, endpoints, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
@@ -176,10 +179,12 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
 - La conexion Database esperada fue confirmada en la auditoria previa como administrada por Auth0 y sin aplicaciones habilitadas visibles; el MCP disponible en este paso no permite revalidar ni modificar conexiones.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
+- Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
 
 ## Ultima actualizacion del handoff
 
-- Paso completado: `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
-- Fecha: `2026-05-26`.
-- Resultado verificado: el equipo creo el bootstrap en `Username-Password-Authentication`, creo y asigno el rol Auth0 `Administrador`, habilito RBAC y `Add Permissions in the Access Token` para `ITECSA API`, y retiro `app_metadata.rolUsuario`; la Action fue migrada y desplegada mediante MCP para leer `event.authorization.roles` y emitir `https://itecsa.local/roles`.
-- Control de secretos y alcance: no se documento el correo completo ni se guardaron secretos, tokens o contrasenas; no se modifico frontend ni backend.
+- Paso completado: `6. Variables de entorno`.
+- Fecha: `2026-05-27`.
+- Estado vigente: existen plantillas versionadas `env.example` en ambas capas; el `.gitignore` raiz protege archivos `.env*`; la conexion Database se referencia como `AUTH0_DATABASE_CONNECTION`.
+- Control de secretos y alcance: `AUTH0_MANAGEMENT_CLIENT_SECRET` se administra mediante variable de usuario de Windows, sin valor registrado en el repositorio, archivos `.env` ni documentacion; no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica y no se implementaron login, JWT, endpoints, UI, Prisma, MySQL o persistencia.
+- Proximo paso autorizado y pendiente para otro agente: `7. Auth0Provider frontend`, sujeto a instruccion expresa.

@@ -109,6 +109,84 @@ async function requestManagementToken() {
     };
 }
 
+async function resolveRoleId({ domain, accessToken, roleName }) {
+    const pageSize = 100;
+
+    for (let page = 0; ; page += 1) {
+        let response;
+
+        try {
+            response = await fetch(
+                `https://${domain}/api/v2/roles?per_page=${pageSize}&page=${page}`,
+                {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                },
+            );
+        } catch {
+            throw new Auth0ServiceError(
+                "AUTH0_LIST_ROLES_FAILED",
+                "No fue posible consultar los roles configurados en Auth0.",
+            );
+        }
+
+        if (!response.ok) {
+            throw new Auth0ServiceError(
+                "AUTH0_LIST_ROLES_FAILED",
+                "Auth0 rechazo la consulta de roles configurados.",
+            );
+        }
+
+        const roles = await readSuccessfulJson(
+            response,
+            "Auth0 no entrego una lista de roles valida.",
+        );
+
+        if (!Array.isArray(roles)) {
+            throw new Auth0ServiceError(
+                "AUTH0_INVALID_RESPONSE",
+                "Auth0 no entrego una lista de roles valida.",
+            );
+        }
+
+        const selectedRole = roles.find(
+            (role) => role?.name === roleName && typeof role.id === "string",
+        );
+
+        if (selectedRole?.id) {
+            return selectedRole.id;
+        }
+
+        if (roles.length < pageSize) {
+            throw new Auth0ServiceError(
+                "AUTH0_ROLE_NOT_FOUND",
+                "El rol solicitado no existe en Auth0.",
+            );
+        }
+    }
+}
+
+async function assignRoleToUser({ domain, accessToken, userId, roleId }) {
+    let response;
+
+    try {
+        response = await fetch(
+            `https://${domain}/api/v2/users/${encodeURIComponent(userId)}/roles`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ roles: [roleId] }),
+            },
+        );
+    } catch {
+        return false;
+    }
+
+    return response.ok;
+}
+
 export async function createAuth0User({
     email,
     primerNombre,
@@ -122,6 +200,11 @@ export async function createAuth0User({
         role: assertNonEmptyString(rolUsuario, "rolUsuario"),
     };
     const { domain, connection, accessToken } = await requestManagementToken();
+    const roleId = await resolveRoleId({
+        domain,
+        accessToken,
+        roleName: normalizedUser.role,
+    });
     const temporaryPassword = generateTemporaryPassword();
     let response;
 
@@ -174,7 +257,14 @@ export async function createAuth0User({
         );
     }
 
-    return { userId: body.user_id };
+    const roleAssignmentCompleted = await assignRoleToUser({
+        domain,
+        accessToken,
+        userId: body.user_id,
+        roleId,
+    });
+
+    return { userId: body.user_id, roleAssignmentCompleted };
 }
 
 export async function requestPasswordSetupEmail({ email }) {

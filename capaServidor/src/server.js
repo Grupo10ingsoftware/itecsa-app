@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
+import adminUsersRoutes from './routes/adminUsers.routes.js';
 
 class Server {
   constructor() {
@@ -9,6 +10,7 @@ class Server {
     this.port = process.env.PORT; // definido en .env
     this.paths = {
         auth: '/api/auth',
+        admin: '/api/admin',
         }
 
     // Middlewares
@@ -37,6 +39,7 @@ class Server {
 
   routes() {
     this.app.use(this.paths.auth, authRoutes);
+    this.app.use(this.paths.admin, adminUsersRoutes);
     // Configurar rutas
     /**
      * Un ejemplo sería    

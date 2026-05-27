@@ -44,16 +44,25 @@ function jsonResponse(status, body) {
     };
 }
 
-test("crea un usuario con token M2M y no retorna la contrasena temporal", async () => {
+test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", async () => {
     const requests = [];
     global.fetch = async (url, options) => {
-        requests.push({ url, options, body: JSON.parse(options.body) });
+        const body = options?.body ? JSON.parse(options.body) : undefined;
+        requests.push({ url, options, body });
 
         if (url.endsWith("/oauth/token")) {
             return jsonResponse(200, { access_token: "management-access-token" });
         }
 
-        return jsonResponse(201, { user_id: "auth0|created-user" });
+        if (url.includes("/api/v2/roles?")) {
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
+        }
+
+        if (url.endsWith("/api/v2/users")) {
+            return jsonResponse(201, { user_id: "auth0|created-user" });
+        }
+
+        return { ok: true, status: 200 };
     };
 
     const result = await createAuth0User({
@@ -63,21 +72,28 @@ test("crea un usuario con token M2M y no retorna la contrasena temporal", async 
         rolUsuario: "Ventas",
     });
 
-    assert.deepEqual(result, { userId: "auth0|created-user" });
-    assert.equal(requests.length, 2);
+    assert.deepEqual(result, {
+        userId: "auth0|created-user",
+        roleAssignmentCompleted: true,
+    });
+    assert.equal(requests.length, 4);
     assert.deepEqual(requests[0].body, {
         grant_type: "client_credentials",
         client_id: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_ID,
         client_secret: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_SECRET,
         audience: `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/`,
     });
+    assert.equal(
+        requests[1].url,
+        `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/roles?per_page=100&page=0`,
+    );
     assert.deepEqual(
         {
-            email: requests[1].body.email,
-            given_name: requests[1].body.given_name,
-            family_name: requests[1].body.family_name,
-            connection: requests[1].body.connection,
-            app_metadata: requests[1].body.app_metadata,
+            email: requests[2].body.email,
+            given_name: requests[2].body.given_name,
+            family_name: requests[2].body.family_name,
+            connection: requests[2].body.connection,
+            app_metadata: requests[2].body.app_metadata,
         },
         {
             email: "nuevo@example.cl",
@@ -87,23 +103,32 @@ test("crea un usuario con token M2M y no retorna la contrasena temporal", async 
             app_metadata: { rolUsuario: "Ventas" },
         },
     );
-    assert.equal(typeof requests[1].body.password, "string");
-    assert.ok(requests[1].body.password.length > 30);
-    assert.equal(JSON.stringify(result).includes(requests[1].body.password), false);
+    assert.equal(typeof requests[2].body.password, "string");
+    assert.ok(requests[2].body.password.length > 30);
+    assert.equal(JSON.stringify(result).includes(requests[2].body.password), false);
     assert.equal(
         JSON.stringify(result).includes(ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_SECRET),
         false,
     );
     assert.equal(
-        requests[1].options.headers.Authorization,
+        requests[2].options.headers.Authorization,
         "Bearer management-access-token",
     );
+    assert.equal(
+        requests[3].url,
+        `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/users/auth0%7Ccreated-user/roles`,
+    );
+    assert.deepEqual(requests[3].body, { roles: ["rol_ventas"] });
 });
 
 test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
     global.fetch = async (url) => {
         if (url.endsWith("/oauth/token")) {
             return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.includes("/api/v2/roles?")) {
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
         }
 
         return jsonResponse(409, { message: "The user already exists." });
@@ -120,6 +145,62 @@ test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
             error instanceof Auth0ServiceError &&
             error.code === "USER_EMAIL_ALREADY_EXISTS",
     );
+});
+
+test("no crea usuario si el rol solicitado no existe en Auth0", async () => {
+    const urls = [];
+    global.fetch = async (url) => {
+        urls.push(url);
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        return jsonResponse(200, [{ id: "rol_operario", name: "Operario" }]);
+    };
+
+    await assert.rejects(
+        createAuth0User({
+            email: "nuevo@example.cl",
+            primerNombre: "Ana",
+            apellidoPaterno: "Perez",
+            rolUsuario: "Ventas",
+        }),
+        (error) =>
+            error instanceof Auth0ServiceError &&
+            error.code === "AUTH0_ROLE_NOT_FOUND",
+    );
+    assert.equal(urls.some((url) => url.endsWith("/api/v2/users")), false);
+});
+
+test("reporta asignacion RBAC incompleta si falla despues de crear usuario", async () => {
+    global.fetch = async (url) => {
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.includes("/api/v2/roles?")) {
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
+        }
+
+        if (url.endsWith("/api/v2/users")) {
+            return jsonResponse(201, { user_id: "auth0|created-user" });
+        }
+
+        return { ok: false, status: 403 };
+    };
+
+    const result = await createAuth0User({
+        email: "nuevo@example.cl",
+        primerNombre: "Ana",
+        apellidoPaterno: "Perez",
+        rolUsuario: "Ventas",
+    });
+
+    assert.deepEqual(result, {
+        userId: "auth0|created-user",
+        roleAssignmentCompleted: false,
+    });
 });
 
 test("solicita el correo sin retornar tickets ni enlaces", async () => {

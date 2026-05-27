@@ -104,6 +104,8 @@
 - Crear usuarios solo desde el servicio backend interno con token M2M y scopes `create:users`, `read:roles` y `update:users`; la contrasena temporal aleatoria existe solo en memoria durante la solicitud Database y no se devuelve ni registra.
 - Solicitar el correo de establecimiento/cambio de contrasena con `/dbconnections/change_password` y el client ID publico de la SPA; no generar ni retornar tickets o enlaces sensibles.
 - `app_metadata.rolUsuario` se envia al crear usuarios por contrato de datos, pero no reemplaza Auth0 Roles/RBAC; el endpoint resuelve y asigna el rol RBAC existente antes de solicitar correo.
+- `POST /api/admin/users` autoriza actualmente mediante el rol Auth0 `Administrador` emitido en `https://itecsa.local/roles`; no exige permisos funcionales de `ITECSA API` en el token.
+- Los permisos de negocio de `ITECSA API` deben definirse y aplicarse solo junto con endpoints backend que los validen; los permisos visuales actuales de la SPA no deben copiarse automaticamente a Auth0.
 - No cambiar formularios, mocks ni flujo funcional durante esta auditoria documental.
 
 ## Restricciones de seguridad
@@ -186,7 +188,9 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 ## Proximo paso recomendado
 
 - Mantener detenido el avance despues del paso `13. POST /api/admin/users`.
-- Antes de una prueba real del paso 13, ampliar manualmente en Auth0 Dashboard el grant de `ITECSA Backend Management` hacia `Auth0 Management API` para incluir `create:users`, `read:roles` y `update:users`; el conector disponible no expone actualizacion de grants existentes y no se creo un grant duplicado.
+- Configuracion requerida para probar el paso 13: ampliar manualmente en Auth0 Dashboard el grant M2M de `ITECSA Backend Management` hacia `Auth0 Management API` para incluir `create:users`, `read:roles` y `update:users`; el conector disponible no expone actualizacion de grants existentes y no se creo un grant duplicado.
+- Integracion frontend posterior: los pasos `15. apiClient y authApi.verify`, `16. Guards frontend` y `17. Formulario creacion usuarios` deben conectar la SPA con el backend; antes de enviar el formulario real deben retirarse de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
+- Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar la creacion administrativa actual.
 - Proximo paso funcional reservado: `14. POST /api/admin/users/password-setup-email`; no implementarlo sin instruccion expresa.
 - Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
 - No implementar endpoints administrativos adicionales, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
@@ -200,6 +204,8 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva de los claims en un access token nuevo queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente los claims namespaced `https://itecsa.local/roles` y `https://itecsa.local/email`.
+- Los scopes M2M de `Auth0 Management API` (`create:users`, `read:roles`, `update:users`) autorizan al backend a administrar usuarios y roles; no equivalen a permisos funcionales asignados a usuarios sobre `ITECSA API`.
+- La pestana `Permissions` de un rol en Auth0 corresponde a permisos definidos en `ITECSA API`, no al grant M2M requerido por `ITECSA Backend Management` para ejecutar `POST /api/admin/users`.
 - Aunque el requerimiento inicial mencionaba `https://itecsa.local/rolUsuario`, el endpoint y `requireAdministrador` consumen `https://itecsa.local/roles` porque es el contrato vigente de la Action basada en Auth0 Roles/RBAC; `/api/auth/verify` proyecta un unico valor a `rolUsuario`.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
 - La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; el equipo habilito/configuro manualmente el flujo necesario para `ITECSA Frontend Local`, y Universal Login presenta `Username-Password-Authentication` sin auto-registro ni Google.
@@ -256,7 +262,7 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `createAuth0User` solicita token M2M para Management API, envia `email`, `given_name`, `family_name`, `connection` y `app_metadata.rolUsuario`, y normaliza usuario duplicado como `USER_EMAIL_ALREADY_EXISTS`.
 - La contrasena temporal Database se genera mediante `node:crypto`, se usa solamente en el cuerpo enviado a Auth0 y no forma parte del retorno ni de logs del servicio.
 - `requestPasswordSetupEmail` usa `/dbconnections/change_password` con `AUTH0_PASSWORD_RESET_CLIENT_ID` y retorna solo `{ requested: true }`, sin tickets ni enlaces.
-- El unico scope Management requerido sigue siendo `create:users`; el flujo de correo pertenece a Authentication API y no requiere agregar permisos de lectura, actualizacion, eliminacion ni tickets.
+- En este paso, `create:users` era suficiente para crear la cuenta mediante Management API y el flujo de correo pertenece a Authentication API; desde el paso 13, resolver y asignar el rol RBAC agrega la necesidad de `read:roles` y `update:users`.
 - `npm test` en `capaServidor`: exitoso; `node:test` ejecuto 10 casos, incluidos token/creacion/correo simulados y los 5 casos previos de autorizacion, sin solicitudes reales a Auth0.
 - `node --check` sobre `src/services/auth0Management.service.js` y `test/auth0Management.service.test.js`: exitoso, sin errores de sintaxis.
 - La habilitacion de `ITECSA Frontend Local` en la conexion Database, el proveedor/plantilla de correo y el grant M2M deben confirmarse manualmente en Dashboard, porque el MCP disponible no expone esas verificaciones.
@@ -280,5 +286,5 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - Fecha: `2026-05-27`.
 - Estado vigente: el backend expone una ruta administrativa protegida que valida datos, crea la cuenta Auth0 Database, asigna un rol RBAC existente y solicita el correo inicial en orden seguro.
 - Control de secretos y alcance: el secret M2M solo se obtiene de entorno; la contrasena temporal no se retorna, registra ni persiste; no se incorporaron Prisma, MySQL, RUT, firma electronica ni cambios frontend.
-- Pendientes: ampliar y confirmar manualmente el grant M2M con `read:roles` y `update:users`, validar correo Auth0 y ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
+- Pendientes: ampliar y confirmar manualmente el grant M2M con `read:roles` y `update:users` para validar creacion real; integrar posteriormente el formulario frontend sin enviar RUT, firma ni contrasena; definir en un paso posterior los permisos de negocio de `ITECSA API` por rol; validar correo Auth0 y ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
 - Proximo paso recomendado: detener el avance despues del paso 13; el endpoint independiente de reenvio de correo del paso 14 requiere instruccion expresa.

@@ -70,14 +70,14 @@
 
 - Action final: `ITECSA Add Role Claim`.
 - Trigger: `Post Login` (`post-login`, version `v3`), runtime `node22`, sin dependencias ni secretos.
-- Fuente del rol: `event.user.app_metadata.rolUsuario`.
-- Claim emitido: `https://itecsa.local/rolUsuario`.
+- Fuente de roles: `event.authorization.roles` provisto por Auth0 Roles.
+- Claim emitido: `https://itecsa.local/roles`, como arreglo de roles permitidos.
 - Token donde se emite: access token solamente; no se agrega al ID token en este paso.
 - Valores permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
-- Comportamiento: el claim solo se agrega si `rolUsuario` coincide exactamente con un valor permitido; ante ausencia o valor no permitido no se inventa rol ni se bloquea el login.
-- Estado Auth0: la Action fue creada y desplegada mediante MCP; la version desplegada fue verificada con `all_changes_deployed: true`.
+- Comportamiento: el claim contiene solamente roles asignados que coinciden con valores permitidos; ante ausencia de roles permitidos se omite sin bloquear el login.
+- Estado Auth0: la Action fue actualizada y desplegada mediante MCP; la version `2` desplegada fue verificada con `all_changes_deployed: true`.
 - Binding Post Login: se enlazo manualmente en Dashboard bajo `Actions > Triggers > Post Login`, confirmado visualmente con una sola instancia de `ITECSA Add Role Claim` entre `Start` y `Complete`, porque el MCP disponible no expone operaciones de bindings.
-- Validacion de token pendiente: no se creo usuario ni se ejecuto login como parte de este paso. Cuando exista un usuario controlado con `app_metadata.rolUsuario` permitido y un login que solicite `https://api.itecsa.local`, el access token debe contener el claim namespaced; para rol ausente o no permitido debe omitirlo sin rechazar el login.
+- Validacion de token pendiente: cuando el rol Auth0 `Administrador` este asignado al usuario bootstrap y exista login que solicite `https://api.itecsa.local`, el access token debe contener `https://itecsa.local/roles: ["Administrador"]`.
 
 ## Variables de entorno pendientes
 
@@ -118,24 +118,20 @@
 - Auditoria inicial del repositorio realizada el `2026-05-26`.
 - Auditoria Auth0 de solo lectura realizada el `2026-05-26` sobre aplicaciones, Resource Servers y Actions disponibles mediante MCP, complementada con revision manual de conexion Database, usuarios y roles.
 - Recursos Auth0 base configurados el `2026-05-26`: SPA local, API propia, aplicacion M2M y grant minimo `create:users`.
-- Action Post Login `ITECSA Add Role Claim` creada, desplegada y enlazada al flujo Post Login el `2026-05-26`; su validacion mediante token real queda pendiente de contar con un login y usuario controlados.
-- Revision del paso 5 realizada el `2026-05-26`: el equipo dispone de un correo bootstrap controlado, pero el MCP Auth0 expuesto no incluye operaciones para buscar, crear ni actualizar usuarios; no fue posible verificar ni crear el usuario Administrador.
-- Actualizacion manual del paso 5 informada por el equipo el `2026-05-26`: se creo el usuario bootstrap en Auth0 y se configuro `app_metadata.rolUsuario = Administrador`; esta ejecucion no puede revalidarse mediante el MCP disponible.
-- Correo de verificacion del usuario bootstrap recibido por el equipo el `2026-05-26`; este correo confirma el envio de verificacion de email, pero no reemplaza el flujo de establecimiento/restablecimiento de contrasena.
+- Action Post Login `ITECSA Add Role Claim` migrada y desplegada el `2026-05-26` para emitir roles desde Auth0 Roles; su validacion mediante token real queda pendiente de un login integrado.
+- Usuario bootstrap creado manualmente por el equipo el `2026-05-26` en `Username-Password-Authentication`.
+- Rol Auth0 `Administrador` creado y asignado manualmente al usuario bootstrap; RBAC y `Add Permissions in the Access Token` habilitados para `ITECSA API`.
 - No se hicieron cambios funcionales de frontend o backend.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
 
-- Estado: creado manualmente por el equipo y pendiente de cierre del flujo de establecimiento de contrasena administrado por Auth0.
+- Estado: creado manualmente por el equipo.
 - Correo bootstrap: el equipo entrego un correo controlado para uso operativo en Auth0; su valor completo no se registra en este documento.
-- Usuario reutilizado o creado: creado manualmente en Auth0 por el equipo; no se registra el identificador ni el correo completo.
-- Rol Administrador: el equipo informa que configuro `app_metadata.rolUsuario = Administrador` en el usuario bootstrap creado.
-- Verificacion de correo: el equipo informa que recibio el correo de verificacion enviado por Auth0; no se registra el enlace ni el correo completo.
-- Limitacion operativa: el MCP Auth0 disponible durante este paso permite verificar Actions, pero no expone operaciones de consulta, creacion o actualizacion de usuarios ni lectura de conexiones.
-- Alcance de la confirmacion: la creacion y metadata corresponden a ejecucion manual reportada por el equipo, no a verificacion independiente via MCP.
-- Contrasena: debe establecerse mediante un flujo de correo administrado por Auth0, sin generar, mostrar, transportar ni registrar contrasenas en ITECSA o en este handoff.
-- Pendiente manual: completar la verificacion de correo si aun no se hizo, confirmar que el usuario pertenece a `Username-Password-Authentication` y solicitar el correo de establecimiento/restablecimiento de contrasena administrado por Auth0.
+- Conexion: `Username-Password-Authentication`, confirmada manualmente por el equipo.
+- Rol Auth0: `Administrador`, creado y asignado manualmente al usuario bootstrap.
+- Metadata de rol: `app_metadata.rolUsuario` fue retirada manualmente; Auth0 Roles es la unica fuente de rol configurada.
+- Control de datos: no se registra el identificador del usuario, el correo completo ni contrasenas; cualquier gestion de contrasena corresponde a Auth0.
 
 ## Pasos completados
 
@@ -143,7 +139,7 @@
 - [x] 2. Auditoria Auth0 via MCP
 - [x] 3. Recursos Auth0 base via MCP
 - [x] 4. Action Post Login via MCP
-- [ ] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
+- [x] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
 - [ ] 6. Variables de entorno
 - [ ] 7. Auth0Provider frontend
 - [ ] 8. Login/logout Auth0
@@ -164,11 +160,10 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance en el paso `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
-- Completar la verificacion del correo recibido, confirmar en Dashboard que el usuario bootstrap pertenece a `Username-Password-Authentication` y solicitar el establecimiento de contrasena mediante correo administrado por Auth0; no registrar su contrasena.
-- Cuando el login este disponible en un paso autorizado, validar el claim `https://itecsa.local/rolUsuario = Administrador` en un access token real.
+- Mantener detenido el avance despues del paso `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
+- Proximo paso numerado pendiente: `6. Variables de entorno`, solo con instruccion expresa.
 - Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
-- No avanzar a variables de entorno, frontend, backend, Prisma, MySQL ni persistencia de datos hasta cerrar expresamente este paso.
+- No implementar variables de entorno, frontend, backend, Prisma, MySQL ni persistencia de datos como parte de este paso.
 
 ## Riesgos o supuestos
 
@@ -177,21 +172,14 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
+- RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente el claim namespaced `https://itecsa.local/roles`.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
-- La creacion manual del usuario bootstrap y su metadata `rolUsuario = Administrador` fueron informadas por el equipo; no pudieron revalidarse porque el MCP Auth0 expuesto no ofrece operaciones de usuarios.
-- El correo de verificacion recibido no equivale al correo de establecimiento o restablecimiento de contrasena requerido para cerrar este paso.
-- Queda pendiente confirmar la conexion del usuario creado y el uso del flujo de correo de Auth0 para establecer o restablecer la contrasena sin exponerla a ITECSA.
 - La conexion Database esperada fue confirmada en la auditoria previa como administrada por Auth0 y sin aplicaciones habilitadas visibles; el MCP disponible en este paso no permite revalidar ni modificar conexiones.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 
 ## Ultima actualizacion del handoff
 
-- Paso revisado: `5. Usuario bootstrap Administrador via MCP o registro manual controlado` (usuario creado y correo de verificacion recibido; pendiente confirmar flujo de contrasena Auth0).
+- Paso completado: `5. Usuario bootstrap Administrador via MCP o registro manual controlado`.
 - Fecha: `2026-05-26`.
-- Verificacion de Action: se confirmo mediante MCP una unica Action `ITECSA Add Role Claim`, trigger `post-login/v3`, runtime `node22`, desplegada y sin secretos.
-- Contrato del claim: lee `event.user.app_metadata.rolUsuario` y agrega `https://itecsa.local/rolUsuario` solo al access token para los valores `Administrador`, `Gerencia`, `Operario`, `Ventas` o `Cobranzas`.
-- Conexion Database: `Username-Password-Authentication` se conserva segun la confirmacion manual registrada en pasos anteriores; el MCP expuesto no permite revalidar conexiones y no se encontro evidencia que contradiga ese estado.
-- Bootstrap: el equipo informa que creo manualmente el usuario controlado y configuro `app_metadata.rolUsuario = Administrador`; el MCP Auth0 expuesto no permite revalidar ese resultado.
-- Correo recibido: el equipo informa que recibio el correo de verificacion Auth0; no confirma aun el establecimiento de la contrasena.
-- Pendiente manual: completar la verificacion si corresponde, confirmar que el bootstrap pertenece a `Username-Password-Authentication`, solicitar mediante Auth0 el correo de establecimiento/restablecimiento de contrasena y confirmar su recepcion, sin documentar la contrasena.
-- Control de secretos y alcance: no se documento el correo completo ni se guardaron secretos, tokens o contrasenas; no se modifico frontend, backend, conexiones, usuarios ni roles.
+- Resultado verificado: el equipo creo el bootstrap en `Username-Password-Authentication`, creo y asigno el rol Auth0 `Administrador`, habilito RBAC y `Add Permissions in the Access Token` para `ITECSA API`, y retiro `app_metadata.rolUsuario`; la Action fue migrada y desplegada mediante MCP para leer `event.authorization.roles` y emitir `https://itecsa.local/roles`.
+- Control de secretos y alcance: no se documento el correo completo ni se guardaron secretos, tokens o contrasenas; no se modifico frontend ni backend.

@@ -24,14 +24,31 @@ PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
 AUTH0_DOMAIN=<dominio-auth0>
 AUTH0_AUDIENCE=<audience-api>
+AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
+AUTH0_MANAGEMENT_CLIENT_SECRET=
+AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
+AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
 ```
 
 - `PORT`: puerto HTTP del servidor.
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
 - `AUTH0_AUDIENCE`: identificador de la API que debe contener el access token.
+- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M autorizada con `create:users`.
+- `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
+- `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
+- `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
 
-La plantilla contiene variables reservadas para una futura integracion con Auth0 Management API. No son consumidas por el endpoint actual y ningun secret real debe quedar en el repositorio.
+Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el servicio interno; no existen endpoints administrativos para invocarlo en este paso.
+
+## Servicio Interno Auth0
+
+`src/services/auth0Management.service.js` prepara dos operaciones backend:
+
+- `createAuth0User(...)` obtiene un token M2M, crea un usuario Database con nombre y `app_metadata.rolUsuario`, y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
+- `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
+
+El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. `app_metadata.rolUsuario` no asigna roles Auth0 RBAC; la autorizacion vigente continua utilizando el claim `https://itecsa.local/roles`.
 
 ## Endpoint De Autenticacion
 

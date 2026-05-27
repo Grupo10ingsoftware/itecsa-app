@@ -30,7 +30,7 @@
 - Arranque: `capaServidor/src/app/app.js` carga `dotenv` e instancia `Server`.
 - Servidor: `capaServidor/src/server.js` configura `express`, CORS restringido mediante `FRONTEND_ORIGIN`, `express.json()` y archivos estaticos.
 - Arranque: `capaServidor/src/app/app.js` exige `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN` antes de iniciar el servidor.
-- Rutas y servicios: `GET /api/auth/verify` valida el access token, lee claims namespaced y devuelve identidad/rol; existe `requireAdministrador` como middleware reusable, aun sin ruta administrativa donde montarlo, y no existen servicios Management API.
+- Rutas y servicios: `GET /api/auth/verify` valida el access token, lee claims namespaced y devuelve identidad/rol; existe `requireAdministrador` como middleware reusable, aun sin ruta administrativa donde montarlo; `src/services/auth0Management.service.js` implementa operaciones internas Auth0 sin exponer endpoints.
 - Dependencias observadas: `express`, `cors`, `dotenv` y `express-oauth2-jwt-bearer`.
 - Manejo de errores: solo captura de fallo durante el arranque; no existe middleware API de errores.
 
@@ -83,7 +83,7 @@
 ## Variables de entorno configuradas
 
 - Frontend: `capaVista/env.example` documenta `VITE_AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `VITE_AUTH0_CLIENT_ID=hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`, `VITE_AUTH0_AUDIENCE=https://api.itecsa.local` y `VITE_API_BASE_URL=http://localhost:3000/api`.
-- Backend: `capaServidor/env.example` documenta `PORT=3000`, `FRONTEND_ORIGIN=http://localhost:5173`, `AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `AUTH0_AUDIENCE=https://api.itecsa.local`, `AUTH0_MANAGEMENT_CLIENT_ID=b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT` y `AUTH0_DATABASE_CONNECTION=Username-Password-Authentication`.
+- Backend: `capaServidor/env.example` documenta `PORT=3000`, `FRONTEND_ORIGIN=http://localhost:5173`, `AUTH0_DOMAIN=itecsa-sistema.us.auth0.com`, `AUTH0_AUDIENCE=https://api.itecsa.local`, `AUTH0_MANAGEMENT_CLIENT_ID=b3jWfQOqDUVzavdm5CpgE5fUvwK8N5gT`, `AUTH0_DATABASE_CONNECTION=Username-Password-Authentication` y `AUTH0_PASSWORD_RESET_CLIENT_ID=hBE18LPJgcYqI0WpiZxpLgT9sygDHTHm`.
 - Los `client_id` incluidos son identificadores publicos/no secretos confirmados mediante Auth0 MCP; el client secret de Management no fue consultado ni registrado.
 - `AUTH0_MANAGEMENT_CLIENT_SECRET` se suministra al backend mediante una variable de usuario de Windows; no se registra su valor en el repositorio, archivos `.env` ni documentacion.
 - Los archivos locales `.env*` quedan excluidos de Git mediante el `.gitignore` raiz; las plantillas versionadas de frontend y backend usan el nombre `env.example`.
@@ -101,6 +101,9 @@
 - Validar JWT con issuer `https://${AUTH0_DOMAIN}/` y audience `AUTH0_AUDIENCE`; proyectar el unico rol oficial de `https://itecsa.local/roles` a `rolUsuario`.
 - Responder `403` en `/api/auth/verify` si el token autenticado carece de email namespaced, carece de un rol oficial unico o expone mas de un rol.
 - Aplicar `requireAdministrador` despues de `checkJwt` en futuros endpoints administrativos; autoriza solo el claim `https://itecsa.local/roles` exactamente igual a `["Administrador"]` y responde `403` para cualquier otro usuario autenticado.
+- Crear usuarios solo desde el servicio backend interno con token M2M y scope `create:users`; la contrasena temporal aleatoria existe solo en memoria durante la solicitud Database y no se devuelve ni registra.
+- Solicitar el correo de establecimiento/cambio de contrasena con `/dbconnections/change_password` y el client ID publico de la SPA; no generar ni retornar tickets o enlaces sensibles.
+- `app_metadata.rolUsuario` se envia al crear usuarios por contrato de datos, pero no reemplaza Auth0 Roles/RBAC como fuente de autorizacion.
 - No cambiar formularios, mocks ni flujo funcional durante esta auditoria documental.
 
 ## Restricciones de seguridad
@@ -141,6 +144,7 @@
 - Backend ampliado el `2026-05-27` con `checkJwt` Auth0 y `GET /api/auth/verify`, usando claims namespaced de email y roles sin persistencia ni Management API.
 - Action Post Login desplegada en version `3` el `2026-05-27` para conservar roles RBAC y emitir email namespaced en access tokens nuevos.
 - Middleware `requireAdministrador` incorporado el `2026-05-27`, consumiendo el claim vigente de roles y sin exponer rutas administrativas temporales.
+- Servicio interno Auth0 Management API incorporado el `2026-05-27`, con token M2M, creacion Database, normalizacion de correo duplicado y solicitud de correo de contrasena sin tickets ni endpoints.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -165,7 +169,7 @@
 - [x] 9. Backend entorno y CORS
 - [x] 10. JWT y `/api/auth/verify`
 - [x] 11. `requireAdministrador`
-- [ ] 12. Servicio Auth0 Management API
+- [x] 12. Servicio Auth0 Management API
 - [ ] 13. `POST /api/admin/users`
 - [ ] 14. `POST /api/admin/users/password-setup-email`
 - [ ] 15. `apiClient` y `authApi.verify`
@@ -179,10 +183,10 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `11. requireAdministrador`.
-- Proximo paso recomendado: mantener detenido el avance; el montaje de `requireAdministrador` queda reservado para los endpoints administrativos reales de los pasos `13` y `14`, solo con instruccion expresa.
+- Mantener detenido el avance despues del paso `12. Servicio Auth0 Management API`.
+- Proximo paso recomendado: mantener detenido el avance; los endpoints administrativos de los pasos `13` y `14` quedan reservados para una instruccion expresa y deberan montar `checkJwt` antes de `requireAdministrador`.
 - Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
-- No implementar Auth0 Management API, endpoints administrativos, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar endpoints administrativos, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
@@ -199,7 +203,8 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 - Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
 - La API valida tokens en `/api/auth/verify`, pero `requireAdministrador` aun no protege operaciones HTTP de negocio porque no existen endpoints administrativos implementados; restringir CORS no sustituye ese montaje posterior.
-- Las variables de Auth0 Management documentadas siguen reservadas para un paso posterior y no son consumidas por el backend en este paso.
+- El servicio Management queda sin superficie HTTP hasta pasos posteriores; no puede invocarse desde el frontend y la autorizacion administrativa de rutas aun no esta conectada a una operacion de negocio.
+- Antes de validar envio real de correo debe confirmarse manualmente en Dashboard que `ITECSA Frontend Local` esta habilitada para `Username-Password-Authentication` y que la plantilla/proveedor de correo de cambio de contrasena esta operativo.
 
 ## Validacion del paso 8
 
@@ -241,10 +246,23 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `node --check` sobre `src/middlewares/requireAdministrador.js` y `test/requireAdministrador.test.js`: exitoso, sin errores de sintaxis.
 - No se implementaron Auth0 Management API, endpoints administrativos, creacion de usuarios, Prisma, MySQL, persistencia ni cambios frontend.
 
+## Validacion del paso 12
+
+- Se creo `src/services/auth0Management.service.js` sin montar nuevas rutas ni modificar frontend.
+- `createAuth0User` solicita token M2M para Management API, envia `email`, `given_name`, `family_name`, `connection` y `app_metadata.rolUsuario`, y normaliza usuario duplicado como `USER_EMAIL_ALREADY_EXISTS`.
+- La contrasena temporal Database se genera mediante `node:crypto`, se usa solamente en el cuerpo enviado a Auth0 y no forma parte del retorno ni de logs del servicio.
+- `requestPasswordSetupEmail` usa `/dbconnections/change_password` con `AUTH0_PASSWORD_RESET_CLIENT_ID` y retorna solo `{ requested: true }`, sin tickets ni enlaces.
+- El unico scope Management requerido sigue siendo `create:users`; el flujo de correo pertenece a Authentication API y no requiere agregar permisos de lectura, actualizacion, eliminacion ni tickets.
+- `npm test` en `capaServidor`: exitoso; `node:test` ejecuto 10 casos, incluidos token/creacion/correo simulados y los 5 casos previos de autorizacion, sin solicitudes reales a Auth0.
+- `node --check` sobre `src/services/auth0Management.service.js` y `test/auth0Management.service.test.js`: exitoso, sin errores de sintaxis.
+- La habilitacion de `ITECSA Frontend Local` en la conexion Database, el proveedor/plantilla de correo y el grant M2M deben confirmarse manualmente en Dashboard, porque el MCP disponible no expone esas verificaciones.
+- No se implementaron endpoints administrativos, asignacion RBAC, Prisma, MySQL, persistencia ni cambios frontend.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `11. requireAdministrador`.
+- Paso completado: `12. Servicio Auth0 Management API`.
 - Fecha: `2026-05-27`.
-- Estado vigente: el backend protege `GET /api/auth/verify` mediante JWT Auth0 y dispone de `requireAdministrador` para autorizar solo tokens autenticados cuyo claim de roles sea `["Administrador"]`; no se monto aun en una ruta administrativa real.
-- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se implementaron Auth0 Management API, endpoints administrativos, Prisma, MySQL, persistencia ni cambios frontend.
-- Proximo paso recomendado: mantener detenido el avance; no implementar Auth0 Management API ni endpoints administrativos sin instruccion expresa y, al implementar rutas administrativas reales, montar `checkJwt` antes de `requireAdministrador`.
+- Estado vigente: el backend dispone de funciones internas para crear usuarios Auth0 Database y solicitar el correo de establecimiento de contrasena; todavia no existe una ruta HTTP que las exponga.
+- Control de secretos y alcance: el secret M2M solo se obtiene de entorno; la contrasena temporal no se retorna, registra ni persiste; no se incorporaron endpoints, Prisma, MySQL, RUT, firma electronica ni cambios frontend.
+- Pendientes: validar en Dashboard la aplicacion habilitada y correo Auth0; implementar rutas administrativas solamente en los pasos `13` y `14` con instruccion expresa.
+- Proximo paso recomendado: mantener detenido el avance despues del servicio interno; cuando se autorice el siguiente paso, montar `checkJwt` y `requireAdministrador` antes de las operaciones administrativas.

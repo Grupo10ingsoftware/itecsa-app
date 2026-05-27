@@ -12,7 +12,7 @@
 - La sesion simulada existe solo en memoria React mediante `AuthProvider`; recargar la pagina o cerrar sesion elimina el usuario activo.
 - La proteccion de rutas y permisos actuales es visual: redirige o limita componentes, sin autorizacion de servidor.
 - La creacion de usuarios es una pantalla de preparacion/preview y no persiste informacion.
-- El backend Express es una plantilla inicial sin rutas API registradas, JWT, endpoints de auth ni servicios Auth0.
+- El backend Express mantiene una plantilla sin rutas API registradas, JWT, endpoints de auth ni servicios Auth0; ahora valida configuracion Auth0 minima y restringe CORS al origen frontend configurado.
 - No se encontraron archivos `.env*`, cliente HTTP del frontend ni dependencias Auth0/JWT en las capas auditadas.
 
 ## Frontend relevante
@@ -28,7 +28,8 @@
 ## Backend relevante
 
 - Arranque: `capaServidor/src/app/app.js` carga `dotenv` e instancia `Server`.
-- Servidor: `capaServidor/src/server.js` configura `express`, `cors()` sin restricciones declaradas, `express.json()` y archivos estaticos.
+- Servidor: `capaServidor/src/server.js` configura `express`, CORS restringido mediante `FRONTEND_ORIGIN`, `express.json()` y archivos estaticos.
+- Arranque: `capaServidor/src/app/app.js` exige `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN` antes de iniciar el servidor.
 - Rutas y servicios: no hay routers montados, endpoints de autenticacion, middleware de token, validacion de roles ni integracion Auth0.
 - Dependencias observadas: `express`, `cors` y `dotenv`; no se observaron dependencias JWT/Auth0.
 - Manejo de errores: solo captura de fallo durante el arranque; no existe middleware API de errores.
@@ -95,6 +96,8 @@
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
+- Validar al arrancar `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN`; restringir CORS al unico origen configurado sin agregar autenticacion todavia.
+- Mantener `express.json()` y no crear modulos de auth hasta que un paso funcional los requiera.
 - No cambiar formularios, mocks ni flujo funcional durante esta auditoria documental.
 
 ## Restricciones de seguridad
@@ -131,6 +134,7 @@
 - `ProtectedRoute` espera la restauracion de sesion Auth0 antes de redirigir; `RoleGuard` y los permisos basados en claims permanecen pendientes.
 - Configuracion manual de Universal Login completada por el equipo el `2026-05-27`: auto-registro deshabilitado y acceso con Google no disponible para `ITECSA Frontend Local`.
 - Login y logout reales verificados manualmente por el equipo con el usuario bootstrap controlado; no se registran correo ni contrasena.
+- Backend preparado el `2026-05-27` para exigir variables Auth0/origen al iniciar y responder CORS solo para `FRONTEND_ORIGIN`, conservando parseo JSON y sin implementar JWT.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -152,7 +156,7 @@
 - [x] 6. Variables de entorno
 - [x] 7. Auth0Provider frontend
 - [x] 8. Login/logout Auth0
-- [ ] 9. Backend entorno y CORS
+- [x] 9. Backend entorno y CORS
 - [ ] 10. JWT y `/api/auth/verify`
 - [ ] 11. `requireAdministrador`
 - [ ] 12. Servicio Auth0 Management API
@@ -169,10 +173,10 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `8. Login/logout Auth0`.
-- Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, solo con instruccion expresa.
+- Mantener detenido el avance despues del paso `9. Backend entorno y CORS`.
+- Proximo paso recomendado y pendiente para otro agente: `10. JWT y /api/auth/verify`, solo con instruccion expresa.
 - Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
-- No implementar CORS, JWT, endpoints, guards de roles, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar JWT, endpoints, guards de roles, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
@@ -187,6 +191,8 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; el equipo habilito/configuro manualmente el flujo necesario para `ITECSA Frontend Local`, y Universal Login presenta `Username-Password-Authentication` sin auto-registro ni Google.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 - Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
+- La API aun no valida tokens ni protege endpoints; restringir CORS no sustituye la autorizacion que corresponde a los pasos siguientes.
+- Las variables de Auth0 Management documentadas siguen reservadas para un paso posterior y no son consumidas por el backend en este paso.
 
 ## Validacion del paso 8
 
@@ -200,10 +206,19 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - Revision posterior a la configuracion manual del Dashboard: Universal Login conserva el formulario Database y no presenta `Sign up` ni acceso con Google.
 - El equipo confirmo autenticacion exitosa con el usuario bootstrap y cierre de sesion con retorno a `http://localhost:5173`; no se inspeccionaron ni documentaron credenciales.
 
+## Validacion del paso 9
+
+- `npm ci` en `capaServidor`: exitoso; dependencias instaladas localmente con `0 vulnerabilities`.
+- Inicio temporal con `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `FRONTEND_ORIGIN=http://localhost:5173` y `PORT=3190`: exitoso; el proceso fue detenido tras la prueba.
+- Inicio con cada variable obligatoria ausente/en blanco y con las tres ausentes/en blanco: rechazado con codigo `1`, identificando `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y/o `FRONTEND_ORIGIN` segun corresponde.
+- Peticion con `Origin: http://localhost:5173`: responde `Access-Control-Allow-Origin: http://localhost:5173`.
+- Peticion con un origen distinto: la cabecera permanece fijada en `http://localhost:5173` y no coincide con el origen solicitante, por lo que el navegador no lo autoriza mediante CORS.
+- No se implementaron JWT, endpoints protegidos, Auth0 Management API, Prisma, MySQL, persistencia ni cambios frontend.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `8. Login/logout Auth0`.
+- Paso completado: `9. Backend entorno y CORS`.
 - Fecha: `2026-05-27`.
-- Estado vigente: `/login` ejecuta `loginWithRedirect`, la fachada `useAuth()` utiliza la sesion Auth0, `logout()` cierra la sesion Auth0 con retorno al origin local y Universal Login fue validado sin auto-registro ni Google.
-- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se modificaron `RoleGuard`, backend, vista de creacion de usuarios, Prisma, MySQL ni persistencia.
-- Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, sujeto a instruccion expresa.
+- Estado vigente: el backend falla al iniciar si faltan `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` o `FRONTEND_ORIGIN`; CORS queda limitado a `FRONTEND_ORIGIN` y se conserva `express.json()`.
+- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se implementaron JWT, endpoints, Auth0 Management API, Prisma, MySQL, persistencia ni cambios frontend.
+- Proximo paso recomendado y pendiente para otro agente: `10. JWT y /api/auth/verify`, sujeto a instruccion expresa.

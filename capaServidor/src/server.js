@@ -22,7 +22,7 @@ class Server {
   middlewares() {
       
     // Cors
-    this.app.use(cors());
+    this.app.use(cors({ origin: process.env.FRONTEND_ORIGIN }));
 
     // Parseo y lectura del Body - Recibir datos
 

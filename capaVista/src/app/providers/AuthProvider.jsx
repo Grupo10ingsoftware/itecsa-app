@@ -1,33 +1,30 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
+import { useCallback, useMemo } from 'react'
 import { roleHasPermission } from '../../config/permissions'
 import { MOCK_USERS } from '../../modules/auth/mocks/authMocks'
 import { AuthContext } from './authContext'
 
 export function AuthProvider({ children }) {
-  // Sesion simulada/no productiva: vive solo en memoria React y no persiste datos.
-  const [user, setUser] = useState(null)
-
-  const loginAsMockUser = useCallback((userId) => {
-    // Simula seleccion de usuario para la UI; no valida credenciales ni consulta Auth0/backend.
-    const mockUser = MOCK_USERS.find((candidate) => {
-      return candidate.idUsuario === userId || candidate.id === userId
-    })
-
-    if (!mockUser) {
-      throw new Error(`No existe un usuario mock con id "${userId}".`)
-    }
-
-    setUser(mockUser)
-    return mockUser
-  }, [])
+  const {
+    error,
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout: auth0Logout,
+    user,
+  } = useAuth0()
 
   const logout = useCallback(() => {
-    setUser(null)
-  }, [])
+    auth0Logout({
+      logoutParams: {
+        returnTo: window.location.origin,
+      },
+    })
+  }, [auth0Logout])
 
   const hasRole = useCallback(
     (role) => {
-      // rolUsuario viene del MER 06; role queda solo como alias temporal para componentes.
+      // La lectura de roles Auth0 se incorporara cuando se implemente el paso de guards.
       return (user?.rolUsuario ?? user?.role) === role
     },
     [user],
@@ -35,7 +32,7 @@ export function AuthProvider({ children }) {
 
   const hasPermission = useCallback(
     (permission) => {
-      // Control visual de permisos: la autorizacion real debe vivir en backend.
+      // Control visual pendiente de integrar con claims Auth0; no reemplaza autorizacion backend.
       const userRole = user?.rolUsuario ?? user?.role
 
       return Boolean(userRole && roleHasPermission(userRole, permission))
@@ -46,14 +43,16 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
-      isAuthenticated: Boolean(user),
+      isAuthenticated,
+      isLoading,
+      error,
       mockUsers: MOCK_USERS,
-      loginAsMockUser,
+      loginWithRedirect,
       logout,
       hasRole,
       hasPermission,
     }),
-    [user, loginAsMockUser, logout, hasRole, hasPermission],
+    [user, isAuthenticated, isLoading, error, loginWithRedirect, logout, hasRole, hasPermission],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

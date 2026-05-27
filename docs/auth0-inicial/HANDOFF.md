@@ -19,9 +19,9 @@
 
 - Entry point y providers: `capaVista/src/main.jsx`, `capaVista/src/app/providers/AppProviders.jsx` y `AuthProvider.jsx`.
 - Router: `capaVista/src/app/router.jsx` declara `/login`, rutas protegidas y `/admin/usuarios/nuevo`.
-- Login: `modules/auth/pages/LoginPage.jsx` y `components/LoginForm.jsx` validan contra fixtures locales; `DevLoginButton.jsx` permite ingreso mock administrativo.
-- Sesion/logout: `AuthProvider.jsx` expone `loginAsMockUser`, `logout`, `hasRole` y `hasPermission`; `LogoutButton.jsx` limpia el estado en memoria.
-- Guards: `ProtectedRoute.jsx` exige una sesion mock activa; `RoleGuard.jsx` usa permisos/roles definidos en `config/permissions.js` y `config/roles.js`.
+- Login: `modules/auth/pages/LoginPage.jsx` y `components/LoginForm.jsx` mantienen el panel ITECSA e inician Auth0 Universal Login mediante `loginWithRedirect`.
+- Sesion/logout: `AuthProvider.jsx` conserva la fachada `useAuth()` sobre `@auth0/auth0-react`; `LogoutButton.jsx` ejecuta Universal Logout y retorna al origin local.
+- Guards: `ProtectedRoute.jsx` espera la carga Auth0 y exige sesion autenticada; `RoleGuard.jsx` aun usa permisos/roles no integrados con claims Auth0.
 - Creacion de usuarios: `modules/users/pages/UserCreatePage.jsx` y `components/UserCreateForm.jsx` solo validan y muestran un resumen temporal.
 - Cliente HTTP y entorno Auth0: no encontrados en la auditoria inicial.
 
@@ -36,10 +36,10 @@
 ## Mocks de auth encontrados
 
 - `capaVista/src/modules/auth/mocks/authMocks.js` contiene usuarios de prueba, roles/estado y datos representativos para la UI.
-- `capaVista/src/modules/auth/mocks/authCredentials.js` contiene credenciales temporales utilizadas por el login visual.
-- `LoginPage.jsx` expone credenciales simuladas para pruebas del frontend.
+- El fixture `capaVista/src/modules/auth/mocks/authCredentials.js` y el acceso rapido administrativo fueron retirados al reemplazar el login visual por Auth0.
+- `LoginPage.jsx` ya no solicita ni expone credenciales locales; Universal Login administra la captura de credenciales.
 - `UserCreateForm.jsx` solicita actualmente RUT, firma electronica y contrasena solo para validacion/preview en memoria.
-- No se reproducen valores de esos fixtures en este handoff. Su retiro o adecuacion corresponde a pasos posteriores autorizados.
+- No se reproducen valores de fixtures de prueba en este handoff. La adecuacion del mock restante corresponde a pasos posteriores autorizados.
 
 ## Auth0 relevante
 
@@ -89,8 +89,9 @@
 
 ## Decisiones tecnicas aplicables
 
-- Mantener `useAuth()` como posible fachada interna durante la migracion, reemplazando su implementacion mock solo en un paso posterior.
-- Montar `Auth0Provider` por fuera del `AuthProvider` mock para inicializar el SDK sin sustituir aun la sesion visible ni sus consumidores.
+- Mantener `useAuth()` como fachada interna durante la migracion; desde el paso 8 expone identidad, carga, error, login y logout del SDK Auth0.
+- Mantener `MOCK_USERS` transitoriamente en la fachada solo para `UserCreateForm`, que no se integra ni modifica en este paso.
+- Montar `Auth0Provider` por fuera de `AuthProvider` y procesar `onRedirectCallback` con rutas locales sanitizadas.
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
@@ -126,7 +127,8 @@
 - Rol Auth0 `Administrador` creado y asignado manualmente al usuario bootstrap; RBAC y `Add Permissions in the Access Token` habilitados para `ITECSA API`.
 - Plantillas `env.example` creadas el `2026-05-27` en frontend y backend, sin secretos reales; regla global `.env*` agregada al `.gitignore` raiz.
 - `Auth0Provider` configurado en la SPA el `2026-05-27` mediante `@auth0/auth0-react`, usando variables `VITE_AUTH0_*` y `window.location.origin` como `redirect_uri`.
-- La autenticacion visible continua operando mediante el `AuthProvider` mock; no se implementaron login/logout Auth0 ni cambios backend en este paso.
+- Login y logout visibles integrados con Auth0 Universal Login/Logout el `2026-05-27`; la fachada `useAuth()` consume el estado del SDK y conserva solo `MOCK_USERS` por compatibilidad fuera de alcance.
+- `ProtectedRoute` espera la restauracion de sesion Auth0 antes de redirigir; `RoleGuard` y los permisos basados en claims permanecen pendientes.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -147,7 +149,7 @@
 - [x] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
 - [x] 6. Variables de entorno
 - [x] 7. Auth0Provider frontend
-- [ ] 8. Login/logout Auth0
+- [x] 8. Login/logout Auth0
 - [ ] 9. Backend entorno y CORS
 - [ ] 10. JWT y `/api/auth/verify`
 - [ ] 11. `requireAdministrador`
@@ -165,29 +167,40 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `7. Auth0Provider frontend`.
-- Proximo paso recomendado y pendiente para otro agente: `8. Login/logout Auth0`, solo con instruccion expresa.
-- Antes de integrar login interactivo en la SPA, revisar en Dashboard si `Username-Password-Authentication` debe habilitarse para `ITECSA Frontend Local`; esta accion no se ejecuto en este paso.
-- No implementar login, logout, JWT, endpoints, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- Mantener detenido el avance despues del paso `8. Login/logout Auth0`.
+- Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, solo con instruccion expresa.
+- Universal Login fue alcanzado desde la SPA y presento el formulario de la conexion Database para `ITECSA Frontend Local`; la autenticacion con el usuario bootstrap y el logout completo requieren prueba manual controlada.
+- No implementar CORS, JWT, endpoints, guards de roles, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
-- Los fixtures actuales incluyen material de autenticacion de prueba visible en la interfaz; deben eliminarse al sustituir el login mock.
+- `MOCK_USERS` se conserva temporalmente porque `UserCreateForm` lo consume para validacion visual; retirarlo requiere el paso correspondiente a esa vista.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
-- Aunque `Auth0Provider` ya esta inicializado, aun no existe flujo interactivo Auth0 ni validacion real del access token en la aplicacion.
+- El login autentica mediante Auth0, pero los permisos de navegacion y `RoleGuard` aun no consumen roles Auth0; un usuario real puede ver accesos limitados hasta ese paso.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva del claim en un access token queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente el claim namespaced `https://itecsa.local/roles`.
 - El correo bootstrap fue proporcionado por el equipo para uso controlado, pero no se registra completo para evitar exposicion de datos personales en documentacion.
-- La conexion Database esperada fue confirmada en la auditoria previa como administrada por Auth0 y sin aplicaciones habilitadas visibles; el MCP disponible en este paso no permite revalidar ni modificar conexiones.
+- La auditoria inicial no mostraba aplicaciones habilitadas para la conexion Database; en este paso Universal Login presento el formulario `Username-Password-Authentication` al iniciar login desde `ITECSA Frontend Local`, sin modificar configuracion Auth0.
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 - Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
 
+## Validacion del paso 8
+
+- `git status --short --branch`: ejecutado antes del cambio; rama `auth0-inicial` limpia y `ahead 11`.
+- `rg "DevLoginButton|authCredentials|loginAsMockUser|MOCK_AUTH_CREDENTIALS|Credenciales simuladas|Entrar como administrador" capaVista/src -n`: sin referencias despues del cambio.
+- `rg "mockUsers" capaVista/src -n`: solo permanece en `AuthProvider.jsx` y `UserCreateForm.jsx`, por compatibilidad fuera de alcance.
+- `npm run lint` en `capaVista`: exitoso.
+- `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
+- `npm run dev -- --host 127.0.0.1` y revision local en `http://localhost:5173/login`: el panel ITECSA muestra un unico boton de inicio y no presenta credenciales mock.
+- Interaccion sin credenciales sobre `Iniciar sesion`: redirige a `itecsa-sistema.us.auth0.com/u/login`, que presenta Universal Login de `ITECSA Frontend Local` con formulario Database.
+- La autenticacion manual con usuario bootstrap y la comprobacion de logout quedan a cargo del equipo con acceso a sus credenciales.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `7. Auth0Provider frontend`.
+- Paso completado: `8. Login/logout Auth0`.
 - Fecha: `2026-05-27`.
-- Estado vigente: la SPA declara `@auth0/auth0-react` y monta `Auth0Provider` alrededor de la fachada mock existente, con `domain`, `clientId` y `audience` provistos por variables Vite y `redirect_uri` apuntando al origin actual.
-- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se modificaron login/logout mock, guards, backend, Prisma, MySQL ni persistencia.
-- Proximo paso recomendado y pendiente para otro agente: `8. Login/logout Auth0`, sujeto a instruccion expresa.
+- Estado vigente: `/login` ejecuta `loginWithRedirect`, la fachada `useAuth()` utiliza la sesion Auth0, `logout()` cierra la sesion Auth0 con retorno al origin local y el flujo normal no expone credenciales mock.
+- Control de secretos y alcance: no se agregaron secretos, tokens, contrasenas, RUT ni firma electronica; no se modificaron `RoleGuard`, backend, vista de creacion de usuarios, Prisma, MySQL ni persistencia.
+- Proximo paso recomendado y pendiente para otro agente: `9. Backend entorno y CORS`, sujeto a instruccion expresa.

@@ -1,15 +1,11 @@
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import styles from './LogoutButton.module.css'
 
 export default function LogoutButton() {
   const { logout } = useAuth()
-  const navigate = useNavigate()
 
   function handleLogout() {
-    // Logout visual/simulado: limpia solo estado React en memoria; backend/Auth0 lo reemplazara.
     logout()
-    navigate('/login', { replace: true })
   }
 
   return (

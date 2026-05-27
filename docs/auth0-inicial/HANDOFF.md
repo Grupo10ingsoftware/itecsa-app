@@ -4,7 +4,7 @@
 
 - Rama: `auth0-inicial`.
 - Objetivo futuro: reemplazar la autenticacion simulada de la SPA React por Auth0 e incorporar validacion de autenticacion/autorizacion en Express.
-- Este documento registra el estado encontrado; no confirma recursos externos de Auth0 ni implementaciones pendientes.
+- Este documento registra el estado encontrado en el repositorio y los recursos Auth0 confirmados mediante auditoria de solo lectura; no confirma implementaciones pendientes.
 
 ## Estado inicial encontrado
 
@@ -43,10 +43,17 @@
 
 ## Auth0 relevante
 
-- Tenant: no auditado.
-- SPA, API/audience, aplicacion Machine to Machine, conexion de base de datos y Action Post Login: no auditados.
-- Usuario bootstrap, scopes concedidos, recursos reutilizables o duplicados: no confirmados.
-- No ejecutar configuracion ni crear recursos hasta realizar una auditoria Auth0 de solo lectura en un paso expresamente autorizado.
+- Tenant confirmado: `itecsa-sistema.us.auth0.com`, identificado mediante la API interna `Auth0 Management API`.
+- Aplicaciones visibles: solo se encontro `All Applications`; no se identifico una SPA equivalente a `ITECSA Frontend Local` ni una aplicacion Machine to Machine equivalente a `ITECSA Backend Management`.
+- APIs / Resource Servers: solo se encontro `Auth0 Management API`; la busqueda exacta del audience `https://api.itecsa.local` no devolvio resultados.
+- Actions: no se encontraron Actions en el tenant; no existe una Action Post Login visible equivalente a `ITECSA Add Role Claim`.
+- Conexion Database `Username-Password-Authentication`: existencia confirmada mediante revision manual del Dashboard; usa almacenamiento administrado por Auth0 porque `Use my own database` esta desactivado.
+- Aplicaciones habilitadas para la conexion Database: ninguna visible en la revision manual.
+- Usuarios: la vista de usuarios se encontraba vacia; no existe un usuario bootstrap Administrador visible.
+- Roles: la vista de roles se encontraba vacia; no existe un rol `Administrador` visible.
+- Recursos reutilizables: la conexion `Username-Password-Authentication` puede reutilizarse para ITECSA; `Auth0 Management API` no reemplaza la API propia esperada.
+- Duplicados o conflictos: no se observaron duplicados entre aplicaciones, APIs, Actions, usuarios o roles visibles; crear una segunda conexion Database con el mismo proposito generaria duplicacion innecesaria.
+- Auditoria ejecutada exclusivamente en modo lectura mediante MCP y revision manual del Dashboard. No se crearon, modificaron, eliminaron ni rotaron recursos; no se consultaron ni documentaron secretos o datos personales.
 
 ## Decisiones tecnicas aplicables
 
@@ -78,14 +85,15 @@
 ## Estado actual del avance
 
 - Auditoria inicial del repositorio realizada el `2026-05-26`.
-- No se auditaron ni modificaron recursos Auth0.
+- Auditoria Auth0 de solo lectura realizada el `2026-05-26` sobre aplicaciones, Resource Servers y Actions disponibles mediante MCP, complementada con revision manual de conexion Database, usuarios y roles.
+- No se modificaron recursos Auth0 ni se realizaron acciones de configuracion.
 - No se hicieron cambios funcionales de frontend o backend.
-- El archivo `docs/auth0-inicial/HANDOFF.md` existia al iniciar esta auditoria y se encontraba sin seguimiento en Git.
+- El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Pasos completados
 
 - [x] 1. Auditoria inicial repo y handoff
-- [ ] 2. Auditoria Auth0 via MCP
+- [x] 2. Auditoria Auth0 via MCP
 - [ ] 3. Recursos Auth0 base via MCP
 - [ ] 4. Action Post Login via MCP
 - [ ] 5. Usuario bootstrap Administrador via MCP o registro manual controlado
@@ -109,25 +117,32 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Paso pendiente: auditoria Auth0 de solo lectura para confirmar recursos existentes o faltantes.
-- No fue ejecutado durante esta tarea.
+- Mantener detenido el avance despues de documentar esta auditoria; no crear ni configurar recursos en este paso.
+- En un paso posterior expresamente autorizado, reutilizar la conexion `Username-Password-Authentication` y crear la SPA `ITECSA Frontend Local`, la API con audience `https://api.itecsa.local`, la aplicacion M2M `ITECSA Backend Management`, la Action Post Login `ITECSA Add Role Claim`, el rol `Administrador` y el usuario bootstrap Administrador, o equivalentes compatibles.
+- Cuando se configure la SPA en un paso posterior, habilitar para ella la conexion Database existente; actualmente no tiene aplicaciones asociadas.
+- No implementar Prisma, MySQL, frontend, backend, variables de entorno ni persistencia de datos como parte de esta auditoria.
 
 ## Riesgos o supuestos
 
 - Los fixtures actuales incluyen material de autenticacion de prueba visible en la interfaz; deben eliminarse al sustituir el login mock.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - El frontend actual puede mostrar accesos segun rol, pero el backend aun no impide acceso no autorizado.
-- Cualquier dato o recurso Auth0 descrito en pasos futuros requiere verificacion previa; no se asume existente.
+- Faltan de forma confirmada los recursos ITECSA visibles esperados: SPA, API propia, aplicacion M2M, Action Post Login, rol `Administrador` y usuario bootstrap Administrador.
+- La conexion Database esperada existe, es administrada por Auth0 y no tiene aplicaciones habilitadas actualmente.
+- No se detectaron duplicados entre los recursos visibles; se debe reutilizar la conexion existente y evitar crear otra con el mismo proposito.
 
 ## Ultima actualizacion del handoff
 
-- Paso completado: `1. Auditoria inicial repo y handoff`.
+- Paso completado: `2. Auditoria Auth0 via MCP`.
 - Fecha: `2026-05-26`.
-- Resumen: se verificaron login mock, sesion en memoria, guards visuales, formulario administrativo, mocks y plantilla Express; se documento el estado sin implementar funcionalidad.
+- Resumen: se auditaron en modo solo lectura aplicaciones, Resource Servers y Actions mediante MCP, y se completo la revision manual de conexion Database, usuarios y roles mediante capturas del Dashboard.
 - Comandos ejecutados:
-  - `git branch --show-current` y `git status --short --branch`: confirmaron rama `auth0-inicial` y que `docs/` no esta seguido por Git.
-  - `rg --files` y `rg -n`: localizaron archivos y referencias relevantes de auth, usuarios, guards y servidor.
-  - `Get-Content -Raw` sobre el handoff y archivos relevantes de `capaVista/src` y `capaServidor/src`: confirmo el flujo simulado y ausencia de autenticacion backend.
-  - `git log`, `git diff --stat` y `git diff`: no evidenciaron cambios funcionales previos dentro del alcance revisado.
-- Resultado: handoff tecnico actualizado; pasos posteriores permanecen pendientes.
-- Pendientes: auditoria Auth0 y cualquier implementacion de integracion.
+  - `git branch --show-current`, `git status --short --branch`, `git ls-files` y `git log`: confirmaron rama `auth0-inicial`, arbol limpio previo a esta actualizacion y handoff versionado en el commit `716b08b`.
+  - Consultas Auth0 MCP de solo lectura para aplicaciones, Resource Servers y Actions: confirmaron los recursos visibles y la ausencia de recursos ITECSA esperados.
+  - Busqueda exacta del Resource Server `https://api.itecsa.local`: no devolvio resultados.
+- Capturas revisadas:
+  - Revision manual de `Authentication > Database`: confirmo la conexion `Username-Password-Authentication`, administrada por Auth0 y sin aplicaciones asociadas visibles.
+  - Revision manual de `User Management > Users` y `Roles`: confirmo que ambas vistas se encontraban vacias.
+- Resultado: tenant `itecsa-sistema.us.auth0.com` confirmado; se observo la API interna `Auth0 Management API` y la conexion Database reutilizable `Username-Password-Authentication`, sin SPA, API propia, M2M, Action Post Login, rol ni usuario bootstrap ITECSA visibles.
+- Recursos faltantes confirmados: SPA equivalente a `ITECSA Frontend Local`, API con audience `https://api.itecsa.local`, M2M equivalente a `ITECSA Backend Management`, Action Post Login equivalente a `ITECSA Add Role Claim`, rol `Administrador` y usuario bootstrap Administrador.
+- Control de cambios Auth0: no se realizaron creaciones, modificaciones, eliminaciones ni rotaciones de secretos en el tenant.

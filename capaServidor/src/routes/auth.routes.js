@@ -22,6 +22,7 @@ router.get("/verify", checkJwt, (req, res) => {
         typeof payload?.sub === "string" &&
         typeof email === "string" &&
         email.trim().length > 0;
+    // Un rol singular evita escoger arbitrariamente entre asignaciones RBAC incompatibles.
     const hasSingleOfficialRole =
         Array.isArray(roles) &&
         roles.length === 1 &&
@@ -33,6 +34,7 @@ router.get("/verify", checkJwt, (req, res) => {
         });
     }
 
+    // El contrato publico expone rolUsuario como proyeccion del claim RBAC namespaced.
     const rolUsuario = roles[0];
 
     return res.status(200).json({

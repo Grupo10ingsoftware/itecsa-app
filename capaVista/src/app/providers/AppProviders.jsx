@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { AuthProvider } from './AuthProvider'
 
 function getSafeReturnPath(returnTo) {
+  // Conserva la navegacion interna del callback sin aceptar destinos externos.
   if (typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
     return returnTo
   }
@@ -25,6 +26,7 @@ export default function AppProviders({ children }) {
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
+        // Solicita access tokens destinados a la API ITECSA, no tokens Management.
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         redirect_uri: window.location.origin,
       }}

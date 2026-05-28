@@ -1,6 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { roleHasPermission } from '../../config/permissions'
 import { MOCK_USERS } from '../../modules/auth/mocks/authMocks'
 import { useAuthApi } from '../../modules/auth/hooks/useAuthApi'
 import { API_ERROR_CODES } from '../../services/api/apiClient'
@@ -103,9 +102,9 @@ export function AuthProvider({ children }) {
   const hasPermission = useCallback(
     (permission) => {
       // Control visual de experiencia: la autorizacion efectiva siempre la valida el backend.
-      const userRole = verifiedUser?.rolUsuario
+      const permissions = verifiedUser?.permissions
 
-      return Boolean(userRole && roleHasPermission(userRole, permission))
+      return Array.isArray(permissions) && permissions.includes(permission)
     },
     [verifiedUser],
   )

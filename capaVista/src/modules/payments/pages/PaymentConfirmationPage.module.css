@@ -1,168 +1,1047 @@
-
 .page {
-  padding: 1.5rem 2rem;
-  max-width: 1600px;
+  --payment-border: #e5e7eb;
+  --payment-orange: #f97316;
+  --payment-red: #ef121c;
+  --payment-green: #248f55;
+  --payment-muted: #64748b;
+  --payment-text: #111827;
+
+  color: var(--payment-text);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  margin: 0 auto;
+  max-width: 1760px;
+  padding: 1.25rem;
 }
 
+.dashboardShell {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  overflow: visible;
+}
 
-.header {
-  background: linear-gradient(
-    135deg,
-    rgba(15, 118, 110, 0.10) 0%,
-    rgba(15, 118, 110, 0.04) 100%
-  );
-  padding: 1.25rem 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(15, 118, 110, 0.2);
-  margin-bottom: 1.5rem;
-  border-left: 4px solid rgb(15, 118, 110);
+.hero {
+  background: #000;
+  border-radius: 1rem 1rem 0 0;
+  color: #fff;
+  min-height: 7.6rem;
+  padding: 1.55rem 2.5rem;
+}
+
+.sectionLabel {
+  color: var(--payment-orange);
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
 }
 
 .pageTitle {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: rgb(18, 77, 77);
-  margin: 0 0 0.25rem;
+  color: #fff;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .pageSubtitle {
-  font-size: 0.9rem;
-  color: #6c757d;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  margin: 0.65rem 0 0;
 }
 
-
-.table-hover > tbody > tr:hover {
-  background-color: rgba(15, 118, 110, 0.04);
-}
-
-.table > :not(caption) > * > * {
-  padding: 0.85rem 0.75rem;
-  vertical-align: middle;
-}
-
-.thNv {
-  min-width: 140px;
-}
-.thCliente {
-  min-width: 210px;
-}
-.thProducto {
-  min-width: 220px;
-}
-.thFabri {
-  min-width: 200px;
-}
-.thTipo {
-  min-width: 100px;
-  width: 100px;
-}
-.thNVArchivo {
-  min-width: 160px;
-}
-.thPago {
-  min-width: 220px;
-}
-
-
-.tdNv strong {
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
-}
-
-
-.qtyBadge {
-  font-size: 0.72rem;
-  border-radius: 1rem;
-}
-
-
-.downloadBtn {
-  border-radius: 0.375rem;
-  font-size: 0.78rem;
+.roleBadge {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  gap: 0.6rem;
+  padding: 0.78rem 1rem;
   white-space: nowrap;
 }
 
+.roleBadge i {
+  font-size: 1.4rem;
+}
 
-.paymentActionBtn {
-  border-radius: 0.5rem;
+.summaryGrid {
+  background: #fff;
+  padding: 0.5rem 0.85rem;
+}
+
+.summaryCard {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.6rem;
+  gap: 1.8rem;
+  min-height: 8.25rem;
+  padding: 1.45rem 2.55rem;
+}
+
+.summaryCard i {
+  align-items: center;
+  border: 3px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 2rem;
+  height: 3rem;
+  justify-content: center;
+  line-height: 1;
+  width: 3rem;
+}
+
+.summaryIconPending {
+  color: var(--payment-orange);
+}
+
+.summaryIconRejected {
+  color: var(--payment-red);
+}
+
+.summaryIconConfirmed {
+  color: #249653;
+}
+
+.summaryCard span {
+  color: #475569;
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.summaryCard strong {
+  color: #111;
+  display: block;
+  font-size: 2.05rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 0.45rem;
+}
+
+.summaryCard p {
+  color: #475569;
+  font-size: 0.98rem;
+  margin: 0.45rem 0 0;
+}
+
+.toolbar {
+  border-bottom: 1px solid var(--payment-border);
+  border-top: 1px solid #eef2f7;
+  padding: 1.25rem 2.55rem 1.05rem;
+}
+
+.filterButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 0.55rem;
+  color: #111;
+  display: inline-flex;
+  font-size: 1.05rem;
+  font-weight: 500;
+  gap: 0.8rem;
+  justify-content: center;
+  min-height: 3.1rem;
+  min-width: 9.7rem;
+  padding: 0.72rem 1.2rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.filterButton:hover {
+  border-color: var(--payment-orange);
+  color: var(--payment-orange);
+}
+
+.filterButtonActive,
+.filterButtonActive:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.filterCount {
+  align-items: center;
+  background: #111;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  height: 1.65rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 1.65rem;
+  padding: 0 0.35rem;
+}
+
+.filterButtonActive .filterCount {
+  background: var(--payment-orange);
+  color: #111;
+}
+
+.searchBox {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  gap: 0.65rem;
+  max-width: 27rem;
+  min-height: 3.35rem;
+  padding: 0 1.15rem;
+  width: 100%;
+}
+
+.searchBox input {
+  border: 0;
+  color: #111;
+  flex: 1;
+  font-size: 1rem;
+  font-style: italic;
+  min-width: 0;
+  outline: 0;
+}
+
+.searchBox input::placeholder {
+  color: var(--payment-muted);
+}
+
+.searchBox i {
+  color: #111;
+  font-size: 1.45rem;
+}
+
+.desktopTableWrap {
+  overflow: visible;
+}
+
+.paymentTable {
+  border-collapse: collapse;
+  min-width: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.paymentTable > :not(caption) > * > * {
+  background-color: transparent;
+  border-bottom: 1px solid var(--payment-border);
+  padding: 0.95rem 0.75rem;
+  vertical-align: middle;
+}
+
+.paymentTable thead th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.paymentTable tbody tr:hover td:not(.actionsCell) {
+  background: rgba(249, 115, 22, 0.035);
+}
+
+.colOrder {
+  width: 11%;
+}
+
+.colDate {
+  width: 14%;
+}
+
+.colClient {
+  width: 19%;
+}
+
+.colRut {
+  width: 12%;
+}
+
+.colSalesNote {
+  width: 16%;
+}
+
+.colPaymentStatus {
+  width: 13%;
+}
+
+.colActions {
+  width: 15%;
+}
+
+.orderCell {
+  color: #111;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.dateCell {
+  color: var(--payment-text);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.clientCell {
+  color: #111;
+  font-size: 1rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paymentTable th.rutColumn,
+.paymentTable td.rutCell {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  text-align: center;
+}
+
+.rutCell {
+  color: var(--payment-text);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.actionsColumn,
+.actionsCell {
+  background: #f6f7f9 !important;
+  text-align: center !important;
+}
+
+.actionsCell {
+  overflow: visible;
+  position: relative;
+}
+
+.salesNoteButton,
+.actionButton {
+  align-items: center;
+  background: #fff;
+  border-radius: 0.45rem;
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.48rem 0.85rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.salesNoteButton {
+  border: 1px solid #d3d9e2;
+  color: #111;
+  min-width: 9.25rem;
+}
+
+.salesNoteButton:hover {
+  background: #f8fafc;
+  border-color: #111;
+}
+
+.salesNoteButton i {
+  font-size: 1rem;
+}
+
+.paymentStatusPill {
+  background: #fff;
+  border: 1px solid currentColor;
+  border-radius: 0.42rem;
+  display: inline-flex;
+  font-size: 0.93rem;
+  font-weight: 800;
+  justify-content: center;
+  line-height: 1;
+  min-width: 7.15rem;
+  padding: 0.72rem 0.75rem;
+}
+
+.statusRejected {
+  color: var(--payment-red);
+}
+
+.statusPending {
+  color: var(--payment-orange);
+}
+
+.statusConfirmed {
+  color: var(--payment-green);
+}
+
+.actionButton {
+  min-width: 7.25rem;
+}
+
+.actionButtonManage {
+  border: 1px solid rgba(249, 115, 22, 0.55);
+  color: #ea580c;
+}
+
+.actionButtonManage:hover {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: var(--payment-orange);
+  color: #c2410c;
+}
+
+.actionButtonDetail {
+  border: 1px solid rgba(36, 143, 85, 0.42);
+  color: var(--payment-green);
+}
+
+.actionButtonDetail:hover {
+  background: rgba(36, 143, 85, 0.08);
+  border-color: var(--payment-green);
+}
+
+.actionControlsGroup {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  justify-content: center;
+}
+
+.actionDropdownWrap {
+  display: inline-flex;
+  justify-content: center;
+  position: relative;
+  width: 7.25rem;
+}
+
+.paymentActionSelect {
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+  display: grid;
+  left: 50%;
+  overflow: hidden;
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  transform: translateX(-50%);
+  width: 9.25rem;
+  z-index: 30;
+}
+
+.actionDropdownOption {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  color: #334155;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  justify-content: flex-start;
+  padding: 0.68rem 0.85rem;
   text-align: left;
   width: 100%;
 }
 
-
-.signatureBox {
-  margin-top: 0.4rem;
-  padding: 0.3rem 0.5rem;
-  background: rgba(13, 110, 253, 0.07);
-  border-radius: 0.375rem;
-  border: 1px solid rgba(13, 110, 253, 0.25);
-  font-size: 0.7rem;
-  color: #0d6efd;
-  line-height: 1.3;
+.actionDropdownOption span {
+  flex: 1;
 }
 
+.actionDropdownOption i {
+  font-size: 0.95rem;
+}
 
-.obsDisplay {
-  cursor: pointer;
-  background-color: #f8f9fa;
-  border: 1px dashed #ccc;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
+.actionDropdownOption:hover {
+  background: rgba(249, 115, 22, 0.11);
+  color: #c2410c;
+}
+
+.actionDropdownOptionCurrent {
+  background: #f8fafc;
+}
+
+.currentStatusMarker {
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  color: var(--payment-muted);
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.12rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.actionDropdownOptionPending:hover {
+  background: rgba(249, 115, 22, 0.11);
+  color: #c2410c;
+}
+
+.actionDropdownOptionConfirm:hover {
+  background: rgba(36, 143, 85, 0.1);
+  color: var(--payment-green);
+}
+
+.actionDropdownOptionReject:hover {
+  background: rgba(239, 18, 28, 0.09);
+  color: var(--payment-red);
+}
+
+.emptyState {
+  color: var(--payment-muted);
+  font-size: 1rem;
+  padding: 2rem !important;
+  text-align: center !important;
+}
+
+.mobileList {
+  gap: 0.85rem;
+  padding: 0.85rem;
+}
+
+.mobileCard {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  padding: 1rem;
+}
+
+.mobileCardHeader {
+  border-bottom: 1px solid #edf2f7;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.85rem;
+}
+
+.mobileCardHeader span,
+.mobileDataList dt {
+  color: var(--payment-muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.mobileCardHeader strong {
+  color: #111;
+  font-size: 1rem;
+}
+
+.mobileDataList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.mobileDataList dd {
+  color: #111;
+  margin: 0;
+}
+
+/*
+  TODO equipo:
+  Estos estilos pertenecen funcionalmente a la vista previa de Nota de Venta.
+  Por arquitectura modular, cuando el equipo apruebe extraer el modal,
+  este bloque debería moverse a:
+  src/modules/payments/components/SalesNotePreviewModal.module.css
+*/
+.salesNoteModalBackdrop {
+  background: rgba(15, 23, 42, 0.58);
+  inset: 0;
+  padding: 1rem;
+  z-index: 1050;
+}
+
+.salesNoteModalDialog {
+  border-radius: 0.9rem;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+  max-height: calc(100vh - 2rem);
+  max-width: 760px;
+}
+
+.salesNoteModalHeader {
+  background: #000;
+  color: #fff;
+  padding: 1.25rem;
+}
+
+.salesNoteModalKicker {
+  color: var(--payment-orange);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.salesNoteModalHeader h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.salesNoteModalCloseButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.salesNoteModalCloseButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.salesNoteModalPreview {
+  padding: 1.25rem;
+}
+
+.salesNoteModalPreviewTop,
+.salesNoteModalPreviewBody {
+  border: 1px solid var(--payment-border);
+  border-radius: 0.75rem;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 1rem;
+}
+
+.salesNoteModalPreviewTop {
+  background: #f8fafc;
+  margin-bottom: 1rem;
+}
+
+.salesNoteModalPreviewTop span,
+.salesNoteModalPreviewBody span {
+  color: var(--payment-muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.salesNoteModalPreviewTop strong {
+  color: #111;
+  font-size: 0.95rem;
+}
+
+.salesNoteModalPreviewBody p {
+  margin: 0;
+}
+
+.salesNoteModalFullRow {
+  grid-column: 1 / -1;
+}
+
+.salesNoteModalFooter {
+  border-top: 1px solid var(--payment-border);
+  padding: 1rem 1.25rem;
+}
+
+/*
+  TODO equipo:
+  Estos estilos pertenecen funcionalmente al modal de confirmación segura.
+  Si este patrón se reutiliza, mover a shared/components/feedback/HoldConfirmModal.module.css
+  o a payments/components/PaymentActionConfirmDialog.module.css.
+*/
+.confirmModalBackdrop {
+  background: rgba(15, 23, 42, 0.62);
+  inset: 0;
+  padding: 1rem;
+  z-index: 1060;
+}
+
+.confirmModalDialog {
+  border-radius: 0.9rem;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+  max-height: calc(100vh - 2rem);
+  max-width: 720px;
+}
+
+.confirmModalHeader {
+  background: #000;
+  color: #fff;
+  padding: 1.25rem;
+}
+
+.confirmModalKicker {
+  color: var(--payment-orange);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.confirmModalHeader h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.confirmModalCloseButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.confirmModalCloseButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.confirmModalBody {
+  padding: 1.25rem;
+}
+
+.confirmModalQuestion {
+  align-items: flex-start;
+  background: #f8fafc;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.confirmModalQuestion i {
+  align-items: center;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  color: var(--payment-orange);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+}
+
+.confirmModalQuestion p {
+  color: #111;
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem;
+}
+
+.confirmModalQuestion small {
+  color: var(--payment-muted);
+  display: block;
+  line-height: 1.45;
+}
+
+.confirmModalDetailGrid {
+  border: 1px solid var(--payment-border);
+  border-radius: 0.75rem;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 1rem;
+}
+
+.confirmModalDetailGrid span {
+  color: var(--payment-muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.confirmModalDetailGrid strong {
+  color: #111;
+  font-size: 0.95rem;
+}
+
+.confirmModalFooter {
+  border-top: 1px solid var(--payment-border);
+  padding: 1rem 1.25rem;
+}
+
+.holdConfirmButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #111;
+  border-radius: 0.45rem;
+  color: #111;
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 800;
+  justify-content: center;
   min-height: 2.5rem;
-  transition: border-color 0.2s ease;
+  min-width: 14.5rem;
+  overflow: hidden;
+  padding: 0.48rem 1rem;
+  position: relative;
+  user-select: none;
 }
 
-.obsDisplay:hover {
-  border-color: rgb(15, 118, 110);
-  background-color: rgba(15, 118, 110, 0.04);
+.holdConfirmButton::before {
+  background: #000;
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left;
+  z-index: 0;
 }
 
-
-.badge {
-  display: inline-block;
-  padding: 0.35em 0.6em;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 0.3rem;
-  white-space: nowrap;
+.holdConfirmButton span {
+  position: relative;
+  z-index: 1;
 }
 
-
-.actionChip {
-  background: #f8f9fa;
-  border-color: #dee2e6;
-  padding: 0.4rem 0.9rem;
-  transition: box-shadow 0.2s ease;
+.holdConfirmButton:hover {
+  background: #fff;
+  border-color: #000;
 }
 
-.actionChip:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.holdConfirmButtonHolding {
+  color: #fff;
 }
 
-.chipBtn {
-  font-size: 0.8rem;
-  vertical-align: middle;
-  white-space: nowrap;
+.holdConfirmButtonHolding::before {
+  animation: holdConfirmFill 2s linear forwards;
 }
 
-.chipDropdown {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 0.75rem;
+@keyframes holdConfirmFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
+@media (max-width: 1399.98px) {
+  .paymentTable > :not(caption) > * > * {
+    padding-left: 0.62rem;
+    padding-right: 0.62rem;
+  }
 
-.bg-purple {
-  background-color: #7c3aed;
+  .salesNoteButton {
+    min-width: 8.9rem;
+  }
 }
 
-
-@media (max-width: 767px) {
+@media (max-width: 1199.98px) {
   .page {
     padding: 1rem;
   }
+
+  .hero {
+    padding: 1.35rem 1.5rem;
+  }
+
+  .summaryCard {
+    padding: 1.15rem 1.35rem;
+  }
+
+  .toolbar {
+    padding-left: 1.35rem;
+    padding-right: 1.35rem;
+  }
+
+  .paymentTable thead th {
+    font-size: 0.78rem;
+  }
+
+  .salesNoteButton,
+  .actionButton,
+  .paymentStatusPill {
+    font-size: 0.86rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .dashboardShell {
+    overflow: hidden;
+  }
+
+  .summaryGrid {
+    padding: 0.85rem;
+  }
+
+  .toolbar {
+    padding-left: 1.35rem;
+    padding-right: 1.35rem;
+  }
+
+  .filterButton {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .searchBox {
+    max-width: none;
+  }
+
+  .mobileList {
+    display: grid;
+  }
+
+  .paymentActionSelect {
+    left: auto;
+    position: static;
+    transform: none;
+    width: 100%;
+  }
+
+  .actionControlsGroup,
+  .actionControlsGroupMobile {
+    display: grid;
+    gap: 0.55rem;
+    width: 100%;
+  }
+
+  .actionDropdownWrap {
+    display: grid;
+    gap: 0.55rem;
+    width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page {
+    padding: 0.65rem;
+  }
+
+  .dashboardShell {
+    border-radius: 0.75rem;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 1.15rem;
+  }
+
+  .sectionLabel {
+    font-size: 0.78rem;
+  }
+
   .pageTitle {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
+    letter-spacing: 0.08em;
+  }
+
+  .pageSubtitle {
+    font-size: 0.86rem;
+  }
+
+  .roleBadge {
+    font-size: 0.86rem;
+    padding: 0.6rem 0.75rem;
+    white-space: normal;
+  }
+
+  .summaryCard {
+    gap: 1rem;
+    min-height: 6.5rem;
+    padding: 1rem;
+  }
+
+  .summaryCard i {
+    font-size: 1.4rem;
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .summaryCard strong {
+    font-size: 1.6rem;
+  }
+
+  .toolbar {
+    padding: 0.85rem;
+  }
+
+  .filterButton {
+    font-size: 0.9rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .searchBox {
+    min-height: 2.9rem;
+  }
+
+  .paymentStatusPill,
+  .salesNoteButton,
+  .actionButton {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .salesNoteModalDialog,
+  .confirmModalDialog {
+    max-height: calc(100vh - 1rem);
+  }
+
+  .salesNoteModalHeader,
+  .salesNoteModalPreview,
+  .confirmModalHeader,
+  .confirmModalBody {
+    padding: 1rem;
+  }
+
+  .salesNoteModalPreviewTop,
+  .salesNoteModalPreviewBody,
+  .confirmModalDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmModalQuestion {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .salesNoteModalFooter,
+  .confirmModalFooter {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .salesNoteModalFooter button,
+  .confirmModalFooter button,
+  .holdConfirmButton {
+    width: 100%;
   }
 }

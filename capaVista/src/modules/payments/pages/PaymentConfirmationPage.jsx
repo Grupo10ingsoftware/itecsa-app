@@ -1,24 +1,24 @@
-import { useState, useCallback } from 'react'
-import { formatDateTimeDDMMYYYY, formatRut } from '@/utils/formatters'
-import { ACTION_STATUS, ORDER_STATUS_OPTIONS, PAYMENT_STATUS } from '@/config/status'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ACTION_STATUS, PAYMENT_STATUS } from '@/config/status'
 import { downloadNVPDF } from '@/utils/fileUtils'
-import PaymentStatusBadge from '../components/PaymentStatusBadge'
-import PaymentStatusSelect from '../components/PaymentStatusSelect'
 import styles from './PaymentConfirmationPage.module.css'
 
-/* ────────────────────────────────────────────────
-  Ordenes de ejemplo para la vista de confirmación de pago.
-  En un caso real, estos datos vendrían de una consulta a la
-  base de datos o una API. Aquí se incluyen campos relevantes
-  para mostrar en la tabla y probar las funcionalidades de RF27,
-  RF28, RF29, y RF25 (observaciones).
-   ──────────────────────────────────────────────── */
+const HOLD_CONFIRM_MS = 2000
+const VALID_PAYMENT_STATUSES = Object.values(PAYMENT_STATUS)
+
+const FILTERS = [
+  { key: 'TODOS', label: 'Todos' },
+  { key: PAYMENT_STATUS.PENDIENTE, label: 'Pendientes' },
+  { key: PAYMENT_STATUS.RECHAZADO, label: 'Rechazados' },
+  { key: PAYMENT_STATUS.CONFIRMADO, label: 'Confirmados' },
+]
+
 const MOCK_ORDERS = [
   {
     id: 1,
     nvNumber: 'NV-2024-0014',
     companyName: 'Empresa Retail Chile Limitada',
-    rut: '78.123.456-7',
+    rut: '76.543.210-1',
     productDescription: 'Lanyard corporativo con logo bordado',
     quantity: 200,
     manufacturingData: 'Bordado satinado 10mm – Azul corporativo',
@@ -26,16 +26,15 @@ const MOCK_ORDERS = [
     nvFileName: 'nv_2024_0014.pdf',
     nvFilePath: null,
     orderStatus: ACTION_STATUS.SOLICITADO,
-    paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: '',
-    createdAt: new Date('2024-05-01T09:14:00'),
+    paymentStatus: PAYMENT_STATUS.RECHAZADO,
+    createdAt: new Date('2024-05-01T06:14:00'),
     updatedAt: null,
   },
   {
     id: 2,
     nvNumber: 'NV-2024-0021',
     companyName: 'Corredora de Seguros Andes',
-    rut: '76.987.234-1',
+    rut: '96.123.456-7',
     productDescription: 'Tarjeta de acceso PVC impresa ambos lados',
     quantity: 500,
     manufacturingData: 'Full color digital – 0.84mm – Logo B/N + QR',
@@ -44,7 +43,6 @@ const MOCK_ORDERS = [
     nvFilePath: null,
     orderStatus: ACTION_STATUS.SOLICITADO,
     paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: 'Cliente requiere entrega antes del 20 de mayo',
     createdAt: new Date('2024-05-03T11:42:00'),
     updatedAt: null,
   },
@@ -52,433 +50,835 @@ const MOCK_ORDERS = [
     id: 3,
     nvNumber: 'NV-2024-0008',
     companyName: 'Grupo Logístico del Sur',
-    rut: '85.432.198-5',
+    rut: '77.987.654-3',
     productDescription: 'Lanyard de seguridad con broche metálico',
     quantity: 450,
     manufacturingData: 'Tejido plano – Rojo / blanco ref. seguridad',
     productType: 'Lanyard',
     nvFileName: 'nv_2024_0008.pdf',
     nvFilePath: null,
-    orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
+    orderStatus: ACTION_STATUS.SOLICITADO,
     paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: '',
     createdAt: new Date('2024-04-28T08:00:00'),
     updatedAt: null,
   },
   {
     id: 4,
-    nvNumber: 'NV-2024-0030',
+    nvNumber: 'NV-2024-0039',
     companyName: 'Tecnología Educativa S.A.',
-    rut: '96.111.223-9',
+    rut: '78.654.321-0',
     productDescription: 'Set mixto: 50 tarjetas + 50 lanyards',
     quantity: 50,
     manufacturingData: 'Tarjeta PVC 0.84mm + Lanyard satin 15mm – Dorado',
     productType: 'Lanyard',
-    nvFileName: 'nv_2024_0030.pdf',
+    nvFileName: 'nv_2024_0039.pdf',
     nvFilePath: null,
     orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
     paymentStatus: PAYMENT_STATUS.CONFIRMADO,
-    observations: 'Confirmado por cobranzas 12-05-2026 14:30',
     createdAt: new Date('2024-04-25T07:55:00'),
     updatedAt: new Date('2024-05-12T14:30:00'),
   },
 ]
 
+function formatPaymentDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value)
+
+  if (Number.isNaN(date.getTime())) return 'Fecha no disponible'
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  const hours = date.getHours()
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const displayHour = String(hours % 12 || 12).padStart(2, '0')
+  const meridiem = hours < 12 ? 'a. m.' : 'p. m.'
+
+  return `${day}-${month}-${year}, ${displayHour}:${minutes} ${meridiem}`
+}
 
 function buildSignature(orderId, paymentStatus) {
   if (paymentStatus !== PAYMENT_STATUS.CONFIRMADO) return null
+
   return {
-    timestamp: formatDateTimeDDMMYYYY(new Date()),
+    timestamp: formatPaymentDateTime(new Date()),
     userId: `USR-${String(orderId).padStart(4, '0')}`,
     note: 'Firma digital aplicada (RF27)',
   }
 }
 
+function getPaymentActionMeta(targetStatus) {
+  if (targetStatus === PAYMENT_STATUS.CONFIRMADO) {
+    return {
+      icon: 'bi-check-circle',
+      modalTitle: 'Confirmar pago',
+      question: '¿Quieres confirmar el pago de esta nota de venta?',
+      statusLabel: PAYMENT_STATUS.CONFIRMADO,
+      holdLabel: 'Mantener para confirmar cambio',
+      completedLabel: 'Confirmando cambio...',
+    }
+  }
 
-export default function PaymentConfirmationPage() {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
-  const [editingStatus, setEditingStatus] = useState({})
-  const [editingOrderStatus, setEditingOrderStatus] = useState({})
-  const [editingObs, setEditingObs] = useState({})
-  const [editingObsDraft, setEditingObsDraft] = useState({})
+  if (targetStatus === PAYMENT_STATUS.RECHAZADO) {
+    return {
+      icon: 'bi-x-circle',
+      modalTitle: 'Rechazar pago',
+      question: '¿Quieres rechazar el pago de esta nota de venta?',
+      statusLabel: PAYMENT_STATUS.RECHAZADO,
+      holdLabel: 'Mantener para confirmar cambio',
+      completedLabel: 'Confirmando cambio...',
+    }
+  }
 
-  const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
-    const sig = buildSignature(orderId, newStatus)
+  return {
+    icon: 'bi-arrow-counterclockwise',
+    modalTitle: 'Marcar como pendiente',
+    question: '¿Quieres marcar este pago como pendiente?',
+    statusLabel: PAYMENT_STATUS.PENDIENTE,
+    holdLabel: 'Mantener para confirmar cambio',
+    completedLabel: 'Confirmando cambio...',
+  }
+}
 
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id !== orderId) return o
-        const updated = {
-          ...o,
-          paymentStatus: newStatus,
-          updatedAt: new Date(),
-        }
-       
-        if (newStatus === PAYMENT_STATUS.CONFIRMADO) {
-          updated.orderStatus = ACTION_STATUS.LISTO_PRODUCCION
-        }
-        if (sig) {
-          updated.signature = sig 
-        }
-        return updated
-      }),
-    )
-    setEditingStatus((p) => ({ ...p, [orderId]: false }))
-  }, [])
+/*
+  TODO equipo:
+  Este modal de vista previa de Nota de Venta queda temporalmente dentro de
+  PaymentConfirmationPage.jsx para mantener el cambio concentrado en payments.
 
-  const handleUpdateOrderStatus = useCallback((orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o)),
-    )
-    setEditingOrderStatus((p) => ({ ...p, [orderId]: false }))
-  }, [])
-
-  const handleEditObs = useCallback((orderId) => {
-    const order = orders.find((o) => o.id === orderId)
-    if (order) setEditingObsDraft((p) => ({ ...p, [orderId]: order.observations }))
-    setEditingObs((p) => ({ ...p, [orderId]: true }))
-  }, [orders])
-
-  const handleSaveObs = useCallback(
-    (orderId) => {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId
-            ? { ...o, observations: editingObsDraft[orderId] || '', updatedAt: new Date() }
-            : o,
-        ),
-      )
-      setEditingObs((p) => ({ ...p, [orderId]: false }))
-    },
-    [editingObsDraft],
-  )
-
-  const handleCancelObs = useCallback((orderId) => {
-    setEditingObs((p) => ({ ...p, [orderId]: false }))
-  }, [])
-
-  const handleDownloadNV = useCallback(
-    async (order) => {
-      try {
-        await downloadNVPDF(order.nvNumber)
-      } catch (err) {
-        console.error('Error downloading NV PDF:', err)
-      }
-    },
-    [],
-  )
+  Según la arquitectura modular del stack, cuando el equipo apruebe reutilizarlo
+  debería moverse a:
+  src/modules/payments/components/SalesNotePreviewModal.jsx
+*/
+function SalesNotePreviewDialog({ order, onClose, onDownload }) {
+  if (!order) return null
 
   return (
-    <div className={styles.page}>
-      {/* ═══════════════ Header de la pagina ═══════════════
-          RF27: Botón en el pedido — acción "Confirmación de Pago"
-          que redirige a esta vista. En el Kanban el botón aparece
-          debajo de cada tarjeta; aquí la vista ya está abierta.   */}
-      <div className={styles.header}>
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div
+      className={`${styles.salesNoteModalBackdrop} d-flex align-items-center justify-content-center position-fixed`}
+      onMouseDown={onClose}
+      role="presentation"
+    >
+      <section
+        aria-labelledby="sales-note-preview-title"
+        aria-modal="true"
+        className={`${styles.salesNoteModalDialog} bg-white overflow-auto w-100`}
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header
+          className={`${styles.salesNoteModalHeader} d-flex align-items-start justify-content-between`}
+        >
           <div>
-            <h1 className={styles.pageTitle}>Confirmación de Pago</h1>
-            <p className={styles.pageSubtitle}>
-              Actualiza el estado de pago aplicando la firma digital al <em>Confirmar</em>
-            </p>
+            <span className={styles.salesNoteModalKicker}>Nota de Venta</span>
+            <h2 id="sales-note-preview-title">Vista previa</h2>
           </div>
-          <span className="badge bg-light text-dark border fs-6">
-            <i className="bi bi-person-badge me-1" />
-            Rol: Cobranzas
-          </span>
-        </div>
-      </div>
 
-      {/* ═══════════════ Tabla de órdenes ═══════════════ */}
-      <div className="table-responsive">
-        <table className="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              {/*En esta parte se aplica 7 tablas de datos Donde aplica el numero de nota de venta, cliente, producto*/}
-              <th className={styles.thNv}>N° Nota de Venta</th>
-              <th className={styles.thCliente}>Cliente</th>
-              <th className={styles.thProducto}>Producto / Cant.</th>
-              <th className={styles.thFabri}>Datos de Fabricación</th>
-              <th className={styles.thTipo}>Tipo Producto</th>
-              <th className={styles.thNVArchivo}>NV · PDF</th>
-              <th className={styles.thPago}>Estado Pago <i className="bi bi-info-circle text-muted" title="Efectúa la firma digital al confirmar" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                {/* 1 · Número NV */}
-                <td className={styles.tdNv}>
-                  <span className="fw-semibold">{order.nvNumber}</span>
-                  <br />
-                  <small className="text-muted d-block mt-1">
-                    <i className="bi bi-calendar3 me-1" />
-                    {formatDateTimeDDMMYYYY(order.createdAt)}
-                  </small>
-                </td>
+          <button
+            aria-label="Cerrar vista previa"
+            className={styles.salesNoteModalCloseButton}
+            onClick={onClose}
+            type="button"
+          >
+            <i className="bi bi-x-lg" />
+          </button>
+        </header>
 
-                {/* 2 · Razón Social + RUT */}
-                <td className={styles.tdCliente}>
-                  <span className="fw-medium">{order.companyName}</span>
-                  <br />
-                  <small className="text-muted d-block mt-1">
-                    RUT: {formatRut(order.rut)}
-                  </small>
-                </td>
-
-                {/* 3 · Descripción Producto + Cantidad */}
-                <td className={styles.tdProducto}>
-                  <span>{order.productDescription}</span>
-                  <span className={`badge bg-light text-dark border ms-2 ${styles.qtyBadge}`}>
-                    × {order.quantity}
-                  </span>
-                </td>
-
-                {/* 4 · Datos de Fabricación */}
-                <td className={styles.tdFabri}>
-                  <span className="d-block" style={{ maxWidth: '220px' }}>
-                    {order.manufacturingData}
-                  </span>
-                </td>
-
-                {/* 5 · Tipo Producto */}
-                <td className={styles.tdTipo}>
-                  <span
-                    className={`badge ${order.productType === 'Lanyard' ? 'bg-primary' : 'bg-purple text-white'}`}
-                    style={order.productType === 'Tarjeta' ? { background: '#7c3aed' } : {}}
-                  >
-                    {order.productType}
-                  </span>
-                </td>
-
-                {/* 6 · NV descargar el pdf del archivo */}
-                <td className={styles.tdNVArchivo}>
-                  {order.nvFileName ? (
-                    <button
-                      className={`btn btn-outline-secondary btn-sm ${styles.downloadBtn}`}
-                      onClick={() => handleDownloadNV(order)}
-                      type="button"
-                      title="Descargar Nota de Venta PDF"
-                    >
-                      <i className={`bi ${order.nvFilePath ? 'bi-file-earmark-pdf' : 'bi-file-earmark'} me-1`} />
-                      {order.nvFileName}
-                    </button>
-                  ) : (
-                    <span className="text-muted small">
-                      <i className="bi bi-paperclip me-1" />
-                      Sin archivo
-                    </span>
-                  )}
-                </td>
-
-                {/* 7 · Estado de Pago + acción de actualización (RF27) */}
-                <td className={styles.tdPago}>
-                  {editingStatus[order.id] ? (
-                    <PaymentStatusSelect
-                      value={order.paymentStatus}
-                      onChange={(e) => handleUpdatePaymentStatus(order.id, e.target.value)}
-                      id={`pay-sel-${order.id}`}
-                      name={`pay-sel-${order.id}`}
-                    />
-                  ) : (
-                    /* RF27: al actualizar a Confirmado */
-                    <button
-                      className={`btn btn-sm w-100 ${styles.paymentActionBtn}`}
-                      onClick={() => setEditingStatus((p) => ({ ...p, [order.id]: true }))}
-                      title="Actualizar estado de pago"
-                      type="button"
-                    >
-                      <PaymentStatusBadge label={order.paymentStatus} />
-                      <i className="bi bi-pencil ms-2 text-muted" />
-                    </button>
-                  )}
-
-                  {/* Firmas digitales registradas */}
-                  {order.signature && (
-                    <div className={styles.signatureBox} title="Firma digital registrada">
-                      <i className="bi bi-pen-fill" /> {order.signature.timestamp}
-                      <br />
-                      <small>{order.signature.note} · {order.signature.userId}</small>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      
-      <div className="card mb-4 mt-4">
-        <div className="card-header">
-          <h5 className="card-title mb-0">
-            <i className="bi bi-chat-square-text me-2" />
-            Observaciones de Pedido
-          </h5>
-        </div>
-        <div className="card-body">
-          <div className="row g-3">
-            {orders.map((order) => (
-              <div key={`obs-${order.id}`} className="col-md-6">
-                <label
-                  htmlFor={`obs-${order.id}`}
-                  className="form-label fw-semibold"
-                >
-                  {order.nvNumber}
-                </label>
-
-                {editingObs[order.id] ? (
-                  <div className="d-flex gap-2">
-                    <textarea
-                      id={`obs-${order.id}`}
-                      className="form-control"
-                      rows={2}
-                      value={editingObsDraft[order.id] || ''}
-                      onChange={(e) =>
-                        setEditingObsDraft((p) => ({
-                          ...p,
-                          [order.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="Ingrese observaciones del pedido…"
-                    />
-                    <div className="d-flex flex-column gap-1">
-                      <button
-                        className="btn btn-success btn-sm"
-                        onClick={() => handleSaveObs(order.id)}
-                        type="button"
-                      >
-                        <i className="bi bi-check" />
-                      </button>
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={() => handleCancelObs(order.id)}
-                        type="button"
-                      >
-                        <i className="bi bi-x" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className={`${styles.obsDisplay} form-control`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleEditObs(order.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') handleEditObs(order.id)
-                    }}
-                    title="Haga clic para editar"
-                  >
-                    {order.observations
-                      ? order.observations
-                      : <span className="text-muted fst-italic">Sin observaciones — clic para editar</span>}
-                  </div>
-                )}
-
-                <small className="text-muted">
-                  Última actualización:{' '}
-                  {order.updatedAt
-                    ? formatDateTimeDDMMYYYY(order.updatedAt)
-                    : '—'}
-                </small>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════ Chips de acciones disponibles por pedido ═══════════════ */}
-      <div className="mt-4">
-        <p className="text-muted small mb-2">
-          <i className="bi bi-layers me-1" /> Acciones disponibles por pedido
-        </p>
-        <div className="d-flex flex-wrap gap-2">
-          {orders.map((order) => (
-            <div key={`chip-${order.id}`} className={`${styles.actionChip} border rounded-pill px-3 py-2`}>
+        <div className={styles.salesNoteModalPreview}>
+          <div className={`${styles.salesNoteModalPreviewTop} d-grid`}>
+            <div>
+              <span>N° Nota de Venta</span>
               <strong>{order.nvNumber}</strong>
-              <span className="mx-2 text-muted">·</span>
-
-              {/* Botón de confirmar el pago */}
-              {order.paymentStatus !== PAYMENT_STATUS.CONFIRMADO && (
-                <button
-                  className={`btn btn-sm ${styles.chipBtn} btn-outline-success me-1`}
-                  onClick={() => handleUpdatePaymentStatus(order.id, PAYMENT_STATUS.CONFIRMADO)}
-                  type="button"
-                  title="Confirmar pago + firma digital"
-                >
-                  <i className="bi bi-check-circle" />
-                </button>
-              )}
-              {order.paymentStatus === PAYMENT_STATUS.CONFIRMADO && (
-                <span className="badge bg-success me-1">
-                  <i className="bi bi-check-circle me-1" />
-                  Pagado
-                </span>
-              )}
-
-              {/* Cambiar estado pedido */}
-              <button
-                className={`btn btn-sm ${styles.chipBtn} btn-link p-0 me-1`}
-                onClick={() =>
-                  setEditingOrderStatus((p) => ({
-                    ...p,
-                    [order.id]: !p[order.id],
-                  }))
-                }
-                type="button"
-                title={editingOrderStatus[order.id] ? 'Cerrar' : 'Editar estado pedido'}
-              >
-                <i className={`bi ${editingOrderStatus[order.id] ? 'bi-chevron-up' : 'bi-sliders'}`} />
-              </button>
-
-              {editingOrderStatus[order.id] && (
-                <div className={styles.chipDropdown}>
-                  <small className="text-muted">Estado pedido:</small>
-                  <select
-                    className="form-select form-select-sm"
-                    value={order.orderStatus}
-                    onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                  >
-                    {ORDER_STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <span className="mx-2 text-muted">|</span>
-              <PaymentStatusBadge status={order.paymentStatus} />
-              <span className="mx-1 text-muted">/</span>
-              <StatusBadgeRaw status={order.orderStatus} />
-
-              {/* NV PDF download action chip */}
-              <button
-                className={`btn btn-sm ${styles.chipBtn} btn-link px-0`}
-                onClick={() => handleDownloadNV(order)}
-                type="button"
-                title="Descargar NV PDF"
-              >
-                <i className="bi bi-file-earmark-arrow-down text-danger" />
-                <span className="small ms-1">NV</span>
-              </button>
             </div>
-          ))}
+
+            <div>
+              <span>Archivo asociado</span>
+              <strong>{order.nvFileName || 'Sin archivo'}</strong>
+            </div>
+          </div>
+
+          <div className={`${styles.salesNoteModalPreviewBody} d-grid`}>
+            <div>
+              <span>Fecha</span>
+              <p>{formatPaymentDateTime(order.createdAt)}</p>
+            </div>
+
+            <div>
+              <span>Cliente</span>
+              <p>{order.companyName}</p>
+            </div>
+
+            <div>
+              <span>RUT</span>
+              <p>{order.rut}</p>
+            </div>
+
+            <div>
+              <span>Estado de pago</span>
+              <p>{order.paymentStatus}</p>
+            </div>
+
+            <div className={styles.salesNoteModalFullRow}>
+              <span>Producto</span>
+              <p>{order.productDescription}</p>
+            </div>
+
+            <div className={styles.salesNoteModalFullRow}>
+              <span>Datos de fabricación</span>
+              <p>{order.manufacturingData}</p>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <footer
+          className={`${styles.salesNoteModalFooter} d-flex gap-3 justify-content-end`}
+        >
+          <button
+            className="btn btn-outline-secondary"
+            onClick={onClose}
+            type="button"
+          >
+            Cerrar
+          </button>
+
+          <button
+            className="btn btn-dark"
+            disabled={!order.nvFileName}
+            onClick={() => onDownload(order)}
+            type="button"
+          >
+            <i className="bi bi-file-earmark-arrow-down me-1" />
+            Descargar PDF
+          </button>
+        </footer>
+      </section>
     </div>
   )
 }
 
+/*
+  TODO equipo:
+  Este modal de confirmación segura queda temporalmente dentro de esta página
+  para validar el flujo con Cobranzas. Si se reutiliza, conviene moverlo a
+  shared/components/feedback/HoldConfirmModal.jsx o a payments/components/.
+*/
+function PaymentActionConfirmDialog({
+  isHolding,
+  onCancel,
+  onHoldEnd,
+  onHoldStart,
+  order,
+  targetStatus,
+}) {
+  if (!order || !targetStatus) return null
 
-function StatusBadgeRaw({ status }) {
-  const badgeClass = (() => {
-    const s = status.toLowerCase()
-    if (s.includes('listo')) return 'bg-info text-dark'
-    if (s.includes('progreso')) return 'bg-primary text-white'
-    return 'bg-warning text-dark'
-  })()
-  return <span className={`badge ${badgeClass} ${styles.badge}`}>{status}</span>
+  const actionMeta = getPaymentActionMeta(targetStatus)
+
+  return (
+    <div
+      className={`${styles.confirmModalBackdrop} d-flex align-items-center justify-content-center position-fixed`}
+      onMouseDown={onCancel}
+      role="presentation"
+    >
+      <section
+        aria-labelledby="payment-action-confirm-title"
+        aria-modal="true"
+        className={`${styles.confirmModalDialog} bg-white overflow-auto w-100`}
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header
+          className={`${styles.confirmModalHeader} d-flex align-items-start justify-content-between`}
+        >
+          <div>
+            <span className={styles.confirmModalKicker}>Cambio de estado</span>
+            <h2 id="payment-action-confirm-title">{actionMeta.modalTitle}</h2>
+          </div>
+
+          <button
+            aria-label="Cancelar cambio de estado"
+            className={styles.confirmModalCloseButton}
+            onClick={onCancel}
+            type="button"
+          >
+            <i className="bi bi-x-lg" />
+          </button>
+        </header>
+
+        <div className={styles.confirmModalBody}>
+          <div className={styles.confirmModalQuestion}>
+            <i className={`bi ${actionMeta.icon}`} />
+            <div>
+              <p>{actionMeta.question}</p>
+              <small>
+                Esta acción requiere confirmación sostenida para prevenir cambios
+                accidentales.
+              </small>
+            </div>
+          </div>
+
+          <div className={`${styles.confirmModalDetailGrid} d-grid`}>
+            <div>
+              <span>N° Nota de Venta</span>
+              <strong>{order.nvNumber}</strong>
+            </div>
+
+            <div>
+              <span>Cliente</span>
+              <strong>{order.companyName}</strong>
+            </div>
+
+            <div>
+              <span>RUT</span>
+              <strong>{order.rut}</strong>
+            </div>
+
+            <div>
+              <span>Nuevo estado</span>
+              <strong>{actionMeta.statusLabel}</strong>
+            </div>
+          </div>
+        </div>
+
+        <footer
+          className={`${styles.confirmModalFooter} d-flex gap-3 justify-content-end`}
+        >
+          <button
+            className="btn btn-outline-secondary"
+            onClick={onCancel}
+            type="button"
+          >
+            Cancelar
+          </button>
+
+          <button
+            className={`${styles.holdConfirmButton} ${
+              isHolding ? styles.holdConfirmButtonHolding : ''
+            }`}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onHoldStart()
+              }
+            }}
+            onKeyUp={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onHoldEnd()
+              }
+            }}
+            onPointerCancel={onHoldEnd}
+            onPointerDown={onHoldStart}
+            onPointerLeave={onHoldEnd}
+            onPointerUp={onHoldEnd}
+            type="button"
+          >
+            <span>{isHolding ? actionMeta.completedLabel : actionMeta.holdLabel}</span>
+          </button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
+export default function PaymentConfirmationPage() {
+  const holdTimerRef = useRef(null)
+  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const [activeFilter, setActiveFilter] = useState('TODOS')
+  const [editingStatus, setEditingStatus] = useState({})
+  const [pendingTransition, setPendingTransition] = useState(null)
+  const [previewOrder, setPreviewOrder] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isHoldingConfirmation, setIsHoldingConfirmation] = useState(false)
+
+  const clearHoldTimer = useCallback(() => {
+    if (!holdTimerRef.current) return
+
+    window.clearTimeout(holdTimerRef.current)
+    holdTimerRef.current = null
+  }, [])
+
+  useEffect(() => {
+    return () => clearHoldTimer()
+  }, [clearHoldTimer])
+
+  const counters = useMemo(() => {
+    return {
+      all: orders.length,
+      pending: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.PENDIENTE,
+      ).length,
+      rejected: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.RECHAZADO,
+      ).length,
+      confirmed: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.CONFIRMADO,
+      ).length,
+    }
+  }, [orders])
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        key: 'pending',
+        label: 'Pendientes',
+        count: counters.pending,
+        icon: 'bi-clock',
+        iconClassName: styles.summaryIconPending,
+      },
+      {
+        key: 'rejected',
+        label: 'Rechazados',
+        count: counters.rejected,
+        icon: 'bi-x',
+        iconClassName: styles.summaryIconRejected,
+      },
+      {
+        key: 'confirmed',
+        label: 'Confirmados',
+        count: counters.confirmed,
+        icon: 'bi-check',
+        iconClassName: styles.summaryIconConfirmed,
+      },
+    ],
+    [counters],
+  )
+
+  const filteredOrders = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return orders.filter((order) => {
+      const matchesFilter =
+        activeFilter === 'TODOS' || order.paymentStatus === activeFilter
+
+      const searchableText = [
+        order.nvNumber,
+        order.companyName,
+        order.rut,
+        order.paymentStatus,
+        formatPaymentDateTime(order.createdAt),
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      const matchesSearch =
+        normalizedSearch.length === 0 || searchableText.includes(normalizedSearch)
+
+      return matchesFilter && matchesSearch
+    })
+  }, [activeFilter, orders, searchTerm])
+
+  const getFilterCount = useCallback(
+    (filterKey) => {
+      if (filterKey === 'TODOS') return counters.all
+      if (filterKey === PAYMENT_STATUS.PENDIENTE) return counters.pending
+      if (filterKey === PAYMENT_STATUS.RECHAZADO) return counters.rejected
+      if (filterKey === PAYMENT_STATUS.CONFIRMADO) return counters.confirmed
+
+      return 0
+    },
+    [counters],
+  )
+
+  const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
+    if (!VALID_PAYMENT_STATUSES.includes(newStatus)) return
+
+    const signature = buildSignature(orderId, newStatus)
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order
+
+        const updatedOrder = {
+          ...order,
+          paymentStatus: newStatus,
+          updatedAt: new Date(),
+        }
+
+        if (newStatus === PAYMENT_STATUS.CONFIRMADO) {
+          updatedOrder.orderStatus = ACTION_STATUS.LISTO_PRODUCCION
+          updatedOrder.signature = signature
+        }
+
+        if (newStatus !== PAYMENT_STATUS.CONFIRMADO) {
+          delete updatedOrder.signature
+        }
+
+        return updatedOrder
+      }),
+    )
+
+    setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
+  }, [])
+
+  const handleDownloadNV = useCallback(async (order) => {
+    try {
+      await downloadNVPDF(order.nvNumber)
+    } catch (err) {
+      console.error('Error downloading NV PDF:', err)
+    }
+  }, [])
+
+  const handleFilterChange = useCallback((filterKey) => {
+    setActiveFilter(filterKey)
+    setEditingStatus({})
+  }, [])
+
+  const openPaymentEditor = useCallback((orderId) => {
+    setEditingStatus((prev) => ({
+      [orderId]: !prev[orderId],
+    }))
+  }, [])
+
+  const openPaymentActionConfirmation = useCallback((order, targetStatus) => {
+    if (order.paymentStatus === targetStatus) {
+      setEditingStatus({})
+      return
+    }
+
+    setPendingTransition({ order, targetStatus })
+    setEditingStatus({})
+  }, [])
+
+  const closePaymentActionConfirmation = useCallback(() => {
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+    setPendingTransition(null)
+  }, [clearHoldTimer])
+
+  const completePendingTransition = useCallback(() => {
+    if (!pendingTransition) return
+
+    handleUpdatePaymentStatus(
+      pendingTransition.order.id,
+      pendingTransition.targetStatus,
+    )
+
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+    setPendingTransition(null)
+  }, [clearHoldTimer, handleUpdatePaymentStatus, pendingTransition])
+
+  const startHoldConfirmation = useCallback(() => {
+    if (!pendingTransition || holdTimerRef.current) return
+
+    setIsHoldingConfirmation(true)
+    holdTimerRef.current = window.setTimeout(
+      completePendingTransition,
+      HOLD_CONFIRM_MS,
+    )
+  }, [completePendingTransition, pendingTransition])
+
+  const cancelHoldConfirmation = useCallback(() => {
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+  }, [clearHoldTimer])
+
+  const renderPaymentStatusPill = (status) => {
+    const statusClassByValue = {
+      [PAYMENT_STATUS.PENDIENTE]: styles.statusPending,
+      [PAYMENT_STATUS.RECHAZADO]: styles.statusRejected,
+      [PAYMENT_STATUS.CONFIRMADO]: styles.statusConfirmed,
+    }
+
+    return (
+      <span
+        className={`${styles.paymentStatusPill} ${
+          statusClassByValue[status] || styles.statusPending
+        }`}
+      >
+        {status}
+      </span>
+    )
+  }
+
+  const renderSalesNoteButton = (order, isMobile = false) => (
+    <button
+      className={`${styles.salesNoteButton} ${isMobile ? 'w-100' : ''}`}
+      onClick={() => setPreviewOrder(order)}
+      title="Visualizar Nota de Venta"
+      type="button"
+    >
+      <i className="bi bi-file-earmark-text" />
+      Nota de venta
+    </button>
+  )
+
+  const renderPaymentActionOption = (order, targetStatus, label, icon, className) => {
+    if (order.paymentStatus === targetStatus) return null
+
+    return (
+      <button
+        className={`${styles.actionDropdownOption} ${className}`}
+        onClick={() => openPaymentActionConfirmation(order, targetStatus)}
+        role="menuitem"
+        type="button"
+      >
+        <i className={`bi ${icon}`} />
+        <span>{label}</span>
+      </button>
+    )
+  }
+
+  const renderManageButton = (order, isMobile = false) => (
+    <div className={styles.actionDropdownWrap}>
+      <button
+        aria-expanded={editingStatus[order.id] ? 'true' : 'false'}
+        className={`${styles.actionButton} ${styles.actionButtonManage} ${
+          isMobile ? 'w-100' : ''
+        }`}
+        onClick={() => openPaymentEditor(order.id)}
+        type="button"
+      >
+        Gestionar
+      </button>
+
+      {editingStatus[order.id] && (
+        <div
+          aria-label="Acciones de pago"
+          className={styles.paymentActionSelect}
+          role="menu"
+        >
+          {renderPaymentActionOption(
+            order,
+            PAYMENT_STATUS.PENDIENTE,
+            'Pendiente',
+            'bi-clock',
+            styles.actionDropdownOptionPending,
+          )}
+
+          {renderPaymentActionOption(
+            order,
+            PAYMENT_STATUS.CONFIRMADO,
+            'Confirmar',
+            'bi-check-circle',
+            styles.actionDropdownOptionConfirm,
+          )}
+
+          {renderPaymentActionOption(
+            order,
+            PAYMENT_STATUS.RECHAZADO,
+            'Rechazar',
+            'bi-x-circle',
+            styles.actionDropdownOptionReject,
+          )}
+        </div>
+      )}
+    </div>
+  )
+  const renderActionControl = (order, isMobile = false) => {
+    const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
+
+    return (
+      <div
+        className={`${styles.actionControlsGroup} ${
+          isMobile ? styles.actionControlsGroupMobile : ''
+        }`}
+      >
+        {renderManageButton(order, isMobile)}
+
+        {isConfirmed && (
+          <button
+            className={`${styles.actionButton} ${styles.actionButtonDetail} ${
+              isMobile ? 'w-100' : ''
+            }`}
+            onClick={() => setPreviewOrder(order)}
+            type="button"
+          >
+            Ver detalle
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <main className={`container-fluid ${styles.page}`}>
+      <section className={styles.dashboardShell}>
+        <header
+          className={`${styles.hero} d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3`}
+        >
+          <div>
+            <span className={styles.sectionLabel}>Cobranzas</span>
+            <h1 className={styles.pageTitle}>Confirmación de pago</h1>
+          </div>
+
+        </header>
+
+        <section
+          className={`row row-cols-1 row-cols-lg-3 g-2 ${styles.summaryGrid}`}
+          aria-label="Resumen de pagos"
+        >
+          {summaryCards.map((card) => (
+            <div className="col" key={card.key}>
+              <article
+                className={`${styles.summaryCard} d-flex align-items-center h-100`}
+              >
+                <i className={`bi ${card.icon} ${card.iconClassName}`} />
+                <div>
+                  <span>{card.label}</span>
+                  <strong>{card.count}</strong>
+                  <p>{card.note}</p>
+                </div>
+              </article>
+            </div>
+          ))}
+        </section>
+
+        <section
+          className={`${styles.toolbar} d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center justify-content-between gap-3`}
+          aria-label="Filtros de pago"
+        >
+          <div className="d-flex flex-wrap gap-3 gap-xl-4">
+            {FILTERS.map((filter) => (
+              <button
+                className={`${styles.filterButton} ${
+                  activeFilter === filter.key ? styles.filterButtonActive : ''
+                }`}
+                key={filter.key}
+                onClick={() => handleFilterChange(filter.key)}
+                type="button"
+              >
+                {filter.label}
+                <span className={styles.filterCount}>
+                  {getFilterCount(filter.key)}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <label
+            className={`${styles.searchBox} d-flex align-items-center`}
+            htmlFor="payment-search"
+          >
+            <span className="visually-hidden">Buscar pedido o cliente</span>
+            <input
+              id="payment-search"
+              onChange={(event) => {
+                setSearchTerm(event.target.value)
+                setEditingStatus({})
+              }}
+              placeholder="Buscar..."
+              type="search"
+              value={searchTerm}
+            />
+            <i className="bi bi-search" />
+          </label>
+        </section>
+
+        <section
+          className={`d-none d-lg-block ${styles.desktopTableWrap}`}
+          aria-label="Tabla de pagos"
+        >
+          <table className={`table table-hover align-middle mb-0 ${styles.paymentTable}`}>
+            <colgroup>
+              <col className={styles.colOrder} />
+              <col className={styles.colDate} />
+              <col className={styles.colClient} />
+              <col className={styles.colRut} />
+              <col className={styles.colSalesNote} />
+              <col className={styles.colPaymentStatus} />
+              <col className={styles.colActions} />
+            </colgroup>
+
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th className={styles.rutColumn}>RUT</th>
+                <th>Ver Nota de Venta</th>
+                <th>Estado pago</th>
+                <th className={styles.actionsColumn}>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order) => (
+                  <tr key={order.id}>
+                    <td className={styles.orderCell}>{order.nvNumber}</td>
+                    <td className={styles.dateCell}>
+                      {formatPaymentDateTime(order.createdAt)}
+                    </td>
+                    <td className={styles.clientCell}>{order.companyName}</td>
+                    <td className={styles.rutCell}>{order.rut}</td>
+                    <td>{renderSalesNoteButton(order)}</td>
+                    <td>{renderPaymentStatusPill(order.paymentStatus)}</td>
+                    <td className={styles.actionsCell}>
+                      {renderActionControl(order)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className={styles.emptyState} colSpan="7">
+                    No hay pedidos que coincidan con los filtros aplicados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+
+        <section
+          className={`d-lg-none ${styles.mobileList}`}
+          aria-label="Pedidos de pago"
+        >
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <article className={styles.mobileCard} key={`mobile-${order.id}`}>
+                <header
+                  className={`${styles.mobileCardHeader} d-flex flex-column flex-sm-row align-items-start justify-content-between gap-3`}
+                >
+                  <div>
+                    <span>Pedido</span>
+                    <strong>{order.nvNumber}</strong>
+                  </div>
+                  {renderPaymentStatusPill(order.paymentStatus)}
+                </header>
+
+                <dl className={styles.mobileDataList}>
+                  <div>
+                    <dt>Fecha</dt>
+                    <dd>{formatPaymentDateTime(order.createdAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Cliente</dt>
+                    <dd>{order.companyName}</dd>
+                  </div>
+                  <div>
+                    <dt>RUT</dt>
+                    <dd>{order.rut}</dd>
+                  </div>
+                </dl>
+
+                <div className="d-grid gap-2 mt-3">
+                  {renderSalesNoteButton(order, true)}
+                  {renderActionControl(order, true)}
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className={styles.mobileCard}>
+              No hay pedidos que coincidan con los filtros aplicados.
+            </div>
+          )}
+        </section>
+      </section>
+
+      <SalesNotePreviewDialog
+        onClose={() => setPreviewOrder(null)}
+        onDownload={handleDownloadNV}
+        order={previewOrder}
+      />
+
+      <PaymentActionConfirmDialog
+        isHolding={isHoldingConfirmation}
+        onCancel={closePaymentActionConfirmation}
+        onHoldEnd={cancelHoldConfirmation}
+        onHoldStart={startHoldConfirmation}
+        order={pendingTransition?.order}
+        targetStatus={pendingTransition?.targetStatus}
+      />
+    </main>
+  )
 }

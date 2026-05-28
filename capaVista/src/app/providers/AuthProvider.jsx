@@ -1,6 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MOCK_USERS } from '../../modules/auth/mocks/authMocks'
 import { useAuthApi } from '../../modules/auth/hooks/useAuthApi'
 import { API_ERROR_CODES } from '../../services/api/apiClient'
 import { AuthContext } from './authContext'
@@ -130,7 +129,6 @@ export function AuthProvider({ children }) {
       isVerifyingSession,
       authStatus,
       error: sessionError,
-      mockUsers: MOCK_USERS,
       loginWithRedirect,
       logout,
       hasRole,

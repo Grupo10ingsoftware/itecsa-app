@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 
+import orderRoutes from './modules/orders/routes/order.routes.js';
+
 class Server {
   constructor() {
     // Creamos como propiedad misma de la clase servidor
@@ -8,6 +10,14 @@ class Server {
     this.port = process.env.PORT; // definido en .env
     this.paths = {
         // Rutas cuando las tengamos
+
+        //* orders
+        orders : '/api/orders',
+        orderDetail: '/api/order-details',
+
+        //* Estados
+
+
         }
 
     // Middlewares
@@ -36,6 +46,7 @@ class Server {
 
   routes() {
     // Configurar rutas
+    this.app.use(this.paths.orders, orderRoutes)
     /**
      * Un ejemplo sería    
      * this.app.use(this.paths.users, user_route);

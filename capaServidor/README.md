@@ -104,6 +104,35 @@ Respuestas:
 - `409`: correo ya existente en Auth0.
 - `500`: error controlado anterior a la creacion, sin detalles Auth0.
 
+### `POST /api/admin/users/password-setup-email`
+
+Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
+
+```json
+{
+  "correoUsuario": "ana.perez@itecsa.cl"
+}
+```
+
+El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`. Este endpoint no crea usuarios, no asigna roles, no devuelve tickets, no devuelve enlaces y no retorna contrasenas.
+
+Respuesta exitosa:
+
+```json
+{
+  "correoUsuario": "ana.perez@itecsa.cl",
+  "passwordSetupEmailRequested": true
+}
+```
+
+Respuestas:
+
+- `200`: solicitud de correo aceptada por Auth0.
+- `400`: cuerpo invalido, correo invalido o campos adicionales.
+- `401`: access token ausente o invalido.
+- `403`: usuario autenticado sin rol `Administrador`.
+- `500`: error controlado al solicitar el correo, sin detalles Auth0.
+
 ## Pruebas Manuales
 
 Sin token:
@@ -134,6 +163,34 @@ curl -i -X POST http://localhost:3000/api/admin/users \
 ```
 
 Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.
+
+Reenvio del correo de establecimiento/cambio de contrasena con token Administrador y un correo controlado:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"correo.controlado@example.cl"}'
+```
+
+Caso `400` del reenvio:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"no-es-correo"}'
+```
+
+Caso `401` del reenvio:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"correo.controlado@example.cl"}'
+```
+
+Caso `403` del reenvio: repetir la solicitud valida con un access token autenticado cuyo unico rol no sea `Administrador`.
 
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
 

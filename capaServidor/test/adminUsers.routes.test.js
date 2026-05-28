@@ -6,6 +6,7 @@ import { Auth0ServiceError } from "../src/services/auth0Management.service.js";
 import {
     createAdminUserHandler,
     createAdminUsersRouter,
+    createPasswordSetupEmailHandler,
 } from "../src/routes/adminUsers.routes.js";
 
 const VALID_BODY = {
@@ -13,6 +14,9 @@ const VALID_BODY = {
     apellidoPaterno: "Perez",
     correoUsuario: "ana.perez@itecsa.cl",
     rolUsuario: "Ventas",
+};
+const VALID_PASSWORD_EMAIL_BODY = {
+    correoUsuario: "ana.perez@itecsa.cl",
 };
 
 function responseRecorder() {
@@ -39,6 +43,18 @@ async function executeHandler({ body = VALID_BODY, createUser, requestPasswordEm
     return res;
 }
 
+async function executePasswordEmailHandler({
+    body = VALID_PASSWORD_EMAIL_BODY,
+    requestPasswordEmail,
+}) {
+    const res = responseRecorder();
+    const handler = createPasswordSetupEmailHandler({ requestPasswordEmail });
+
+    await handler({ body }, res);
+
+    return res;
+}
+
 test("responde 201 cuando asigna rol y solicita correo", async () => {
     const res = await executeHandler({
         createUser: async () => ({
@@ -55,6 +71,65 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
         rolUsuario: VALID_BODY.rolUsuario,
         passwordSetupEmailRequested: true,
     });
+});
+
+test("responde 200 cuando solicita reenvio de correo de contrasena", async () => {
+    let requestedEmail;
+    const res = await executePasswordEmailHandler({
+        requestPasswordEmail: async ({ email }) => {
+            requestedEmail = email;
+            return { requested: true };
+        },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, {
+        correoUsuario: VALID_PASSWORD_EMAIL_BODY.correoUsuario,
+        passwordSetupEmailRequested: true,
+    });
+    assert.equal(requestedEmail, VALID_PASSWORD_EMAIL_BODY.correoUsuario);
+});
+
+test("responde 400 y no llama Auth0 si el reenvio de correo es invalido", async () => {
+    const invalidBodies = [
+        null,
+        [],
+        {},
+        { correoUsuario: " " },
+        { correoUsuario: "no-es-correo" },
+        { correoUsuario: VALID_PASSWORD_EMAIL_BODY.correoUsuario, password: "x" },
+    ];
+    let calls = 0;
+
+    for (const body of invalidBodies) {
+        const res = await executePasswordEmailHandler({
+            body,
+            requestPasswordEmail: async () => {
+                calls += 1;
+            },
+        });
+
+        assert.equal(res.statusCode, 400);
+    }
+
+    assert.equal(calls, 0);
+});
+
+test("responde 500 generico si falla el reenvio de correo", async () => {
+    const res = await executePasswordEmailHandler({
+        requestPasswordEmail: async () => {
+            throw new Auth0ServiceError(
+                "AUTH0_PASSWORD_EMAIL_FAILED",
+                "detalle interno Auth0",
+            );
+        },
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(res.body, {
+        message: "No fue posible solicitar el correo de establecimiento de contrasena.",
+    });
+    assert.equal(JSON.stringify(res.body).includes("Auth0"), false);
 });
 
 test("responde 201 recuperable si falla el correo tras crear y asignar rol", async () => {
@@ -195,6 +270,47 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
         "checkJwt",
         "requireAdministrador",
         "createUser",
+        "requestPasswordEmail",
+    ]);
+});
+
+test("monta autenticacion y autorizacion antes de reenviar correo", async (t) => {
+    const calls = [];
+    const app = express();
+    app.use(express.json());
+    app.use(
+        "/api/admin",
+        createAdminUsersRouter({
+            authenticate(req, res, next) {
+                calls.push("checkJwt");
+                next();
+            },
+            authorize(req, res, next) {
+                calls.push("requireAdministrador");
+                next();
+            },
+            requestPasswordEmail: async () => {
+                calls.push("requestPasswordEmail");
+            },
+        }),
+    );
+    const server = app.listen(0);
+    t.after(() => server.close());
+    await once(server, "listening");
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/admin/users/password-setup-email`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(VALID_PASSWORD_EMAIL_BODY),
+        },
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, [
+        "checkJwt",
+        "requireAdministrador",
         "requestPasswordEmail",
     ]);
 });

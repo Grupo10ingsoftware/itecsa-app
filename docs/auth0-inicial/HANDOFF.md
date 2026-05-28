@@ -149,6 +149,8 @@
 - Servicio interno Auth0 Management API incorporado el `2026-05-27`, con token M2M, creacion Database, normalizacion de correo duplicado y solicitud de correo de contrasena sin tickets ni endpoints.
 - `POST /api/admin/users` implementado el `2026-05-27`, protegido con JWT y rol Administrador, con validacion estricta, asignacion RBAC y resultados recuperables para fallos posteriores a la creacion.
 - Roles definitivos confirmados por el equipo para este contrato: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`; existen previamente en Auth0 Dashboard.
+- Configuracion Auth0 revisada manualmente durante el paso 14: `ITECSA Frontend Local` esta habilitada para `Username-Password-Authentication`, el template `Change Password (Link)` esta habilitado y `ITECSA Backend Management` quedo autorizado en Auth0 Management API con `create:users`, `read:roles` y `update:users`.
+- `POST /api/admin/users/password-setup-email` implementado el `2026-05-28`, protegido con JWT y rol Administrador, para solicitar o reenviar el correo de establecimiento/cambio de contrasena sin crear usuarios, tickets ni enlaces.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -175,7 +177,7 @@
 - [x] 11. `requireAdministrador`
 - [x] 12. Servicio Auth0 Management API
 - [x] 13. `POST /api/admin/users`
-- [ ] 14. `POST /api/admin/users/password-setup-email`
+- [x] 14. `POST /api/admin/users/password-setup-email`
 - [ ] 15. `apiClient` y `authApi.verify`
 - [ ] 16. Guards frontend
 - [ ] 17. Formulario creacion usuarios
@@ -187,11 +189,11 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `13. POST /api/admin/users`.
-- Configuracion requerida para probar el paso 13: ampliar manualmente en Auth0 Dashboard el grant M2M de `ITECSA Backend Management` hacia `Auth0 Management API` para incluir `create:users`, `read:roles` y `update:users`; el conector disponible no expone actualizacion de grants existentes y no se creo un grant duplicado.
+- Mantener detenido el avance despues del paso `14. POST /api/admin/users/password-setup-email`.
+- Configuracion Auth0 confirmada manualmente durante este paso: `ITECSA Frontend Local` habilitada en la conexion Database, template `Change Password (Link)` habilitado y grant M2M de `ITECSA Backend Management` con `create:users`, `read:roles` y `update:users`.
 - Integracion frontend posterior: los pasos `15. apiClient y authApi.verify`, `16. Guards frontend` y `17. Formulario creacion usuarios` deben conectar la SPA con el backend; antes de enviar el formulario real deben retirarse de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
 - Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar la creacion administrativa actual.
-- Proximo paso funcional reservado: `14. POST /api/admin/users/password-setup-email`; no implementarlo sin instruccion expresa.
+- Proximo paso funcional reservado: `15. apiClient y authApi.verify`; no implementarlo sin instruccion expresa.
 - Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
 - No implementar endpoints administrativos adicionales, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
@@ -212,9 +214,10 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - No se detectaron recursos base ITECSA compatibles antes de la creacion; la verificacion posterior muestra una sola SPA, una sola API propia y una sola aplicacion M2M ITECSA.
 - Los archivos `.env*` locales quedan ignorados globalmente desde la raiz; el secret M2M permanece en la variable de usuario de Windows y no debe incorporarse al repositorio ni a documentacion.
 - La API valida tokens en `/api/auth/verify` y `requireAdministrador` protege `POST /api/admin/users`; restringir CORS no sustituye esa autorizacion.
-- `POST /api/admin/users` depende de que el grant M2M tenga `read:roles` y `update:users` ademas de `create:users`; mientras esa ampliacion no sea confirmada en Dashboard, la ruta real fallara de forma controlada antes de crear usuarios.
+- `POST /api/admin/users` depende de que el grant M2M tenga `read:roles` y `update:users` ademas de `create:users`; esa ampliacion fue confirmada manualmente durante el paso 14.
 - Si la cuenta se crea pero falla asignar RBAC, la API devuelve `201` recuperable, no solicita correo y la reparacion queda pendiente de una gestion posterior sin duplicar la cuenta.
-- Antes de validar envio real de correo debe confirmarse manualmente en Dashboard que `ITECSA Frontend Local` esta habilitada para `Username-Password-Authentication` y que la plantilla/proveedor de correo de cambio de contrasena esta operativo.
+- Para el envio de correos de contrasena, `ITECSA Frontend Local` esta habilitada en `Username-Password-Authentication` y el template `Change Password (Link)` esta habilitado; el proveedor default de Auth0 es aceptable para desarrollo/prueba, pero produccion debera definir proveedor de correo propio.
+- `POST /api/admin/users` solicita el primer correo tras crear la cuenta y asignar RBAC; `POST /api/admin/users/password-setup-email` no crea cuentas ni duplica usuarios, solo solicita/reenvia el correo para un correo ya administrado por Auth0.
 
 ## Validacion del paso 8
 
@@ -280,11 +283,22 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - Validacion HTTP local sin secretos: `POST /api/admin/users` sin token y con bearer invalido respondio `401`.
 - Validaciones reales `201`, `403`, `409` y emision del rol en un token nuevo quedan pendientes de un token controlado y de confirmar manualmente la ampliacion del grant M2M.
 
+## Validacion del paso 14
+
+- Se agrego `POST /api/admin/users/password-setup-email` bajo `/api/admin`, aplicando `checkJwt` antes de `requireAdministrador`.
+- La ruta acepta solo `correoUsuario`, rechaza campos adicionales, correo invalido y valores vacios antes de llamar a Auth0.
+- La ruta reutiliza `requestPasswordSetupEmail`, que usa `/dbconnections/change_password` con el client ID publico de la SPA y la conexion Database; no genera ni retorna tickets, enlaces o contrasenas.
+- El endpoint no crea usuarios, no asigna roles, no consulta Management API y no modifica frontend, mocks, Prisma, MySQL ni persistencia local.
+- Configuracion Auth0 confirmada manualmente: `ITECSA Frontend Local` habilitada en `Username-Password-Authentication`, template `Change Password (Link)` habilitado y grant M2M con `create:users`, `read:roles`, `update:users`.
+- `node --check` sobre router y pruebas modificadas: exitoso.
+- `npm test` en `capaServidor`: exitoso; `node:test` ejecuto los casos del endpoint nuevo y la suite previa sin llamadas reales a Auth0.
+- Validaciones HTTP reales `200`, `400`, `401` y `403` quedan disponibles mediante los comandos documentados en `capaServidor/README.md`; no registrar tokens ni datos personales.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `13. POST /api/admin/users`.
-- Fecha: `2026-05-27`.
-- Estado vigente: el backend expone una ruta administrativa protegida que valida datos, crea la cuenta Auth0 Database, asigna un rol RBAC existente y solicita el correo inicial en orden seguro.
-- Control de secretos y alcance: el secret M2M solo se obtiene de entorno; la contrasena temporal no se retorna, registra ni persiste; no se incorporaron Prisma, MySQL, RUT, firma electronica ni cambios frontend.
-- Pendientes: ampliar y confirmar manualmente el grant M2M con `read:roles` y `update:users` para validar creacion real; integrar posteriormente el formulario frontend sin enviar RUT, firma ni contrasena; definir en un paso posterior los permisos de negocio de `ITECSA API` por rol; validar correo Auth0 y ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
-- Proximo paso recomendado: detener el avance despues del paso 13; el endpoint independiente de reenvio de correo del paso 14 requiere instruccion expresa.
+- Paso completado: `14. POST /api/admin/users/password-setup-email`.
+- Fecha: `2026-05-28`.
+- Estado vigente: el backend expone una ruta administrativa protegida que solicita/reenvia el correo Auth0 de establecimiento/cambio de contrasena para un correo validado, sin crear usuarios ni exponer detalles internos de Auth0.
+- Control de secretos y alcance: no se agregaron secretos, tickets, enlaces, contrasenas, Prisma, MySQL, RUT, firma electronica ni cambios frontend; el endpoint usa el flujo Auth0 `/dbconnections/change_password`.
+- Pendientes: integrar posteriormente el cliente frontend y `authApi.verify`; conectar guards y formulario real sin enviar RUT, firma ni contrasena; definir permisos de negocio de `ITECSA API` solo cuando existan endpoints que los validen; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
+- Proximo paso recomendado: detener el avance despues del paso 14; el paso `15. apiClient y authApi.verify` requiere instruccion expresa.

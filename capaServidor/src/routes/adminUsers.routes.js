@@ -13,6 +13,7 @@ const USER_FIELDS = new Set([
     "correoUsuario",
     "rolUsuario",
 ]);
+const PASSWORD_SETUP_EMAIL_FIELDS = new Set(["correoUsuario"]);
 const ROLES = new Set([
     "Administrador",
     "Gerencia",
@@ -22,6 +23,8 @@ const ROLES = new Set([
 ]);
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
+const PASSWORD_EMAIL_ERROR_MESSAGE =
+    "No fue posible solicitar el correo de establecimiento de contrasena.";
 
 function invalidRequest(message) {
     return { valid: false, message };
@@ -56,12 +59,68 @@ function validateRequest(body) {
     return { valid: true, user };
 }
 
+function validatePasswordSetupEmailRequest(body) {
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+        return invalidRequest("Los datos de la solicitud no son validos.");
+    }
+
+    if (
+        Object.keys(body).some(
+            (field) => !PASSWORD_SETUP_EMAIL_FIELDS.has(field),
+        )
+    ) {
+        return invalidRequest("La solicitud contiene campos no permitidos.");
+    }
+
+    if (
+        typeof body.correoUsuario !== "string" ||
+        body.correoUsuario.trim().length === 0
+    ) {
+        return invalidRequest("El campo correoUsuario es obligatorio.");
+    }
+
+    const correoUsuario = body.correoUsuario.trim();
+
+    if (!EMAIL_FORMAT.test(correoUsuario)) {
+        return invalidRequest("El correoUsuario no tiene un formato valido.");
+    }
+
+    return { valid: true, correoUsuario };
+}
+
 function createdResponse(user, userId, passwordSetupEmailRequested) {
     return {
         idUsuarioAutenticacionExterna: userId,
         correoUsuario: user.correoUsuario,
         rolUsuario: user.rolUsuario,
         passwordSetupEmailRequested,
+    };
+}
+
+export function createPasswordSetupEmailHandler({
+    requestPasswordEmail = requestPasswordSetupEmail,
+} = {}) {
+    return async function passwordSetupEmailHandler(req, res) {
+        const validatedRequest = validatePasswordSetupEmailRequest(req.body);
+
+        if (!validatedRequest.valid) {
+            return res.status(400).json({ message: validatedRequest.message });
+        }
+
+        try {
+            await requestPasswordEmail({
+                email: validatedRequest.correoUsuario,
+            });
+        } catch {
+            return res.status(500).json({
+                message: PASSWORD_EMAIL_ERROR_MESSAGE,
+            });
+        }
+
+        return res.status(200).json({
+            correoUsuario: validatedRequest.correoUsuario,
+            passwordSetupEmailRequested: true,
+        });
     };
 }
 
@@ -138,6 +197,12 @@ export function createAdminUsersRouter({
         authenticate,
         authorize,
         createAdminUserHandler({ createUser, requestPasswordEmail }),
+    );
+    router.post(
+        "/users/password-setup-email",
+        authenticate,
+        authorize,
+        createPasswordSetupEmailHandler({ requestPasswordEmail }),
     );
     return router;
 }

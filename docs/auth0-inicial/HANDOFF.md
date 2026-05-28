@@ -23,7 +23,7 @@
 - Sesion/logout: `AuthProvider.jsx` conserva la fachada `useAuth()` sobre `@auth0/auth0-react`; `LogoutButton.jsx` ejecuta Universal Logout y retorna al origin local.
 - Guards: `ProtectedRoute.jsx` espera la carga Auth0 y exige sesion autenticada; `RoleGuard.jsx` aun usa permisos/roles no integrados con claims Auth0.
 - Creacion de usuarios: `modules/users/pages/UserCreatePage.jsx` y `components/UserCreateForm.jsx` solo validan y muestran un resumen temporal.
-- Cliente HTTP y entorno Auth0: no encontrados en la auditoria inicial.
+- Cliente HTTP frontend: `services/api/apiClient.js` centraliza llamadas al backend con bearer token Auth0; `modules/auth/api/authApi.js` expone `verify()` y `modules/auth/hooks/useAuthApi.js` conecta Auth0 con esa API sin exponer tokens a componentes.
 
 ## Backend relevante
 
@@ -96,6 +96,8 @@
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
+- El frontend debe obtener access tokens mediante `getAccessTokenSilently` del SDK Auth0, inyectarlos en `apiClient` y no almacenarlos manualmente en `localStorage` ni `sessionStorage`.
+- `apiClient` debe tratar `401` como sesion invalida o acceso no autenticado; `403` sigue representando sesion autenticada sin contrato o rol valido para ITECSA.
 - Validar al arrancar `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN`; restringir CORS al unico origen configurado.
 - Mantener `express.json()` y montar `GET /api/auth/verify` bajo `/api/auth` con `checkJwt` de `express-oauth2-jwt-bearer`.
 - Validar JWT con issuer `https://${AUTH0_DOMAIN}/` y audience `AUTH0_AUDIENCE`; proyectar el unico rol oficial de `https://itecsa.local/roles` a `rolUsuario`.
@@ -151,6 +153,7 @@
 - Roles definitivos confirmados por el equipo para este contrato: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`; existen previamente en Auth0 Dashboard.
 - Configuracion Auth0 revisada manualmente durante el paso 14: `ITECSA Frontend Local` esta habilitada para `Username-Password-Authentication`, el template `Change Password (Link)` esta habilitado y `ITECSA Backend Management` quedo autorizado en Auth0 Management API con `create:users`, `read:roles` y `update:users`.
 - `POST /api/admin/users/password-setup-email` implementado el `2026-05-28`, protegido con JWT y rol Administrador, para solicitar o reenviar el correo de establecimiento/cambio de contrasena sin crear usuarios, tickets ni enlaces.
+- `apiClient` y `authApi.verify` implementados el `2026-05-28` en frontend, usando `VITE_API_BASE_URL`, access token Auth0 silencioso y header `Authorization` centralizado; no se conectaron guards ni formularios.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -178,7 +181,7 @@
 - [x] 12. Servicio Auth0 Management API
 - [x] 13. `POST /api/admin/users`
 - [x] 14. `POST /api/admin/users/password-setup-email`
-- [ ] 15. `apiClient` y `authApi.verify`
+- [x] 15. `apiClient` y `authApi.verify`
 - [ ] 16. Guards frontend
 - [ ] 17. Formulario creacion usuarios
 - [ ] 18. Limpieza mocks auth
@@ -189,13 +192,12 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `14. POST /api/admin/users/password-setup-email`.
-- Configuracion Auth0 confirmada manualmente durante este paso: `ITECSA Frontend Local` habilitada en la conexion Database, template `Change Password (Link)` habilitado y grant M2M de `ITECSA Backend Management` con `create:users`, `read:roles` y `update:users`.
-- Integracion frontend posterior: los pasos `15. apiClient y authApi.verify`, `16. Guards frontend` y `17. Formulario creacion usuarios` deben conectar la SPA con el backend; antes de enviar el formulario real deben retirarse de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
-- Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar la creacion administrativa actual.
-- Proximo paso funcional reservado: `15. apiClient y authApi.verify`; no implementarlo sin instruccion expresa.
-- Universal Login, autenticacion del usuario bootstrap y retorno de logout a `http://localhost:5173` fueron verificados para `ITECSA Frontend Local`.
-- No implementar endpoints administrativos adicionales, guards frontend, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- Mantener detenido el avance despues del paso `15. apiClient y authApi.verify`.
+- Proximo paso funcional reservado: `16. Guards frontend`; no implementarlo sin instruccion expresa.
+- La integracion de guards debe consumir `authApi.verify()` para proyectar identidad y rol reales desde backend, sin asumir autorizacion efectiva solo por estado visual de la SPA.
+- Antes de conectar el formulario real de usuarios en el paso posterior, retirar de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
+- Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar `authApi.verify`.
+- No implementar endpoints administrativos adicionales, formulario real, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
@@ -203,6 +205,7 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
 - La vista frontend `/access-denied` ya existe y `RoleGuard` la usa como control visual; no consume el `403` de `/api/auth/verify` ni representa autorizacion efectiva del backend. Esa conexion queda pendiente para `apiClient`/`authApi.verify` y guards frontend.
 - El login autentica mediante Auth0, pero los permisos de navegacion y `RoleGuard` aun no consumen roles Auth0; un usuario real puede ver accesos limitados hasta ese paso.
+- `authApi.verify()` existe pero aun no esta conectado a `ProtectedRoute`, `RoleGuard` ni pantallas; su validacion real depende de iniciar sesion y obtener un access token nuevo para `https://api.itecsa.local` sin registrarlo.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva de los claims en un access token nuevo queda pendiente de una validacion de login con el usuario bootstrap controlado.
 - RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente los claims namespaced `https://itecsa.local/roles` y `https://itecsa.local/email`.
@@ -294,11 +297,22 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `npm test` en `capaServidor`: exitoso; `node:test` ejecuto los casos del endpoint nuevo y la suite previa sin llamadas reales a Auth0.
 - Validaciones HTTP reales `200`, `400`, `401` y `403` quedan disponibles mediante los comandos documentados en `capaServidor/README.md`; no registrar tokens ni datos personales.
 
+## Validacion del paso 15
+
+- Se creo `capaVista/src/services/api/apiClient.js`, que lee `VITE_API_BASE_URL`, normaliza paths bajo `/api`, solicita un access token mediante una funcion inyectada y agrega `Authorization: Bearer <access_token>`.
+- Se creo `capaVista/src/modules/auth/api/authApi.js` con `verify()`, que llama `GET /auth/verify` mediante `apiClient`; con `VITE_API_BASE_URL=http://localhost:3000/api` esto resuelve a `GET /api/auth/verify`.
+- Se creo `capaVista/src/modules/auth/hooks/useAuthApi.js`, que usa `getAccessTokenSilently({ authorizationParams: { audience: import.meta.env.VITE_AUTH0_AUDIENCE } })` y devuelve `authApi` ya ligado a Auth0.
+- `apiClient` convierte respuestas `401` y fallos de obtencion silenciosa de token en `ApiClientError` con `code: "SESSION_INVALID"` y `status: 401`; otros errores HTTP conservan su status para manejo posterior.
+- No se usan `localStorage`, `sessionStorage`, tokens manuales ni credenciales Auth0 Management; no se modificaron backend, guards, formulario de usuarios, Prisma, MySQL ni persistencia local.
+- `npm run lint` en `capaVista`: exitoso.
+- `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
+- Prueba manual recomendada: levantar backend con variables Auth0 validas y `FRONTEND_ORIGIN=http://localhost:5173`, levantar frontend con `VITE_API_BASE_URL=http://localhost:3000/api`, iniciar sesion con el usuario bootstrap controlado e invocar `authApi.verify()` desde una prueba manual de desarrollo sin registrar el token. Con sesion valida debe devolver `rolUsuario: "Administrador"` e `isAdministrador: true`; con token ausente/rechazado debe entregar el error `SESSION_INVALID`.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `14. POST /api/admin/users/password-setup-email`.
+- Paso completado: `15. apiClient y authApi.verify`.
 - Fecha: `2026-05-28`.
-- Estado vigente: el backend expone una ruta administrativa protegida que solicita/reenvia el correo Auth0 de establecimiento/cambio de contrasena para un correo validado, sin crear usuarios ni exponer detalles internos de Auth0.
-- Control de secretos y alcance: no se agregaron secretos, tickets, enlaces, contrasenas, Prisma, MySQL, RUT, firma electronica ni cambios frontend; el endpoint usa el flujo Auth0 `/dbconnections/change_password`.
-- Pendientes: integrar posteriormente el cliente frontend y `authApi.verify`; conectar guards y formulario real sin enviar RUT, firma ni contrasena; definir permisos de negocio de `ITECSA API` solo cuando existan endpoints que los validen; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
-- Proximo paso recomendado: detener el avance despues del paso 14; el paso `15. apiClient y authApi.verify` requiere instruccion expresa.
+- Estado vigente: el frontend cuenta con una capa HTTP centralizada para llamar al backend con access token Auth0 y `authApi.verify()` disponible para validar la sesion contra `GET /api/auth/verify`.
+- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, backend, guards ni formulario real de usuarios.
+- Pendientes: conectar guards con `authApi.verify`; conectar el formulario real sin enviar RUT, firma ni contrasena; limpiar mocks; definir permisos de negocio solo cuando existan endpoints que los validen; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
+- Proximo paso recomendado: detener el avance despues del paso 15; el paso `16. Guards frontend` requiere instruccion expresa.

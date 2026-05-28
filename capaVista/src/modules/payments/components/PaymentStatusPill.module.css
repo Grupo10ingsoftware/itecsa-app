@@ -1,0 +1,37 @@
+.paymentStatusPill {
+  background: #fff;
+  border: 1px solid currentColor;
+  border-radius: 0.42rem;
+  display: inline-flex;
+  font-size: 0.93rem;
+  font-weight: 800;
+  justify-content: center;
+  line-height: 1;
+  min-width: 7.15rem;
+  padding: 0.72rem 0.75rem;
+}
+
+.statusRejected {
+  color: var(--payment-red);
+}
+
+.statusPending {
+  color: var(--payment-orange);
+}
+
+.statusConfirmed {
+  color: var(--payment-green);
+}
+
+@media (max-width: 1199.98px) {
+  .paymentStatusPill {
+    font-size: 0.86rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .paymentStatusPill {
+    min-width: 7.15rem;
+    width: auto;
+  }
+}

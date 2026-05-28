@@ -1,0 +1,128 @@
+.desktopTableWrap {
+  overflow: visible;
+}
+
+.paymentTable {
+  border-collapse: collapse;
+  min-width: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.paymentTable > :not(caption) > * > * {
+  background-color: transparent;
+  border-bottom: 1px solid var(--payment-border);
+  padding: 0.95rem 0.75rem;
+  vertical-align: middle;
+}
+
+.paymentTable thead th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.paymentTable tbody tr:hover td:not(.actionsCell) {
+  background: rgba(249, 115, 22, 0.035);
+}
+
+.colOrder {
+  width: 11%;
+}
+
+.colDate {
+  width: 14%;
+}
+
+.colClient {
+  width: 19%;
+}
+
+.colRut {
+  width: 12%;
+}
+
+.colSalesNote {
+  width: 16%;
+}
+
+.colPaymentStatus {
+  width: 13%;
+}
+
+.colActions {
+  width: 15%;
+}
+
+.orderCell {
+  color: #111;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.dateCell {
+  color: var(--payment-text);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.clientCell {
+  color: #111;
+  font-size: 1rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paymentTable th.rutColumn,
+.paymentTable td.rutCell {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  text-align: center;
+}
+
+.rutCell {
+  color: var(--payment-text);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.actionsColumn,
+.actionsCell {
+  background: #f6f7f9 !important;
+  text-align: center !important;
+}
+
+.actionsCell {
+  overflow: visible;
+  position: relative;
+}
+
+.emptyState {
+  color: var(--payment-muted);
+  font-size: 1rem;
+  padding: 2rem !important;
+  text-align: center !important;
+}
+
+@media (max-width: 1399.98px) {
+  .paymentTable > :not(caption) > * > * {
+    padding-left: 0.62rem;
+    padding-right: 0.62rem;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .paymentTable thead th {
+    font-size: 0.78rem;
+  }
+}

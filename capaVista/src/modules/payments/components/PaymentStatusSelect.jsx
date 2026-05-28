@@ -23,13 +23,13 @@ export default function PaymentStatusSelect({
 
     if (!PAYMENT_STATUS_VALUES.includes(nextValue)) return
 
-    onChange(event)
+    onChange?.(event)
   }
 
   const handleMenuSelection = (nextValue) => {
     if (disabled || !PAYMENT_STATUS_VALUES.includes(nextValue)) return
 
-    onChange({
+    onChange?.({
       target: {
         id,
         name,

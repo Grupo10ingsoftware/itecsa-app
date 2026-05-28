@@ -1,0 +1,171 @@
+.toolbar {
+  border-bottom: 1px solid var(--payment-border);
+  border-top: 1px solid #eef2f7;
+  padding: 1.25rem 2.55rem 1.05rem;
+}
+
+.filterGroup {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 45rem;
+  width: min(100%, 45rem);
+}
+
+.filterButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e1e7ef;
+  border-radius: 0.55rem;
+  color: #111;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 600;
+  gap: 0.7rem;
+  justify-content: space-between;
+  min-height: 3.15rem;
+  min-width: 0;
+  padding: 0.72rem 1rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+  width: 100%;
+}
+
+.filterButton:hover {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0.55rem 1.2rem rgba(17, 24, 39, 0.08);
+  color: var(--payment-orange);
+  transform: translateY(-1px);
+}
+
+.filterButton:focus-visible {
+  outline: 3px solid rgba(238, 117, 45, 0.28);
+  outline-offset: 2px;
+}
+
+.filterButtonActive,
+.filterButtonActive:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.filterLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filterCount {
+  align-items: center;
+  background: #111;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 800;
+  height: 1.65rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 1.65rem;
+  padding: 0 0.35rem;
+}
+
+.filterButtonActive .filterCount {
+  background: var(--payment-orange);
+  color: #111;
+}
+
+.searchBox {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  gap: 0.65rem;
+  max-width: 27rem;
+  min-height: 3.35rem;
+  padding: 0 1.15rem;
+  width: 100%;
+}
+
+.searchBox input {
+  border: 0;
+  color: #111;
+  flex: 1;
+  font-size: 1rem;
+  font-style: italic;
+  min-width: 0;
+  outline: 0;
+}
+
+.searchBox input::placeholder {
+  color: var(--payment-muted);
+}
+
+.searchBox i {
+  color: #111;
+  font-size: 1.45rem;
+}
+
+@media (max-width: 1199.98px) {
+  .toolbar {
+    padding-left: 1.35rem;
+    padding-right: 1.35rem;
+  }
+
+  .filterGroup {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .toolbar {
+    padding-left: 1.35rem;
+    padding-right: 1.35rem;
+  }
+
+  .filterGroup {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .searchBox {
+    max-width: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .toolbar {
+    padding: 0.85rem;
+  }
+
+  .filterGroup {
+    gap: 0.7rem;
+  }
+
+  .filterButton {
+    font-size: 0.9rem;
+    min-height: 2.85rem;
+    padding: 0.58rem 0.72rem;
+  }
+
+  .filterCount {
+    font-size: 0.72rem;
+    height: 1.5rem;
+    min-width: 1.5rem;
+  }
+
+  .searchBox {
+    min-height: 2.9rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .filterGroup {
+    grid-template-columns: 1fr;
+  }
+}

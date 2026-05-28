@@ -25,9 +25,7 @@ capaVista/**/lerna-debug.log*
 # Editor y sistema
 .DS_Store
 .idea/
-capaVista/**/.vscode/*
-!capaVista/**/.vscode/extensions.json
-capaServidor/**/.vscode/
+.vscode/
 capaVista/**/*.suo
 capaVista/**/*.ntvs*
 capaVista/**/*.njsproj

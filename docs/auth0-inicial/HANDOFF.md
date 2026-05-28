@@ -21,7 +21,7 @@
 - Router: `capaVista/src/app/router.jsx` declara `/login`, rutas protegidas y `/admin/usuarios/nuevo`.
 - Login: `modules/auth/pages/LoginPage.jsx` y `components/LoginForm.jsx` mantienen el panel ITECSA e inician Auth0 Universal Login mediante `loginWithRedirect`.
 - Sesion/logout: `AuthProvider.jsx` conserva la fachada `useAuth()` sobre `@auth0/auth0-react`; `LogoutButton.jsx` ejecuta Universal Logout y retorna al origin local.
-- Guards: `ProtectedRoute.jsx` espera la carga Auth0 y exige sesion autenticada; `RoleGuard.jsx` aun usa permisos/roles no integrados con claims Auth0.
+- Guards: `ProtectedRoute.jsx` espera Auth0 y la verificacion backend; `RoleGuard.jsx` usa `rolUsuario` normalizado desde `GET /api/auth/verify` para permisos visuales y acceso administrativo.
 - Creacion de usuarios: `modules/users/pages/UserCreatePage.jsx` y `components/UserCreateForm.jsx` solo validan y muestran un resumen temporal.
 - Cliente HTTP frontend: `services/api/apiClient.js` centraliza llamadas al backend con bearer token Auth0; `modules/auth/api/authApi.js` expone `verify()` y `modules/auth/hooks/useAuthApi.js` conecta Auth0 con esa API sin exponer tokens a componentes.
 
@@ -94,10 +94,12 @@
 - Mantener `MOCK_USERS` transitoriamente en la fachada solo para `UserCreateForm`, que no se integra ni modifica en este paso.
 - Montar `Auth0Provider` por fuera de `AuthProvider` y procesar `onRedirectCallback` con rutas locales sanitizadas.
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
+- Usar Auth0 RBAC como fuente vigente de roles; el frontend consume la proyeccion backend `rolUsuario` desde `/api/auth/verify` y no claims Auth0 directamente.
 - Toda proteccion de endpoints administrativos futura debe validarse en Express con identidad y rol comprobables.
 - El frontend no debe consumir Auth0 Management API ni recibir credenciales de administracion.
 - El frontend debe obtener access tokens mediante `getAccessTokenSilently` del SDK Auth0, inyectarlos en `apiClient` y no almacenarlos manualmente en `localStorage` ni `sessionStorage`.
 - `apiClient` debe tratar `401` como sesion invalida o acceso no autenticado; `403` sigue representando sesion autenticada sin contrato o rol valido para ITECSA.
+- Los roles Auth0 existentes no requieren permisos funcionales configurados para el paso de guards; este paso valida nombres de rol RBAC proyectados por backend.
 - Validar al arrancar `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` y `FRONTEND_ORIGIN`; restringir CORS al unico origen configurado.
 - Mantener `express.json()` y montar `GET /api/auth/verify` bajo `/api/auth` con `checkJwt` de `express-oauth2-jwt-bearer`.
 - Validar JWT con issuer `https://${AUTH0_DOMAIN}/` y audience `AUTH0_AUDIENCE`; proyectar el unico rol oficial de `https://itecsa.local/roles` a `rolUsuario`.
@@ -153,7 +155,8 @@
 - Roles definitivos confirmados por el equipo para este contrato: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`; existen previamente en Auth0 Dashboard.
 - Configuracion Auth0 revisada manualmente durante el paso 14: `ITECSA Frontend Local` esta habilitada para `Username-Password-Authentication`, el template `Change Password (Link)` esta habilitado y `ITECSA Backend Management` quedo autorizado en Auth0 Management API con `create:users`, `read:roles` y `update:users`.
 - `POST /api/admin/users/password-setup-email` implementado el `2026-05-28`, protegido con JWT y rol Administrador, para solicitar o reenviar el correo de establecimiento/cambio de contrasena sin crear usuarios, tickets ni enlaces.
-- `apiClient` y `authApi.verify` implementados el `2026-05-28` en frontend, usando `VITE_API_BASE_URL`, access token Auth0 silencioso y header `Authorization` centralizado; no se conectaron guards ni formularios.
+- `apiClient` y `authApi.verify` implementados el `2026-05-28` en frontend, usando `VITE_API_BASE_URL`, access token Auth0 silencioso y header `Authorization` centralizado.
+- Guards frontend conectados el `2026-05-28` a `authApi.verify()`: la sesion visual se basa en Auth0 y los permisos visuales usan `rolUsuario` verificado por backend desde Auth0 RBAC.
 - El archivo `docs/auth0-inicial/HANDOFF.md` esta registrado en Git desde el commit `716b08b`.
 
 ## Usuario bootstrap Administrador
@@ -182,7 +185,7 @@
 - [x] 13. `POST /api/admin/users`
 - [x] 14. `POST /api/admin/users/password-setup-email`
 - [x] 15. `apiClient` y `authApi.verify`
-- [ ] 16. Guards frontend
+- [x] 16. Guards frontend
 - [ ] 17. Formulario creacion usuarios
 - [ ] 18. Limpieza mocks auth
 - [ ] 19. Documentacion tecnica minima
@@ -192,23 +195,23 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `15. apiClient y authApi.verify`.
-- Proximo paso funcional reservado: `16. Guards frontend`; no implementarlo sin instruccion expresa.
-- La integracion de guards debe consumir `authApi.verify()` para proyectar identidad y rol reales desde backend, sin asumir autorizacion efectiva solo por estado visual de la SPA.
+- Mantener detenido el avance despues del paso `16. Guards frontend`.
+- Proximo paso funcional reservado: `17. Formulario creacion usuarios`; no implementarlo sin instruccion expresa.
+- La integracion de guards consume `authApi.verify()` para proyectar identidad y rol reales desde backend, sin asumir autorizacion efectiva solo por estado visual de la SPA.
 - Antes de conectar el formulario real de usuarios en el paso posterior, retirar de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
-- Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar `authApi.verify`.
+- Autorizacion por permisos posterior: definir scopes de negocio de `ITECSA API` y asignarlos a roles solo cuando existan endpoints backend que comprueben dichos permisos; esto no es requisito para probar los guards.
 - No implementar endpoints administrativos adicionales, formulario real, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
 - `MOCK_USERS` se conserva temporalmente porque `UserCreateForm` lo consume para validacion visual; retirarlo requiere el paso correspondiente a esa vista.
 - La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
-- La vista frontend `/access-denied` ya existe y `RoleGuard` la usa como control visual; no consume el `403` de `/api/auth/verify` ni representa autorizacion efectiva del backend. Esa conexion queda pendiente para `apiClient`/`authApi.verify` y guards frontend.
-- El login autentica mediante Auth0, pero los permisos de navegacion y `RoleGuard` aun no consumen roles Auth0; un usuario real puede ver accesos limitados hasta ese paso.
-- `authApi.verify()` existe pero aun no esta conectado a `ProtectedRoute`, `RoleGuard` ni pantallas; su validacion real depende de iniciar sesion y obtener un access token nuevo para `https://api.itecsa.local` sin registrarlo.
+- La vista frontend `/access-denied` existe y `RoleGuard` la usa como control visual cuando `/api/auth/verify` no entrega un rol permitido para la ruta.
+- El login autentica mediante Auth0 y los permisos de navegacion/`RoleGuard` consumen el rol normalizado desde backend; esto no reemplaza la autorizacion efectiva de endpoints.
+- `authApi.verify()` esta conectado a `AuthProvider`, `ProtectedRoute`, `RoleGuard` y navegacion; su validacion real depende de iniciar sesion y obtener un access token nuevo para `https://api.itecsa.local` sin registrarlo.
 - El binding de la Action fue realizado manualmente en Dashboard porque el MCP disponible no ofrece una operacion para administrar el flujo Post Login; futuras revisiones deben confirmar que no se duplique su instancia.
 - La emision efectiva de los claims en un access token nuevo queda pendiente de una validacion de login con el usuario bootstrap controlado.
-- RBAC y `Add Permissions in the Access Token` estan habilitados para `ITECSA API`; la Action agrega adicionalmente los claims namespaced `https://itecsa.local/roles` y `https://itecsa.local/email`.
+- La Action agrega los claims namespaced `https://itecsa.local/roles` y `https://itecsa.local/email`; los permisos funcionales de Auth0 no son requisito para el paso 16 porque la SPA consume la proyeccion backend `rolUsuario`.
 - Los scopes M2M de `Auth0 Management API` (`create:users`, `read:roles`, `update:users`) autorizan al backend a administrar usuarios y roles; no equivalen a permisos funcionales asignados a usuarios sobre `ITECSA API`.
 - La pestana `Permissions` de un rol en Auth0 corresponde a permisos definidos en `ITECSA API`, no al grant M2M requerido por `ITECSA Backend Management` para ejecutar `POST /api/admin/users`.
 - Aunque el requerimiento inicial mencionaba `https://itecsa.local/rolUsuario`, el endpoint y `requireAdministrador` consumen `https://itecsa.local/roles` porque es el contrato vigente de la Action basada en Auth0 Roles/RBAC; `/api/auth/verify` proyecta un unico valor a `rolUsuario`.
@@ -308,11 +311,22 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
 - Prueba manual recomendada: levantar backend con variables Auth0 validas y `FRONTEND_ORIGIN=http://localhost:5173`, levantar frontend con `VITE_API_BASE_URL=http://localhost:3000/api`, iniciar sesion con el usuario bootstrap controlado e invocar `authApi.verify()` desde una prueba manual de desarrollo sin registrar el token. Con sesion valida debe devolver `rolUsuario: "Administrador"` e `isAdministrador: true`; con token ausente/rechazado debe entregar el error `SESSION_INVALID`.
 
+## Validacion del paso 16
+
+- `AuthProvider` conecta `authApi.verify()` cuando Auth0 indica sesion autenticada, conserva `mockUsers` solo para compatibilidad del formulario fuera de alcance y expone permisos visuales desde `rolUsuario` verificado por backend.
+- `ProtectedRoute` maneja carga de Auth0/verificacion backend y redirige a `/login?from=...` cuando no hay sesion o la sesion es invalida.
+- `RoleGuard` espera la verificacion, redirige sesiones invalidas a login y envia a `/access-denied` cuando el rol verificado no cumple el permiso o rol requerido.
+- La ruta `/kanban` queda protegida por permiso visual; `/pagos` y `/ordenes/nuevo` siguen usando permisos visuales derivados de rol; `/admin/usuarios/nuevo` exige explicitamente `Administrador`.
+- No se modificaron backend, endpoints, formulario de creacion de usuarios, Prisma, MySQL, persistencia local ni credenciales.
+- `npm run lint` en `capaVista`: exitoso.
+- `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
+- Pruebas manuales recomendadas: no autenticado debe ir a `/login?from=...`; usuario autenticado sin rol RBAC valido debe ir a `/access-denied`; Administrador debe ver `/admin/usuarios/nuevo`; usuario no administrador debe ver solo rutas permitidas por su rol y recibir `/access-denied` en administracion.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `15. apiClient y authApi.verify`.
+- Paso completado: `16. Guards frontend`.
 - Fecha: `2026-05-28`.
-- Estado vigente: el frontend cuenta con una capa HTTP centralizada para llamar al backend con access token Auth0 y `authApi.verify()` disponible para validar la sesion contra `GET /api/auth/verify`.
-- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, backend, guards ni formulario real de usuarios.
-- Pendientes: conectar guards con `authApi.verify`; conectar el formulario real sin enviar RUT, firma ni contrasena; limpiar mocks; definir permisos de negocio solo cuando existan endpoints que los validen; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
-- Proximo paso recomendado: detener el avance despues del paso 15; el paso `16. Guards frontend` requiere instruccion expresa.
+- Estado vigente: el frontend valida experiencia de sesion con Auth0 y rol visual mediante `GET /api/auth/verify`; `rolUsuario` proviene del backend como proyeccion de Auth0 RBAC.
+- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, backend ni formulario real de usuarios.
+- Pendientes: conectar el formulario real sin enviar RUT, firma ni contrasena; limpiar mocks; definir permisos de negocio solo cuando existan endpoints que los validen; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
+- Proximo paso recomendado: detener el avance despues del paso 16; el paso `17. Formulario creacion usuarios` requiere instruccion expresa.

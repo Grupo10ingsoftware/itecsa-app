@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 
 export default function ProtectedRoute({ children, fallback }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { authStatus, error, isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
   const fromPath = `${location.pathname}${location.search}${location.hash}`
 
@@ -14,8 +14,8 @@ export default function ProtectedRoute({ children, fallback }) {
     )
   }
 
-  if (!isAuthenticated) {
-    // Control visual de frontend: la autorizacion definitiva se implementara en backend.
+  if (!isAuthenticated || authStatus === 'session-invalid') {
+    // Control visual de frontend: la autorizacion definitiva se valida en backend.
     return (
       fallback ?? (
         <Navigate
@@ -26,6 +26,15 @@ export default function ProtectedRoute({ children, fallback }) {
           to={`/login?from=${encodeURIComponent(fromPath)}`}
         />
       )
+    )
+  }
+
+  if (authStatus === 'error') {
+    return (
+      <div className="alert alert-danger m-4" role="alert">
+        No fue posible verificar la sesion con el backend.
+        {error?.message ? ` ${error.message}` : ''}
+      </div>
     )
   }
 

@@ -22,7 +22,7 @@
 - Login: `modules/auth/pages/LoginPage.jsx` y `components/LoginForm.jsx` mantienen el panel ITECSA e inician Auth0 Universal Login mediante `loginWithRedirect`.
 - Sesion/logout: `AuthProvider.jsx` conserva la fachada `useAuth()` sobre `@auth0/auth0-react`; `LogoutButton.jsx` ejecuta Universal Logout y retorna al origin local.
 - Guards: `ProtectedRoute.jsx` espera Auth0 y la verificacion backend; `RoleGuard.jsx` usa `permissions` reales devueltos por `GET /api/auth/verify` para permisos visuales y `rolUsuario` para acceso administrativo directo.
-- Creacion de usuarios: `modules/users/pages/UserCreatePage.jsx` y `components/UserCreateForm.jsx` solo validan y muestran un resumen temporal.
+- Creacion de usuarios: `modules/users/pages/UserCreatePage.jsx` y `components/UserCreateForm.jsx` consumen `POST /api/admin/users`; el formulario envia solo `primerNombre`, `apellidoPaterno`, `correoUsuario` y `rolUsuario`.
 - Cliente HTTP frontend: `services/api/apiClient.js` centraliza llamadas al backend con bearer token Auth0; `modules/auth/api/authApi.js` expone `verify()` y `modules/auth/hooks/useAuthApi.js` conecta Auth0 con esa API sin exponer tokens a componentes.
 
 ## Backend relevante
@@ -39,7 +39,7 @@
 - `capaVista/src/modules/auth/mocks/authMocks.js` contiene usuarios de prueba, roles/estado y datos representativos para la UI.
 - El fixture `capaVista/src/modules/auth/mocks/authCredentials.js` y el acceso rapido administrativo fueron retirados al reemplazar el login visual por Auth0.
 - `LoginPage.jsx` ya no solicita ni expone credenciales locales; Universal Login administra la captura de credenciales.
-- `UserCreateForm.jsx` solicita actualmente RUT, firma electronica y contrasena solo para validacion/preview en memoria.
+- `UserCreateForm.jsx` muestra RUT, firma electronica y contrasena deshabilitados; no los valida, no los envia y no los persiste.
 - No se reproducen valores de fixtures de prueba en este handoff. La adecuacion del mock restante corresponde a pasos posteriores autorizados.
 
 ## Auth0 relevante
@@ -91,7 +91,7 @@
 ## Decisiones tecnicas aplicables
 
 - Mantener `useAuth()` como fachada interna durante la migracion; desde el paso 8 expone identidad, carga, error, login y logout del SDK Auth0.
-- Mantener `MOCK_USERS` transitoriamente en la fachada solo para `UserCreateForm`, que no se integra ni modifica en este paso.
+- Mantener `MOCK_USERS` transitoriamente en la fachada hasta el paso de limpieza; `UserCreateForm` ya no lo consume como fuente de usuarios reales.
 - Montar `Auth0Provider` por fuera de `AuthProvider` y procesar `onRedirectCallback` con rutas locales sanitizadas.
 - Tratar `ProtectedRoute` y `RoleGuard` como controles de experiencia visual, nunca como autorizacion efectiva.
 - Usar Auth0 RBAC como fuente vigente de roles; el frontend consume la proyeccion backend `rolUsuario` desde `/api/auth/verify` y no claims Auth0 directamente.
@@ -188,7 +188,7 @@
 - [x] 14. `POST /api/admin/users/password-setup-email`
 - [x] 15. `apiClient` y `authApi.verify`
 - [x] 16. Guards frontend
-- [ ] 17. Formulario creacion usuarios
+- [x] 17. Formulario creacion usuarios
 - [ ] 18. Limpieza mocks auth
 - [ ] 19. Documentacion tecnica minima
 - [ ] 20. Pruebas finales y checklist
@@ -197,17 +197,17 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `16. Guards frontend`.
-- Proximo paso funcional reservado: `17. Formulario creacion usuarios`; no implementarlo sin instruccion expresa.
-- La integracion de guards consume `authApi.verify()` para proyectar identidad y rol reales desde backend, sin asumir autorizacion efectiva solo por estado visual de la SPA.
-- Antes de conectar el formulario real de usuarios en el paso posterior, retirar de ese flujo `RUT`, firma electronica y contrasena, porque `POST /api/admin/users` no los acepta.
+- Mantener detenido el avance despues del paso `17. Formulario creacion usuarios`.
+- Proximo paso funcional reservado: `18. Limpieza mocks auth`; no implementarlo sin instruccion expresa.
+- La integracion del formulario consume `POST /api/admin/users` y `POST /api/admin/users/password-setup-email` mediante el cliente API con bearer Auth0, sin exponer credenciales Management en frontend.
+- El formulario real retira del envio `RUT`, firma electronica y contrasena; esos campos quedan visibles y deshabilitados con ayuda contextual.
 - Autorizacion por permisos posterior: si se agregan endpoints backend protegidos por permisos funcionales, deben validar el claim `permissions` en servidor; el uso actual de permisos sigue siendo visual.
-- No implementar endpoints administrativos adicionales, formulario real, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar endpoints administrativos adicionales, limpieza de mocks, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
-- `MOCK_USERS` se conserva temporalmente porque `UserCreateForm` lo consume para validacion visual; retirarlo requiere el paso correspondiente a esa vista.
-- La UI actual maneja temporalmente campos que no deben persistirse ni enviarse de forma insegura al integrar Auth0.
+- `MOCK_USERS` se conserva temporalmente en `AuthProvider` hasta el paso 18, pero `UserCreateForm` ya no lo consume para validar correos ni como fuente de usuarios reales.
+- La UI de creacion mantiene RUT, firma electronica y contrasena visibles pero deshabilitados; el payload real no incluye esos campos.
 - La vista frontend `/access-denied` existe y `RoleGuard` la usa como control visual cuando `/api/auth/verify` no entrega un rol permitido para la ruta.
 - El login autentica mediante Auth0 y los permisos de navegacion/`RoleGuard` consumen el rol normalizado desde backend; esto no reemplaza la autorizacion efectiva de endpoints.
 - `authApi.verify()` esta conectado a `AuthProvider`, `ProtectedRoute`, `RoleGuard` y navegacion; su validacion real depende de iniciar sesion y obtener un access token nuevo para `https://api.itecsa.local` sin registrarlo.
@@ -226,6 +226,7 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - Si la cuenta se crea pero falla asignar RBAC, la API devuelve `201` recuperable, no solicita correo y la reparacion queda pendiente de una gestion posterior sin duplicar la cuenta.
 - Para el envio de correos de contrasena, `ITECSA Frontend Local` esta habilitada en `Username-Password-Authentication` y el template `Change Password (Link)` esta habilitado; el proveedor default de Auth0 es aceptable para desarrollo/prueba, pero produccion debera definir proveedor de correo propio.
 - `POST /api/admin/users` solicita el primer correo tras crear la cuenta y asignar RBAC; `POST /api/admin/users/password-setup-email` no crea cuentas ni duplica usuarios, solo solicita/reenvia el correo para un correo ya administrado por Auth0.
+- Si `POST /api/admin/users` devuelve `passwordSetupEmailRequested: false`, la UI no reintenta crear la cuenta; permite solicitar el correo solo cuando `roleAssignmentCompleted` no es `false`.
 
 ## Validacion del paso 8
 
@@ -335,11 +336,27 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `npm run build` en `capaVista`: exitoso.
 - Prueba manual pendiente: cerrar sesion, iniciar sesion nuevamente con usuarios controlados y confirmar que el access token nuevo incluye permisos asignados sin registrar tokens ni correos completos.
 
+## Validacion del paso 17
+
+- `apiClient` expone `post()` reutilizando el bearer token Auth0 centralizado y el manejo existente de `401` como `SESSION_INVALID`.
+- Se creo `modules/users/api/adminUsersApi.js` y `modules/users/hooks/useAdminUsersApi.js` para llamar `POST /api/admin/users` y `POST /api/admin/users/password-setup-email` sin exponer credenciales Auth0 Management.
+- `UserCreateForm.jsx` envia solo `primerNombre`, `apellidoPaterno`, `correoUsuario` y `rolUsuario`; RUT, firma electronica y contrasena quedan visibles, deshabilitados y con ayuda contextual.
+- La validacion frontend ya no usa `MOCK_USERS`, RUT, firma electronica ni contrasena; la unicidad de correo queda en backend/Auth0 y se muestra como error claro ante `409`.
+- La UI muestra confirmacion de creacion exitosa, acceso denegado para `403`, sesion invalida para `401` y permite solicitar `POST /api/admin/users/password-setup-email` solo cuando fallo el correo y la asignacion de rol no fallo.
+- Si `roleAssignmentCompleted: false`, la UI informa gestion manual y no ofrece reenvio porque ese endpoint no corrige RBAC.
+- `rg "mockUsers|PasswordRules|normalizeRut|validateRut|validatePassword|validateSignatureReference|Preparar usuario|Usuario preparado" capaVista/src/modules/users capaVista/src/services/api -n`: sin referencias.
+- `npm run lint` en `capaVista`: exitoso.
+- `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
+- Pruebas manuales pendientes con backend/frontend y usuarios controlados: `201` debe confirmar creacion y correo; `409` debe mostrar correo duplicado; `403` debe mostrar acceso denegado; `401` debe mostrar sesion invalida/inicio de sesion; el caso recuperable de correo debe permitir reenvio sin duplicar cuenta; el caso recuperable RBAC debe mostrar gestion manual sin reenvio.
+- Verificacion manual recomendada en DevTools/Network: el payload de `POST /api/admin/users` no debe incluir `rutUsuario`, `referenciaFirmaElectronica`, `password` ni campos adicionales.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: permisos Auth0 reales para `RoleGuard` como ajuste adicional posterior al paso `16. Guards frontend`.
+- Paso completado: `17. Formulario creacion usuarios`.
 - Fecha: `2026-05-28`.
-- Estado vigente: el frontend valida experiencia de sesion con Auth0; `rolUsuario` proviene del backend como proyeccion de Auth0 RBAC y `permissions` proviene del claim estandar de `ITECSA API`.
-- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, endpoints nuevos ni formulario real de usuarios.
-- Pendientes: conectar el formulario real sin enviar RUT, firma ni contrasena; limpiar mocks; agregar validacion backend por permisos si se crean endpoints que lo requieran; ejecutar pruebas reales controladas sin registrar tokens ni datos personales.
-- Proximo paso recomendado: detener el avance despues del paso 16; el paso `17. Formulario creacion usuarios` requiere instruccion expresa.
+- Estado vigente: el frontend valida experiencia de sesion con Auth0; `rolUsuario` proviene del backend como proyeccion de Auth0 RBAC, `permissions` proviene del claim estandar de `ITECSA API` y el formulario de usuarios consume el backend administrativo real.
+- Decisiones tomadas: payload minimo de usuario, campos RUT/firma/contrasena deshabilitados y no enviados, reenvio de correo solo para fallo recuperable de correo, no para fallo de RBAC.
+- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, endpoints nuevos ni persistencia local.
+- Pendientes: limpiar mocks auth en el paso 18; documentacion tecnica minima; pruebas finales reales controladas sin registrar tokens ni datos personales.
+- Riesgos nuevos: la validacion real de `201`, `403`, `409`, `401` y casos recuperables depende de sesiones/tokens Auth0 controlados y de poder inducir respuestas recuperables sin registrar datos personales.
+- Proximo paso recomendado: detener el avance despues del paso 17; el paso `18. Limpieza mocks auth` requiere instruccion expresa.

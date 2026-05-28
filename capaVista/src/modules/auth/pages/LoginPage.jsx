@@ -52,29 +52,31 @@ const devCredentials = mockUsers.map((user) => {
 
   return (
     <main className={`container-fluid ${styles.loginPage}`}>
-      <section className={`shadow-sm ${styles.loginPanel}`} aria-labelledby="login-title">
-        <div className="mb-4">
+      <section className={styles.loginPanel} aria-labelledby="login-title">
+        <div className={styles.loginHero}>
           <span className={styles.brandMark}>ITECSA</span>
-          <h1 className="h3 mt-3 mb-2" id="login-title">
+          <h1 className={styles.loginTitle} id="login-title">
             Inicio de sesión
           </h1>
-          <p className="text-secondary mb-0">
+          <p className={styles.loginDescription}>
             Ingresa con tu correo y contraseña.
           </p>
         </div>
 
-        {recoveryMessage && (
-          <div className="alert alert-info" role="status">
-            {recoveryMessage}
+        <div className={styles.loginBody}>
+          {recoveryMessage && (
+            <div className="alert alert-info" role="status">
+              {recoveryMessage}
+            </div>
+          )}
+
+          <LoginForm onLoginError={() => setRecoveryMessage('')} />
+
+          <div className="text-center mt-3">
+            <button className="btn btn-link p-0" onClick={handleForgotPassword} type="button">
+              Olvidé mi contraseña
+            </button>
           </div>
-        )}
-
-        <LoginForm onLoginError={() => setRecoveryMessage('')} />
-
-        <div className="text-center mt-3">
-          <button className="btn btn-link p-0" onClick={handleForgotPassword} type="button">
-            Olvidé mi contraseña
-          </button>
         </div>
       </section>
 

@@ -1,30 +1,32 @@
-/* ─────────────────────────────────────────────────────────────────────────────
-   FileInput.module.css
-   Estilos del componente de carga de archivos con drag-and-drop
-   ───────────────────────────────────────────────────────────────────────────── */
-
 .dropzone {
-  border: 2px dashed #bdc3c7;
-  border-radius: 8px;
+  align-items: center;
+  background: #fff;
+  border: 2px dashed #d7dee8;
+  border-radius: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 7rem;
   padding: 1.5rem 1rem;
   text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .dropzone:hover {
-  border-color: rgb(18, 77, 77);
-  background-color: rgba(18, 77, 77, 0.04);
+  background-color: rgba(249, 115, 22, 0.045);
+  border-color: #f97316;
+  box-shadow: 0 0.55rem 1.2rem rgba(17, 24, 39, 0.08);
+  transform: translateY(-1px);
 }
 
 .dropzone.dragOver {
-  border-color: rgb(18, 77, 77);
+  background-color: rgba(249, 115, 22, 0.08);
+  border-color: #f97316;
   border-style: solid;
-  background-color: rgba(18, 77, 77, 0.08);
 }
 
 .hiddenInput {
@@ -32,11 +34,11 @@
 }
 
 .emptyState {
+  align-items: center;
+  color: #64748b;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: #95a5a6;
+  gap: 0.35rem;
 }
 
 .emptyState p {
@@ -44,29 +46,37 @@
 }
 
 .fileInfo {
-  display: flex;
   align-items: center;
-  gap: 0.75rem;
+  display: flex;
   flex-wrap: wrap;
+  gap: 0.75rem;
   width: 100%;
 }
 
 .fileDetails {
   flex: 1;
-  text-align: left;
   overflow: hidden;
+  text-align: left;
 }
 
 .fileDetails span {
-  white-space: nowrap;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
+  white-space: nowrap;
 }
 
 .icon {
+  align-items: center;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: 0.62rem;
+  color: #f97316;
+  display: inline-flex;
   font-size: 1.5rem;
-  color: rgb(18, 77, 77);
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
 }
 
 .clearBtn {

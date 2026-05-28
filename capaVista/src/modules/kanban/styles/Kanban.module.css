@@ -1,0 +1,422 @@
+.filtersShell,
+.kanbanWrapper {
+  --kanban-border: #e5e7eb;
+  --kanban-orange: #f97316;
+  --kanban-orange-rgb: 249, 115, 22;
+  --kanban-muted: #64748b;
+  --kanban-text: #111827;
+}
+
+.filtersShell {
+  background: #fff;
+  border: 1px solid var(--kanban-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  overflow: hidden;
+}
+
+.filtersTopbar {
+  align-items: center;
+  background: #000;
+  color: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 3.5rem;
+  padding: 0.9rem 1rem;
+}
+
+.filtersTopbar h2 {
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.filtersEyebrow {
+  color: var(--kanban-orange);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  margin-bottom: 0.28rem;
+  text-transform: uppercase;
+}
+
+.filterToggleButton,
+.applyFilterButton,
+.resetFilterButton,
+.orderCardButton {
+  align-items: center;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  font-weight: 780;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.55rem;
+  padding: 0.55rem 0.9rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.filterToggleButton:hover,
+.applyFilterButton:hover,
+.resetFilterButton:hover,
+.orderCardButton:hover {
+  transform: translateY(-1px);
+}
+
+.filterToggleButton {
+  background: rgba(var(--kanban-orange-rgb), 0.14);
+  border: 1px solid rgba(var(--kanban-orange-rgb), 0.38);
+  color: #fff;
+}
+
+.filterToggleButton:hover,
+.filterToggleButton:focus {
+  background: var(--kanban-orange);
+  border-color: var(--kanban-orange);
+  color: #111;
+  outline: none;
+}
+
+.filterCard {
+  animation: filterEnter 0.18s ease-out;
+  background: #fff;
+  padding: 1rem;
+}
+
+.filterGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.filterGrid label {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.filterGrid span {
+  color: var(--kanban-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.filterGrid :global(.form-control),
+.filterGrid :global(.form-select) {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--kanban-text);
+  min-height: 3rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.filterGrid :global(.form-control:focus),
+.filterGrid :global(.form-select:focus) {
+  border-color: var(--kanban-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--kanban-orange-rgb), 0.18);
+}
+
+.filterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.applyFilterButton {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+}
+
+.applyFilterButton:hover,
+.applyFilterButton:focus {
+  background: var(--kanban-orange);
+  border-color: var(--kanban-orange);
+  color: #111;
+  outline: none;
+}
+
+.resetFilterButton {
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  color: #111;
+}
+
+.resetFilterButton:hover,
+.resetFilterButton:focus {
+  border-color: var(--kanban-orange);
+  color: var(--kanban-orange);
+  outline: none;
+}
+
+.kanbanWrapper {
+  display: grid;
+  gap: 1rem;
+  grid-auto-columns: minmax(18rem, 1fr);
+  grid-auto-flow: column;
+  min-height: 34rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15rem 0.1rem 0.85rem;
+  scroll-snap-type: x proximity;
+}
+
+.kanbanWrapper::-webkit-scrollbar {
+  height: 0.72rem;
+}
+
+.kanbanWrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.kanbanWrapper::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.55);
+  border-radius: 999px;
+}
+
+.kanbanWrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.85);
+}
+
+.column {
+  background: #fff;
+  border: 1px solid var(--kanban-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  min-height: 32rem;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.columnHeader {
+  align-items: center;
+  background: #000;
+  border-top: 4px solid var(--kanban-accent, var(--kanban-orange));
+  color: #fff;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-height: 4rem;
+  padding: 0.85rem 1rem;
+}
+
+.columnTitleGroup {
+  align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.columnTitleGroup i {
+  color: var(--kanban-accent, var(--kanban-orange));
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.columnTitleGroup h2 {
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  line-height: 1.3;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.columnCount {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 850;
+  height: 1.85rem;
+  justify-content: center;
+  min-width: 1.85rem;
+  padding-inline: 0.5rem;
+}
+
+.columnBody {
+  background: #f8fafc;
+  display: grid;
+  gap: 0.85rem;
+  min-height: 28rem;
+  padding: 1rem;
+}
+
+.orderCard {
+  background: #fff;
+  border: 1px solid var(--kanban-border);
+  border-radius: 0.78rem;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  cursor: grab;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.orderCard:hover {
+  border-color: rgba(var(--kanban-orange-rgb), 0.38);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+}
+
+.orderCard:active {
+  cursor: grabbing;
+}
+
+.orderCardHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.orderClient {
+  color: var(--kanban-text);
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.orderNv {
+  background: rgba(var(--kanban-orange-rgb), 0.12);
+  border: 1px solid rgba(var(--kanban-orange-rgb), 0.28);
+  border-radius: 999px;
+  color: #111;
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 850;
+  padding: 0.25rem 0.55rem;
+}
+
+.orderDetails {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.orderDetails div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.orderDetails dt {
+  color: var(--kanban-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.orderDetails dd {
+  color: var(--kanban-text);
+  font-weight: 720;
+  margin: 0;
+}
+
+.orderCardButton {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+  margin-top: 0.1rem;
+  width: 100%;
+}
+
+.orderCardButton:hover,
+.orderCardButton:focus {
+  background: var(--kanban-orange);
+  border-color: var(--kanban-orange);
+  color: #111;
+  outline: none;
+}
+
+.emptyColumn {
+  align-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  color: var(--kanban-muted);
+  display: flex;
+  font-size: 0.92rem;
+  font-weight: 650;
+  justify-content: center;
+  min-height: 6.5rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+@keyframes filterEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .filtersTopbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .filterToggleButton,
+  .applyFilterButton,
+  .resetFilterButton {
+    width: 100%;
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions {
+    justify-content: stretch;
+  }
+
+  .kanbanWrapper {
+    grid-auto-columns: minmax(16rem, 86vw);
+    min-height: 30rem;
+  }
+
+  .column {
+    min-height: 28rem;
+  }
+
+  .columnBody {
+    min-height: 24rem;
+  }
+}

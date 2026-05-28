@@ -234,27 +234,38 @@ export default function UserCreateForm() {
         <label className="form-label" htmlFor="user-signature">
           Firma electrónica
         </label>
-        <input
-          accept=".xml,.cms,.pdf"
-          aria-describedby="user-signature-help user-signature-errors"
-          aria-invalid={fieldErrors.referenciaFirmaElectronica.length > 0}
-          className={`form-control ${
+
+        <div
+          className={`signatureFilePicker ${
             fieldErrors.referenciaFirmaElectronica.length > 0 ? 'is-invalid' : ''
           }`}
-          id="user-signature"
-          key={fileInputKey}
-          name="referenciaFirmaElectronica"
-          onChange={handleSignatureChange}
-          type="file"
-        />
+        >
+          <input
+            accept=".xml,.cms,.pdf"
+            aria-describedby="user-signature-help user-signature-errors"
+            aria-invalid={fieldErrors.referenciaFirmaElectronica.length > 0}
+            className="signatureFileInput"
+            id="user-signature"
+            key={fileInputKey}
+            name="referenciaFirmaElectronica"
+            onChange={handleSignatureChange}
+            type="file"
+          />
+
+          <label className="signatureFileButton" htmlFor="user-signature">
+            <i className="bi bi-upload me-2" />
+            Elegir archivo
+          </label>
+
+          <span className="signatureFileName">
+            {values.referenciaFirmaElectronica || 'No se eligió ningún archivo'}
+          </span>
+        </div>
+
         <div className="form-text" id="user-signature-help">
           Formatos permitidos: XML, CMS o PDF.
         </div>
-        {values.referenciaFirmaElectronica && (
-          <p className="small text-secondary mb-0 mt-1">
-            Archivo seleccionado: {values.referenciaFirmaElectronica}
-          </p>
-        )}
+
         <FieldErrors
           errors={fieldErrors.referenciaFirmaElectronica}
           id="user-signature-errors"

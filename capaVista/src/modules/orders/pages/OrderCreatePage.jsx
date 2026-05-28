@@ -304,7 +304,7 @@ export default function OrderCreatePage() {
     }
 
     return (
-      <div className={`alert ${alertClass} d-flex align-items-center gap-2`} role="alert">
+      <div className={`alert ${alertClass} ${styles.appAlert} d-flex align-items-center gap-2`} role="alert">
         <i className={`bi ${icon} fs-5`} />
         <span>{notificationMsg}</span>
       </div>
@@ -315,7 +315,7 @@ export default function OrderCreatePage() {
   const renderCapacityWarning = () => {
     if (!isOverloaded) return null
     return (
-      <div className="alert alert-warning d-flex align-items-center gap-2" role="alert">
+      <div className={`alert alert-warning ${styles.appAlert} d-flex align-items-center gap-2`} role="alert">
         <i className="bi bi-speedometer2 fs-5" />
         <div>
           <strong>Atención — Capacidad al {capacityPercent}%</strong>
@@ -333,36 +333,41 @@ export default function OrderCreatePage() {
      JSX principal
      ═══════════════════════════════════════════════════════════════════ */
   return (
-    <div className={styles.page}>
-      {/* ── Header ── */}
-      <div className={styles.header}>
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <main className={`container-fluid ${styles.page}`}>
+      <section className={styles.dashboardShell}>
+        <header
+          className={`${styles.hero} d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3`}
+        >
           <div>
-            <h1 className={styles.pageTitle}>Registro de Pedido</h1>
+            <span className={styles.sectionLabel}>Ventas</span>
+            <h1 className={styles.pageTitle}>Registro de pedido</h1>
             <p className={styles.pageSubtitle}>
               Crear un nuevo pedido ingresando el código de Nota de Venta y su archivo PDF asociado.
             </p>
           </div>
-          <span className="badge bg-light text-dark border fs-6">
-            <i className="bi bi-person-badge me-1" />
+
+          <span className={styles.roleBadge}>
+            <i className="bi bi-person-badge" />
             Rol: Ventas
           </span>
+        </header>
+
+        <div className={styles.content}>
+          <div className={styles.notificationStack}>
+            {renderCapacityWarning()}
+            {renderNotification()}
+          </div>
+
+          <OrderForm
+            formData={formData}
+            onFieldChange={onFieldChange}
+            onSearchNv={handleSearchNv}
+            onConfirmOrder={handleConfirmOrder}
+            errors={errors}
+            disabled={false}
+          />
         </div>
-      </div>
-
-      {/* ── Notificaciones ── */}
-      <div className="mb-3">{renderCapacityWarning()}</div>
-      <div className="mb-3">{renderNotification()}</div>
-
-      {/* ── Formulario principal ── */}
-      <OrderForm
-        formData={formData}
-        onFieldChange={onFieldChange}
-        onSearchNv={handleSearchNv}
-        onConfirmOrder={handleConfirmOrder}
-        errors={errors}
-        disabled={false}
-      />
-    </div>
+      </section>
+    </main>
   )
 }

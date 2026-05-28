@@ -1,15 +1,23 @@
 import { Link } from 'react-router-dom'
+import styles from './AccessDeniedPage.module.css'
 
 export default function AccessDeniedPage() {
   return (
-    <main className="container py-5">
-      <section className="mx-auto text-center" style={{ maxWidth: '36rem' }}>
-        <i aria-hidden="true" className="bi bi-shield-lock fs-1 text-danger" />
-        <h1 className="h3 mt-3 mb-2">Acceso denegado</h1>
-        <p className="text-secondary mb-4">No tienes permisos para acceder a este recurso.</p>
-        <Link className="btn btn-primary" to="/kanban">
-          Volver al area principal
-        </Link>
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <header className={styles.cardHeader}>
+          <span className={styles.icon}>
+            <i aria-hidden="true" className="bi bi-shield-lock" />
+          </span>
+          <h1 className={styles.title}>Acceso denegado</h1>
+        </header>
+        <div className={styles.body}>
+          <p className={styles.description}>No tienes permisos para acceder a este recurso.</p>
+          <Link className={styles.button} to="/kanban">
+            <i className="bi bi-arrow-left" />
+            Volver al área principal
+          </Link>
+        </div>
       </section>
     </main>
   )

@@ -1,11 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
-import DevLoginButton from '../components/DevLoginButton'
-import LoginForm from '../components/LoginForm'
 import styles from './LoginPage.module.css'
-// Une usuarios mock con credenciales temporales para exponer accesos de prueba sin agregar contraseñas a MOCK_USERS.
-import { MOCK_AUTH_CREDENTIALS } from '../mocks/authCredentials'
+
+const LOGIN_REDIRECT_TIMEOUT_MS = 10000
 
 function getSafeRedirectPath(state, search) {
   const searchParams = new URLSearchParams(search)
@@ -23,31 +21,50 @@ function getSafeRedirectPath(state, search) {
 }
 
 export default function LoginPage() {
-  const { isAuthenticated, mockUsers } = useAuth()
-
-const devCredentials = mockUsers.map((user) => {
-  const credential = MOCK_AUTH_CREDENTIALS.find((item) => {
-    return item.idUsuario === user.idUsuario
-  })
-
-  return {
-    idUsuario: user.idUsuario,
-    rolUsuario: user.rolUsuario,
-    correoUsuario: user.correoUsuario,
-    password: credential?.password ?? 'Sin contraseña mock',
-  }
-})
+  const { auth0User, error, isAuthenticated, isLoading, loginWithRedirect } = useAuth()
+  const [shouldStartLogin, setShouldStartLogin] = useState(false)
   const location = useLocation()
-  const [recoveryMessage, setRecoveryMessage] = useState('')
+  const returnTo = getSafeRedirectPath(location.state, location.search)
+
+  useEffect(() => {
+    if (isAuthenticated || auth0User || shouldStartLogin) {
+      return undefined
+    }
+
+    const delay = isLoading ? LOGIN_REDIRECT_TIMEOUT_MS : 0
+    const timeoutId = window.setTimeout(() => {
+      setShouldStartLogin(true)
+    }, delay)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [auth0User, isAuthenticated, isLoading, shouldStartLogin])
+
+  useEffect(() => {
+    if (!shouldStartLogin || isAuthenticated) {
+      return
+    }
+
+    loginWithRedirect({
+      appState: {
+        returnTo,
+      },
+    })
+  }, [isAuthenticated, loginWithRedirect, returnTo, shouldStartLogin])
 
   if (isAuthenticated) {
-    // Redireccion con sesion simulada: evita volver al login mientras el usuario visual esta activo.
-    return <Navigate replace to={getSafeRedirectPath(location.state, location.search)} />
+    return <Navigate replace to={returnTo} />
   }
 
-  function handleForgotPassword() {
-    // Preparacion visual para RF14 / UR 1.15: no envia correos, no genera tokens y no llama backend/Auth0.
-    setRecoveryMessage('La recuperación de contraseña estará disponible próximamente.')
+  if (isLoading || auth0User || shouldStartLogin) {
+    return (
+      <main className={`container-fluid ${styles.loginPage}`}>
+        <section className={`shadow-sm ${styles.loginPanel}`} aria-live="polite">
+          <p className="mb-0 text-secondary">Cargando sesion...</p>
+        </section>
+      </main>
+    )
   }
 
   return (
@@ -55,55 +72,20 @@ const devCredentials = mockUsers.map((user) => {
       <section className={styles.loginPanel} aria-labelledby="login-title">
         <div className={styles.loginHero}>
           <span className={styles.brandMark}>ITECSA</span>
-          <h1 className={styles.loginTitle} id="login-title">
-            Inicio de sesión
+          <h1 className="h3 mt-3 mb-2" id="login-title">
+            Inicio de sesion
           </h1>
-          <p className={styles.loginDescription}>
-            Ingresa con tu correo y contraseña.
+          <p className="text-secondary mb-0">
+            Ingresa mediante el acceso seguro de Auth0.
           </p>
         </div>
 
-        <div className={styles.loginBody}>
-          {recoveryMessage && (
-            <div className="alert alert-info" role="status">
-              {recoveryMessage}
-            </div>
-          )}
-
-          <LoginForm onLoginError={() => setRecoveryMessage('')} />
-
-          <div className="text-center mt-3">
-            <button className="btn btn-link p-0" onClick={handleForgotPassword} type="button">
-              Olvidé mi contraseña
-            </button>
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            No fue posible iniciar sesion. Intenta nuevamente.
           </div>
-        </div>
+        )}
       </section>
-
-      <div className={styles.devLoginPanel}>
-        {/* Credenciales visibles solo para facilitar pruebas del frontend inicial; no representan login real ni datos productivos. */}
-        <div className={styles.devCredentialsList}>
-          <p className={styles.devCredentialsTitle}>Credenciales simuladas</p>
-
-          {devCredentials.map((credential) => (
-            <div className={styles.devCredentialItem} key={credential.idUsuario}>
-              <div className={styles.devCredentialRole}>{credential.rolUsuario}</div>
-
-              <div className={styles.devCredentialLine}>
-                <span>Correo:</span>
-                <code>{credential.correoUsuario}</code>
-              </div>
-
-              <div className={styles.devCredentialLine}>
-                <span>Contraseña:</span>
-                <code>{credential.password}</code>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <DevLoginButton />
-      </div>
     </main>
   )
 }

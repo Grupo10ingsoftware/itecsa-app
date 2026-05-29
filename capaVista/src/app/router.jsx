@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { APP_ROUTES } from '../config/routes'
 import { PERMISSIONS } from '../config/permissions'
+import { ROLES } from '../config/roles'
 import { useAuth } from '../hooks/useAuth'
 import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
@@ -15,7 +16,7 @@ import RoleGuard from '../shared/components/navigation/RoleGuard'
 function UnknownRouteRedirect() {
   const { isAuthenticated } = useAuth()
 
-  // Redireccion visual para rutas no registradas mientras la sesion sigue siendo simulada.
+  // Redireccion visual para rutas no registradas segun estado de sesion Auth0.
   return <Navigate replace to={isAuthenticated ? APP_ROUTES.KANBAN : APP_ROUTES.LOGIN} />
 }
 
@@ -28,7 +29,14 @@ export default function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Navigate to={APP_ROUTES.KANBAN} replace />} />
-          <Route path="kanban" element={<KanbanBoardPage />} />
+          <Route
+            path="kanban"
+            element={
+              <RoleGuard requiredPermission={PERMISSIONS.VIEW_KANBAN_MODULE}>
+                <KanbanBoardPage />
+              </RoleGuard>
+            }
+          />
           <Route
             path="pagos"
             element={
@@ -49,7 +57,7 @@ export default function AppRouter() {
           <Route
             path="admin/usuarios/nuevo"
             element={
-              <RoleGuard requiredPermission={PERMISSIONS.CREATE_USERS_VISUALLY}>
+              <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
                 <UserCreatePage />
               </RoleGuard>
             }

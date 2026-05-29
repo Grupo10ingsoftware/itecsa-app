@@ -13,6 +13,27 @@ const AUTH_STATUS = Object.freeze({
   ERROR: 'error',
 })
 
+const VERIFY_SESSION_TIMEOUT_MS = 10000
+
+function withTimeout(promise, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error('La verificacion de sesion excedio el tiempo maximo.'))
+    }, timeoutMs)
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeoutId)
+        resolve(value)
+      },
+      (error) => {
+        window.clearTimeout(timeoutId)
+        reject(error)
+      },
+    )
+  })
+}
+
 export function AuthProvider({ children }) {
   const {
     error,
@@ -39,8 +60,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    authApi
-      .verify()
+    withTimeout(authApi.verify(), VERIFY_SESSION_TIMEOUT_MS)
       .then((verifiedUser) => {
         if (!isCurrent) {
           return

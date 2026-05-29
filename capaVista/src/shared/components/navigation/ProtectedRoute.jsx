@@ -1,12 +1,30 @@
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
+
+const AUTH_LOADING_TIMEOUT_MS = 10000
 
 export default function ProtectedRoute({ children, fallback }) {
   const { authStatus, error, isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
   const fromPath = `${location.pathname}${location.search}${location.hash}`
+  const [authLoadingExpired, setAuthLoadingExpired] = useState(false)
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setAuthLoadingExpired(true)
+    }, AUTH_LOADING_TIMEOUT_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [isLoading])
+
+  if (isLoading && !authLoadingExpired) {
     return (
       <div className="p-4" role="status">
         Cargando sesion...

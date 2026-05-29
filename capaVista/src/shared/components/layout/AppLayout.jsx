@@ -45,7 +45,12 @@ function AppLayout() {
         />
       )}
 
-      <section className={styles.contentArea}>
+      <section
+        className={`
+          ${styles.contentArea}
+          ${isSidebarCollapsed ? styles.contentAreaSidebarCollapsed : ''}
+        `}
+      >
         <Topbar onOpenMobileSidebar={handleOpenMobileSidebar} />
         <main className={styles.mainContent}>
           <Outlet />

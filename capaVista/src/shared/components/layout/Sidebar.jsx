@@ -10,7 +10,7 @@ export default function Sidebar({ isCollapsed = false, onCloseMobile, onToggleCo
           <span className={styles.brandIcon} aria-hidden="true">
             IT
           </span>
-          <span className={styles.brandText}>Intexsa</span>
+          <span className={styles.brandText}>Itecsa</span>
         </div>
 
         <button

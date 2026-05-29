@@ -41,6 +41,17 @@ AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
 
 Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
 
+## Recursos Auth0 Esperados
+
+- SPA: `ITECSA Frontend Local`.
+- API: `ITECSA API`, con audience `https://api.itecsa.local` y firma `RS256`.
+- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API con `create:users`, `read:roles` y `update:users`.
+- Action Post Login: `ITECSA Add Role Claim`, enlazada al flujo Post Login.
+- Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
+- Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
+
+La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` presente en usuarios creados es auxiliar y no reemplaza RBAC.
+
 ## Servicio Interno Auth0
 
 `src/services/auth0Management.service.js` prepara dos operaciones backend:
@@ -49,6 +60,8 @@ Ningun secret real debe quedar en el repositorio. Las variables Management son c
 - `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
 
 El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. `app_metadata.rolUsuario` acompana la cuenta como metadata; la autorizacion efectiva utiliza el rol Auth0 RBAC asignado y el claim `https://itecsa.local/roles`.
+
+ITECSA no recibe, almacena ni persiste contrasenas de usuarios. La contrasena temporal generada por el backend existe solo en memoria durante la llamada de creacion Auth0 y luego se solicita el correo de establecimiento/cambio de contrasena administrado por Auth0.
 
 ## Endpoint De Autenticacion
 
@@ -67,7 +80,8 @@ Valida el JWT con Auth0 y devuelve la identidad proyectada cuando el token conti
   "sub": "auth0|abc123",
   "email": "usuario@ejemplo.cl",
   "rolUsuario": "Administrador",
-  "isAdministrador": true
+  "isAdministrador": true,
+  "permissions": ["view:main-navigation"]
 }
 ```
 
@@ -75,7 +89,7 @@ Respuestas:
 
 - `200`: token valido con `https://itecsa.local/email` y un unico rol permitido en `https://itecsa.local/roles`.
 - `401`: bearer token ausente o invalido.
-- `403`: token autenticado sin email requerido, sin rol oficial unico o con multiples roles.
+- `403`: token autenticado sin email requerido, sin rol oficial unico, con multiples roles o con `permissions` malformado.
 
 ## Endpoint Administrativo
 
@@ -87,12 +101,14 @@ Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
 {
   "primerNombre": "Ana",
   "apellidoPaterno": "Perez",
-  "correoUsuario": "ana.perez@itecsa.cl",
+  "correoUsuario": "correo.controlado@example.cl",
   "rolUsuario": "Ventas"
 }
 ```
 
 Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend crea la cuenta Auth0, le asigna el rol RBAC existente y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+
+El cuerpo aceptado no incluye RUT, firma electronica ni contrasena. Esos datos no deben agregarse a este endpoint en la integracion Auth0 inicial.
 
 Respuestas:
 
@@ -110,7 +126,7 @@ Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
 
 ```json
 {
-  "correoUsuario": "ana.perez@itecsa.cl"
+  "correoUsuario": "correo.controlado@example.cl"
 }
 ```
 
@@ -120,7 +136,7 @@ Respuesta exitosa:
 
 ```json
 {
-  "correoUsuario": "ana.perez@itecsa.cl",
+  "correoUsuario": "correo.controlado@example.cl",
   "passwordSetupEmailRequested": true
 }
 ```
@@ -134,6 +150,13 @@ Respuestas:
 - `500`: error controlado al solicitar el correo, sin detalles Auth0.
 
 ## Pruebas Manuales
+
+Login:
+
+1. Levantar backend con variables Auth0 locales y `FRONTEND_ORIGIN=http://localhost:5173`.
+2. Levantar frontend con `VITE_API_BASE_URL=http://localhost:3000/api`.
+3. Iniciar sesion desde la SPA mediante Universal Login con un usuario controlado.
+4. Verificar que la SPA vuelva a `http://localhost:5173` y no registre tokens, contrasenas ni datos personales en archivos.
 
 Sin token:
 

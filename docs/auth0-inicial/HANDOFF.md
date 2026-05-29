@@ -191,19 +191,19 @@
 - [x] 16. Guards frontend
 - [x] 17. Formulario creacion usuarios
 - [x] 18. Limpieza mocks auth
-- [ ] 19. Documentacion tecnica minima
+- [x] 19. Documentacion tecnica minima
 - [ ] 20. Pruebas finales y checklist
 
 Regla operativa: actualizar esta lista al finalizar cada paso; no marcar acciones no verificadas o no ejecutadas y no avanzar al paso siguiente sin instruccion explicita.
 
 ## Proximo paso recomendado
 
-- Mantener detenido el avance despues del paso `18. Limpieza mocks auth`.
-- Proximo paso funcional reservado: `19. Documentacion tecnica minima`; no implementarlo sin instruccion expresa.
+- Mantener detenido el avance despues del paso `19. Documentacion tecnica minima`.
+- Proximo paso funcional reservado: `20. Pruebas finales y checklist`; no implementarlo sin instruccion expresa.
 - La integracion del formulario consume `POST /api/admin/users` y `POST /api/admin/users/password-setup-email` mediante el cliente API con bearer Auth0, sin exponer credenciales Management en frontend.
 - El formulario real retira del envio `RUT`, firma electronica y contrasena; esos campos quedan visibles y deshabilitados con ayuda contextual.
 - Autorizacion por permisos posterior: si se agregan endpoints backend protegidos por permisos funcionales, deben validar el claim `permissions` en servidor; el uso actual de permisos sigue siendo visual.
-- No implementar endpoints administrativos adicionales, documentacion tecnica, pruebas finales, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
+- No implementar endpoints administrativos adicionales, pruebas finales, Prisma, MySQL ni persistencia de datos sin una instruccion posterior expresa.
 
 ## Riesgos o supuestos
 
@@ -362,13 +362,23 @@ Regla operativa: actualizar esta lista al finalizar cada paso; no marcar accione
 - `npm run build` en `capaVista`: exitoso; Vite compilo la SPA sin errores.
 - `npm test` en `capaServidor`: exitoso; `node:test` ejecuto 26 casos sin fallos.
 
+## Validacion del paso 19
+
+- Se actualizo documentacion permanente del repo en `README.md`, `capaVista/README.md`, `capaServidor/README.md` y `docs/ARQUITECTURA.md`.
+- Se creo el documento externo `C:\Users\danag\dev\Uni\Ingenieria de software\Aplicacion\Ramas\Auth0\Auth0.md` para trazabilidad Auth0/UR/RF sin depender del sidecar `StackTecnologico.docx.md`.
+- `docs/auth0-inicial/` se mantiene solo como contexto operativo temporal; no se agrego documentacion permanente nueva en esa carpeta.
+- La documentacion explicita que la autorizacion usa Auth0 RBAC, que `rolUsuario` es una proyeccion backend para la SPA y que `app_metadata.rolUsuario` no reemplaza RBAC.
+- La plantilla para conectar nuevas vistas a permisos Auth0 quedo en `capaVista/README.md`; la arquitectura solo describe el flujo conceptual RBAC -> `permissions` -> `/api/auth/verify` -> `hasPermission(...)`.
+- Se documentaron variables frontend/backend, recursos Auth0 esperados/configurados, audience `https://api.itecsa.local`, roles permitidos, pruebas manuales seguras y restricciones de secretos.
+- No se modificaron codigo funcional, endpoints, configuracion Auth0, Prisma, MySQL, persistencia, RUT, firma electronica ni contrasenas.
+
 ## Ultima actualizacion del handoff
 
-- Paso completado: `18. Limpieza mocks auth`.
-- Fecha: `2026-05-28`.
-- Estado vigente: el frontend valida experiencia de sesion con Auth0/backend; `rolUsuario` proviene del backend como proyeccion de Auth0 RBAC, `permissions` proviene del claim estandar de `ITECSA API` y la fachada `useAuth()` ya no expone usuarios mock.
-- Decisiones tomadas: retirar `MOCK_USERS` del flujo normal y eliminar el fixture `authMocks.js`; conservar intactos mocks no relacionados con auth en pagos y ordenes.
-- Control de secretos y alcance: no se agregaron secretos, tokens, credenciales Auth0 Management, RUT, firma electronica, contrasenas, Prisma, MySQL, endpoints nuevos ni persistencia local.
-- Pendientes: documentacion tecnica minima; pruebas finales reales controladas sin registrar tokens ni datos personales.
-- Riesgos nuevos: la validacion manual completa depende de sesiones/tokens Auth0 controlados y de poder probar flujos reales sin registrar datos personales; los mocks restantes pertenecen a modulos fuera del alcance de auth.
-- Proximo paso recomendado: detener el avance despues del paso 18; el paso `19. Documentacion tecnica minima` requiere instruccion expresa.
+- Paso completado: `19. Documentacion tecnica minima`.
+- Fecha: `2026-05-29`.
+- Estado vigente: la documentacion permanente del repo describe el flujo Auth0 inicial real, el consumo frontend de `/api/auth/verify`, los recursos Auth0 esperados/configurados, la autorizacion basada en Auth0 RBAC y la creacion administrativa de usuarios desde backend.
+- Decisiones tomadas: no usar `docs/auth0-inicial/` como destino documental permanente; no editar el sidecar `StackTecnologico.docx.md`; dejar trazabilidad UR/RF adicional fuera de la repo en `C:\Users\danag\dev\Uni\Ingenieria de software\Aplicacion\Ramas\Auth0\Auth0.md`; documentar `app_metadata.rolUsuario` como auxiliar y no como fuente de autorizacion.
+- Control de secretos y alcance: no se agregaron secretos reales, tokens reales, credenciales Auth0 Management en frontend, correos reales, RUT, firma electronica, contrasenas, Prisma, MySQL, endpoints nuevos ni persistencia local.
+- Pendientes: pruebas finales reales controladas sin registrar tokens ni datos personales; revisar el documento DOCX de stack si el equipo quiere incorporar manualmente la trazabilidad estable fuera del sidecar.
+- Riesgos nuevos: el documento externo `Auth0.md` queda fuera del control Git de esta repo; si se mueve o elimina la carpeta `Ramas/Auth0`, esa trazabilidad externa debe respaldarse por el equipo.
+- Proximo paso recomendado: detener el avance despues del paso 19; el paso `20. Pruebas finales y checklist` requiere instruccion expresa.

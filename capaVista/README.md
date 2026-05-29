@@ -72,4 +72,4 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 - La autorizacion efectiva de endpoints debe permanecer en la API.
 - ITECSA no recibe ni persiste contrasenas; la captura y gestion de contrasenas ocurre en Auth0.
 
-Consulta el diseno transversal en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
+Consulta el diseno transversal en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md) y las convenciones visuales en [docs/CONVENCIONES_UI_FRONTEND.md](../docs/CONVENCIONES_UI_FRONTEND.md).

@@ -1,25 +1,31 @@
 import UserCreateForm from '../components/UserCreateForm'
+import styles from './UserCreatePage.module.css'
 
 export default function UserCreatePage() {
   return (
-    <section className="p-4" aria-labelledby="user-create-title">
-      <div className="mb-4">
-        <p className="text-uppercase text-secondary small fw-semibold mb-1">
-          Administracion
-        </p>
-        <h1 className="h3 mb-2" id="user-create-title">
-          Crear usuario
-        </h1>
-        <p className="text-secondary mb-0">
-          Completa los datos obligatorios para crear una nueva cuenta Auth0.
-        </p>
-      </div>
+    <main className={`container-fluid ${styles.page}`} aria-labelledby="user-create-title">
+      <section className={styles.dashboardShell}>
+        <header className={styles.hero}>
+          <span className={styles.sectionLabel}>Administración</span>
+          <h1 className={styles.pageTitle} id="user-create-title">
+            Crear usuario
+          </h1>
+          <p className={styles.pageSubtitle}>
+            Completa los datos obligatorios para crear una nueva cuenta Auth0.
+          </p>
+        </header>
 
-      <div className="alert alert-info" role="note">
-        RUT, firma electronica y contrasena no se enviaran en esta etapa.
-      </div>
+        <div className={styles.content}>
+          <div className={`alert alert-info ${styles.noteAlert}`} role="note">
+            <i className="bi bi-info-circle me-2" aria-hidden="true" />
+            RUT, firma electrónica y contraseña no se enviarán en esta etapa.
+          </div>
 
-      <UserCreateForm />
-    </section>
+          <div className={styles.formCard}>
+            <UserCreateForm />
+          </div>
+        </div>
+      </section>
+    </main>
   )
 }

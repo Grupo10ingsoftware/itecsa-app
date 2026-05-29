@@ -1,0 +1,86 @@
+.summaryGrid {
+  background: #fff;
+  padding: 0.5rem 0.85rem;
+}
+
+.summaryCard {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.6rem;
+  gap: 1.8rem;
+  min-height: 8.25rem;
+  padding: 1.45rem 2.55rem;
+}
+
+.summaryCard i {
+  align-items: center;
+  border: 3px solid currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 2rem;
+  height: 3rem;
+  justify-content: center;
+  line-height: 1;
+  width: 3rem;
+}
+
+.summaryIconPending {
+  color: var(--payment-orange);
+}
+
+.summaryIconRejected {
+  color: var(--payment-red);
+}
+
+.summaryIconConfirmed {
+  color: #249653;
+}
+
+.summaryCard span {
+  color: #475569;
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.summaryCard strong {
+  color: #111;
+  display: block;
+  font-size: 2.05rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 1199.98px) {
+  .summaryCard {
+    padding: 1.15rem 1.35rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .summaryGrid {
+    padding: 0.85rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .summaryCard {
+    gap: 1rem;
+    min-height: 6.5rem;
+    padding: 1rem;
+  }
+
+  .summaryCard i {
+    font-size: 1.4rem;
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .summaryCard strong {
+    font-size: 1.6rem;
+  }
+}

@@ -1,484 +1,277 @@
-import { useState, useCallback } from 'react'
-import { formatDateTimeDDMMYYYY, formatRut } from '@/utils/formatters'
-import { ACTION_STATUS, ORDER_STATUS_OPTIONS, PAYMENT_STATUS } from '@/config/status'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PAYMENT_STATUS } from '@/config/status'
 import { downloadNVPDF } from '@/utils/fileUtils'
-import PaymentStatusBadge from '../components/PaymentStatusBadge'
-import PaymentStatusSelect from '../components/PaymentStatusSelect'
+import PaymentActionConfirmModal from '../components/PaymentActionConfirmModal'
+import PaymentFilters from '../components/PaymentFilters'
+import PaymentOrderMobileList from '../components/PaymentOrderMobileList'
+import PaymentOrdersTable from '../components/PaymentOrdersTable'
+import PaymentSummaryCards from '../components/PaymentSummaryCards'
+import SalesNotePreviewModal from '../components/SalesNotePreviewModal'
+import { createMockPaymentOrders } from '../mocks/paymentOrders.mock'
+import {
+  applyMockPaymentStatusTransition,
+  isValidPaymentStatus,
+} from '../mocks/paymentTransitions.mock'
+import {
+  PREVIEW_CONTEXT,
+  formatPaymentDateTime,
+  getPdfAsset,
+  printPdf,
+} from '../utils/paymentDocuments'
 import styles from './PaymentConfirmationPage.module.css'
 
-/* ────────────────────────────────────────────────
-  Ordenes de ejemplo para la vista de confirmación de pago.
-  En un caso real, estos datos vendrían de una consulta a la
-  base de datos o una API. Aquí se incluyen campos relevantes
-  para mostrar en la tabla y probar las funcionalidades de RF27,
-  RF28, RF29, y RF25 (observaciones).
-   ──────────────────────────────────────────────── */
-const MOCK_ORDERS = [
-  {
-    id: 1,
-    nvNumber: 'NV-2024-0014',
-    companyName: 'Empresa Retail Chile Limitada',
-    rut: '78.123.456-7',
-    productDescription: 'Lanyard corporativo con logo bordado',
-    quantity: 200,
-    manufacturingData: 'Bordado satinado 10mm – Azul corporativo',
-    productType: 'Lanyard',
-    nvFileName: 'nv_2024_0014.pdf',
-    nvFilePath: null,
-    orderStatus: ACTION_STATUS.SOLICITADO,
-    paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: '',
-    createdAt: new Date('2024-05-01T09:14:00'),
-    updatedAt: null,
-  },
-  {
-    id: 2,
-    nvNumber: 'NV-2024-0021',
-    companyName: 'Corredora de Seguros Andes',
-    rut: '76.987.234-1',
-    productDescription: 'Tarjeta de acceso PVC impresa ambos lados',
-    quantity: 500,
-    manufacturingData: 'Full color digital – 0.84mm – Logo B/N + QR',
-    productType: 'Tarjeta',
-    nvFileName: 'nv_2024_0021.pdf',
-    nvFilePath: null,
-    orderStatus: ACTION_STATUS.SOLICITADO,
-    paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: 'Cliente requiere entrega antes del 20 de mayo',
-    createdAt: new Date('2024-05-03T11:42:00'),
-    updatedAt: null,
-  },
-  {
-    id: 3,
-    nvNumber: 'NV-2024-0008',
-    companyName: 'Grupo Logístico del Sur',
-    rut: '85.432.198-5',
-    productDescription: 'Lanyard de seguridad con broche metálico',
-    quantity: 450,
-    manufacturingData: 'Tejido plano – Rojo / blanco ref. seguridad',
-    productType: 'Lanyard',
-    nvFileName: 'nv_2024_0008.pdf',
-    nvFilePath: null,
-    orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
-    paymentStatus: PAYMENT_STATUS.PENDIENTE,
-    observations: '',
-    createdAt: new Date('2024-04-28T08:00:00'),
-    updatedAt: null,
-  },
-  {
-    id: 4,
-    nvNumber: 'NV-2024-0030',
-    companyName: 'Tecnología Educativa S.A.',
-    rut: '96.111.223-9',
-    productDescription: 'Set mixto: 50 tarjetas + 50 lanyards',
-    quantity: 50,
-    manufacturingData: 'Tarjeta PVC 0.84mm + Lanyard satin 15mm – Dorado',
-    productType: 'Lanyard',
-    nvFileName: 'nv_2024_0030.pdf',
-    nvFilePath: null,
-    orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
-    paymentStatus: PAYMENT_STATUS.CONFIRMADO,
-    observations: 'Confirmado por cobranzas 12-05-2026 14:30',
-    createdAt: new Date('2024-04-25T07:55:00'),
-    updatedAt: new Date('2024-05-12T14:30:00'),
-  },
+const HOLD_CONFIRM_MS = 2000
+const FILTERS = [
+  { key: 'TODOS', label: 'Todos' },
+  { key: PAYMENT_STATUS.PENDIENTE, label: 'Pendientes' },
+  { key: PAYMENT_STATUS.RECHAZADO, label: 'Rechazados' },
+  { key: PAYMENT_STATUS.CONFIRMADO, label: 'Confirmados' },
 ]
 
-
-function buildSignature(orderId, paymentStatus) {
-  if (paymentStatus !== PAYMENT_STATUS.CONFIRMADO) return null
-  return {
-    timestamp: formatDateTimeDDMMYYYY(new Date()),
-    userId: `USR-${String(orderId).padStart(4, '0')}`,
-    note: 'Firma digital aplicada (RF27)',
-  }
-}
-
-
 export default function PaymentConfirmationPage() {
-  const [orders, setOrders] = useState(MOCK_ORDERS)
+  const holdTimerRef = useRef(null)
+  const [orders, setOrders] = useState(() => createMockPaymentOrders())
+  const [activeFilter, setActiveFilter] = useState('TODOS')
   const [editingStatus, setEditingStatus] = useState({})
-  const [editingOrderStatus, setEditingOrderStatus] = useState({})
-  const [editingObs, setEditingObs] = useState({})
-  const [editingObsDraft, setEditingObsDraft] = useState({})
+  const [pendingTransition, setPendingTransition] = useState(null)
+  const [previewState, setPreviewState] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isHoldingConfirmation, setIsHoldingConfirmation] = useState(false)
 
-  const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
-    const sig = buildSignature(orderId, newStatus)
+  const clearHoldTimer = useCallback(() => {
+    if (!holdTimerRef.current) return
 
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id !== orderId) return o
-        const updated = {
-          ...o,
-          paymentStatus: newStatus,
-          updatedAt: new Date(),
-        }
-       
-        if (newStatus === PAYMENT_STATUS.CONFIRMADO) {
-          updated.orderStatus = ACTION_STATUS.LISTO_PRODUCCION
-        }
-        if (sig) {
-          updated.signature = sig 
-        }
-        return updated
-      }),
-    )
-    setEditingStatus((p) => ({ ...p, [orderId]: false }))
+    window.clearTimeout(holdTimerRef.current)
+    holdTimerRef.current = null
   }, [])
 
-  const handleUpdateOrderStatus = useCallback((orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, orderStatus: newStatus } : o)),
-    )
-    setEditingOrderStatus((p) => ({ ...p, [orderId]: false }))
-  }, [])
+  useEffect(() => {
+    return () => clearHoldTimer()
+  }, [clearHoldTimer])
 
-  const handleEditObs = useCallback((orderId) => {
-    const order = orders.find((o) => o.id === orderId)
-    if (order) setEditingObsDraft((p) => ({ ...p, [orderId]: order.observations }))
-    setEditingObs((p) => ({ ...p, [orderId]: true }))
+  const counters = useMemo(() => {
+    return {
+      all: orders.length,
+      pending: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.PENDIENTE,
+      ).length,
+      rejected: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.RECHAZADO,
+      ).length,
+      confirmed: orders.filter(
+        (order) => order.paymentStatus === PAYMENT_STATUS.CONFIRMADO,
+      ).length,
+    }
   }, [orders])
 
-  const handleSaveObs = useCallback(
-    (orderId) => {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId
-            ? { ...o, observations: editingObsDraft[orderId] || '', updatedAt: new Date() }
-            : o,
-        ),
-      )
-      setEditingObs((p) => ({ ...p, [orderId]: false }))
+  const filteredOrders = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return orders.filter((order) => {
+      const matchesFilter =
+        activeFilter === 'TODOS' || order.paymentStatus === activeFilter
+
+      const searchableText = [
+        order.nvNumber,
+        order.companyName,
+        order.rut,
+        order.paymentStatus,
+        formatPaymentDateTime(order.createdAt),
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      const matchesSearch =
+        normalizedSearch.length === 0 || searchableText.includes(normalizedSearch)
+
+      return matchesFilter && matchesSearch
+    })
+  }, [activeFilter, orders, searchTerm])
+
+  const getFilterCount = useCallback(
+    (filterKey) => {
+      if (filterKey === 'TODOS') return counters.all
+      if (filterKey === PAYMENT_STATUS.PENDIENTE) return counters.pending
+      if (filterKey === PAYMENT_STATUS.RECHAZADO) return counters.rejected
+      if (filterKey === PAYMENT_STATUS.CONFIRMADO) return counters.confirmed
+
+      return 0
     },
-    [editingObsDraft],
+    [counters],
   )
 
-  const handleCancelObs = useCallback((orderId) => {
-    setEditingObs((p) => ({ ...p, [orderId]: false }))
+  const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
+    if (!isValidPaymentStatus(newStatus)) return
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order
+
+        return applyMockPaymentStatusTransition(order, newStatus)
+      }),
+    )
+
+    setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
   }, [])
 
-  const handleDownloadNV = useCallback(
-    async (order) => {
-      try {
-        await downloadNVPDF(order.nvNumber)
-      } catch (err) {
-        console.error('Error downloading NV PDF:', err)
+  const handleDownloadNV = useCallback(async (order, variant, options = {}) => {
+    try {
+      const pdfAsset = getPdfAsset(order, variant, options)
+
+      if (pdfAsset.filePath) {
+        const link = document.createElement('a')
+
+        link.href = pdfAsset.filePath
+        link.download = pdfAsset.fileName || `${order.nvNumber}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        return
       }
-    },
-    [],
-  )
+
+      await downloadNVPDF(order.nvNumber)
+    } catch (err) {
+      console.error('Error downloading NV PDF:', err)
+    }
+  }, [])
+
+  const handlePrintNV = useCallback((filePath) => {
+    printPdf(filePath)
+  }, [])
+
+  const handleFilterChange = useCallback((filterKey) => {
+    setActiveFilter(filterKey)
+    setEditingStatus({})
+  }, [])
+
+  const handleSearchChange = useCallback((nextSearchTerm) => {
+    setSearchTerm(nextSearchTerm)
+    setEditingStatus({})
+  }, [])
+
+  const openPaymentEditor = useCallback((orderId) => {
+    setEditingStatus((prev) => ({
+      [orderId]: !prev[orderId],
+    }))
+  }, [])
+
+  const closePaymentEditor = useCallback(() => {
+    setEditingStatus({})
+  }, [])
+
+  const openPaymentActionConfirmation = useCallback((order, targetStatus) => {
+    if (order.paymentStatus === targetStatus) {
+      setEditingStatus({})
+      return
+    }
+
+    setPendingTransition({ order, targetStatus })
+    setEditingStatus({})
+  }, [])
+
+  const closePaymentActionConfirmation = useCallback(() => {
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+    setPendingTransition(null)
+  }, [clearHoldTimer])
+
+  const completePendingTransition = useCallback(() => {
+    if (!pendingTransition) return
+
+    handleUpdatePaymentStatus(
+      pendingTransition.order.id,
+      pendingTransition.targetStatus,
+    )
+
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+    setPendingTransition(null)
+  }, [clearHoldTimer, handleUpdatePaymentStatus, pendingTransition])
+
+  const startHoldConfirmation = useCallback(() => {
+    if (!pendingTransition || holdTimerRef.current) return
+
+    setIsHoldingConfirmation(true)
+    holdTimerRef.current = window.setTimeout(
+      completePendingTransition,
+      HOLD_CONFIRM_MS,
+    )
+  }, [completePendingTransition, pendingTransition])
+
+  const cancelHoldConfirmation = useCallback(() => {
+    clearHoldTimer()
+    setIsHoldingConfirmation(false)
+  }, [clearHoldTimer])
+
+  const openOriginalPreview = useCallback((order) => {
+    setPreviewState({ context: PREVIEW_CONTEXT.ORIGINAL, order })
+  }, [])
+
+  const openSignedDetailPreview = useCallback((order) => {
+    setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
+  }, [])
 
   return (
-    <div className={styles.page}>
-      {/* ═══════════════ Header de la pagina ═══════════════
-          RF27: Botón en el pedido — acción "Confirmación de Pago"
-          que redirige a esta vista. En el Kanban el botón aparece
-          debajo de cada tarjeta; aquí la vista ya está abierta.   */}
-      <div className={styles.header}>
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <main className={`container-fluid ${styles.page}`}>
+      <section className={styles.dashboardShell}>
+        <header
+          className={`${styles.hero} d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3`}
+        >
           <div>
-            <h1 className={styles.pageTitle}>Confirmación de Pago</h1>
-            <p className={styles.pageSubtitle}>
-              Actualiza el estado de pago aplicando la firma digital al <em>Confirmar</em>
-            </p>
+            <span className={styles.sectionLabel}>Cobranzas</span>
+            <h1 className={styles.pageTitle}>Confirmación de pago</h1>
           </div>
-          <span className="badge bg-light text-dark border fs-6">
-            <i className="bi bi-person-badge me-1" />
-            Rol: Cobranzas
-          </span>
-        </div>
-      </div>
+        </header>
 
-      {/* ═══════════════ Tabla de órdenes ═══════════════ */}
-      <div className="table-responsive">
-        <table className="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              {/*En esta parte se aplica 7 tablas de datos Donde aplica el numero de nota de venta, cliente, producto*/}
-              <th className={styles.thNv}>N° Nota de Venta</th>
-              <th className={styles.thCliente}>Cliente</th>
-              <th className={styles.thProducto}>Producto / Cant.</th>
-              <th className={styles.thFabri}>Datos de Fabricación</th>
-              <th className={styles.thTipo}>Tipo Producto</th>
-              <th className={styles.thNVArchivo}>NV · PDF</th>
-              <th className={styles.thPago}>Estado Pago <i className="bi bi-info-circle text-muted" title="Efectúa la firma digital al confirmar" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                {/* 1 · Número NV */}
-                <td className={styles.tdNv}>
-                  <span className="fw-semibold">{order.nvNumber}</span>
-                  <br />
-                  <small className="text-muted d-block mt-1">
-                    <i className="bi bi-calendar3 me-1" />
-                    {formatDateTimeDDMMYYYY(order.createdAt)}
-                  </small>
-                </td>
+        <PaymentSummaryCards counters={counters} />
 
-                {/* 2 · Razón Social + RUT */}
-                <td className={styles.tdCliente}>
-                  <span className="fw-medium">{order.companyName}</span>
-                  <br />
-                  <small className="text-muted d-block mt-1">
-                    RUT: {formatRut(order.rut)}
-                  </small>
-                </td>
+        <PaymentFilters
+          activeFilter={activeFilter}
+          filters={FILTERS}
+          getFilterCount={getFilterCount}
+          onFilterChange={handleFilterChange}
+          onSearchChange={handleSearchChange}
+          searchTerm={searchTerm}
+        />
 
-                {/* 3 · Descripción Producto + Cantidad */}
-                <td className={styles.tdProducto}>
-                  <span>{order.productDescription}</span>
-                  <span className={`badge bg-light text-dark border ms-2 ${styles.qtyBadge}`}>
-                    × {order.quantity}
-                  </span>
-                </td>
+        <PaymentOrdersTable
+          editingStatus={editingStatus}
+          onCloseEditor={closePaymentEditor}
+          onOpenSalesNote={openOriginalPreview}
+          onSelectStatus={openPaymentActionConfirmation}
+          onToggleEditor={openPaymentEditor}
+          onViewSignedDetail={openSignedDetailPreview}
+          orders={filteredOrders}
+        />
 
-                {/* 4 · Datos de Fabricación */}
-                <td className={styles.tdFabri}>
-                  <span className="d-block" style={{ maxWidth: '220px' }}>
-                    {order.manufacturingData}
-                  </span>
-                </td>
+        <PaymentOrderMobileList
+          editingStatus={editingStatus}
+          onCloseEditor={closePaymentEditor}
+          onOpenSalesNote={openOriginalPreview}
+          onSelectStatus={openPaymentActionConfirmation}
+          onToggleEditor={openPaymentEditor}
+          onViewSignedDetail={openSignedDetailPreview}
+          orders={filteredOrders}
+        />
+      </section>
 
-                {/* 5 · Tipo Producto */}
-                <td className={styles.tdTipo}>
-                  <span
-                    className={`badge ${order.productType === 'Lanyard' ? 'bg-primary' : 'bg-purple text-white'}`}
-                    style={order.productType === 'Tarjeta' ? { background: '#7c3aed' } : {}}
-                  >
-                    {order.productType}
-                  </span>
-                </td>
+      <SalesNotePreviewModal
+        context={previewState?.context}
+        key={`${previewState?.context || 'closed'}-${previewState?.order?.id || 'none'}`}
+        onClose={() => setPreviewState(null)}
+        onDownload={handleDownloadNV}
+        onPrint={handlePrintNV}
+        order={previewState?.order}
+      />
 
-                {/* 6 · NV descargar el pdf del archivo */}
-                <td className={styles.tdNVArchivo}>
-                  {order.nvFileName ? (
-                    <button
-                      className={`btn btn-outline-secondary btn-sm ${styles.downloadBtn}`}
-                      onClick={() => handleDownloadNV(order)}
-                      type="button"
-                      title="Descargar Nota de Venta PDF"
-                    >
-                      <i className={`bi ${order.nvFilePath ? 'bi-file-earmark-pdf' : 'bi-file-earmark'} me-1`} />
-                      {order.nvFileName}
-                    </button>
-                  ) : (
-                    <span className="text-muted small">
-                      <i className="bi bi-paperclip me-1" />
-                      Sin archivo
-                    </span>
-                  )}
-                </td>
-
-                {/* 7 · Estado de Pago + acción de actualización (RF27) */}
-                <td className={styles.tdPago}>
-                  {editingStatus[order.id] ? (
-                    <PaymentStatusSelect
-                      value={order.paymentStatus}
-                      onChange={(e) => handleUpdatePaymentStatus(order.id, e.target.value)}
-                      id={`pay-sel-${order.id}`}
-                      name={`pay-sel-${order.id}`}
-                    />
-                  ) : (
-                    /* RF27: al actualizar a Confirmado */
-                    <button
-                      className={`btn btn-sm w-100 ${styles.paymentActionBtn}`}
-                      onClick={() => setEditingStatus((p) => ({ ...p, [order.id]: true }))}
-                      title="Actualizar estado de pago"
-                      type="button"
-                    >
-                      <PaymentStatusBadge label={order.paymentStatus} />
-                      <i className="bi bi-pencil ms-2 text-muted" />
-                    </button>
-                  )}
-
-                  {/* Firmas digitales registradas */}
-                  {order.signature && (
-                    <div className={styles.signatureBox} title="Firma digital registrada">
-                      <i className="bi bi-pen-fill" /> {order.signature.timestamp}
-                      <br />
-                      <small>{order.signature.note} · {order.signature.userId}</small>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      
-      <div className="card mb-4 mt-4">
-        <div className="card-header">
-          <h5 className="card-title mb-0">
-            <i className="bi bi-chat-square-text me-2" />
-            Observaciones de Pedido
-          </h5>
-        </div>
-        <div className="card-body">
-          <div className="row g-3">
-            {orders.map((order) => (
-              <div key={`obs-${order.id}`} className="col-md-6">
-                <label
-                  htmlFor={`obs-${order.id}`}
-                  className="form-label fw-semibold"
-                >
-                  {order.nvNumber}
-                </label>
-
-                {editingObs[order.id] ? (
-                  <div className="d-flex gap-2">
-                    <textarea
-                      id={`obs-${order.id}`}
-                      className="form-control"
-                      rows={2}
-                      value={editingObsDraft[order.id] || ''}
-                      onChange={(e) =>
-                        setEditingObsDraft((p) => ({
-                          ...p,
-                          [order.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="Ingrese observaciones del pedido…"
-                    />
-                    <div className="d-flex flex-column gap-1">
-                      <button
-                        className="btn btn-success btn-sm"
-                        onClick={() => handleSaveObs(order.id)}
-                        type="button"
-                      >
-                        <i className="bi bi-check" />
-                      </button>
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        onClick={() => handleCancelObs(order.id)}
-                        type="button"
-                      >
-                        <i className="bi bi-x" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className={`${styles.obsDisplay} form-control`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleEditObs(order.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') handleEditObs(order.id)
-                    }}
-                    title="Haga clic para editar"
-                  >
-                    {order.observations
-                      ? order.observations
-                      : <span className="text-muted fst-italic">Sin observaciones — clic para editar</span>}
-                  </div>
-                )}
-
-                <small className="text-muted">
-                  Última actualización:{' '}
-                  {order.updatedAt
-                    ? formatDateTimeDDMMYYYY(order.updatedAt)
-                    : '—'}
-                </small>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════ Chips de acciones disponibles por pedido ═══════════════ */}
-      <div className="mt-4">
-        <p className="text-muted small mb-2">
-          <i className="bi bi-layers me-1" /> Acciones disponibles por pedido
-        </p>
-        <div className="d-flex flex-wrap gap-2">
-          {orders.map((order) => (
-            <div key={`chip-${order.id}`} className={`${styles.actionChip} border rounded-pill px-3 py-2`}>
-              <strong>{order.nvNumber}</strong>
-              <span className="mx-2 text-muted">·</span>
-
-              {/* Botón de confirmar el pago */}
-              {order.paymentStatus !== PAYMENT_STATUS.CONFIRMADO && (
-                <button
-                  className={`btn btn-sm ${styles.chipBtn} btn-outline-success me-1`}
-                  onClick={() => handleUpdatePaymentStatus(order.id, PAYMENT_STATUS.CONFIRMADO)}
-                  type="button"
-                  title="Confirmar pago + firma digital"
-                >
-                  <i className="bi bi-check-circle" />
-                </button>
-              )}
-              {order.paymentStatus === PAYMENT_STATUS.CONFIRMADO && (
-                <span className="badge bg-success me-1">
-                  <i className="bi bi-check-circle me-1" />
-                  Pagado
-                </span>
-              )}
-
-              {/* Cambiar estado pedido */}
-              <button
-                className={`btn btn-sm ${styles.chipBtn} btn-link p-0 me-1`}
-                onClick={() =>
-                  setEditingOrderStatus((p) => ({
-                    ...p,
-                    [order.id]: !p[order.id],
-                  }))
-                }
-                type="button"
-                title={editingOrderStatus[order.id] ? 'Cerrar' : 'Editar estado pedido'}
-              >
-                <i className={`bi ${editingOrderStatus[order.id] ? 'bi-chevron-up' : 'bi-sliders'}`} />
-              </button>
-
-              {editingOrderStatus[order.id] && (
-                <div className={styles.chipDropdown}>
-                  <small className="text-muted">Estado pedido:</small>
-                  <select
-                    className="form-select form-select-sm"
-                    value={order.orderStatus}
-                    onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                  >
-                    {ORDER_STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <span className="mx-2 text-muted">|</span>
-              <PaymentStatusBadge status={order.paymentStatus} />
-              <span className="mx-1 text-muted">/</span>
-              <StatusBadgeRaw status={order.orderStatus} />
-
-              {/* NV PDF download action chip */}
-              <button
-                className={`btn btn-sm ${styles.chipBtn} btn-link px-0`}
-                onClick={() => handleDownloadNV(order)}
-                type="button"
-                title="Descargar NV PDF"
-              >
-                <i className="bi bi-file-earmark-arrow-down text-danger" />
-                <span className="small ms-1">NV</span>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+      <PaymentActionConfirmModal
+        isHolding={isHoldingConfirmation}
+        onCancel={closePaymentActionConfirmation}
+        onHoldEnd={cancelHoldConfirmation}
+        onHoldStart={startHoldConfirmation}
+        order={pendingTransition?.order}
+        targetStatus={pendingTransition?.targetStatus}
+      />
+    </main>
   )
-}
-
-
-function StatusBadgeRaw({ status }) {
-  const badgeClass = (() => {
-    const s = status.toLowerCase()
-    if (s.includes('listo')) return 'bg-info text-dark'
-    if (s.includes('progreso')) return 'bg-primary text-white'
-    return 'bg-warning text-dark'
-  })()
-  return <span className={`badge ${badgeClass} ${styles.badge}`}>{status}</span>
 }

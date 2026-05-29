@@ -65,11 +65,14 @@ export default function SalesNoteForm({
               error={errorNvCode}
             />
           </div>
-
           {/* Botón: Búsqueda / Exportar info del manager */}
-          <div className="col-md-6 d-flex align-items-end">
+          <div className="col-md-6">
+            <label className="form-label invisible">
+              Buscar información
+            </label>
             <button
               className="btn btn-primary w-100"
+              style={{ height: '48px' }}
               type="button"
               onClick={onSearchNv}
               disabled={disabled || !nvCode.trim()}

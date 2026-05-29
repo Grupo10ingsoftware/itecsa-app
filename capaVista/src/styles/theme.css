@@ -1,0 +1,10 @@
+:root {
+  --itexsa-border: #e5e7eb;
+  --itexsa-orange: #f97316;
+  --itexsa-orange-rgb: 249, 115, 22;
+  --itexsa-red: #ef121c;
+  --itexsa-green: #248f55;
+  --itexsa-muted: #64748b;
+  --itexsa-text: #111827;
+  --itexsa-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}

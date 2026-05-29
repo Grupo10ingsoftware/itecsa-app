@@ -1,0 +1,301 @@
+.page {
+  --payment-border: #e5e7eb;
+  --payment-orange: #f97316;
+  --payment-orange-rgb: 249, 115, 22;
+  --payment-red: #ef121c;
+  --payment-green: #248f55;
+  --payment-muted: #64748b;
+  --payment-text: #111827;
+
+  color: var(--payment-text);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  margin: 0 auto;
+  max-width: 1760px;
+  padding: 1.25rem;
+}
+
+.dashboardShell {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.hero {
+  background: #000;
+  border-radius: 1rem 1rem 0 0;
+  color: #fff;
+  min-height: 7.6rem;
+  padding: 1.55rem 2.5rem;
+}
+
+.sectionLabel {
+  color: var(--payment-orange);
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  color: #fff;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pageSubtitle {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  margin: 0.65rem 0 0;
+  max-width: 52rem;
+}
+
+.content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.noteAlert {
+  border: 1px solid rgba(var(--payment-orange-rgb), 0.32);
+  border-left: 5px solid var(--payment-orange);
+  border-radius: 0.72rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  margin: 0;
+  padding: 0.95rem 1rem;
+}
+
+.formCard {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.72rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  padding: 1.15rem;
+}
+
+.page :global(.form-label) {
+  color: #64748b !important;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.page :global(.form-control),
+.page :global(.form-select) {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: #111;
+  min-height: 3rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.page :global(.form-control:focus),
+.page :global(.form-select:focus) {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.18);
+}
+
+.page :global(.form-text),
+.page :global(.text-muted),
+.page :global(.text-secondary) {
+  color: var(--payment-muted) !important;
+}
+
+.page :global(.btn) {
+  border-radius: 0.55rem;
+  font-weight: 750;
+  min-height: 2.65rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.page :global(.btn:hover:not(:disabled)) {
+  transform: translateY(-1px);
+}
+
+.page :global(.btn-primary) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.page :global(.btn-primary:hover),
+.page :global(.btn-primary:focus) {
+  background: var(--payment-orange);
+  border-color: var(--payment-orange);
+  color: #111;
+}
+
+.page :global(.alert-success) {
+  border: 1px solid rgba(36, 143, 85, 0.28);
+  border-left: 5px solid var(--payment-green);
+  border-radius: 0.72rem;
+  color: #14532d;
+}
+
+.page :global(.border.rounded.p-3.bg-light) {
+  background: #f8fafc !important;
+  border-color: var(--payment-border) !important;
+  border-radius: 0.72rem !important;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+}
+
+.page :global(.border.rounded.p-3.bg-light h2) {
+  color: #111;
+  font-size: 0.86rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.page :global(dt) {
+  color: #64748b !important;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.page :global(dd) {
+  color: #111;
+  font-weight: 700;
+}
+
+@media (max-width: 1199.98px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .hero {
+    padding: 1.35rem 1.5rem;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page {
+    padding: 0.65rem;
+  }
+
+  .dashboardShell {
+    border-radius: 0.75rem;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 1.15rem;
+  }
+
+  .sectionLabel {
+    font-size: 0.78rem;
+  }
+
+  .pageTitle {
+    font-size: 1.45rem;
+    letter-spacing: 0.08em;
+  }
+
+  .content {
+    padding: 0.85rem;
+  }
+}
+.page :global(.signatureFilePicker) {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  display: flex;
+  min-height: 3rem;
+  overflow: hidden;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.page :global(.signatureFilePicker:focus-within) {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.18);
+}
+
+.page :global(.signatureFilePicker.is-invalid) {
+  border-color: #dc3545;
+}
+
+.page :global(.signatureFileInput) {
+  display: none;
+}
+
+.page :global(.signatureFileButton) {
+  align-items: center;
+  align-self: stretch;
+  background: #000;
+  border-right: 1px solid #000;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  justify-content: center;
+  margin: 0;
+  min-width: 10rem;
+  padding: 0 1rem;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.page :global(.signatureFileButton:hover) {
+  background: var(--payment-orange);
+  color: #111;
+}
+
+.page :global(.signatureFileName) {
+  color: #64748b;
+  flex: 1;
+  font-size: 0.92rem;
+  overflow: hidden;
+  padding: 0 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+  .page :global(.signatureFilePicker) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page :global(.signatureFileButton) {
+    min-height: 2.8rem;
+    width: 100%;
+  }
+
+  .page :global(.signatureFileName) {
+    padding: 0.75rem 1rem;
+  }
+}

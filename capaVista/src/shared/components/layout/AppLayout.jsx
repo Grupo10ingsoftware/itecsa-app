@@ -1,22 +1,56 @@
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import styles from './Layout.module.css'
 
 function AppLayout() {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
+  function handleToggleSidebar() {
+    setIsSidebarCollapsed((currentValue) => !currentValue)
+  }
+
+  function handleOpenMobileSidebar() {
+    setIsMobileSidebarOpen(true)
+  }
+
+  function handleCloseMobileSidebar() {
+    setIsMobileSidebarOpen(false)
+  }
+
   return (
-    <div className="container-fluid">
-      <div className="row min-vh-100">
-        <div className={`col-2 ${styles.sidebar}`}>
-          <Sidebar />
-        </div>
-        <div className="col-10 px-0">
-          <Topbar />
-          <main>
-            <Outlet />
-          </main>
-        </div>
-      </div>
+    <div className={styles.appShell}>
+      <aside
+        className={`
+          ${styles.sidebar}
+          ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}
+          ${isMobileSidebarOpen ? styles.sidebarMobileOpen : ''}
+        `}
+      >
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onCloseMobile={handleCloseMobileSidebar}
+          onToggleCollapse={handleToggleSidebar}
+        />
+      </aside>
+
+      {isMobileSidebarOpen && (
+        <button
+          aria-label="Cerrar menú lateral"
+          className={styles.mobileBackdrop}
+          onClick={handleCloseMobileSidebar}
+          type="button"
+        />
+      )}
+
+      <section className={styles.contentArea}>
+        <Topbar onOpenMobileSidebar={handleOpenMobileSidebar} />
+        <main className={styles.mainContent}>
+          <Outlet />
+        </main>
+      </section>
     </div>
   )
 }

@@ -1,9 +1,19 @@
 import ProfileSummary from '../../../modules/profile/components/ProfileSummary'
 import styles from './Layout.module.css'
 
-export default function Topbar() {
+export default function Topbar({ onOpenMobileSidebar }) {
   return (
-    <header className={`d-flex align-items-center justify-content-end gap-3 px-4 py-3 ${styles.topbar}`}>
+    <header className={styles.topbar}>
+      <button
+        aria-label="Abrir menú lateral"
+        className={styles.mobileMenuButton}
+        onClick={onOpenMobileSidebar}
+        type="button"
+      >
+        <i className="bi bi-list" aria-hidden="true" />
+      </button>
+
+      <div className={styles.topbarSpacer} />
       <ProfileSummary />
     </header>
   )

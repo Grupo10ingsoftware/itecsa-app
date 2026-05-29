@@ -1,0 +1,47 @@
+.salesNoteButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  border-radius: 0.45rem;
+  color: #111;
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 2.5rem;
+  min-width: 9.25rem;
+  padding: 0.48rem 0.85rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.salesNoteButton:hover {
+  background: #f8fafc;
+  border-color: #111;
+}
+
+.salesNoteButton i {
+  font-size: 1rem;
+}
+
+@media (max-width: 1399.98px) {
+  .salesNoteButton {
+    min-width: 8.9rem;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .salesNoteButton {
+    font-size: 0.86rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .salesNoteButton {
+    min-width: 0;
+    width: 100%;
+  }
+}

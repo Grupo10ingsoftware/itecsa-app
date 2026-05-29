@@ -69,8 +69,8 @@ export default function LoginPage() {
 
   return (
     <main className={`container-fluid ${styles.loginPage}`}>
-      <section className={`shadow-sm ${styles.loginPanel}`} aria-labelledby="login-title">
-        <div className="mb-4">
+      <section className={styles.loginPanel} aria-labelledby="login-title">
+        <div className={styles.loginHero}>
           <span className={styles.brandMark}>ITECSA</span>
           <h1 className="h3 mt-3 mb-2" id="login-title">
             Inicio de sesion

@@ -12,7 +12,7 @@ export default function ProfileSummary() {
     )
   }
 
-  // Perfil desde sesion simulada de frontend; backend/Auth0 o /users/me lo reemplazara.
+  // Perfil desde la sesion verificada por backend; una vista de perfil dedicada puede ampliarlo despues.
   const firstName = user.primerNombre ?? user.firstName ?? 'Usuario'
   const lastName = user.apellidoPaterno ?? user.lastName ?? ''
   const email = user.correoUsuario ?? user.email ?? 'Correo no disponible'

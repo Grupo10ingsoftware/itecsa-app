@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import authRoutes from './routes/auth.routes.js';
+import adminUsersRoutes from './routes/adminUsers.routes.js';
 
 class Server {
   constructor() {
@@ -7,7 +9,8 @@ class Server {
     this.app = express();
     this.port = process.env.PORT; // definido en .env
     this.paths = {
-        // Rutas cuando las tengamos
+        auth: '/api/auth',
+        admin: '/api/admin',
         }
 
     // Middlewares
@@ -22,7 +25,7 @@ class Server {
   middlewares() {
       
     // Cors
-    this.app.use(cors());
+    this.app.use(cors({ origin: process.env.FRONTEND_ORIGIN }));
 
     // Parseo y lectura del Body - Recibir datos
 
@@ -35,6 +38,8 @@ class Server {
   }
 
   routes() {
+    this.app.use(this.paths.auth, authRoutes);
+    this.app.use(this.paths.admin, adminUsersRoutes);
     // Configurar rutas
     /**
      * Un ejemplo sería    

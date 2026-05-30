@@ -109,4 +109,6 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
 - Pedidos, pagos, Kanban real y persistencia de negocio quedan fuera de esta integracion Auth0 inicial.
 
+La trazabilidad especifica de login, creacion de usuarios e integracion Auth0 esta documentada en [TRAZABILIDAD_AUTH0.md](./TRAZABILIDAD_AUTH0.md).
+
 Para ejecutar cada capa, consultar [README raiz](../README.md), [README frontend](../capaVista/README.md) y [README backend](../capaServidor/README.md).

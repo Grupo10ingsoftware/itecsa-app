@@ -20,12 +20,15 @@
 /*
 Esto es un mock de un repo, ignorar hasta que tengamos la BD definida
 */
-let repo = {
-  getOrderById,
-  updOrderStep,
-};
 
-class Service {
+import orderRepository from "../repo/orders.repo"
+
+
+
+class OrderService {
+  constructor () {
+    this.repo = new orderRepository();
+  }
   /**
    * RF28
    * Actualiza automáticamente el estado del pedido
@@ -60,7 +63,7 @@ class Service {
     // validateRole( order )
 
     //  Rol pdf adjunto
-
+    //  ! Esto quiza me tome más timepo
     // validatePdf(order)
 
     //  Se debiera validar tambien que, si el cambio es hacia
@@ -72,4 +75,52 @@ class Service {
     // deben guardar los cambios
     await repo.updOrderStep(orderId, stepId);
   }
+
+  async getAllOrders() {
+    try {
+      const orders = await this.repo.getAllOrders()
+      if ( !orders ) return null
+
+      return orders
+    } catch ( error ) {
+      return error
+    }  
+  }
+
+
+  /**
+   * *Supondremos esto como estado de pago, no sabrremos hasta que la BD este lista :{
+   *  ?'En espera': 0,
+   *  *'Confirmado': 1,
+   *  !'Rechazado': 2
+   * }
+   */
+
+  /**
+   * Actuaiza el estado de pago de un pedido
+   * @param { number } orderId  - ID del pedido
+   * @param { number } newPaymentStatusId - Id del estado de pago nuevo
+   */
+  async updPaymentState(orderId, newPaymentStatusId) {
+
+    let order = await this.repo.get( orderId )
+    if ( !order ) return null
+
+    if  ( newPaymentStatusId === 2 ) {
+      const updateOrder = await this.repo.update( orderId, 
+        { 
+          'id_estado_pago': newPaymentStatusId,
+          'id_etapa_general' : 1 
+          //! el id de la etapa general se debe buscar en un repo de etapas generales, 
+          //! pero por ahora no es necesario ya que no se sabe que id va a tener
+        }
+      )
+    } else {
+       const updateOrder = await this.repo.update( orderId, {'id_estado_pago': newPaymentStatusId})
+      }
+      
+      return updateOrder || order;
+  }
 }
+
+export default OrderService;

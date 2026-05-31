@@ -1,13 +1,24 @@
 import { Router } from "express";
 const router = Router();
 
-router.get('/', );
+import OrderController from "../controller/orders.controller";
+const controller = new OrderController()
+
+router.get('/', controller.getOrders);
 
 router.get('/:orderId', );
 
 router.post('/', );
 
-router.patch('/:orderId', );
+router.patch('/:orderId',);
+
+/**
+ * CDU-28 Actualizar automáticamente etapa kanban al 
+ * confirmar pago del pedido
+ * 
+ */
+router.patch('/:orderId/payment-status', controller.updatePaymentStatus);
+
 
 router.delete('/:orderId')
 

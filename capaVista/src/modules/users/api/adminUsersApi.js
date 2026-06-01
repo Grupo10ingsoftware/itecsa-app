@@ -1,9 +1,7 @@
 export function createAdminUsersApi(apiClient) {
   return {
-    createUser: ({ primerNombre, apellidoPaterno, correoUsuario, rolUsuario }) =>
+    createUser: ({ correoUsuario, rolUsuario }) =>
       apiClient.post('/admin/users', {
-        primerNombre,
-        apellidoPaterno,
         correoUsuario,
         rolUsuario,
       }),

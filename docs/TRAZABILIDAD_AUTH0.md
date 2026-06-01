@@ -32,7 +32,7 @@ Quedan fuera de este alcance pedidos, pagos, Kanban real, produccion real, Prism
 | UR 1.14 - Mostrar acceso denegado | La SPA redirige a una vista de acceso denegado cuando el rol o permiso visual no permite continuar. | `capaVista/src/modules/auth/pages/AccessDeniedPage.jsx`, `RoleGuard`. |
 | UR 1.15 - Recuperar o establecer contrasena por correo | El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena sin retornar tickets, enlaces ni contrasenas. | `POST /api/admin/users/password-setup-email`, `requestPasswordSetupEmail(...)`. |
 | UR 1.18 - Cerrar sesion desde cualquier interfaz | La SPA ejecuta Auth0 Universal Logout y retorna al origen local autorizado. | `capaVista/src/modules/auth/components/LogoutButton.jsx`, `AuthProvider.logout(...)`. |
-| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con nombre, apellido, correo y rol permitido. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`. |
+| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; nombre y apellido quedan pendientes para la futura BD propia. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
 ## Contratos Reales Implementados
@@ -62,8 +62,6 @@ Cuerpo aceptado:
 
 ```json
 {
-  "primerNombre": "Ana",
-  "apellidoPaterno": "Perez",
   "correoUsuario": "correo.controlado@example.cl",
   "rolUsuario": "Ventas"
 }
@@ -73,7 +71,7 @@ Responsabilidades:
 
 - Rechazar campos no permitidos.
 - Validar correo y rol permitido.
-- Crear el usuario en Auth0 Database.
+- Crear el usuario en Auth0 Database sin nombre, apellido ni `app_metadata.rolUsuario`.
 - Resolver y asignar el rol Auth0 RBAC existente.
 - Solicitar el correo de establecimiento/cambio de contrasena.
 - Normalizar correo duplicado como `409`.
@@ -129,7 +127,7 @@ Backend:
 - Las variables `VITE_*` no contienen secrets porque quedan expuestas en el navegador.
 - Los guards frontend (`ProtectedRoute`, `RoleGuard`, `hasPermission(...)`) usan roles y permisos emitidos por Auth0 como controles de experiencia visual, no como autorizacion efectiva de servidor.
 - La autorizacion sensible se valida en Express contra el JWT, roles y permisos emitidos por Auth0, usando `checkJwt`, `requireAdministrador` y reglas backend.
-- `app_metadata.rolUsuario` no es fuente de autorizacion. Si existe, funciona solo como metadata auxiliar; la fuente vigente de roles y permisos es Auth0 RBAC mediante `https://itecsa.local/roles` y `permissions`.
+- `app_metadata.rolUsuario` no es fuente de autorizacion. Si existe en usuarios heredados, funciona solo como metadata auxiliar; la fuente vigente de roles y permisos es Auth0 RBAC mediante `https://itecsa.local/roles` y `permissions`.
 - No se documentan tokens, contrasenas, correos reales ni secrets en codigo, README, ejemplos o documentos tecnicos.
 
 ## Limites y Continuidad

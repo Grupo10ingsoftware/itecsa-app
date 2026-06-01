@@ -45,7 +45,7 @@ No se documentan secretos reales. Los `client_id` son identificadores publicos; 
 - El backend no confia en roles calculados por el frontend.
 - La API recibe un arreglo en `https://itecsa.local/roles` y acepta exactamente un rol oficial.
 - `rolUsuario` es la proyeccion singular que la API devuelve a partir del unico rol valido.
-- Cualquier `app_metadata.rolUsuario` presente en usuarios creados es auxiliar y no reemplaza RBAC ni debe usarse como fuente de autorizacion.
+- Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC ni debe usarse como fuente de autorizacion.
 - `ProtectedRoute`, `RoleGuard`, `hasPermission(...)` y `/access-denied` son controles de experiencia visual.
 - Toda accion sensible debe validarse en backend con `checkJwt` y un middleware o regla de autorizacion propia.
 
@@ -63,7 +63,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `primerNombre`, `apellidoPaterno`, `correoUsuario` y `rolUsuario`; no recibe RUT, firma electronica ni contrasenas.
+`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `correoUsuario` y `rolUsuario`; no recibe nombre, apellido, RUT, firma electronica ni contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 

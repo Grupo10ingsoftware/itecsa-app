@@ -6,15 +6,11 @@ import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import { hasValidationErrors, validateUserCreateForm } from '../utils/userValidation'
 
 const INITIAL_VALUES = Object.freeze({
-  primerNombre: '',
-  apellidoPaterno: '',
   correoUsuario: '',
   rolUsuario: '',
 })
 
 const INITIAL_ERRORS = Object.freeze({
-  primerNombre: [],
-  apellidoPaterno: [],
   correoUsuario: [],
   rolUsuario: [],
 })
@@ -136,8 +132,6 @@ export default function UserCreateForm() {
     }
 
     const payload = {
-      primerNombre: values.primerNombre.trim(),
-      apellidoPaterno: values.apellidoPaterno.trim(),
       correoUsuario: values.correoUsuario.trim().toLowerCase(),
       rolUsuario: values.rolUsuario,
     }
@@ -223,18 +217,17 @@ export default function UserCreateForm() {
           Primer nombre
         </label>
         <input
-          aria-describedby="user-first-name-errors"
-          aria-invalid={fieldErrors.primerNombre.length > 0}
-          className={`form-control ${
-            fieldErrors.primerNombre.length > 0 ? 'is-invalid' : ''
-          }`}
+          aria-describedby="user-first-name-help"
+          className="form-control"
+          disabled
           id="user-first-name"
           name="primerNombre"
-          onChange={handleFieldChange}
+          placeholder="No disponible"
           type="text"
-          value={values.primerNombre}
         />
-        <FieldErrors errors={fieldErrors.primerNombre} id="user-first-name-errors" />
+        <div className="form-text" id="user-first-name-help">
+          Disponible cuando se integre la base de datos.
+        </div>
       </div>
 
       <div className="col-md-6">
@@ -242,18 +235,17 @@ export default function UserCreateForm() {
           Apellido paterno
         </label>
         <input
-          aria-describedby="user-last-name-errors"
-          aria-invalid={fieldErrors.apellidoPaterno.length > 0}
-          className={`form-control ${
-            fieldErrors.apellidoPaterno.length > 0 ? 'is-invalid' : ''
-          }`}
+          aria-describedby="user-last-name-help"
+          className="form-control"
+          disabled
           id="user-last-name"
           name="apellidoPaterno"
-          onChange={handleFieldChange}
+          placeholder="No disponible"
           type="text"
-          value={values.apellidoPaterno}
         />
-        <FieldErrors errors={fieldErrors.apellidoPaterno} id="user-last-name-errors" />
+        <div className="form-text" id="user-last-name-help">
+          Disponible cuando se integre la base de datos.
+        </div>
       </div>
 
       <div className="col-md-6">

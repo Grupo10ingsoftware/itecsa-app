@@ -7,12 +7,7 @@ import {
     requestPasswordSetupEmail,
 } from "../services/auth0Management.service.js";
 
-const USER_FIELDS = new Set([
-    "primerNombre",
-    "apellidoPaterno",
-    "correoUsuario",
-    "rolUsuario",
-]);
+const USER_FIELDS = new Set(["correoUsuario", "rolUsuario"]);
 const PASSWORD_SETUP_EMAIL_FIELDS = new Set(["correoUsuario"]);
 const ROLES = new Set([
     "Administrador",
@@ -141,8 +136,6 @@ export function createAdminUserHandler({
         try {
             createdUser = await createUser({
                 email: user.correoUsuario,
-                primerNombre: user.primerNombre,
-                apellidoPaterno: user.apellidoPaterno,
                 rolUsuario: user.rolUsuario,
             });
         } catch (error) {

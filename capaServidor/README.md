@@ -216,3 +216,63 @@ Caso `403` del reenvio: repetir la solicitud valida con un access token autentic
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
 
 Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
+
+## Endpoints RF32 - Pago Y Kanban
+
+Estos endpoints cubren el cierre backend de `UR 3.1`, `UR 3.3` y `UR 3.7` usando datos mock en memoria.
+
+### `GET /api/kanban`
+
+Requiere access token Auth0 valido. Devuelve columnas fijas y ordenes mock:
+
+```json
+{
+  "columns": [
+    "Confirmacion de pago",
+    "Listo para produccion",
+    "En produccion",
+    "Listo para entrega"
+  ],
+  "orders": []
+}
+```
+
+### `PATCH /api/orders/:id/payment-status`
+
+Requiere access token Auth0 valido con permiso `update:payment-status`.
+
+```json
+{
+  "paymentStatus": "Confirmado"
+}
+```
+
+Estados permitidos: `Pendiente`, `Confirmado`, `Rechazado`.
+
+- Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
+- Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.
+- Sin permiso `update:payment-status`, responde `403`.
+
+### `PATCH /api/kanban/orders/:id/move`
+
+Requiere access token Auth0 valido.
+
+```json
+{
+  "targetStatus": "Listo para produccion"
+}
+```
+
+Si se intenta mover manualmente a `Listo para produccion` con pago distinto de `Confirmado`, responde:
+
+```json
+{
+  "message": "Pedido en espera de confirmacion de pago"
+}
+```
+
+Trabajo manual pendiente en Auth0 Dashboard:
+
+- Rol `Cobranzas`: asignar `view:payments-module` y `update:payment-status`.
+- Rol `Administrador`: asignar `view:payments-module`, sin `update:payment-status`.
+- Cerrar sesion y volver a iniciar sesion con usuarios de prueba para emitir tokens nuevos.

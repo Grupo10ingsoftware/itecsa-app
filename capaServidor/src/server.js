@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import adminUsersRoutes from './routes/adminUsers.routes.js';
+import kanbanRoutes from './routes/kanban.routes.js';
+import ordersRoutes from './routes/orders.routes.js';
 
 class Server {
   constructor() {
@@ -11,6 +13,8 @@ class Server {
     this.paths = {
         auth: '/api/auth',
         admin: '/api/admin',
+        kanban: '/api/kanban',
+        orders: '/api/orders',
         }
 
     // Middlewares
@@ -40,6 +44,8 @@ class Server {
   routes() {
     this.app.use(this.paths.auth, authRoutes);
     this.app.use(this.paths.admin, adminUsersRoutes);
+    this.app.use(this.paths.kanban, kanbanRoutes);
+    this.app.use(this.paths.orders, ordersRoutes);
     // Configurar rutas
     /**
      * Un ejemplo sería    

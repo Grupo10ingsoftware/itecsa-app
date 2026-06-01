@@ -44,6 +44,37 @@ class OrderController {
             })
         }
     }
+    
+    updateGeneralStep = async ( req = request, res = response) => {
+        
+        try {
+
+            const { orderId } = req.params;
+            if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
+
+
+            const { generalStepId } = req.body;
+            const result = await 
+            this.service.updPaymentState( 
+                orderId, 
+                paymentStatusId
+            );
+
+            if ( !result ) return res.status(404).json({
+                message: 'Pedido no encontrado'
+            })
+
+            res.status( 200 ).json(result);
+        } catch ( error ) {
+            res.status( 500 ).json({
+                message: 'Error al actualizar el pedido',
+                error
+            })
+        }
+    }
+
+
+
 }
 
 

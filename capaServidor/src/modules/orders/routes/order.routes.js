@@ -10,15 +10,15 @@ router.get('/:orderId', );
 
 router.post('/', );
 
-router.patch('/:orderId',);
 
 /**
  * CDU-28 Actualizar automáticamente etapa kanban al 
  * confirmar pago del pedido
  * 
- */
+*/
 router.patch('/:orderId/payment-status', controller.updatePaymentStatus);
 
+router.patch('/:orderId/general-step',);
 
 router.delete('/:orderId')
 

@@ -48,32 +48,38 @@ class OrderService {
    * 5. cabmiar estado general de pedido a 'listo para producción'
    * 6. guardar cambios
    */
-
+  
+  /**
+   * *Supondremos esto como estado de pago, no sabrremos hasta que la BD este lista :{
+   *  ?'En espera': 0,
+   *  *'Confirmado': 1,
+   *  !'Rechazado': 2
+   * }
+   */
+  
+  /**
+   * *Supondremos esto como estado general productivo, no sabrremos hasta que la BD este lista :{
+   *  ?'Confirmación pago': 0,
+   *  *'Listo para producción': 1,
+   *  ?'En producción': 2
+   *  *'Listo para entrega': 3
+   * }
+   */
   async updateGeneralStep(orderId, stepId) {
-    /* TODO:
-        Definir origen exacto del estado de pago (NV o Pedido)
-        Cuando el modelo DB este finalizado
-        */
+
+    const order = await this.repo.get( orderId )
+    if ( !order ) return null
+    
     const order = await repo.getOrderById(orderId); //Aca se entrega orderId
 
+
+    if (order.id_estado_pago == 0 || id_estado_pago == 2) {
+
+    }
+
     if (!order) return;
-    // Validaciones
-
-    //  Rol cobranzas
-    // validateRole( order )
-
-    //  Rol pdf adjunto
-    //  ! Esto quiza me tome más timepo
-    // validatePdf(order)
-
-    //  Se debiera validar tambien que, si el cambio es hacia
-    //  listo para producción, el estado de pago esté en confirmado
-
-    // validatePaymentStatus(order)
-
-    // Actualizamos la orden y dentro de la misma lógica de repo se
-    // deben guardar los cambios
-    await repo.updOrderStep(orderId, stepId);
+    
+    
   }
 
   async getAllOrders() {
@@ -88,13 +94,6 @@ class OrderService {
   }
 
 
-  /**
-   * *Supondremos esto como estado de pago, no sabrremos hasta que la BD este lista :{
-   *  ?'En espera': 0,
-   *  *'Confirmado': 1,
-   *  !'Rechazado': 2
-   * }
-   */
 
   /**
    * Actuaiza el estado de pago de un pedido
@@ -103,11 +102,11 @@ class OrderService {
    */
   async updPaymentState(orderId, newPaymentStatusId) {
 
-    let order = await this.repo.get( orderId )
+    const order = await this.repo.get( orderId )
     if ( !order ) return null
 
-    if  ( newPaymentStatusId === 2 ) {
-      const updateOrder = await this.repo.update( orderId, 
+    if  ( newPaymentStatusId === 1 ) {
+      const updatedOrder = await this.repo.update( orderId, 
         { 
           'id_estado_pago': newPaymentStatusId,
           'id_etapa_general' : 1 
@@ -116,10 +115,10 @@ class OrderService {
         }
       )
     } else {
-       const updateOrder = await this.repo.update( orderId, {'id_estado_pago': newPaymentStatusId})
+       const updatedOrder = await this.repo.update( orderId, {'id_estado_pago': newPaymentStatusId})
       }
       
-      return updateOrder || order;
+      return updatedOrder || order;
   }
 }
 

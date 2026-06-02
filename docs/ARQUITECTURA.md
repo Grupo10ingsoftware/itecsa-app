@@ -107,8 +107,8 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 - No se persisten RUT, firma electronica ni contrasenas.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos, Kanban real y persistencia de negocio quedan fuera de esta integracion Auth0 inicial.
+- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion Auth0 inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
 
-La trazabilidad especifica de login, creacion de usuarios e integracion Auth0 esta documentada en [TRAZABILIDAD_AUTH0.md](./TRAZABILIDAD_AUTH0.md).
+La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
 
 Para ejecutar cada capa, consultar [README raiz](../README.md), [README frontend](../capaVista/README.md) y [README backend](../capaServidor/README.md).

@@ -14,6 +14,7 @@ Documentacion especifica:
 - [Frontend](capaVista/README.md)
 - [Backend](capaServidor/README.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
+- [Trazabilidad Incremento 1](docs/TRAZABILIDAD_INCREMENTO_1.md)
 - [Convenciones UI Frontend](docs/CONVENCIONES_UI_FRONTEND.md)
 
 ## Requisitos

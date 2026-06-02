@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 
 import orderRoutes from './modules/orders/routes/order.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import adminUsersRoutes from './routes/adminUsers.routes.js';
 
 class Server {
   constructor() {
@@ -12,8 +14,10 @@ class Server {
         // Rutas cuando las tengamos
 
         //* orders
+        auth : '/api/auth',
         orders : '/api/orders',
         orderDetail: '/api/order-details',
+        admin: '/api/admin',
 
         //* Estados
 
@@ -32,7 +36,7 @@ class Server {
   middlewares() {
       
     // Cors
-    this.app.use(cors());
+    this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
@@ -53,6 +57,8 @@ class Server {
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API
      */
+    this.app.use( this.paths.auth, authRoutes)
+    this.app.use( this.paths.admin, adminUsersRoutes)
   }
 
   listen() {

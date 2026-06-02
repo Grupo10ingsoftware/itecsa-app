@@ -1,6 +1,6 @@
 import { response, request } from "express";
 
-import OrderService from "../service/order.service";
+import OrderService from "../service/order.service.js";
 
 class OrderController {
     

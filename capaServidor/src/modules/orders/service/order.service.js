@@ -21,7 +21,7 @@
 Esto es un mock de un repo, ignorar hasta que tengamos la BD definida
 */
 
-import orderRepository from "../repo/orders.repo"
+import orderRepository from "../repo/orders.repo.js"
 
 
 
@@ -70,7 +70,7 @@ class OrderService {
     const order = await this.repo.get( orderId )
     if ( !order ) return null
     
-    const order = await repo.getOrderById(orderId); //Aca se entrega orderId
+    
 
 
     if (order.id_estado_pago == 0 || id_estado_pago == 2) {

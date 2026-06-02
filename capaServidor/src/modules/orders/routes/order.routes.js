@@ -1,14 +1,14 @@
 import { Router } from "express";
 const router = Router();
 
-import OrderController from "../controller/orders.controller";
+import OrderController from "../controller/orders.controller.js";
 const controller = new OrderController()
 
 router.get('/', controller.getOrders);
 
-router.get('/:orderId', );
+// router.get('/:orderId', );
 
-router.post('/', );
+// router.post('/', );
 
 
 /**
@@ -18,8 +18,8 @@ router.post('/', );
 */
 router.patch('/:orderId/payment-status', controller.updatePaymentStatus);
 
-router.patch('/:orderId/general-step',);
+// router.patch('/:orderId/general-step',);
 
-router.delete('/:orderId')
+// router.delete('/:orderId')
 
 export default router

@@ -57,13 +57,15 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 
 ## Conectar Una Nueva Vista A Permisos Auth0
 
-1. Definir el permiso visual en `src/config/permissions.js` si todavia no existe.
-2. Crear el permiso equivalente en la API `ITECSA API` dentro de Auth0.
-3. Asignar ese permiso al rol correspondiente en Auth0 RBAC.
-4. Proteger la ruta con `RoleGuard` o consultar `hasPermission(...)` desde `useAuth()`.
-5. No hardcodear en frontend una matriz rol-permiso; la matriz vigente vive en Auth0.
-6. Si la vista ejecuta una accion sensible, agregar o reutilizar validacion en backend. `RoleGuard` y `hasPermission(...)` son controles visuales, no seguridad definitiva.
-7. Probar con usuarios controlados que el access token nuevo incluya el permiso esperado sin registrar tokens ni datos personales.
+1. Crear el permiso en la API `ITECSA API` dentro de Auth0 y asignarlo al rol correspondiente en Auth0 RBAC.
+2. Definir el mismo permiso en `src/config/permissions.js`; crear el permiso en Auth0 no basta si la SPA no lo consume.
+3. Separar permisos de vista y permisos de accion. Ejemplo: `view:payments-module` permite entrar a `/pagos`, pero `update:payment-status` permite cambiar estados de pago.
+4. Proteger rutas con `RoleGuard` cuando el permiso controle acceso a una vista completa.
+5. Consultar `hasPermission(...)` desde `useAuth()` cuando el permiso controle botones, modales, formularios o acciones dentro de una vista compartida.
+6. Bloquear tambien los handlers de la accion, no solo deshabilitar u ocultar botones. Si el usuario no tiene permiso, no debe abrir menus, modales ni ejecutar cambios aunque el evento se dispare por accidente.
+7. Si la accion es sensible, agregar o reutilizar validacion en backend. `RoleGuard` y `hasPermission(...)` son controles visuales, no seguridad definitiva.
+8. Probar con un rol autorizado y uno no autorizado que el access token nuevo incluya el permiso esperado, sin registrar tokens ni datos personales.
+9. No hardcodear en frontend una matriz rol-permiso; la matriz vigente vive en Auth0.
 
 ## Limites Actuales
 

@@ -50,7 +50,15 @@ function PaymentActionOption({
   )
 }
 
-function ManageButton({ isMobile, isOpen, onClose, onSelect, onToggle, order }) {
+function ManageButton({
+  disabled = false,
+  isMobile,
+  isOpen,
+  onClose,
+  onSelect,
+  onToggle,
+  order,
+}) {
   const dropdownRef = useRef(null)
   const menuId = useId()
   const actionRootSelector = `[data-payment-action-root="${order.id}"]`
@@ -127,13 +135,18 @@ function ManageButton({ isMobile, isOpen, onClose, onSelect, onToggle, order }) 
         className={`${styles.actionButton} ${styles.actionButtonManage} ${
           isMobile ? 'w-100' : ''
         }`}
-        onClick={() => onToggle(order.id)}
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) return
+          onToggle(order.id)
+        }}
+        title={disabled ? 'Solo Cobranzas puede modificar estados de pago.' : undefined}
         type="button"
       >
         Gestionar
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div
           aria-label="Acciones de pago"
           className={styles.paymentActionSelect}
@@ -161,6 +174,7 @@ function ManageButton({ isMobile, isOpen, onClose, onSelect, onToggle, order }) 
 }
 
 export default function PaymentRowActions({
+  canUpdatePaymentStatus = false,
   editingStatus,
   isMobile = false,
   onCloseEditor,
@@ -178,6 +192,7 @@ export default function PaymentRowActions({
       }`}
     >
       <ManageButton
+        disabled={!canUpdatePaymentStatus}
         isMobile={isMobile}
         isOpen={Boolean(editingStatus[order.id])}
         onClose={onCloseEditor}

@@ -122,10 +122,16 @@ function ManageButton({
     options[nextIndex]?.focus()
   }
 
+  const disabledTooltip = disabled
+    ? 'No tienes permisos para interactuar con esta accion.'
+    : undefined
+
   return (
     <div
       className={styles.actionDropdownWrap}
+      data-disabled={disabled ? 'true' : undefined}
       data-payment-action-root={order.id}
+      data-tooltip={disabledTooltip}
       ref={dropdownRef}
     >
       <button
@@ -140,7 +146,6 @@ function ManageButton({
           if (disabled) return
           onToggle(order.id)
         }}
-        title={disabled ? 'Solo Cobranzas puede modificar estados de pago.' : undefined}
         type="button"
       >
         Gestionar

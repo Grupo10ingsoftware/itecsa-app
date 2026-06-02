@@ -1,12 +1,7 @@
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
-
-// !Esto es MOCK
-
-
-
-
+import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
 
 
 class OrderController {
@@ -17,13 +12,8 @@ class OrderController {
 
     getOrders = async ( req = request, res = response) => {
         try {
-            console.log('Hola');
-            
             const orders = await this.service.getAllOrders()
             res.status( 200 ).json( orders );
-            // -------------------
-            // Aca va ir logica para MOCKS
-            // -------------------
         } catch ( error ) {
             res.status(500).json({ message: 'Error al obtener pedidos' });
         }
@@ -37,7 +27,7 @@ class OrderController {
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
 
 
-            const { paymentStatusId } = req.body;
+            const paymentStatusId = req.body?.paymentStatusId ?? req.body?.paymentStatus;
             const result = await 
             this.service.updPaymentState( 
                 orderId, 
@@ -50,9 +40,9 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            res.status( 500 ).json({
-                message: 'Error al actualizar el pedido',
-                error
+            const statusCode = error.statusCode ?? 500;
+            res.status( statusCode ).json({
+                message: error.message || 'Error al actualizar el pedido',
             })
         }
     }
@@ -60,9 +50,6 @@ class OrderController {
     updateGeneralStep = async ( req = request, res = response) => {
         
         try {
-            console.log('En updateGeneralStep')
-            console.log('Params:', req.params)
-            console.log('Body:', req.body)
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
             const { generalStepId } = req.body ?? {};
@@ -78,9 +65,12 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            res.status( 500 ).json({
-                message: 'Error al actualizar el pedido',
-                error: error.message
+            const statusCode =
+                error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE
+                    ? 409
+                    : error.statusCode ?? 500;
+            res.status( statusCode ).json({
+                message: error.message || 'Error al actualizar el pedido',
             })
         }
     }

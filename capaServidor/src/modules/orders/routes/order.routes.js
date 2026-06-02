@@ -1,25 +1,31 @@
 import { Router } from "express";
-const router = Router();
-
+import {
+    UPDATE_PAYMENT_STATUS_PERMISSION,
+} from "../../../config/status.js";
+import checkJwt from "../../../middlewares/checkJwt.js";
+import requirePermission from "../../../middlewares/requirePermission.js";
 import OrderController from "../controller/orders.controller.js";
-const controller = new OrderController()
 
-router.get('/', controller.getOrders);
+export function createOrderRouter({
+    authenticate = checkJwt,
+    authorizePaymentStatusUpdate = requirePermission(
+        UPDATE_PAYMENT_STATUS_PERMISSION,
+    ),
+    controller = new OrderController(),
+} = {}) {
+    const router = Router();
 
-// router.get('/:orderId', );
+    router.get("/", controller.getOrders);
+    router.get("/kanban", authenticate, controller.getOrders);
+    router.patch(
+        "/:orderId/payment-status",
+        authenticate,
+        authorizePaymentStatusUpdate,
+        controller.updatePaymentStatus,
+    );
+    router.patch("/:orderId/move", authenticate, controller.updateGeneralStep);
 
-// router.post('/', );
+    return router;
+}
 
-
-/**
- * CDU-28 Actualizar automáticamente etapa kanban al 
- * confirmar pago del pedido
- * 
-*/
-router.patch('/:orderId/payment-status', controller.updatePaymentStatus);
-
-router.patch('/:orderId/move', controller.updateGeneralStep);
-
-// router.delete('/:orderId')
-
-export default router
+export default createOrderRouter();

@@ -187,16 +187,9 @@ async function assignRoleToUser({ domain, accessToken, userId, roleId }) {
     return response.ok;
 }
 
-export async function createAuth0User({
-    email,
-    primerNombre,
-    apellidoPaterno,
-    rolUsuario,
-}) {
+export async function createAuth0User({ email, rolUsuario }) {
     const normalizedUser = {
         email: assertNonEmptyString(email, "email"),
-        givenName: assertNonEmptyString(primerNombre, "primerNombre"),
-        familyName: assertNonEmptyString(apellidoPaterno, "apellidoPaterno"),
         role: assertNonEmptyString(rolUsuario, "rolUsuario"),
     };
     const { domain, connection, accessToken } = await requestManagementToken();
@@ -217,11 +210,8 @@ export async function createAuth0User({
             },
             body: JSON.stringify({
                 email: normalizedUser.email,
-                given_name: normalizedUser.givenName,
-                family_name: normalizedUser.familyName,
                 connection,
                 password: temporaryPassword,
-                app_metadata: { rolUsuario: normalizedUser.role },
             }),
         });
     } catch {

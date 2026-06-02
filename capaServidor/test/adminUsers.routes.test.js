@@ -56,11 +56,15 @@ async function executePasswordEmailHandler({
 }
 
 test("responde 201 cuando asigna rol y solicita correo", async () => {
+    let createUserPayload;
     const res = await executeHandler({
-        createUser: async () => ({
-            userId: "auth0|created-user",
-            roleAssignmentCompleted: true,
-        }),
+        createUser: async (payload) => {
+            createUserPayload = payload;
+            return {
+                userId: "auth0|created-user",
+                roleAssignmentCompleted: true,
+            };
+        },
         requestPasswordEmail: async () => ({ requested: true }),
     });
 
@@ -70,6 +74,12 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
         correoUsuario: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
         passwordSetupEmailRequested: true,
+    });
+    assert.deepEqual(createUserPayload, {
+        email: VALID_BODY.correoUsuario,
+        primerNombre: VALID_BODY.primerNombre,
+        apellidoPaterno: VALID_BODY.apellidoPaterno,
+        rolUsuario: VALID_BODY.rolUsuario,
     });
 });
 
@@ -173,9 +183,14 @@ test("responde 201 recuperable y no solicita correo si falla la asignacion RBAC"
 
 test("responde 400 para payload incompleto, correo invalido, rol no permitido o campo extra", async () => {
     const invalidBodies = [
-        { ...VALID_BODY, primerNombre: " " },
+        {},
+        { correoUsuario: VALID_BODY.correoUsuario },
+        { rolUsuario: VALID_BODY.rolUsuario },
+        { ...VALID_BODY, correoUsuario: " " },
         { ...VALID_BODY, correoUsuario: "no-es-correo" },
         { ...VALID_BODY, rolUsuario: "Supervisor" },
+        { ...VALID_BODY, primerNombre: " " },
+        { ...VALID_BODY, apellidoPaterno: " " },
         { ...VALID_BODY, password: "prohibida" },
     ];
     let calls = 0;

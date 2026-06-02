@@ -77,7 +77,7 @@ class orderRepository {
      */
     async get( id ) {
         try {
-            const rows = await pool.execute(
+            const [rows] = await pool.execute(
                 `SELECT * FROM Pedido WHERE id = ?`,
                 [id]
             )

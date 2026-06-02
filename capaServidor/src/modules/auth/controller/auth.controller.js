@@ -1,6 +1,3 @@
-import { Router } from "express";
-import checkJwt from "../middlewares/checkJwt.js";
-
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
@@ -11,8 +8,6 @@ const OFFICIAL_ROLES = new Set([
     "Ventas",
     "Cobranzas",
 ]);
-
-const router = Router();
 
 export function verifyAuthSessionHandler(req, res) {
     const payload = req.auth?.payload;
@@ -52,7 +47,3 @@ export function verifyAuthSessionHandler(req, res) {
         permissions,
     });
 }
-
-router.get("/verify", checkJwt, verifyAuthSessionHandler);
-
-export default router;

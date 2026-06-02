@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import express from "express";
-import { Auth0ServiceError } from "../src/services/auth0Management.service.js";
+import { Auth0ServiceError } from "../src/modules/users/service/auth0Management.service.js";
 import {
     createAdminUserHandler,
-    createAdminUsersRouter,
     createPasswordSetupEmailHandler,
-} from "../src/routes/adminUsers.routes.js";
+} from "../src/modules/users/controller/adminUsers.controller.js";
+import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
 const VALID_BODY = {
     primerNombre: "Ana",

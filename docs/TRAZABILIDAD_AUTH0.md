@@ -26,8 +26,8 @@ Quedan fuera de este alcance pedidos, pagos, Kanban real, produccion real, Prism
 | UR 1.1 - Ingresar credenciales validas | La SPA inicia sesion mediante Auth0 Universal Login. ITECSA no captura credenciales en una pantalla propia. | `capaVista/src/modules/auth/components/LoginForm.jsx`, `capaVista/src/modules/auth/pages/LoginPage.jsx`, `capaVista/src/app/providers/AppProviders.jsx`. |
 | UR 1.4 - Permisos por roles minimos | Auth0 RBAC es la fuente de roles y permisos. La SPA consume permisos visuales desde el claim `permissions` emitido por Auth0. | `capaVista/src/config/permissions.js`, `capaVista/src/shared/components/navigation/RoleGuard.jsx`, `capaVista/src/app/providers/AuthProvider.jsx`. |
 | UR 1.10 - Validar correo y contrasena | La validacion de credenciales ocurre en Auth0 Universal Login y en la conexion Database configurada, no en codigo propio. | `@auth0/auth0-react`, `Auth0Provider`, tenant Auth0 y conexion `Username-Password-Authentication`. |
-| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. | `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/routes/auth.routes.js`. |
-| UR 1.12 - Impedir correos duplicados | La creacion administrativa delega unicidad de correo en Auth0 y normaliza el duplicado como respuesta `409`. | `capaServidor/src/routes/adminUsers.routes.js`, `capaServidor/src/services/auth0Management.service.js`. |
+| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. | `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/modules/auth/controller/auth.controller.js`. |
+| UR 1.12 - Impedir correos duplicados | La creacion administrativa delega unicidad de correo en Auth0 y normaliza el duplicado como respuesta `409`. | `capaServidor/src/modules/users/controller/adminUsers.controller.js`, `capaServidor/src/modules/users/service/auth0Management.service.js`. |
 | UR 1.13 - Restringir URL protegidas por rol | El frontend aplica restricciones visuales usando roles/permisos emitidos por Auth0 y el backend protege endpoints administrativos validando el rol `Administrador` del token Auth0. | `RoleGuard`, `ProtectedRoute`, `capaServidor/src/middlewares/checkJwt.js`, `capaServidor/src/middlewares/requireAdministrador.js`. |
 | UR 1.14 - Mostrar acceso denegado | La SPA redirige a una vista de acceso denegado cuando el rol o permiso visual no permite continuar. | `capaVista/src/modules/auth/pages/AccessDeniedPage.jsx`, `RoleGuard`. |
 | UR 1.15 - Recuperar o establecer contrasena por correo | El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena sin retornar tickets, enlaces ni contrasenas. | `POST /api/admin/users/password-setup-email`, `requestPasswordSetupEmail(...)`. |
@@ -117,9 +117,9 @@ Backend:
 
 - `capaServidor/src/middlewares/checkJwt.js`: valida access tokens emitidos por Auth0 destinados a `AUTH0_AUDIENCE`.
 - `capaServidor/src/middlewares/requireAdministrador.js`: autoriza solo tokens Auth0 con `https://itecsa.local/roles: ["Administrador"]`.
-- `capaServidor/src/routes/auth.routes.js`: implementa `GET /api/auth/verify` y proyecta identidad, rol y permisos emitidos por Auth0.
-- `capaServidor/src/routes/adminUsers.routes.js`: implementa alta administrativa y solicitud de correo de contrasena.
-- `capaServidor/src/services/auth0Management.service.js`: encapsula llamadas a Auth0 Management API y `/dbconnections/change_password`.
+- `capaServidor/src/modules/auth/controller/auth.controller.js`: implementa `GET /api/auth/verify` y proyecta identidad, rol y permisos emitidos por Auth0.
+- `capaServidor/src/modules/users/controller/adminUsers.controller.js`: implementa alta administrativa y solicitud de correo de contrasena.
+- `capaServidor/src/modules/users/service/auth0Management.service.js`: encapsula llamadas a Auth0 Management API y `/dbconnections/change_password`.
 
 ## Decisiones de Seguridad
 

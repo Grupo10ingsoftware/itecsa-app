@@ -18,7 +18,7 @@ router.get('/', controller.getOrders);
 */
 router.patch('/:orderId/payment-status', controller.updatePaymentStatus);
 
-// router.patch('/:orderId/general-step',);
+router.patch('/:orderId/move', controller.updateGeneralStep);
 
 // router.delete('/:orderId')
 

@@ -54,7 +54,7 @@ La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emit
 
 ## Servicio Interno Auth0
 
-`src/services/auth0Management.service.js` prepara dos operaciones backend:
+`src/modules/users/service/auth0Management.service.js` prepara dos operaciones backend:
 
 - `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database con nombre y `app_metadata.rolUsuario`, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
 - `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.

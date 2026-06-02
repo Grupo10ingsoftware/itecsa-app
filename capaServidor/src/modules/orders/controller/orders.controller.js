@@ -1,13 +1,7 @@
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
-import { RF32_WAITING_PAYMENT_MESSAGE } from "../../../config/status.js";
-
-// !Esto es MOCK
-
-
-
-
+import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
 
 
 class OrderController {
@@ -18,13 +12,8 @@ class OrderController {
 
     getOrders = async ( req = request, res = response) => {
         try {
-            console.log('Hola');
-            
             const orders = await this.service.getAllOrders()
             res.status( 200 ).json( orders );
-            // -------------------
-            // Aca va ir logica para MOCKS
-            // -------------------
         } catch ( error ) {
             res.status(500).json({ message: 'Error al obtener pedidos' });
         }
@@ -61,9 +50,6 @@ class OrderController {
     updateGeneralStep = async ( req = request, res = response) => {
         
         try {
-            console.log('En updateGeneralStep')
-            console.log('Params:', req.params)
-            console.log('Body:', req.body)
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
             const { generalStepId } = req.body ?? {};
@@ -80,7 +66,7 @@ class OrderController {
             res.status( 200 ).json(result);
         } catch ( error ) {
             const statusCode =
-                error.message === RF32_WAITING_PAYMENT_MESSAGE
+                error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE
                     ? 409
                     : error.statusCode ?? 500;
             res.status( statusCode ).json({

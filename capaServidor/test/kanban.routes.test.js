@@ -3,7 +3,7 @@ import { once } from "node:events";
 import { beforeEach, test } from "node:test";
 import express from "express";
 import {
-    RF32_WAITING_PAYMENT_MESSAGE,
+    PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
 } from "../src/config/status.js";
 import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
 import { resetMockOrders } from "../src/modules/orders/service/order.service.js";
@@ -45,7 +45,7 @@ test("GET /api/orders/kanban devuelve ordenes mock", async (t) => {
     assert.equal(body.length >= 3, true);
 });
 
-test("PATCH move devuelve el mensaje exacto RF32 si el pago no esta confirmado", async (t) => {
+test("PATCH move devuelve el mensaje de pago pendiente si el pago no esta confirmado", async (t) => {
     const app = createTestApp(createOrderRouter({ authenticate }));
     const server = await listen(app, t);
 
@@ -60,7 +60,7 @@ test("PATCH move devuelve el mensaje exacto RF32 si el pago no esta confirmado",
     const body = await response.json();
 
     assert.equal(response.status, 409);
-    assert.deepEqual(body, { message: RF32_WAITING_PAYMENT_MESSAGE });
+    assert.deepEqual(body, { message: PAYMENT_CONFIRMATION_REQUIRED_MESSAGE });
 });
 
 test("PATCH move permite Listo para produccion si el pago esta confirmado", async (t) => {

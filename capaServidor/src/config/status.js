@@ -17,7 +17,7 @@ export const PAYMENT_STATUS_VALUES = Object.freeze(
 
 export const ORDER_STATUS_VALUES = Object.freeze(Object.values(ORDER_STATUS));
 
-export const RF32_WAITING_PAYMENT_MESSAGE =
+export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
     "Pedido en espera de confirmacion de pago";
 
 export const UPDATE_PAYMENT_STATUS_PERMISSION = "update:payment-status";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
-    RF32_WAITING_PAYMENT_MESSAGE,
+    PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
 } from "../src/config/status.js";
 import OrderService, {
     resetMockOrders,
@@ -35,7 +35,7 @@ test("bloquea mover a Listo para produccion con pago pendiente", async () => {
     await assert.rejects(
         () => service.updGeneralStep(1, 1),
         {
-            message: RF32_WAITING_PAYMENT_MESSAGE,
+            message: PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
         },
     );
 });

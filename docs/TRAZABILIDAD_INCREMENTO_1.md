@@ -36,7 +36,7 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | UR 1.18 - Cerrar sesion desde cualquier interfaz | La SPA ejecuta Auth0 Universal Logout y retorna al origen local autorizado. | `capaVista/src/modules/auth/components/LogoutButton.jsx`, `AuthProvider.logout(...)`. |
 | RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
 | RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:id/payment-status`. |
-| RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje RF32 requerido. | `PATCH /api/orders/:id/move`, `RF32_WAITING_PAYMENT_MESSAGE`, `order.service.js`. |
+| RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje requerido. | `PATCH /api/orders/:id/move`, `order.service.js`. |
 | RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; nombre y apellido quedan pendientes para la futura BD propia. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
@@ -131,7 +131,7 @@ Responsabilidades:
 
 - Permitir movimientos Kanban validos sobre pedidos mock/en memoria.
 - Rechazar `targetStatus: "Listo para produccion"` cuando `paymentStatus` sea distinto de `Confirmado`.
-- Responder el mensaje RF32 exacto:
+- Responder el mensaje exacto requerido:
 
 ```json
 {
@@ -211,4 +211,4 @@ Backend:
 - Una autorizacion definitiva futura debera vincular cada identidad Auth0 con una entidad interna mediante `Usuario.auth0_user_id` y validar estado/rol desde la base de datos.
 - Mientras no exista esa persistencia, Auth0 RBAC es la fuente operativa de roles para esta integracion inicial.
 - Mientras no exista BD, los endpoints RF32 usan ordenes mock/en memoria y el frontend de pagos conserva mocks/local state.
-- Cuando la BD este disponible, `ordersMock.service` debe reemplazarse por servicios/repositorios persistentes sin cambiar las reglas RF26/RF28/RF32 ni los permisos Auth0.
+- Cuando la BD este disponible, el mock/en memoria del modulo `orders` debe reemplazarse por servicios/repositorios persistentes sin cambiar las reglas RF26/RF28/RF32 ni los permisos Auth0.

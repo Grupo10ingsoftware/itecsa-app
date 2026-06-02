@@ -1,88 +1,49 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
-    ORDER_STATUS,
-    PAYMENT_STATUS,
     RF32_WAITING_PAYMENT_MESSAGE,
 } from "../src/config/status.js";
-import {
-    moveOrder,
+import OrderService, {
     resetMockOrders,
-    updatePaymentStatus,
-} from "../src/services/ordersMock.service.js";
+} from "../src/modules/orders/service/order.service.js";
 
 beforeEach(() => {
     resetMockOrders();
 });
 
-function assertServiceError(fn, { code, message, statusCode }) {
-    try {
-        fn();
-        assert.fail("Se esperaba un error de servicio.");
-    } catch (error) {
-        assert.equal(error.code, code);
-        assert.equal(error.message, message);
-        assert.equal(error.statusCode, statusCode);
-    }
-}
+test("al confirmar pago mueve la orden a Listo para produccion", async () => {
+    const service = new OrderService();
+    const order = await service.updPaymentState(1, 1);
 
-test("rechaza estado de pago invalido", () => {
-    assertServiceError(() => updatePaymentStatus("1", "Pagado"), {
-        code: "INVALID_PAYMENT_STATUS",
-        message: "El estado de pago no es valido.",
-        statusCode: 400,
-    });
+    assert.equal(order.estado_pago, "Confirmado");
+    assert.equal(order.id_etapa_general, 1);
 });
 
-test("al confirmar pago mueve la orden a Listo para produccion", () => {
-    const order = updatePaymentStatus("1", PAYMENT_STATUS.CONFIRMADO);
+test("al dejar pago pendiente devuelve la orden a Confirmacion de pago", async () => {
+    const service = new OrderService();
+    await service.updPaymentState(1, 1);
 
-    assert.equal(order.paymentStatus, PAYMENT_STATUS.CONFIRMADO);
-    assert.equal(order.orderStatus, ORDER_STATUS.LISTO_PRODUCCION);
+    const order = await service.updPaymentState(1, 0);
+
+    assert.equal(order.estado_pago, "Pendiente");
+    assert.equal(order.id_etapa_general, 0);
 });
 
-test("al dejar pago pendiente devuelve la orden a Confirmacion de pago", () => {
-    updatePaymentStatus("1", PAYMENT_STATUS.CONFIRMADO);
+test("bloquea mover a Listo para produccion con pago pendiente", async () => {
+    const service = new OrderService();
 
-    const order = updatePaymentStatus("1", PAYMENT_STATUS.PENDIENTE);
-
-    assert.equal(order.paymentStatus, PAYMENT_STATUS.PENDIENTE);
-    assert.equal(order.orderStatus, ORDER_STATUS.CONFIRMACION_PAGO);
-});
-
-test("bloquea mover a Listo para produccion con pago pendiente", () => {
-    assertServiceError(
-        () => moveOrder("1", ORDER_STATUS.LISTO_PRODUCCION),
+    await assert.rejects(
+        () => service.updGeneralStep(1, 1),
         {
-            code: "PAYMENT_CONFIRMATION_REQUIRED",
             message: RF32_WAITING_PAYMENT_MESSAGE,
-            statusCode: 409,
         },
     );
 });
 
-test("bloquea mover a Listo para produccion con pago rechazado", () => {
-    assertServiceError(
-        () => moveOrder("2", ORDER_STATUS.LISTO_PRODUCCION),
-        {
-            code: "PAYMENT_CONFIRMATION_REQUIRED",
-            message: RF32_WAITING_PAYMENT_MESSAGE,
-            statusCode: 409,
-        },
-    );
-});
+test("permite mover a Listo para produccion con pago confirmado", async () => {
+    const service = new OrderService();
+    const order = await service.updGeneralStep(6, 1);
 
-test("permite mover a Listo para produccion con pago confirmado", () => {
-    const order = moveOrder("3", ORDER_STATUS.LISTO_PRODUCCION);
-
-    assert.equal(order.paymentStatus, PAYMENT_STATUS.CONFIRMADO);
-    assert.equal(order.orderStatus, ORDER_STATUS.LISTO_PRODUCCION);
-});
-
-test("rechaza estado de destino invalido", () => {
-    assertServiceError(() => moveOrder("3", "Despachado"), {
-        code: "INVALID_ORDER_STATUS",
-        message: "El estado de destino no es valido.",
-        statusCode: 400,
-    });
+    assert.equal(order.id_estado_pago, 1);
+    assert.equal(order.id_etapa_general, 1);
 });

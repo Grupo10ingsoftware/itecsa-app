@@ -16,7 +16,8 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-oauth2-jwt-bearer": "^1.9.0"
+    "express-oauth2-jwt-bearer": "^1.9.0",
+    "mysql2": "^3.22.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

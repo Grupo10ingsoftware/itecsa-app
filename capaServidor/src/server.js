@@ -1,9 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth.routes.js';
-import adminUsersRoutes from './routes/adminUsers.routes.js';
-import kanbanRoutes from './routes/kanban.routes.js';
-import ordersRoutes from './routes/orders.routes.js';
+
+import orderRoutes from './modules/orders/routes/order.routes.js';
+import authRoutes from './modules/auth/routes/auth.routes.js';
+import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 
 class Server {
   constructor() {
@@ -11,10 +11,17 @@ class Server {
     this.app = express();
     this.port = process.env.PORT; // definido en .env
     this.paths = {
-        auth: '/api/auth',
+        // Rutas cuando las tengamos
+
+        //* orders
+        auth : '/api/auth',
+        orders : '/api/orders',
+        orderDetail: '/api/order-details',
         admin: '/api/admin',
-        kanban: '/api/kanban',
-        orders: '/api/orders',
+
+        //* Estados
+
+
         }
 
     // Middlewares
@@ -29,7 +36,7 @@ class Server {
   middlewares() {
       
     // Cors
-    this.app.use(cors({ origin: process.env.FRONTEND_ORIGIN }));
+    this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
@@ -42,17 +49,18 @@ class Server {
   }
 
   routes() {
-    this.app.use(this.paths.auth, authRoutes);
-    this.app.use(this.paths.admin, adminUsersRoutes);
-    this.app.use(this.paths.kanban, kanbanRoutes);
-    this.app.use(this.paths.orders, ordersRoutes);
+    
     // Configurar rutas
+    this.app.use(this.paths.orders, orderRoutes)
     /**
      * Un ejemplo sería    
      * this.app.use(this.paths.users, user_route);
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API
      */
+    this.app.use( this.paths.auth, authRoutes)
+    this.app.use( this.paths.admin, adminUsersRoutes)
+
   }
 
   listen() {

@@ -28,15 +28,15 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | UR 1.1 - Ingresar credenciales validas | La SPA inicia sesion mediante Auth0 Universal Login. ITECSA no captura credenciales en una pantalla propia. | `capaVista/src/modules/auth/components/LoginForm.jsx`, `capaVista/src/modules/auth/pages/LoginPage.jsx`, `capaVista/src/app/providers/AppProviders.jsx`. |
 | UR 1.4 - Permisos por roles minimos | Auth0 RBAC es la fuente de roles y permisos. La SPA consume permisos visuales desde el claim `permissions` emitido por Auth0. | `capaVista/src/config/permissions.js`, `capaVista/src/shared/components/navigation/RoleGuard.jsx`, `capaVista/src/app/providers/AuthProvider.jsx`. |
 | UR 1.10 - Validar correo y contrasena | La validacion de credenciales ocurre en Auth0 Universal Login y en la conexion Database configurada, no en codigo propio. | `@auth0/auth0-react`, `Auth0Provider`, tenant Auth0 y conexion `Username-Password-Authentication`. |
-| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. | `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/routes/auth.routes.js`. |
-| UR 1.12 - Impedir correos duplicados | La creacion administrativa delega unicidad de correo en Auth0 y normaliza el duplicado como respuesta `409`. | `capaServidor/src/routes/adminUsers.routes.js`, `capaServidor/src/services/auth0Management.service.js`. |
+| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. | `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/modules/auth/controller/auth.controller.js`. |
+| UR 1.12 - Impedir correos duplicados | La creacion administrativa delega unicidad de correo en Auth0 y normaliza el duplicado como respuesta `409`. | `capaServidor/src/modules/users/controller/adminUsers.controller.js`, `capaServidor/src/modules/users/service/auth0Management.service.js`. |
 | UR 1.13 - Restringir URL protegidas por rol | El frontend aplica restricciones visuales usando roles/permisos emitidos por Auth0 y el backend protege endpoints administrativos validando el rol `Administrador` del token Auth0. | `RoleGuard`, `ProtectedRoute`, `capaServidor/src/middlewares/checkJwt.js`, `capaServidor/src/middlewares/requireAdministrador.js`. |
 | UR 1.14 - Mostrar acceso denegado | La SPA redirige a una vista de acceso denegado cuando el rol o permiso visual no permite continuar. | `capaVista/src/modules/auth/pages/AccessDeniedPage.jsx`, `RoleGuard`. |
 | UR 1.15 - Recuperar o establecer contrasena por correo | El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena sin retornar tickets, enlaces ni contrasenas. | `POST /api/admin/users/password-setup-email`, `requestPasswordSetupEmail(...)`. |
 | UR 1.18 - Cerrar sesion desde cualquier interfaz | La SPA ejecuta Auth0 Universal Logout y retorna al origen local autorizado. | `capaVista/src/modules/auth/components/LogoutButton.jsx`, `AuthProvider.logout(...)`. |
-| RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/routes/orders.routes.js`, `requirePermission("update:payment-status")`. |
-| RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/services/ordersMock.service.js`, `PATCH /api/orders/:id/payment-status`, tests de `ordersMock.service`. |
-| RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje RF32 requerido. | `PATCH /api/kanban/orders/:id/move`, `RF32_WAITING_PAYMENT_MESSAGE`, tests de `kanban.routes` y `ordersMock.service`. |
+| RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
+| RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:id/payment-status`. |
+| RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje RF32 requerido. | `PATCH /api/orders/:id/move`, `RF32_WAITING_PAYMENT_MESSAGE`, `order.service.js`. |
 | RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; nombre y apellido quedan pendientes para la futura BD propia. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
@@ -102,7 +102,7 @@ Responsabilidades:
 - No asignar roles.
 - No devolver tickets, enlaces ni contrasenas.
 
-### `GET /api/kanban`
+### `GET /api/orders/kanban`
 
 Requiere access token Auth0 valido. Devuelve columnas Kanban fijas y ordenes mock/en memoria para evidenciar `UR 5.1` y `UR 5.2` mientras no exista persistencia real.
 
@@ -123,7 +123,7 @@ Responsabilidades:
 - Devolver la orden a `Confirmacion de pago` cuando `paymentStatus` queda `Pendiente` o `Rechazado`.
 - Responder `403` si el token no contiene `update:payment-status`.
 
-### `PATCH /api/kanban/orders/:id/move`
+### `PATCH /api/orders/:id/move`
 
 Requiere access token Auth0 valido.
 
@@ -185,12 +185,11 @@ Backend:
 - `capaServidor/src/middlewares/checkJwt.js`: valida access tokens emitidos por Auth0 destinados a `AUTH0_AUDIENCE`.
 - `capaServidor/src/middlewares/requireAdministrador.js`: autoriza solo tokens Auth0 con `https://itecsa.local/roles: ["Administrador"]`.
 - `capaServidor/src/middlewares/requirePermission.js`: autoriza acciones sensibles segun el claim `permissions`.
-- `capaServidor/src/routes/auth.routes.js`: implementa `GET /api/auth/verify` y proyecta identidad, rol y permisos emitidos por Auth0.
-- `capaServidor/src/routes/adminUsers.routes.js`: implementa alta administrativa y solicitud de correo de contrasena.
-- `capaServidor/src/routes/orders.routes.js`: implementa `PATCH /api/orders/:id/payment-status` protegido con `update:payment-status`.
-- `capaServidor/src/routes/kanban.routes.js`: implementa `GET /api/kanban` y `PATCH /api/kanban/orders/:id/move`.
-- `capaServidor/src/services/ordersMock.service.js`: aplica reglas RF26/RF28/RF32 con ordenes mock/en memoria.
-- `capaServidor/src/services/auth0Management.service.js`: encapsula llamadas a Auth0 Management API y `/dbconnections/change_password`.
+- `capaServidor/src/modules/auth/controller/auth.controller.js`: implementa `GET /api/auth/verify` y proyecta identidad, rol y permisos emitidos por Auth0.
+- `capaServidor/src/modules/users/controller/adminUsers.controller.js`: implementa alta administrativa y solicitud de correo de contrasena.
+- `capaServidor/src/modules/orders/routes/order.routes.js`: implementa rutas de pedidos, pago y movimiento Kanban.
+- `capaServidor/src/modules/orders/service/order.service.js`: aplica reglas RF26/RF28/RF32 con ordenes mock/en memoria.
+- `capaServidor/src/modules/users/service/auth0Management.service.js`: encapsula llamadas a Auth0 Management API y `/dbconnections/change_password`.
 
 ## Decisiones de Seguridad
 

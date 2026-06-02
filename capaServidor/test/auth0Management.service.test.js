@@ -4,7 +4,7 @@ import {
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
-} from "../src/services/auth0Management.service.js";
+} from "../src/modules/users/service/auth0Management.service.js";
 
 const ENVIRONMENT = {
     AUTH0_DOMAIN: "tenant.example.auth0.com",

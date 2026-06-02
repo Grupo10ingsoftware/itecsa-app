@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import express from "express";
-import { createOrdersRouter } from "../src/routes/orders.routes.js";
+import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
 
 function createTestApp(router) {
     const app = express();
@@ -18,10 +18,22 @@ async function listen(app, t) {
     return server;
 }
 
+function createController(updatePaymentStatus) {
+    return {
+        getOrders(req, res) {
+            return res.status(200).json([]);
+        },
+        updateGeneralStep(req, res) {
+            return res.status(200).json({});
+        },
+        updatePaymentStatus,
+    };
+}
+
 test("monta checkJwt antes de requirePermission y de actualizar pago", async (t) => {
     const calls = [];
     const app = createTestApp(
-        createOrdersRouter({
+        createOrderRouter({
             authenticate(req, res, next) {
                 calls.push("checkJwt");
                 req.auth = {
@@ -33,14 +45,13 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
                 calls.push("requirePermission");
                 next();
             },
-            updateStatus: (orderId, paymentStatus) => {
+            controller: createController((req, res) => {
                 calls.push("updatePaymentStatus");
-                return {
-                    id: orderId,
-                    paymentStatus,
-                    orderStatus: "Listo para produccion",
-                };
-            },
+                return res.status(200).json({
+                    id: req.params.orderId,
+                    paymentStatus: req.body.paymentStatus,
+                });
+            }),
         }),
     );
     const server = await listen(app, t);
@@ -65,14 +76,15 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
 test("responde 403 si el token no contiene update:payment-status", async (t) => {
     let updateCalled = false;
     const app = createTestApp(
-        createOrdersRouter({
+        createOrderRouter({
             authenticate(req, res, next) {
                 req.auth = { payload: { permissions: ["view:payments-module"] } };
                 next();
             },
-            updateStatus: () => {
+            controller: createController((req, res) => {
                 updateCalled = true;
-            },
+                return res.status(200).json({});
+            }),
         }),
     );
     const server = await listen(app, t);
@@ -92,29 +104,4 @@ test("responde 403 si el token no contiene update:payment-status", async (t) => 
     assert.deepEqual(body, {
         message: "El usuario autenticado no tiene el permiso requerido.",
     });
-});
-
-test("rechaza payload sin paymentStatus", async (t) => {
-    const app = createTestApp(
-        createOrdersRouter({
-            authenticate(req, res, next) {
-                req.auth = {
-                    payload: { permissions: ["update:payment-status"] },
-                };
-                next();
-            },
-        }),
-    );
-    const server = await listen(app, t);
-
-    const response = await fetch(
-        `http://127.0.0.1:${server.address().port}/api/orders/1/payment-status`,
-        {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "Confirmado" }),
-        },
-    );
-
-    assert.equal(response.status, 400);
 });

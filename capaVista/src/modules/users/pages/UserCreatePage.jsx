@@ -10,13 +10,10 @@ export default function UserCreatePage() {
           <h1 className={styles.pageTitle} id="user-create-title">
             Crear usuario
           </h1>
-          <p className={styles.pageSubtitle}>
-            Completa los datos obligatorios para crear una nueva cuenta Auth0.
-          </p>
         </header>
 
         <div className={styles.content}>
-          <div className={`alert alert-info ${styles.noteAlert}`} role="note">
+          <div className={`alert ${styles.noteAlert}`} role="note">
             <i className="bi bi-info-circle me-2" aria-hidden="true" />
             RUT, firma electrónica y contraseña no se enviarán en esta etapa.
           </div>

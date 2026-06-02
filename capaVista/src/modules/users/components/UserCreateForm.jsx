@@ -200,7 +200,7 @@ export default function UserCreateForm() {
   const isSessionInvalid = message?.requiresLogin === true
 
   return (
-    <form className="row g-3" noValidate onSubmit={handleSubmit}>
+    <form className="row g-3 user-create-form" noValidate onSubmit={handleSubmit}>
       {message && (
         <div className="col-12">
           <div className={`alert alert-${message.type} mb-0`} role="status">
@@ -218,154 +218,182 @@ export default function UserCreateForm() {
         </div>
       )}
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-first-name">
-          Primer nombre
-        </label>
-        <input
-          aria-describedby="user-first-name-errors"
-          aria-invalid={fieldErrors.primerNombre.length > 0}
-          className={`form-control ${
-            fieldErrors.primerNombre.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-first-name"
-          name="primerNombre"
-          onChange={handleFieldChange}
-          type="text"
-          value={values.primerNombre}
-        />
-        <FieldErrors errors={fieldErrors.primerNombre} id="user-first-name-errors" />
-      </div>
+      <div className="col-12">
+        <section className="userCreateSection" aria-labelledby="user-create-personal-section">
+          <div className="userCreateSectionHeader">
+            <i className="bi bi-person" aria-hidden="true" />
+            <h2 className="userCreateSectionTitle" id="user-create-personal-section">
+              Datos personales
+            </h2>
+          </div>
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-last-name">
-          Apellido paterno
-        </label>
-        <input
-          aria-describedby="user-last-name-errors"
-          aria-invalid={fieldErrors.apellidoPaterno.length > 0}
-          className={`form-control ${
-            fieldErrors.apellidoPaterno.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-last-name"
-          name="apellidoPaterno"
-          onChange={handleFieldChange}
-          type="text"
-          value={values.apellidoPaterno}
-        />
-        <FieldErrors errors={fieldErrors.apellidoPaterno} id="user-last-name-errors" />
-      </div>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-first-name">
+                Primer nombre
+              </label>
+              <input
+                aria-describedby="user-first-name-errors"
+                aria-invalid={fieldErrors.primerNombre.length > 0}
+                className={`form-control ${
+                  fieldErrors.primerNombre.length > 0 ? 'is-invalid' : ''
+                }`}
+                id="user-first-name"
+                name="primerNombre"
+                onChange={handleFieldChange}
+                type="text"
+                value={values.primerNombre}
+              />
+              <FieldErrors errors={fieldErrors.primerNombre} id="user-first-name-errors" />
+            </div>
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-rut">
-          RUT
-        </label>
-        <input
-          aria-describedby="user-rut-help"
-          className="form-control"
-          disabled
-          id="user-rut"
-          name="rutUsuario"
-          placeholder="No disponible"
-          type="text"
-        />
-        <div className="form-text" id="user-rut-help">
-          Disponible cuando se integre la base de datos.
-        </div>
-      </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-last-name">
+                Apellido paterno
+              </label>
+              <input
+                aria-describedby="user-last-name-errors"
+                aria-invalid={fieldErrors.apellidoPaterno.length > 0}
+                className={`form-control ${
+                  fieldErrors.apellidoPaterno.length > 0 ? 'is-invalid' : ''
+                }`}
+                id="user-last-name"
+                name="apellidoPaterno"
+                onChange={handleFieldChange}
+                type="text"
+                value={values.apellidoPaterno}
+              />
+              <FieldErrors errors={fieldErrors.apellidoPaterno} id="user-last-name-errors" />
+            </div>
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-email">
-          Correo electronico
-        </label>
-        <input
-          aria-describedby="user-email-errors"
-          aria-invalid={fieldErrors.correoUsuario.length > 0}
-          className={`form-control ${
-            fieldErrors.correoUsuario.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-email"
-          name="correoUsuario"
-          onChange={handleFieldChange}
-          type="email"
-          value={values.correoUsuario}
-        />
-        <FieldErrors errors={fieldErrors.correoUsuario} id="user-email-errors" />
-      </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-rut">
+                RUT
+              </label>
+              <input
+                aria-describedby="user-rut-help"
+                className="form-control"
+                disabled
+                id="user-rut"
+                name="rutUsuario"
+                placeholder="No disponible"
+                type="text"
+              />
+              <div className="form-text" id="user-rut-help">
+                Disponible cuando se integre la base de datos.
+              </div>
+            </div>
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-role">
-          Rol
-        </label>
-        <select
-          aria-describedby="user-role-errors"
-          aria-invalid={fieldErrors.rolUsuario.length > 0}
-          className={`form-select ${fieldErrors.rolUsuario.length > 0 ? 'is-invalid' : ''}`}
-          id="user-role"
-          name="rolUsuario"
-          onChange={handleFieldChange}
-          value={values.rolUsuario}
-        >
-          <option value="">Selecciona un rol</option>
-          {OFFICIAL_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
-        <FieldErrors errors={fieldErrors.rolUsuario} id="user-role-errors" />
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-signature">
-          Firma electronica
-        </label>
-        <input
-          aria-describedby="user-signature-help"
-          className="form-control"
-          disabled
-          id="user-signature"
-          name="referenciaFirmaElectronica"
-          placeholder="No disponible"
-          type="text"
-        />
-        <div className="form-text" id="user-signature-help">
-          Disponible cuando se integre la base de datos.
-        </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-email">
+                Correo electronico
+              </label>
+              <input
+                aria-describedby="user-email-errors"
+                aria-invalid={fieldErrors.correoUsuario.length > 0}
+                className={`form-control ${
+                  fieldErrors.correoUsuario.length > 0 ? 'is-invalid' : ''
+                }`}
+                id="user-email"
+                name="correoUsuario"
+                onChange={handleFieldChange}
+                type="email"
+                value={values.correoUsuario}
+              />
+              <FieldErrors errors={fieldErrors.correoUsuario} id="user-email-errors" />
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="col-12">
-        <label className="form-label" htmlFor="user-password">
-          Contrasena
-        </label>
-        <input
-          aria-describedby="user-password-help"
-          className="form-control"
-          disabled
-          id="user-password"
-          name="password"
-          placeholder="Gestionada por Auth0"
-          type="password"
-        />
-        <p className="form-text mb-0" id="user-password-help">
-          El usuario establecera su contrasena mediante un correo enviado por Auth0.
-        </p>
-      </div>
+        <section className="userCreateSection" aria-labelledby="user-create-access-section">
+          <div className="userCreateSectionHeader">
+            <i className="bi bi-lock" aria-hidden="true" />
+            <h2 className="userCreateSectionTitle" id="user-create-access-section">
+              Acceso de usuario
+            </h2>
+          </div>
 
-      <div className="col-12 d-flex gap-2">
-        <button className="btn btn-primary" disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Creando usuario...' : 'Crear usuario'}
-        </button>
-        {canRequestPasswordSetupEmail && (
-          <button
-            className="btn btn-outline-primary"
-            disabled={isRequestingPasswordEmail}
-            onClick={handlePasswordSetupEmailRequest}
-            type="button"
-          >
-            {isRequestingPasswordEmail ? 'Solicitando correo...' : 'Solicitar correo'}
-          </button>
-        )}
+          <div className="row g-3">
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-role">
+                Rol
+              </label>
+              <select
+                aria-describedby="user-role-errors"
+                aria-invalid={fieldErrors.rolUsuario.length > 0}
+                className={`form-select ${fieldErrors.rolUsuario.length > 0 ? 'is-invalid' : ''}`}
+                id="user-role"
+                name="rolUsuario"
+                onChange={handleFieldChange}
+                value={values.rolUsuario}
+              >
+                <option value="">Selecciona un rol</option>
+                {OFFICIAL_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+              <FieldErrors errors={fieldErrors.rolUsuario} id="user-role-errors" />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="user-signature">
+                Firma electronica
+              </label>
+              <input
+                aria-describedby="user-signature-help"
+                className="form-control"
+                disabled
+                id="user-signature"
+                name="referenciaFirmaElectronica"
+                placeholder="No disponible"
+                type="text"
+              />
+              <div className="form-text" id="user-signature-help">
+                Disponible cuando se integre la base de datos.
+              </div>
+            </div>
+
+            <div className="col-12">
+              <label className="form-label" htmlFor="user-password">
+                Contrasena
+              </label>
+              <input
+                aria-describedby="user-password-help"
+                className="form-control"
+                disabled
+                id="user-password"
+                name="password"
+                placeholder="Gestionada por Auth0"
+                type="password"
+              />
+              <p className="form-text mb-0" id="user-password-help">
+                El usuario establecera su contrasena mediante un correo enviado por Auth0.
+              </p>
+            </div>
+
+            <div className="col-12">
+              <div className="userCreateActions">
+                <button className="btn btn-primary" disabled={isSubmitting} type="submit">
+                  {isSubmitting ? 'Creando usuario...' : 'Crear usuario'}
+                </button>
+                {canRequestPasswordSetupEmail && (
+                  <button
+                    className="btn btn-outline-primary"
+                    disabled={isRequestingPasswordEmail}
+                    onClick={handlePasswordSetupEmailRequest}
+                    type="button"
+                  >
+                    {isRequestingPasswordEmail ? 'Solicitando correo...' : 'Solicitar correo'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       {createdUser && (

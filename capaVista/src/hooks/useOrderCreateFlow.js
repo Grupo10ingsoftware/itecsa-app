@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react' // <-- Añadido useEffect
 import { buildRegisteredOrder, DEFAULT_ORDER_DRAFT, MOCK_MANAGER_RECORDS } from '../modules/orders/mocks/orderCreate.mock'
 import { canContinueFromSalesNote, validateDesignFiles, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
 import { normalizeSalesNoteCode } from '../modules/orders/utils/orderCreateFormatters'
@@ -14,16 +14,44 @@ function createInitialDraft() {
     designFiles: [],
   }
 }
+const globalMemory = {}
+const globalListeners = {}
+
+function usePersistentState(key, initialValue) {
+
+  if (!(key in globalMemory)) {
+    globalMemory[key] = typeof initialValue === 'function' ? initialValue() : initialValue
+    globalListeners[key] = new Set()
+  }
+
+  const [state, setState] = useState(globalMemory[key])
+
+  useEffect(() => {
+    const listener = (newValue) => setState(newValue)
+    globalListeners[key].add(listener)
+    return () => globalListeners[key].delete(listener)
+  }, [key])
+
+  const setPersistentState = useCallback((updater) => {
+    const previousValue = globalMemory[key]
+    const nextValue = typeof updater === 'function' ? updater(previousValue) : updater
+    
+    globalMemory[key] = nextValue
+    globalListeners[key].forEach((listener) => listener(nextValue))
+  }, [key])
+
+  return [state, setPersistentState]
+}
 
 export function useOrderCreateFlow({ navigate }) {
-  const [viewMode, setViewMode] = useState(ORDER_CREATE_VIEW_MODE.CREATE)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [draft, setDraft] = useState(createInitialDraft)
-  const [errors, setErrors] = useState({})
-  const [designFileError, setDesignFileError] = useState(null)
-  const [notice, setNotice] = useState(null)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [registeredOrder, setRegisteredOrder] = useState(null)
+  const [viewMode, setViewMode] = usePersistentState('order_viewMode', ORDER_CREATE_VIEW_MODE.CREATE)
+  const [currentStep, setCurrentStep] = usePersistentState('order_currentStep', 1)
+  const [draft, setDraft] = usePersistentState('order_draft', createInitialDraft)
+  const [errors, setErrors] = usePersistentState('order_errors', {})
+  const [designFileError, setDesignFileError] = usePersistentState('order_designFileError', null)
+  const [notice, setNotice] = usePersistentState('order_notice', null)
+  const [showConfirmModal, setShowConfirmModal] = usePersistentState('order_showConfirmModal', false)
+  const [registeredOrder, setRegisteredOrder] = usePersistentState('order_registeredOrder', null)
 
   const salesNoteIsValid = useMemo(() => canContinueFromSalesNote(draft), [draft])
 

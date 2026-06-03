@@ -1,7 +1,8 @@
 import { ORDER_FLOW_STEPS } from '../mocks/orderCreate.mock'
 import styles from './OrderCreateStepper.module.css'
 
-export default function OrderCreateStepper({ currentStep }) {
+
+export default function OrderCreateStepper({ currentStep }) { 
   return (
     <nav aria-label="Progreso del registro de pedido" className={styles.stepper}>
       {ORDER_FLOW_STEPS.map((step) => {

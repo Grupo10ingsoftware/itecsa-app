@@ -140,7 +140,6 @@ function KanbanColumn() {
       try {
         const data = await kanbanApi.getOrders()
 
-        console.log('Data recibida:', data) 
         const normalizedOrders = Array.isArray(data) ? data.map(normalizeOrder) : []
         setOrders(normalizedOrders)
       } catch (error) {

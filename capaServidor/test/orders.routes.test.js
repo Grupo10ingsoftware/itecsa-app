@@ -30,6 +30,33 @@ function createController(updatePaymentStatus) {
     };
 }
 
+test("monta checkJwt antes de listar pedidos", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate(req, res, next) {
+                calls.push("checkJwt");
+                next();
+            },
+            controller: {
+                ...createController(() => {}),
+                getOrders(req, res) {
+                    calls.push("getOrders");
+                    return res.status(200).json([]);
+                },
+            },
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders`,
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, ["checkJwt", "getOrders"]);
+});
+
 test("monta checkJwt antes de requirePermission y de actualizar pago", async (t) => {
     const calls = [];
     const app = createTestApp(

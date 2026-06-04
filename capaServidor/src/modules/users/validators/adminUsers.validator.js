@@ -1,6 +1,4 @@
 const USER_FIELDS = new Set([
-    "primerNombre",
-    "apellidoPaterno",
     "correoUsuario",
     "rolUsuario",
 ]);

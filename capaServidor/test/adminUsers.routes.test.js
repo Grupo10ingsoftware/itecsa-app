@@ -10,8 +10,6 @@ import {
 import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
 const VALID_BODY = {
-    primerNombre: "Ana",
-    apellidoPaterno: "Perez",
     correoUsuario: "ana.perez@itecsa.cl",
     rolUsuario: "Ventas",
 };
@@ -77,8 +75,6 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
     });
     assert.deepEqual(createUserPayload, {
         email: VALID_BODY.correoUsuario,
-        primerNombre: VALID_BODY.primerNombre,
-        apellidoPaterno: VALID_BODY.apellidoPaterno,
         rolUsuario: VALID_BODY.rolUsuario,
     });
 });
@@ -189,8 +185,8 @@ test("responde 400 para payload incompleto, correo invalido, rol no permitido o 
         { ...VALID_BODY, correoUsuario: " " },
         { ...VALID_BODY, correoUsuario: "no-es-correo" },
         { ...VALID_BODY, rolUsuario: "Supervisor" },
-        { ...VALID_BODY, primerNombre: " " },
-        { ...VALID_BODY, apellidoPaterno: " " },
+        { ...VALID_BODY, primerNombre: "Ana" },
+        { ...VALID_BODY, apellidoPaterno: "Perez" },
         { ...VALID_BODY, password: "prohibida" },
     ];
     let calls = 0;

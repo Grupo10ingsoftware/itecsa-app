@@ -65,8 +65,6 @@ export function createAdminUserHandler({
         try {
             createdUser = await createUser({
                 email: user.correoUsuario,
-                primerNombre: user.primerNombre,
-                apellidoPaterno: user.apellidoPaterno,
                 rolUsuario: user.rolUsuario,
             });
         } catch (error) {

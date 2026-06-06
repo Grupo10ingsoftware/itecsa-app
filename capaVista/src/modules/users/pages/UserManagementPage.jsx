@@ -1,29 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import UserButton from '../components/UserButton'
 import UserCreateModal from '../components/UserCreateModal'
 import UserEditModal from '../components/UserEditModal'
+import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
+import UserSummaryCards from '../components/UserSummaryCards'
 import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import styles from './UserManagementPage.module.css'
 
 const USER_STATUS = Object.freeze({
-  ACTIVE: 'Activo',
+  LINKED: 'Vinculado',
   UNLINKED: 'Desvinculado',
 })
 
-const USER_FILTERS = Object.freeze({
-  ALL: 'Todos',
-  ACTIVE: USER_STATUS.ACTIVE,
-  UNLINKED: USER_STATUS.UNLINKED,
+const EMPTY_SUMMARY = Object.freeze({
+  totalUsuarios: 0,
+  vinculados: 0,
+  desvinculados: 0,
 })
-
-const FILTER_OPTIONS = Object.freeze([
-  USER_FILTERS.ALL,
-  USER_FILTERS.ACTIVE,
-  USER_FILTERS.UNLINKED,
-])
 
 const DEFAULT_PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 350
@@ -49,6 +45,8 @@ function formatUserDate(value) {
 }
 
 function mapApiUser(user) {
+  const apiStatus = user.estadoUsuario === 'Activo' ? USER_STATUS.LINKED : user.estadoUsuario
+
   return {
     id: user.idUsuarioAutenticacionExterna,
     idUsuarioAutenticacionExterna: user.idUsuarioAutenticacionExterna,
@@ -58,7 +56,7 @@ function mapApiUser(user) {
     rut: user.rut ?? 'No disponible',
     correo: user.correoUsuario ?? '',
     rol: user.rolUsuario ?? 'Sin rol asignado',
-    estado: user.estadoUsuario ?? USER_STATUS.ACTIVE,
+    estado: apiStatus ?? USER_STATUS.LINKED,
     ultimoAcceso: formatUserDate(user.ultimoAcceso),
   }
 }
@@ -98,12 +96,16 @@ function getErrorText(error) {
 export default function UserManagementPage() {
   const { loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
+  const latestRequestRef = useRef(0)
   const [users, setUsers] = useState([])
-  const [activeFilter, setActiveFilter] = useState(USER_FILTERS.ALL)
+  const [activeStatus, setActiveStatus] = useState('')
+  const [activeRole, setActiveRole] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [page, setPage] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
+  const [summary, setSummary] = useState(EMPTY_SUMMARY)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -118,28 +120,60 @@ export default function UserManagementPage() {
     return () => window.clearTimeout(debounceTimer)
   }, [searchTerm])
 
-  const loadUsers = useCallback(async () => {
-    setIsLoading(true)
-    setActionMessage(null)
+  const loadUsers = useCallback(
+    async ({ preserveMessage = false, requestedPage = page } = {}) => {
+      const requestId = latestRequestRef.current + 1
+      latestRequestRef.current = requestId
+      setIsLoading(true)
 
+      if (!preserveMessage) {
+        setActionMessage(null)
+      }
+
+      try {
+        const response = await adminUsersApi.listUsers({
+          page: requestedPage,
+          perPage: DEFAULT_PAGE_SIZE,
+          search: debouncedSearchTerm,
+          estadoUsuario: activeStatus,
+          rolUsuario: activeRole,
+        })
+
+        if (requestId !== latestRequestRef.current) {
+          return
+        }
+
+        setUsers((response.usuarios ?? []).map(mapApiUser))
+        setTotalUsers(response.total ?? 0)
+      } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return
+        }
+
+        setUsers([])
+        setTotalUsers(0)
+        setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
+      } finally {
+        if (requestId === latestRequestRef.current) {
+          setIsLoading(false)
+        }
+      }
+    },
+    [activeRole, activeStatus, adminUsersApi, debouncedSearchTerm, page],
+  )
+
+  const loadSummary = useCallback(async () => {
     try {
-      const response = await adminUsersApi.listUsers({
-        page,
-        perPage: DEFAULT_PAGE_SIZE,
-        search: debouncedSearchTerm,
-        estadoUsuario: activeFilter === USER_FILTERS.ALL ? '' : activeFilter,
+      const response = await adminUsersApi.getSummary()
+      setSummary({
+        totalUsuarios: response.totalUsuarios ?? 0,
+        vinculados: response.vinculados ?? 0,
+        desvinculados: response.desvinculados ?? 0,
       })
-
-      setUsers((response.usuarios ?? []).map(mapApiUser))
-      setTotalUsers(response.total ?? 0)
-    } catch (error) {
-      setUsers([])
-      setTotalUsers(0)
-      setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
-    } finally {
-      setIsLoading(false)
+    } catch {
+      setSummary(EMPTY_SUMMARY)
     }
-  }, [activeFilter, adminUsersApi, debouncedSearchTerm, page])
+  }, [adminUsersApi])
 
   useEffect(() => {
     const requestTimer = window.setTimeout(() => {
@@ -149,19 +183,31 @@ export default function UserManagementPage() {
     return () => window.clearTimeout(requestTimer)
   }, [loadUsers])
 
+  useEffect(() => {
+    const requestTimer = window.setTimeout(() => {
+      loadSummary()
+    }, 0)
+
+    return () => window.clearTimeout(requestTimer)
+  }, [loadSummary])
+
   const totalPages = Math.max(1, Math.ceil(totalUsers / DEFAULT_PAGE_SIZE))
 
-  const filterCounts = useMemo(
-    () => ({
-      [USER_FILTERS.ALL]: totalUsers,
-      [USER_FILTERS.ACTIVE]: activeFilter === USER_FILTERS.ACTIVE ? totalUsers : '—',
-      [USER_FILTERS.UNLINKED]: activeFilter === USER_FILTERS.UNLINKED ? totalUsers : '—',
-    }),
-    [activeFilter, totalUsers],
-  )
+  function handleStatusChange(status) {
+    setActiveStatus(status)
+    setPage(1)
+  }
 
-  function handleFilterChange(filter) {
-    setActiveFilter(filter)
+  function handleRoleChange(role) {
+    setActiveRole(role)
+    setPage(1)
+  }
+
+  function handleClearFilters() {
+    setActiveStatus('')
+    setActiveRole('')
+    setSearchTerm('')
+    setDebouncedSearchTerm('')
     setPage(1)
   }
 
@@ -179,7 +225,7 @@ export default function UserManagementPage() {
       })
       setEditingUser(null)
       setActionMessage({ type: 'success', text: 'Usuario actualizado correctamente.' })
-      await loadUsers()
+      await Promise.all([loadUsers({ preserveMessage: true }), loadSummary()])
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
     }
@@ -189,7 +235,7 @@ export default function UserManagementPage() {
     setIsCreateModalOpen(false)
     setActionMessage({ type: 'success', text: 'Usuario creado correctamente.' })
     setPage(1)
-    await loadUsers()
+    await Promise.all([loadUsers({ preserveMessage: true, requestedPage: 1 }), loadSummary()])
   }
 
   return (
@@ -203,6 +249,8 @@ export default function UserManagementPage() {
           <p className={styles.pageSubtitle}>Administra usuarios, roles y estado de vinculación del sistema.</p>
         </header>
 
+        <UserSummaryCards summary={summary} />
+
         <div className={styles.content}>
           {actionMessage && (
             <div className={`${styles.feedbackMessage} ${styles[`feedback${actionMessage.type}`]}`} role="status">
@@ -215,39 +263,19 @@ export default function UserManagementPage() {
             </div>
           )}
 
-          <div className={styles.toolbar}>
-            <div className={styles.quickFilters} aria-label="Filtros rápidos de usuarios" role="group">
-              {FILTER_OPTIONS.map((filter) => (
-                <button
-                  aria-pressed={activeFilter === filter}
-                  className={`${styles.filterChip} ${activeFilter === filter ? styles.filterChipActive : ''}`}
-                  key={filter}
-                  onClick={() => handleFilterChange(filter)}
-                  type="button"
-                >
-                  <span>{filter}</span>
-                  <strong>{filterCounts[filter]}</strong>
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.toolbarActions}>
-              <label className={styles.searchBox} htmlFor="user-management-search">
-                <i className="bi bi-search" aria-hidden="true" />
-                <span className="visually-hidden">Buscar usuario</span>
-                <input
-                  id="user-management-search"
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar por nombre, correo o RUT"
-                  type="search"
-                  value={searchTerm}
-                />
-              </label>
-              <UserButton icon="bi-plus-lg" onClick={() => setIsCreateModalOpen(true)} variant="primary">
-                Crear usuario
-              </UserButton>
-            </div>
-          </div>
+          <UserManagementFilters
+            activeRole={activeRole}
+            activeStatus={activeStatus}
+            isOpen={isFiltersOpen}
+            onClear={handleClearFilters}
+            onCreateUser={() => setIsCreateModalOpen(true)}
+            onRoleChange={handleRoleChange}
+            onSearchChange={setSearchTerm}
+            onStatusChange={handleStatusChange}
+            onToggle={() => setIsFiltersOpen((currentValue) => !currentValue)}
+            searchTerm={searchTerm}
+            summary={summary}
+          />
 
           <UserManagementTable
             currentPage={page}
@@ -260,7 +288,11 @@ export default function UserManagementPage() {
         </div>
       </section>
 
-      <UserCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onCreated={handleCreatedUser} />
+      <UserCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={handleCreatedUser}
+      />
       <UserEditModal
         key={editingUser?.id ?? 'user-edit-modal'}
         isOpen={Boolean(editingUser)}

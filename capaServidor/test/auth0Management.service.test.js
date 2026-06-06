@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import {
     Auth0ServiceError,
     createAuth0User,
+    getAuth0UsersSummary,
     listAuth0Users,
     requestPasswordSetupEmail,
 } from "../src/services/auth0Management.service.js";
@@ -205,7 +206,7 @@ test("lista usuarios paginados y normaliza sus roles Auth0", async () => {
                 rut: "No disponible",
                 correoUsuario: "ana@example.cl",
                 rolUsuario: "Administrador",
-                estadoUsuario: "Activo",
+                estadoUsuario: "Vinculado",
                 ultimoAcceso: "2026-06-01T12:00:00.000Z",
                 fechaCreacion: "2026-05-01T12:00:00.000Z",
                 fechaActualizacion: "2026-06-01T12:00:00.000Z",
@@ -214,6 +215,77 @@ test("lista usuarios paginados y normaliza sus roles Auth0", async () => {
         total: 1,
         page: 2,
         perPage: 10,
+    });
+});
+
+test("filtra vinculados y roles usando la busqueda de Auth0 sin consulta RBAC adicional", async () => {
+    const requests = [];
+    global.fetch = async (url, options) => {
+        requests.push({ url, options });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.includes("/api/v2/users?")) {
+            return jsonResponse(200, {
+                total: 1,
+                users: [
+                    {
+                        user_id: "auth0|metadata-role",
+                        email: "gerencia@example.cl",
+                        given_name: "Maria",
+                        family_name: "Fernandez",
+                        blocked: false,
+                        app_metadata: { rolUsuario: "Gerencia" },
+                        user_metadata: { rut: "15.987.654-3" },
+                    },
+                ],
+            });
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await listAuth0Users({
+        estadoUsuario: "Vinculado",
+        rolUsuario: "Gerencia",
+    });
+
+    assert.equal(requests.length, 2);
+    assert.match(requests[1].url, /blocked%3Afalse/);
+    assert.match(requests[1].url, /app_metadata\.rolUsuario/);
+    assert.equal(result.usuarios[0].rolUsuario, "Gerencia");
+    assert.equal(result.usuarios[0].estadoUsuario, "Vinculado");
+});
+
+test("calcula el resumen con dos consultas de conteo en paralelo", async () => {
+    const requests = [];
+    global.fetch = async (url, options) => {
+        requests.push({ url, options });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.includes("/api/v2/users?")) {
+            const decodedUrl = decodeURIComponent(url);
+            return jsonResponse(200, {
+                total: decodedUrl.includes("q=blocked:true") ? 22 : 120,
+                users: [],
+            });
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await getAuth0UsersSummary();
+
+    assert.equal(requests.length, 3);
+    assert.deepEqual(result, {
+        totalUsuarios: 120,
+        vinculados: 98,
+        desvinculados: 22,
     });
 });
 

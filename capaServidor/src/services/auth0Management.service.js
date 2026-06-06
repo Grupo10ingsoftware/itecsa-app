@@ -395,7 +395,7 @@ function normalizeAuth0User(user, rbacRole) {
     const apellidoPaterno = typeof user?.family_name === "string" ? user.family_name : "";
     const metadataRole = typeof appMetadata.rolUsuario === "string" ? appMetadata.rolUsuario : "";
     const selectedRole = OFFICIAL_ROLES.has(metadataRole) ? metadataRole : rbacRole;
-    const estadoUsuario = user?.blocked ? "Desvinculado" : "Activo";
+    const estadoUsuario = user?.blocked ? "Desvinculado" : "Vinculado";
 
     return {
         idUsuarioAutenticacionExterna: user.user_id,
@@ -420,10 +420,24 @@ function sanitizeAuth0SearchTerm(search) {
         .trim();
 }
 
-function buildAuth0UserSearch({ search, estadoUsuario }) {
+function formatSearchRut(search) {
+    const normalizedRut = search.replace(/[^0-9kK]/g, "").toUpperCase();
+
+    if (!/^\d{7,8}[0-9K]$/.test(normalizedRut)) {
+        return "";
+    }
+
+    const body = normalizedRut.slice(0, -1);
+    const verifier = normalizedRut.slice(-1);
+    const formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    return `${formattedBody}-${verifier}`;
+}
+
+function buildAuth0UserSearch({ search, estadoUsuario, rolUsuario }) {
     const queryParts = [];
 
-    if (estadoUsuario === "Activo") {
+    if (estadoUsuario === "Vinculado" || estadoUsuario === "Activo") {
         queryParts.push("blocked:false");
     }
 
@@ -431,23 +445,96 @@ function buildAuth0UserSearch({ search, estadoUsuario }) {
         queryParts.push("blocked:true");
     }
 
+    if (OFFICIAL_ROLES.has(rolUsuario)) {
+        queryParts.push(`app_metadata.rolUsuario:"${rolUsuario}"`);
+    }
+
     if (typeof search === "string" && search.trim().length > 0) {
         const safeSearch = sanitizeAuth0SearchTerm(search);
+        const formattedRut = formatSearchRut(search);
 
         if (safeSearch.length > 0) {
-            queryParts.push(`(email:*${safeSearch}* OR name:*${safeSearch}* OR given_name:*${safeSearch}* OR family_name:*${safeSearch}*)`);
+            const textSearch = safeSearch.length >= 3 ? `*${safeSearch}*` : `${safeSearch}*`;
+            const searchFields = [
+                `email:${textSearch}`,
+                `name:${textSearch}`,
+                `given_name:${textSearch}`,
+                `family_name:${textSearch}`,
+            ];
+
+            if (formattedRut) {
+                searchFields.push(`user_metadata.rut:"${formattedRut}"`);
+            }
+
+            queryParts.push(`(${searchFields.join(" OR ")})`);
         }
     }
 
     return queryParts.join(" AND ");
 }
 
-export async function listAuth0Users({ page = 1, perPage = 10, search = "", estadoUsuario = "" } = {}) {
+function hasOfficialMetadataRole(user) {
+    return OFFICIAL_ROLES.has(user?.app_metadata?.rolUsuario);
+}
+
+async function fetchAuth0UserCount({ domain, accessToken, query = "" }) {
+    const params = new URLSearchParams({
+        page: "0",
+        per_page: "1",
+        include_totals: "true",
+        include_fields: "true",
+        fields: "user_id",
+        search_engine: "v3",
+    });
+
+    if (query) {
+        params.set("q", query);
+    }
+
+    const body = await fetchAuth0Json({
+        domain,
+        accessToken,
+        path: `users?${params.toString()}`,
+        errorCode: "AUTH0_LIST_USERS_FAILED",
+        errorMessage: "No fue posible consultar el resumen de usuarios en Auth0.",
+    });
+
+    if (!Number.isInteger(body?.total)) {
+        throw new Auth0ServiceError(
+            "AUTH0_INVALID_RESPONSE",
+            "Auth0 no entrego un resumen de usuarios valido.",
+        );
+    }
+
+    return body.total;
+}
+
+export async function getAuth0UsersSummary() {
+    const { domain, accessToken } = await requestManagementToken();
+    const [totalUsuarios, desvinculados] = await Promise.all([
+        fetchAuth0UserCount({ domain, accessToken }),
+        fetchAuth0UserCount({ domain, accessToken, query: "blocked:true" }),
+    ]);
+
+    return {
+        totalUsuarios,
+        vinculados: Math.max(0, totalUsuarios - desvinculados),
+        desvinculados,
+    };
+}
+
+export async function listAuth0Users({
+    page = 1,
+    perPage = 10,
+    search = "",
+    estadoUsuario = "",
+    rolUsuario = "",
+} = {}) {
     const { domain, accessToken } = await requestManagementToken();
     const safePage = Number.isInteger(page) && page > 0 ? page : 1;
     const safePerPage = Number.isInteger(perPage) && perPage > 0 && perPage <= 50 ? perPage : 10;
     const auth0Page = safePage - 1;
-    const searchQuery = buildAuth0UserSearch({ search, estadoUsuario });
+    const searchQuery = buildAuth0UserSearch({ search, estadoUsuario, rolUsuario });
     const params = new URLSearchParams({
         page: String(auth0Page),
         per_page: String(safePerPage),
@@ -479,8 +566,9 @@ export async function listAuth0Users({ page = 1, perPage = 10, search = "", esta
         );
     }
 
+    const usersWithoutMetadataRole = users.filter((user) => !hasOfficialMetadataRole(user));
     const rolePairs = await Promise.all(
-        users.map(async (user) => [
+        usersWithoutMetadataRole.map(async (user) => [
             user.user_id,
             (await getUserRoles({ domain, accessToken, userId: user.user_id }))[0] ?? "",
         ]),

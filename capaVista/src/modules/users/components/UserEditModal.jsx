@@ -3,7 +3,7 @@ import { OFFICIAL_ROLES } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
-const USER_STATUSES = Object.freeze(['Activo', 'Desvinculado'])
+const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
 
 function createFormState(user) {
   return {
@@ -12,7 +12,7 @@ function createFormState(user) {
     rut: user.rut,
     correo: user.correo,
     rol: user.rol,
-    estado: user.estado,
+    estado: user.estado === 'Activo' ? 'Vinculado' : user.estado,
   }
 }
 
@@ -94,7 +94,7 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }) {
     }
   }
 
-  const isActive = values.estado === 'Activo'
+  const isLinked = values.estado === 'Vinculado'
 
   return (
     <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
@@ -140,7 +140,7 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }) {
               <span className={styles.editRoleBadge}>{values.rol}</span>
               <span
                 className={`${styles.editStatusBadge} ${
-                  isActive ? styles.editStatusActive : styles.editStatusUnlinked
+                  isLinked ? styles.editStatusLinked : styles.editStatusUnlinked
                 }`}
               >
                 <span className={styles.editStatusDot} aria-hidden="true" />

@@ -13,15 +13,17 @@ function buildQueryString(params) {
 
 export function createAdminUsersApi(apiClient) {
   return {
-    listUsers: ({ page = 1, perPage = 10, search = '', estadoUsuario = '' } = {}) =>
+    listUsers: ({ page = 1, perPage = 10, search = '', estadoUsuario = '', rolUsuario = '' } = {}) =>
       apiClient.get(
         `/admin/users${buildQueryString({
           page,
           perPage,
           search,
           estadoUsuario,
+          rolUsuario,
         })}`,
       ),
+    getSummary: () => apiClient.get('/admin/users/summary'),
     createUser: ({ primerNombre, apellidoPaterno, correoUsuario, rutUsuario, rolUsuario }) =>
       apiClient.post('/admin/users', {
         primerNombre,

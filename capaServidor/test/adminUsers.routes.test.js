@@ -6,6 +6,7 @@ import { Auth0ServiceError } from "../src/services/auth0Management.service.js";
 import {
     createAdminUserHandler,
     createAdminUsersRouter,
+    createAdminUsersSummaryHandler,
     createListAdminUsersHandler,
     createPasswordSetupEmailHandler,
 } from "../src/routes/adminUsers.routes.js";
@@ -66,6 +67,15 @@ async function executeListHandler({ query = {}, listUsers }) {
     return res;
 }
 
+async function executeSummaryHandler({ getSummary }) {
+    const res = responseRecorder();
+    const handler = createAdminUsersSummaryHandler({ getSummary });
+
+    await handler({}, res);
+
+    return res;
+}
+
 test("responde 200 con el listado y filtros normalizados", async () => {
     let receivedFilters;
     const expectedResult = {
@@ -79,7 +89,8 @@ test("responde 200 con el listado y filtros normalizados", async () => {
             page: "2",
             perPage: "20",
             search: "  ana  ",
-            estadoUsuario: "Activo",
+            estadoUsuario: "Vinculado",
+            rolUsuario: "Gerencia",
         },
         listUsers: async (filters) => {
             receivedFilters = filters;
@@ -93,8 +104,50 @@ test("responde 200 con el listado y filtros normalizados", async () => {
         page: 2,
         perPage: 20,
         search: "ana",
-        estadoUsuario: "Activo",
+        estadoUsuario: "Vinculado",
+        rolUsuario: "Gerencia",
     });
+});
+
+test("normaliza Activo como Vinculado para mantener compatibilidad", async () => {
+    let receivedFilters;
+    const res = await executeListHandler({
+        query: { estadoUsuario: "Activo" },
+        listUsers: async (filters) => {
+            receivedFilters = filters;
+            return { usuarios: [], total: 0, page: 1, perPage: 10 };
+        },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(receivedFilters.estadoUsuario, "Vinculado");
+});
+
+test("rechaza filtros de rol no oficiales", async () => {
+    let calls = 0;
+    const res = await executeListHandler({
+        query: { rolUsuario: "Supervisor" },
+        listUsers: async () => {
+            calls += 1;
+        },
+    });
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(calls, 0);
+});
+
+test("responde 200 con el resumen de vinculacion", async () => {
+    const expectedSummary = {
+        totalUsuarios: 120,
+        vinculados: 98,
+        desvinculados: 22,
+    };
+    const res = await executeSummaryHandler({
+        getSummary: async () => expectedSummary,
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, expectedSummary);
 });
 
 test("expone los scopes requeridos cuando Auth0 rechaza el listado", async () => {

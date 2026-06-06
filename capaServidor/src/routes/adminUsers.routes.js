@@ -5,6 +5,7 @@ import {
     AUTH0_MANAGEMENT_SCOPES,
     Auth0ServiceError,
     createAuth0User,
+    getAuth0UsersSummary,
     listAuth0Users,
     requestPasswordSetupEmail,
     setAuth0UserStatus,
@@ -34,7 +35,8 @@ const ROLES = new Set([
     "Ventas",
     "Cobranzas",
 ]);
-const USER_STATUSES = new Set(["Activo", "Desvinculado"]);
+const USER_STATUSES = new Set(["Vinculado", "Desvinculado"]);
+const LEGACY_USER_STATUSES = new Map([["Activo", "Vinculado"]]);
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
@@ -80,6 +82,10 @@ function auth0ErrorResponse(error, fallbackMessage) {
 
 function invalidRequest(message) {
     return { valid: false, message };
+}
+
+function normalizeUserStatus(value) {
+    return LEGACY_USER_STATUSES.get(value) ?? value;
 }
 
 function normalizeRut(value) {
@@ -153,8 +159,12 @@ function validateUserPayload(body, allowedFields = USER_FIELDS) {
         user.rutUsuario = formatRut(user.rutUsuario);
     }
 
-    if (user.estadoUsuario && !USER_STATUSES.has(user.estadoUsuario)) {
-        return invalidRequest("El estadoUsuario no es valido.");
+    if (user.estadoUsuario) {
+        user.estadoUsuario = normalizeUserStatus(user.estadoUsuario);
+
+        if (!USER_STATUSES.has(user.estadoUsuario)) {
+            return invalidRequest("El estadoUsuario no es valido.");
+        }
     }
 
     return { valid: true, user };
@@ -181,7 +191,7 @@ function validateStatusRequest(body) {
         return invalidRequest("El campo estadoUsuario es obligatorio.");
     }
 
-    const estadoUsuario = body.estadoUsuario.trim();
+    const estadoUsuario = normalizeUserStatus(body.estadoUsuario.trim());
 
     if (!USER_STATUSES.has(estadoUsuario)) {
         return invalidRequest("El estadoUsuario no es valido.");
@@ -233,11 +243,18 @@ function parseListQuery(query) {
     const page = parseIntegerQuery(query.page, 1, { min: 1, max: 500 });
     const perPage = parseIntegerQuery(query.perPage, 10, { min: 1, max: 50 });
     const search = typeof query.search === "string" ? query.search.trim() : "";
-    const estadoUsuario =
-        typeof query.estadoUsuario === "string" ? query.estadoUsuario.trim() : "";
+    const estadoUsuario = normalizeUserStatus(
+        typeof query.estadoUsuario === "string" ? query.estadoUsuario.trim() : "",
+    );
+    const rolUsuario =
+        typeof query.rolUsuario === "string" ? query.rolUsuario.trim() : "";
 
     if (estadoUsuario && !USER_STATUSES.has(estadoUsuario)) {
         return invalidRequest("El estadoUsuario no es valido.");
+    }
+
+    if (rolUsuario && !ROLES.has(rolUsuario)) {
+        return invalidRequest("El rolUsuario no es valido.");
     }
 
     return {
@@ -247,6 +264,7 @@ function parseListQuery(query) {
             perPage,
             search,
             estadoUsuario,
+            rolUsuario,
         },
     };
 }
@@ -274,6 +292,20 @@ export function createListAdminUsersHandler({ listUsers = listAuth0Users } = {})
             return res.status(200).json(result);
         } catch (error) {
             logAuth0Failure("listUsers failed", error);
+            return res.status(500).json(auth0ErrorResponse(error, LIST_USERS_ERROR_MESSAGE));
+        }
+    };
+}
+
+export function createAdminUsersSummaryHandler({
+    getSummary = getAuth0UsersSummary,
+} = {}) {
+    return async function adminUsersSummaryHandler(req, res) {
+        try {
+            const result = await getSummary();
+            return res.status(200).json(result);
+        } catch (error) {
+            logAuth0Failure("getUsersSummary failed", error);
             return res.status(500).json(auth0ErrorResponse(error, LIST_USERS_ERROR_MESSAGE));
         }
     };
@@ -436,6 +468,7 @@ export function createAdminUsersRouter({
     createUser,
     requestPasswordEmail,
     listUsers,
+    getSummary,
     updateUser,
     updateStatus,
 } = {}) {
@@ -445,6 +478,12 @@ export function createAdminUsersRouter({
         authenticate,
         authorize,
         createListAdminUsersHandler({ listUsers }),
+    );
+    router.get(
+        "/users/summary",
+        authenticate,
+        authorize,
+        createAdminUsersSummaryHandler({ getSummary }),
     );
     router.post(
         "/users",

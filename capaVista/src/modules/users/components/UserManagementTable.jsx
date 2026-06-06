@@ -37,12 +37,20 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
     <div className={styles.tableCard}>
       <div className={styles.tableResponsive}>
         <table className={styles.usersTable}>
+          <colgroup>
+            <col className={styles.nameColumn} />
+            <col className={styles.rutColumn} />
+            <col className={styles.emailColumn} />
+            <col className={styles.roleColumn} />
+            <col className={styles.statusColumn} />
+            <col className={styles.accessColumn} />
+            <col className={styles.actionsColumn} />
+          </colgroup>
           <thead>
             <tr>
               {TABLE_COLUMNS.map((column) => (
-                <th key={column} scope="col">
-                  <span>{column}</span>
-                  {column !== 'Acciones' && <i className="bi bi-arrow-down" aria-hidden="true" />}
+                <th className={column === 'Acciones' ? styles.actionsCell : undefined} key={column} scope="col">
+                  {column}
                 </th>
               ))}
             </tr>
@@ -65,15 +73,15 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
             {!isLoading &&
               users.map((user) => (
                 <tr key={user.id}>
-                  <td>{user.nombreCompleto}</td>
-                  <td>{user.rut}</td>
-                  <td>{user.correo}</td>
+                  <td className={styles.nameCell}>{user.nombreCompleto}</td>
+                  <td className={styles.rutCell}>{user.rut}</td>
+                  <td className={styles.emailCell}>{user.correo}</td>
                   <td>{user.rol}</td>
                   <td>
                     <UserStatusBadge status={user.estado} />
                   </td>
-                  <td>{user.ultimoAcceso}</td>
-                  <td>
+                  <td className={styles.accessCell}>{user.ultimoAcceso}</td>
+                  <td className={styles.actionsCell}>
                     <UserButton className={styles.editButton} onClick={() => onEditUser(user)} variant="secondary">
                       Editar
                     </UserButton>
@@ -85,16 +93,26 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
       </div>
 
       <footer className={styles.paginationFooter} aria-label="Paginación de usuarios">
-        <UserButton className={styles.paginationSideButton} disabled={!canGoPrevious} onClick={() => onPageChange(currentPage - 1)} variant="secondary">
+        <UserButton
+          className={styles.paginationSideButton}
+          disabled={!canGoPrevious}
+          onClick={() => onPageChange(currentPage - 1)}
+          variant="secondary"
+        >
+          <i className="bi bi-arrow-left" aria-hidden="true" />
           Anterior
         </UserButton>
 
         <div className={styles.paginationCenter}>
-          <span className={styles.pageSummary}>Página {currentPage} de {totalPages}</span>
+          <span className={styles.pageSummary}>
+            Página {currentPage} de {totalPages}
+          </span>
           <nav className={styles.pageButtons} aria-label="Páginas cercanas">
             {pageItems.map((pageItem, index) =>
               pageItem === 'ellipsis' ? (
-                <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>...</span>
+                <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>
+                  ...
+                </span>
               ) : (
                 <button
                   aria-current={pageItem === currentPage ? 'page' : undefined}
@@ -111,8 +129,14 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
           </nav>
         </div>
 
-        <UserButton className={styles.paginationSideButton} disabled={!canGoNext} onClick={() => onPageChange(currentPage + 1)} variant="secondary">
+        <UserButton
+          className={styles.paginationSideButton}
+          disabled={!canGoNext}
+          onClick={() => onPageChange(currentPage + 1)}
+          variant="secondary"
+        >
           Siguiente
+          <i className="bi bi-arrow-right" aria-hidden="true" />
         </UserButton>
       </footer>
     </div>

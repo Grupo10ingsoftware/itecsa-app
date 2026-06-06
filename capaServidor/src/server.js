@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 
 import orderRoutes from './modules/orders/routes/order.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import adminUsersRoutes from './routes/adminUsers.routes.js';
+import authRoutes from './modules/auth/routes/auth.routes.js';
+import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 
 class Server {
   constructor() {
@@ -49,6 +49,7 @@ class Server {
   }
 
   routes() {
+    
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
     /**
@@ -59,6 +60,7 @@ class Server {
      */
     this.app.use( this.paths.auth, authRoutes)
     this.app.use( this.paths.admin, adminUsersRoutes)
+
   }
 
   listen() {

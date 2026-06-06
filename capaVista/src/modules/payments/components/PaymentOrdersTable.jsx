@@ -5,6 +5,7 @@ import SalesNoteButton from './SalesNoteButton'
 import styles from './PaymentOrdersTable.module.css'
 
 export default function PaymentOrdersTable({
+  canUpdatePaymentStatus,
   editingStatus,
   orders,
   onCloseEditor,
@@ -59,6 +60,7 @@ export default function PaymentOrdersTable({
                 </td>
                 <td className={styles.actionsCell}>
                   <PaymentRowActions
+                    canUpdatePaymentStatus={canUpdatePaymentStatus}
                     editingStatus={editingStatus}
                     onCloseEditor={onCloseEditor}
                     onSelectStatus={onSelectStatus}

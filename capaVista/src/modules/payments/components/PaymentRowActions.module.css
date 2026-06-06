@@ -52,6 +52,53 @@
   width: 7.25rem;
 }
 
+.actionDropdownWrap[data-disabled='true'] .actionButton {
+  pointer-events: none;
+}
+
+.actionDropdownWrap[data-disabled='true']::after,
+.actionDropdownWrap[data-disabled='true']::before {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 40;
+}
+
+.actionDropdownWrap[data-disabled='true']::after {
+  background: #111827;
+  border-radius: 0.45rem;
+  bottom: calc(100% + 0.55rem);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.25;
+  max-width: min(15rem, 80vw);
+  padding: 0.5rem 0.65rem;
+  right: 0;
+  text-align: left;
+  transform: translateY(0.25rem);
+  width: max-content;
+}
+
+.actionDropdownWrap[data-disabled='true']::before {
+  border: 0.35rem solid transparent;
+  border-top-color: #111827;
+  bottom: calc(100% + 0.2rem);
+  content: '';
+  right: 1rem;
+  transform: translateY(0.25rem);
+}
+
+.actionDropdownWrap[data-disabled='true']:hover::after,
+.actionDropdownWrap[data-disabled='true']:hover::before {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .paymentActionSelect {
   background: #fff;
   border: 1px solid #d7dee8;

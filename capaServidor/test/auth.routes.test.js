@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { verifyAuthSessionHandler } from "../src/routes/auth.routes.js";
+import { verifyAuthSessionHandler } from "../src/modules/auth/controller/auth.controller.js";
 
 const VALID_PAYLOAD = {
     sub: "auth0|user-id",

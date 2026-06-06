@@ -50,16 +50,16 @@ Ningun secret real debe quedar en el repositorio. Las variables Management son c
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
-La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` presente en usuarios creados es auxiliar y no reemplaza RBAC.
+La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC.
 
 ## Servicio Interno Auth0
 
-`src/services/auth0Management.service.js` prepara dos operaciones backend:
+`src/modules/users/service/auth0Management.service.js` prepara dos operaciones backend:
 
-- `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database con nombre y `app_metadata.rolUsuario`, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
+- `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database solo con correo y contrasena temporal, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
 - `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
 
-El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. `app_metadata.rolUsuario` acompana la cuenta como metadata; la autorizacion efectiva utiliza el rol Auth0 RBAC asignado y el claim `https://itecsa.local/roles`.
+El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. Tampoco persiste nombre, apellido ni `app_metadata.rolUsuario` en Auth0; la autorizacion efectiva utiliza el rol Auth0 RBAC asignado y el claim `https://itecsa.local/roles`.
 
 ITECSA no recibe, almacena ni persiste contrasenas de usuarios. La contrasena temporal generada por el backend existe solo en memoria durante la llamada de creacion Auth0 y luego se solicita el correo de establecimiento/cambio de contrasena administrado por Auth0.
 
@@ -99,8 +99,6 @@ Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
 
 ```json
 {
-  "primerNombre": "Ana",
-  "apellidoPaterno": "Perez",
   "correoUsuario": "correo.controlado@example.cl",
   "rolUsuario": "Ventas"
 }
@@ -182,7 +180,7 @@ Creacion administrativa con token Administrador y un correo controlado nuevo:
 curl -i -X POST http://localhost:3000/api/admin/users \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
-  -d '{"primerNombre":"Ana","apellidoPaterno":"Perez","correoUsuario":"correo.controlado@example.cl","rolUsuario":"Ventas"}'
+  -d '{"correoUsuario":"correo.controlado@example.cl","rolUsuario":"Ventas"}'
 ```
 
 Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.
@@ -218,3 +216,63 @@ Caso `403` del reenvio: repetir la solicitud valida con un access token autentic
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
 
 Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
+
+## Endpoints RF32 - Pago Y Kanban
+
+Estos endpoints cubren el cierre backend de `UR 3.1`, `UR 3.3` y `UR 3.7` usando datos mock en memoria.
+
+### `GET /api/kanban`
+
+Requiere access token Auth0 valido. Devuelve columnas fijas y ordenes mock:
+
+```json
+{
+  "columns": [
+    "Confirmacion de pago",
+    "Listo para produccion",
+    "En produccion",
+    "Listo para entrega"
+  ],
+  "orders": []
+}
+```
+
+### `PATCH /api/orders/:id/payment-status`
+
+Requiere access token Auth0 valido con permiso `update:payment-status`.
+
+```json
+{
+  "paymentStatus": "Confirmado"
+}
+```
+
+Estados permitidos: `Pendiente`, `Confirmado`, `Rechazado`.
+
+- Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
+- Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.
+- Sin permiso `update:payment-status`, responde `403`.
+
+### `PATCH /api/kanban/orders/:id/move`
+
+Requiere access token Auth0 valido.
+
+```json
+{
+  "targetStatus": "Listo para produccion"
+}
+```
+
+Si se intenta mover manualmente a `Listo para produccion` con pago distinto de `Confirmado`, responde:
+
+```json
+{
+  "message": "Pedido en espera de confirmacion de pago"
+}
+```
+
+Trabajo manual pendiente en Auth0 Dashboard:
+
+- Rol `Cobranzas`: asignar `view:payments-module` y `update:payment-status`.
+- Rol `Administrador`: asignar `view:payments-module`, sin `update:payment-status`.
+- Cerrar sesion y volver a iniciar sesion con usuarios de prueba para emitir tokens nuevos.

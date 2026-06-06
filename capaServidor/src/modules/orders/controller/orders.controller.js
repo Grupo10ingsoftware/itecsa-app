@@ -1,6 +1,8 @@
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
+import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
+
 
 class OrderController {
     
@@ -25,7 +27,7 @@ class OrderController {
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
 
 
-            const { paymentStatusId } = req.body;
+            const paymentStatusId = req.body?.paymentStatusId ?? req.body?.paymentStatus;
             const result = await 
             this.service.updPaymentState( 
                 orderId, 
@@ -38,9 +40,9 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            res.status( 500 ).json({
-                message: 'Error al actualizar el pedido',
-                error
+            const statusCode = error.statusCode ?? 500;
+            res.status( statusCode ).json({
+                message: error.message || 'Error al actualizar el pedido',
             })
         }
     }
@@ -48,16 +50,13 @@ class OrderController {
     updateGeneralStep = async ( req = request, res = response) => {
         
         try {
-
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
-
-
-            const { generalStepId } = req.body;
+            const { generalStepId } = req.body ?? {};
             const result = await 
-            this.service.updPaymentState( 
+            this.service.updGeneralStep( 
                 orderId, 
-                paymentStatusId
+                generalStepId
             );
 
             if ( !result ) return res.status(404).json({
@@ -66,9 +65,12 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            res.status( 500 ).json({
-                message: 'Error al actualizar el pedido',
-                error
+            const statusCode =
+                error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE
+                    ? 409
+                    : error.statusCode ?? 500;
+            res.status( statusCode ).json({
+                message: error.message || 'Error al actualizar el pedido',
             })
         }
     }

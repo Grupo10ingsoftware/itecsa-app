@@ -53,8 +53,6 @@ export function validateRole(value) {
 
 export function validateUserCreateForm(values) {
   return {
-    primerNombre: validatePersonName(values.primerNombre, 'El primer nombre'),
-    apellidoPaterno: validatePersonName(values.apellidoPaterno, 'El apellido paterno'),
     correoUsuario: validateEmail(values.correoUsuario),
     rolUsuario: validateRole(values.rolUsuario),
   }

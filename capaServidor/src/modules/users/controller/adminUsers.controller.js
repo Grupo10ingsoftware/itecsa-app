@@ -1,92 +1,16 @@
-import { Router } from "express";
-import checkJwt from "../middlewares/checkJwt.js";
-import requireAdministrador from "../middlewares/requireAdministrador.js";
 import {
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
-} from "../services/auth0Management.service.js";
+} from "../service/auth0Management.service.js";
+import {
+    validateAdminUserRequest,
+    validatePasswordSetupEmailRequest,
+} from "../validators/adminUsers.validator.js";
 
-const USER_FIELDS = new Set([
-    "primerNombre",
-    "apellidoPaterno",
-    "correoUsuario",
-    "rolUsuario",
-]);
-const PASSWORD_SETUP_EMAIL_FIELDS = new Set(["correoUsuario"]);
-const ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Operario",
-    "Ventas",
-    "Cobranzas",
-]);
-const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
     "No fue posible solicitar el correo de establecimiento de contrasena.";
-
-function invalidRequest(message) {
-    return { valid: false, message };
-}
-
-function validateRequest(body) {
-    if (body === null || typeof body !== "object" || Array.isArray(body)) {
-        return invalidRequest("Los datos del usuario no son validos.");
-    }
-
-    if (Object.keys(body).some((field) => !USER_FIELDS.has(field))) {
-        return invalidRequest("La solicitud contiene campos no permitidos.");
-    }
-
-    const user = {};
-    for (const field of USER_FIELDS) {
-        if (typeof body[field] !== "string" || body[field].trim().length === 0) {
-            return invalidRequest(`El campo ${field} es obligatorio.`);
-        }
-
-        user[field] = body[field].trim();
-    }
-
-    if (!EMAIL_FORMAT.test(user.correoUsuario)) {
-        return invalidRequest("El correoUsuario no tiene un formato valido.");
-    }
-
-    if (!ROLES.has(user.rolUsuario)) {
-        return invalidRequest("El rolUsuario no es valido.");
-    }
-
-    return { valid: true, user };
-}
-
-function validatePasswordSetupEmailRequest(body) {
-    if (body === null || typeof body !== "object" || Array.isArray(body)) {
-        return invalidRequest("Los datos de la solicitud no son validos.");
-    }
-
-    if (
-        Object.keys(body).some(
-            (field) => !PASSWORD_SETUP_EMAIL_FIELDS.has(field),
-        )
-    ) {
-        return invalidRequest("La solicitud contiene campos no permitidos.");
-    }
-
-    if (
-        typeof body.correoUsuario !== "string" ||
-        body.correoUsuario.trim().length === 0
-    ) {
-        return invalidRequest("El campo correoUsuario es obligatorio.");
-    }
-
-    const correoUsuario = body.correoUsuario.trim();
-
-    if (!EMAIL_FORMAT.test(correoUsuario)) {
-        return invalidRequest("El correoUsuario no tiene un formato valido.");
-    }
-
-    return { valid: true, correoUsuario };
-}
 
 function createdResponse(user, userId, passwordSetupEmailRequested) {
     return {
@@ -129,7 +53,7 @@ export function createAdminUserHandler({
     requestPasswordEmail = requestPasswordSetupEmail,
 } = {}) {
     return async function adminUserHandler(req, res) {
-        const validatedRequest = validateRequest(req.body);
+        const validatedRequest = validateAdminUserRequest(req.body);
 
         if (!validatedRequest.valid) {
             return res.status(400).json({ message: validatedRequest.message });
@@ -141,8 +65,6 @@ export function createAdminUserHandler({
         try {
             createdUser = await createUser({
                 email: user.correoUsuario,
-                primerNombre: user.primerNombre,
-                apellidoPaterno: user.apellidoPaterno,
                 rolUsuario: user.rolUsuario,
             });
         } catch (error) {
@@ -184,27 +106,3 @@ export function createAdminUserHandler({
             .json(createdResponse(user, createdUser.userId, true));
     };
 }
-
-export function createAdminUsersRouter({
-    authenticate = checkJwt,
-    authorize = requireAdministrador,
-    createUser,
-    requestPasswordEmail,
-} = {}) {
-    const router = Router();
-    router.post(
-        "/users",
-        authenticate,
-        authorize,
-        createAdminUserHandler({ createUser, requestPasswordEmail }),
-    );
-    router.post(
-        "/users/password-setup-email",
-        authenticate,
-        authorize,
-        createPasswordSetupEmailHandler({ requestPasswordEmail }),
-    );
-    return router;
-}
-
-export default createAdminUsersRouter();

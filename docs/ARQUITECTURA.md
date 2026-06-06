@@ -45,7 +45,7 @@ No se documentan secretos reales. Los `client_id` son identificadores publicos; 
 - El backend no confia en roles calculados por el frontend.
 - La API recibe un arreglo en `https://itecsa.local/roles` y acepta exactamente un rol oficial.
 - `rolUsuario` es la proyeccion singular que la API devuelve a partir del unico rol valido.
-- Cualquier `app_metadata.rolUsuario` presente en usuarios creados es auxiliar y no reemplaza RBAC ni debe usarse como fuente de autorizacion.
+- Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC ni debe usarse como fuente de autorizacion.
 - `ProtectedRoute`, `RoleGuard`, `hasPermission(...)` y `/access-denied` son controles de experiencia visual.
 - Toda accion sensible debe validarse en backend con `checkJwt` y un middleware o regla de autorizacion propia.
 
@@ -63,7 +63,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `primerNombre`, `apellidoPaterno`, `correoUsuario` y `rolUsuario`; no recibe RUT, firma electronica ni contrasenas.
+`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `correoUsuario` y `rolUsuario`; no recibe nombre, apellido, RUT, firma electronica ni contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -107,8 +107,8 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 - No se persisten RUT, firma electronica ni contrasenas.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos, Kanban real y persistencia de negocio quedan fuera de esta integracion Auth0 inicial.
+- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion Auth0 inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
 
-La trazabilidad especifica de login, creacion de usuarios e integracion Auth0 esta documentada en [TRAZABILIDAD_AUTH0.md](./TRAZABILIDAD_AUTH0.md).
+La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
 
 Para ejecutar cada capa, consultar [README raiz](../README.md), [README frontend](../capaVista/README.md) y [README backend](../capaServidor/README.md).

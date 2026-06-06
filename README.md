@@ -14,6 +14,7 @@ Documentacion especifica:
 - [Frontend](capaVista/README.md)
 - [Backend](capaServidor/README.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
+- [Trazabilidad Incremento 1](docs/TRAZABILIDAD_INCREMENTO_1.md)
 - [Convenciones UI Frontend](docs/CONVENCIONES_UI_FRONTEND.md)
 
 ## Requisitos
@@ -69,7 +70,7 @@ Recursos Auth0 esperados/configurados para esta rama:
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
-La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta contiene `app_metadata.rolUsuario`, ese dato es auxiliar y no reemplaza los roles RBAC ni debe usarse como fuente de autorizacion.
+La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta heredada contiene `app_metadata.rolUsuario`, ese dato es auxiliar y no reemplaza los roles RBAC ni debe usarse como fuente de autorizacion.
 
 ## Restricciones Vigentes
 

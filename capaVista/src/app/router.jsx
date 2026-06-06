@@ -7,7 +7,7 @@ import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
 import KanbanBoardPage from '../modules/kanban/pages/KanbanBoardPage'
 import PaymentConfirmationPage from '../modules/payments/pages/PaymentConfirmationPage'
-import UserCreatePage from '../modules/users/pages/UserCreatePage'
+import UserManagementPage from '../modules/users/pages/UserManagementPage'
 import OrderCreatePage from '../modules/orders/pages/OrderCreatePage'
 import AppLayout from '../shared/components/layout/AppLayout'
 import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
@@ -53,15 +53,16 @@ export default function AppRouter() {
               </RoleGuard>
             }
           />
-          <Route path="admin" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS_CREATE} />} />
+          <Route path="admin" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS} />} />
           <Route
-            path="admin/usuarios/nuevo"
+            path="admin/usuarios"
             element={
               <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
-                <UserCreatePage />
+                <UserManagementPage />
               </RoleGuard>
             }
           />
+          <Route path="admin/usuarios/nuevo" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS} />} />
         </Route>
       </Route>
 

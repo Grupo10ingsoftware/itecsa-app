@@ -1,0 +1,1383 @@
+.page {
+  --users-border: #e5e7eb;
+  --users-border-strong: #cfd6df;
+  --users-orange: #f97316;
+  --users-orange-rgb: 249, 115, 22;
+  --users-green: #15803d;
+  --users-green-rgb: 21, 128, 61;
+  --users-danger: #dc2626;
+  --users-danger-rgb: 220, 38, 38;
+  --users-muted: #64748b;
+  --users-text: #111827;
+
+  color: var(--users-text);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  margin: 0 auto;
+  max-width: 1760px;
+  padding: 1.25rem;
+}
+
+.dashboardShell {
+  background: #fff;
+  border: 1px solid var(--users-border);
+  border-radius: 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.hero {
+  background: #000;
+  border-radius: 1rem 1rem 0 0;
+  color: #fff;
+  min-height: 8.2rem;
+  padding: 1.55rem 2.5rem;
+}
+
+.sectionLabel,
+.modalEyebrow {
+  color: var(--users-orange);
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  color: #fff;
+  font-size: clamp(2.1rem, 3.6vw, 3.3rem);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pageSubtitle {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.98rem;
+  line-height: 1.45;
+  margin: 0.75rem 0 0;
+  max-width: 52rem;
+}
+
+.content {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem 1.35rem 1.5rem;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.quickFilters,
+.toolbarActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.toolbarActions {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.filterChip {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--users-border);
+  border-radius: 0.55rem;
+  color: #111827;
+  display: inline-flex;
+  gap: 0.85rem;
+  min-height: 2.8rem;
+  padding: 0.55rem 0.9rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.filterChip:hover,
+.filterChip:focus-visible {
+  border-color: rgba(var(--users-orange-rgb), 0.62);
+  box-shadow: 0 0 0 0.18rem rgba(var(--users-orange-rgb), 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.filterChip span {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.filterChip strong {
+  align-items: center;
+  background: #000;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 900;
+  justify-content: center;
+  min-width: 1.8rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.filterChipActive {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.filterChipActive strong {
+  background: var(--users-orange);
+  color: #111;
+}
+
+.searchBox {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  gap: 0.65rem;
+  min-height: 2.8rem;
+  min-width: min(26rem, 44vw);
+  padding: 0 0.9rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.searchBox:focus-within {
+  border-color: var(--users-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--users-orange-rgb), 0.18);
+}
+
+.searchBox i {
+  color: #475569;
+  font-size: 1rem;
+}
+
+.searchBox input {
+  background: transparent;
+  border: 0;
+  color: #111827;
+  flex: 1 1 auto;
+  font-size: 0.94rem;
+  height: 2.65rem;
+  min-width: 0;
+  outline: 0;
+}
+
+.searchBox input::placeholder {
+  color: #778396;
+}
+
+.userButton {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 850;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 2.8rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.userButton:hover:not(:disabled),
+.userButton:focus-visible:not(:disabled) {
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.userButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.userButtonPrimary {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+  min-width: 10rem;
+}
+
+.userButtonPrimary:hover:not(:disabled),
+.userButtonPrimary:focus-visible:not(:disabled) {
+  background: var(--users-orange);
+  border-color: var(--users-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--users-orange-rgb), 0.16);
+  color: #111;
+}
+
+.userButtonSecondary {
+  background: #fff;
+  border-color: #d7dee8;
+  color: #111827;
+}
+
+.userButtonSecondary:hover:not(:disabled),
+.userButtonSecondary:focus-visible:not(:disabled) {
+  border-color: rgba(var(--users-orange-rgb), 0.7);
+  box-shadow: 0 0 0 0.18rem rgba(var(--users-orange-rgb), 0.12);
+  color: #111827;
+}
+
+.userButtonDanger {
+  background: #fff7f7;
+  border-color: rgba(var(--users-danger-rgb), 0.26);
+  color: var(--users-danger);
+}
+
+.userButtonDanger:hover:not(:disabled),
+.userButtonDanger:focus-visible:not(:disabled) {
+  background: var(--users-danger);
+  border-color: var(--users-danger);
+  box-shadow: 0 0 0 0.2rem rgba(var(--users-danger-rgb), 0.14);
+  color: #fff;
+}
+
+.userButtonGhost {
+  background: transparent;
+  border-color: transparent;
+  color: #475569;
+  min-width: auto;
+}
+
+.userButtonGhost:hover:not(:disabled),
+.userButtonGhost:focus-visible:not(:disabled) {
+  background: #f8fafc;
+  border-color: var(--users-border);
+  color: #111827;
+}
+
+.tableCard {
+  background: #fff;
+  border: 1px solid var(--users-border);
+  border-radius: 0.72rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  overflow: hidden;
+}
+
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.usersTable {
+  border-collapse: collapse;
+  min-width: 980px;
+  width: 100%;
+}
+
+.usersTable th,
+.usersTable td {
+  border-bottom: 1px solid var(--users-border);
+  padding: 1.05rem 1.15rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.usersTable th {
+  background: #fff;
+  color: #1f2937;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.usersTable th span {
+  margin-right: 0.45rem;
+}
+
+.usersTable th i {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.usersTable td {
+  color: #111827;
+  font-size: 0.91rem;
+  font-weight: 600;
+}
+
+.usersTable tbody tr:hover {
+  background: #fffaf5;
+}
+
+.statusBadge {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  justify-content: center;
+  min-width: 5.3rem;
+  padding: 0.28rem 0.75rem;
+}
+
+.statusActive {
+  background: rgba(var(--users-green-rgb), 0.12);
+  border-color: rgba(var(--users-green-rgb), 0.24);
+  color: #166534;
+}
+
+.statusUnlinked {
+  background: rgba(var(--users-orange-rgb), 0.14);
+  border-color: rgba(var(--users-orange-rgb), 0.3);
+  color: #9a3412;
+}
+
+.statusNeutral {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.editButton {
+  min-height: 2.25rem;
+  min-width: 5.4rem;
+  padding: 0.45rem 0.85rem;
+}
+
+.paginationFooter {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 9rem 1fr 9rem;
+  padding: 1rem 1.15rem;
+}
+
+.paginationCenter {
+  align-items: center;
+  display: flex;
+  gap: 1.35rem;
+  justify-content: center;
+  min-width: 0;
+}
+
+.pageSummary {
+  color: #111827;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pageButtons {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
+.pageButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.5rem;
+  color: #111827;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 850;
+  height: 2.45rem;
+  justify-content: center;
+  min-width: 2.45rem;
+  padding: 0 0.65rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pageButton:hover,
+.pageButton:focus-visible {
+  border-color: rgba(var(--users-orange-rgb), 0.72);
+  box-shadow: 0 0 0 0.18rem rgba(var(--users-orange-rgb), 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.pageButtonActive {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.pageEllipsis {
+  color: #111827;
+  font-weight: 900;
+  min-width: 1.25rem;
+  text-align: center;
+}
+
+.paginationSideButton {
+  justify-self: start;
+  min-width: 6.6rem;
+}
+
+.paginationFooter > .paginationSideButton:last-child {
+  justify-self: end;
+}
+
+.modalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.62);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  overscroll-behavior: contain;
+  overflow-y: auto;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1060;
+}
+
+.createModal {
+  background: #fff;
+  border: 0;
+  border-radius: 0.9rem;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  width: min(54rem, calc(100vw - 2rem));
+}
+
+.createModalHeader {
+  align-items: flex-start;
+  background: #000;
+  border-bottom: 3px solid var(--users-orange);
+  color: #fff;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  min-height: 7.2rem;
+  padding: 1.55rem 2rem 1.45rem;
+}
+
+.createModalKicker {
+  color: var(--users-orange);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  margin-bottom: 0.62rem;
+  text-transform: uppercase;
+}
+
+.createModalTitle {
+  color: #fff;
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.createModalCloseButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.08rem;
+  height: 2.75rem;
+  justify-content: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+  width: 2.75rem;
+}
+
+.createModalCloseButton:hover:not(:disabled),
+.createModalCloseButton:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.createModalCloseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.createModalBody {
+  background: #fff;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1.15rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.35rem 1.6rem;
+}
+
+.createAuth0Note {
+  align-items: center;
+  background: rgba(var(--users-orange-rgb), 0.06);
+  border: 1px solid rgba(var(--users-orange-rgb), 0.34);
+  border-radius: 0.72rem;
+  color: #111827;
+  display: flex;
+  font-size: 0.94rem;
+  font-weight: 600;
+  gap: 1rem;
+  line-height: 1.45;
+  padding: 1rem 1.2rem;
+}
+
+.createAuth0Note i {
+  color: var(--users-orange);
+  flex: 0 0 auto;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.createFormSection {
+  background: #fff;
+  border: 1px solid rgba(var(--users-orange-rgb), 0.42);
+  border-radius: 0.72rem;
+  padding: 1.2rem 1.35rem 1.35rem;
+}
+
+.createSectionHeader {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.createSectionHeader i {
+  color: var(--users-orange);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.createSectionHeader h3 {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.createFieldset {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.createFieldsGrid {
+  display: grid;
+  gap: 1.15rem 1.35rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.createField {
+  color: #111827;
+  display: grid;
+  font-size: 0.86rem;
+  font-weight: 800;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.createField > span:first-child {
+  line-height: 1.2;
+}
+
+.createRoleField {
+  grid-column: 1 / -1;
+}
+
+.createInvalidControl {
+  border-color: #dc2626;
+}
+
+.createInvalidControl:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 0.22rem rgba(220, 38, 38, 0.14);
+}
+
+.createFieldErrors {
+  color: #b91c1c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.createFieldErrors p {
+  margin: 0;
+}
+
+.createFeedback {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.72rem;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 700;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+}
+
+.createFeedbackSuccess {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.createFeedbackWarning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.createFeedbackDanger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.createModalFooter {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid var(--users-border);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.8rem;
+  justify-content: flex-end;
+  padding: 1rem 1.6rem;
+}
+
+.createCancelButton,
+.createSubmitButton {
+  min-width: 9rem;
+}
+
+.createCancelButton {
+  border-color: #111827;
+  color: #111827;
+}
+
+.createSubmitButton,
+.createSubmitButton:hover:not(:disabled),
+.createSubmitButton:focus-visible:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.createSubmitButton:hover:not(:disabled),
+.createSubmitButton:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 0.2rem rgba(15, 23, 42, 0.16);
+}
+
+.formRow {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 8rem 1fr;
+}
+
+.formLabel {
+  color: #111827;
+  font-size: 0.88rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.splitInputs {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.formControl {
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: #111827;
+  font-size: 0.94rem;
+  min-height: 2.8rem;
+  padding: 0.55rem 0.85rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.formControl:focus {
+  border-color: var(--users-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--users-orange-rgb), 0.18);
+  outline: none;
+}
+
+.modalFooter {
+  align-items: center;
+  border-top: 1px solid var(--users-border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.editModal {
+  background: #fff;
+  border: 0;
+  border-radius: 0.9rem;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  width: min(58rem, calc(100vw - 2rem));
+}
+
+.editModalHeader {
+  align-items: flex-start;
+  background: #000;
+  border-bottom: 3px solid var(--users-orange);
+  color: #fff;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  min-height: 7.2rem;
+  padding: 1.55rem 2rem 1.45rem;
+}
+
+.editModalKicker {
+  color: var(--users-orange);
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  margin-bottom: 0.62rem;
+  text-transform: uppercase;
+}
+
+.editModalTitle {
+  color: #fff;
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: 0.075em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.editModalCloseButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.08rem;
+  height: 2.75rem;
+  justify-content: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+  width: 2.75rem;
+}
+
+.editModalCloseButton:hover:not(:disabled),
+.editModalCloseButton:focus-visible:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #fff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.editModalCloseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.editModalBody {
+  background: #fff;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.35rem 1.6rem;
+}
+
+.editIdentityCard {
+  align-items: center;
+  background: #000;
+  border-radius: 0.7rem;
+  color: #fff;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 1rem 1.35rem;
+}
+
+.editIdentityAvatar {
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 2.55rem;
+  height: 4.6rem;
+  justify-content: center;
+  width: 4.6rem;
+}
+
+.editIdentityInfo {
+  min-width: 0;
+}
+
+.editIdentityInfo h3 {
+  color: #fff;
+  font-size: 1.42rem;
+  font-weight: 900;
+  line-height: 1.15;
+  margin: 0 0 0.25rem;
+}
+
+.editIdentityInfo p {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.94rem;
+  line-height: 1.35;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.editIdentityBadges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.editRoleBadge,
+.editStatusBadge {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 850;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.95rem;
+  white-space: nowrap;
+}
+
+.editRoleBadge {
+  background: #232326;
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.editStatusBadge {
+  gap: 0.55rem;
+}
+
+.editStatusActive {
+  background: #0f5f25;
+  color: #fff;
+}
+
+.editStatusUnlinked {
+  background: #7c2d12;
+  color: #fff;
+}
+
+.editStatusDot {
+  background: #22c55e;
+  border-radius: 999px;
+  display: inline-block;
+  height: 0.72rem;
+  width: 0.72rem;
+}
+
+.editStatusUnlinked .editStatusDot {
+  background: var(--users-orange);
+}
+
+.editFormSection {
+  background: #fff;
+  border: 1px solid var(--users-border);
+  border-radius: 0.72rem;
+  padding: 1.05rem 1.15rem 1.15rem;
+}
+
+.editSectionHeader {
+  align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.editSectionHeader i {
+  color: var(--users-orange);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.editSectionHeader h3 {
+  color: #111827;
+  font-size: 0.98rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.editFieldsGrid {
+  display: grid;
+  gap: 1rem 1.35rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editField {
+  color: #111827;
+  display: grid;
+  font-size: 0.86rem;
+  font-weight: 800;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.editField > span:first-child {
+  line-height: 1.2;
+}
+
+.editField small {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.editLockedControl {
+  display: block;
+  position: relative;
+}
+
+.editLockedControl .formControl {
+  padding-right: 2.75rem;
+}
+
+.editLockedControl .formControl:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  opacity: 1;
+}
+
+.editLockedControl i {
+  color: #6b7280;
+  font-size: 0.95rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.editModalFooter {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid var(--users-border);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.8rem;
+  justify-content: flex-end;
+  padding: 1rem 1.6rem;
+}
+
+.editCancelButton,
+.editSaveButton {
+  min-width: 9rem;
+}
+
+.editCancelButton {
+  border-color: #111827;
+  color: #111827;
+}
+
+.editSaveButton,
+.editSaveButton:hover:not(:disabled),
+.editSaveButton:focus-visible:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.editSaveButton:hover:not(:disabled),
+.editSaveButton:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 0.2rem rgba(15, 23, 42, 0.16);
+}
+
+@media (max-width: 1199.98px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .modalLayer {
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .editModal {
+    max-height: calc(100dvh - 1.5rem);
+    width: min(58rem, calc(100vw - 1.5rem));
+  }
+
+  .createModal {
+    max-height: calc(100dvh - 1.5rem);
+    width: min(54rem, calc(100vw - 1.5rem));
+  }
+
+  .hero {
+    padding: 1.35rem 1.5rem;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbarActions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .searchBox {
+    flex: 1 1 18rem;
+    min-width: min(100%, 18rem);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .pageTitle {
+    font-size: 1.65rem;
+    letter-spacing: 0.12em;
+  }
+
+  .toolbarActions,
+  .quickFilters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchBox,
+  .userButton,
+  .filterChip {
+    width: 100%;
+  }
+
+  .paginationFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .paginationSideButton,
+  .paginationFooter > .paginationSideButton:last-child {
+    justify-self: stretch;
+  }
+
+  .paginationCenter {
+    flex-direction: column;
+    gap: 0.75rem;
+    order: -1;
+  }
+
+  .formRow {
+    align-items: stretch;
+    gap: 0.5rem;
+    grid-template-columns: 1fr;
+  }
+
+  .editModalHeader {
+    min-height: auto;
+    padding: 1.25rem 1.35rem;
+  }
+
+  .createModalHeader {
+    min-height: auto;
+    padding: 1.25rem 1.35rem;
+  }
+
+  .editModalTitle {
+    font-size: 1.65rem;
+  }
+
+  .editModalBody {
+    padding: 1rem;
+  }
+
+  .editIdentityCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .editIdentityBadges {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .editFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .createFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .createRoleField {
+    grid-column: auto;
+  }
+
+  .editModalFooter {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    padding: 0.9rem 1rem;
+  }
+
+  .createModalFooter {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    padding: 0.9rem 1rem;
+  }
+
+  .editCancelButton,
+  .editSaveButton,
+  .createCancelButton,
+  .createSubmitButton {
+    width: 100%;
+  }
+
+  .splitInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .modalFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .footerActions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .modalLayer {
+    padding: 0.5rem;
+  }
+
+  .editModal {
+    border-radius: 0.7rem;
+    max-height: calc(100dvh - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
+  .createModal {
+    border-radius: 0.7rem;
+    max-height: calc(100dvh - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
+  .editModalHeader {
+    padding: 1rem;
+  }
+
+  .createModalHeader {
+    padding: 1rem;
+  }
+
+  .editModalKicker {
+    font-size: 0.68rem;
+  }
+
+  .createModalKicker {
+    font-size: 0.68rem;
+  }
+
+  .editModalTitle {
+    font-size: 1.38rem;
+    letter-spacing: 0.06em;
+  }
+
+  .createModalTitle {
+    font-size: 1.38rem;
+    letter-spacing: 0.06em;
+  }
+
+  .editModalCloseButton {
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .createModalCloseButton {
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .editModalBody {
+    gap: 0.8rem;
+    padding: 0.8rem;
+  }
+
+  .createModalBody {
+    gap: 0.8rem;
+    padding: 0.8rem;
+  }
+
+  .createAuth0Note {
+    align-items: flex-start;
+    font-size: 0.84rem;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .createAuth0Note i {
+    font-size: 1.35rem;
+  }
+
+  .createFormSection {
+    padding: 0.9rem;
+  }
+
+  .editIdentityCard {
+    gap: 0.85rem;
+    padding: 0.9rem;
+  }
+
+  .editIdentityAvatar {
+    font-size: 2rem;
+    height: 3.7rem;
+    width: 3.7rem;
+  }
+
+  .editIdentityInfo h3 {
+    font-size: 1.18rem;
+  }
+
+  .editIdentityInfo p {
+    font-size: 0.82rem;
+  }
+
+  .editIdentityBadges {
+    gap: 0.55rem;
+  }
+
+  .editRoleBadge,
+  .editStatusBadge {
+    font-size: 0.78rem;
+    min-height: 2.1rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .editFormSection {
+    padding: 0.9rem;
+  }
+
+  .editModalFooter {
+    padding: 0.8rem;
+  }
+
+  .createModalFooter {
+    padding: 0.8rem;
+  }
+
+  .createFeedback {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.feedbackMessage {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.72rem;
+  display: flex;
+  font-size: 0.92rem;
+  font-weight: 750;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+}
+
+.feedbacksuccess {
+  background: rgba(var(--users-green-rgb), 0.1);
+  border-color: rgba(var(--users-green-rgb), 0.24);
+  color: #14532d;
+}
+
+.feedbackdanger {
+  background: #fff7f7;
+  border-color: rgba(var(--users-danger-rgb), 0.22);
+  color: #991b1b;
+}
+
+.tableStateCell {
+  color: #475569 !important;
+  font-weight: 750 !important;
+  padding: 2.2rem 1.15rem !important;
+  text-align: center !important;
+}

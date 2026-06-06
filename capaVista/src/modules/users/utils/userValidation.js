@@ -6,6 +6,53 @@ function validateRequiredText(value, requiredMessage) {
   return value.trim() ? [] : [requiredMessage]
 }
 
+function normalizeRut(value) {
+  return value.replace(/[^0-9kK]/g, '').toUpperCase().slice(0, 9)
+}
+
+export function formatRut(value) {
+  const normalizedRut = normalizeRut(value)
+
+  if (normalizedRut.length <= 1) {
+    return normalizedRut
+  }
+
+  const body = normalizedRut.slice(0, -1)
+  const verifier = normalizedRut.slice(-1)
+  const formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+
+  return `${formattedBody}-${verifier}`
+}
+
+export function validateRut(value) {
+  const normalizedRut = normalizeRut(value)
+  const errors = validateRequiredText(normalizedRut, 'El RUT es obligatorio.')
+
+  if (errors.length > 0) {
+    return errors
+  }
+
+  const body = normalizedRut.slice(0, -1)
+  const verifier = normalizedRut.slice(-1)
+
+  if (!/^\d{7,8}$/.test(body) || !/^[0-9K]$/.test(verifier)) {
+    return ['Ingresa un RUT válido.']
+  }
+
+  let sum = 0
+  let multiplier = 2
+
+  for (let index = body.length - 1; index >= 0; index -= 1) {
+    sum += Number(body[index]) * multiplier
+    multiplier = multiplier === 7 ? 2 : multiplier + 1
+  }
+
+  const remainder = 11 - (sum % 11)
+  const expectedVerifier = remainder === 11 ? '0' : remainder === 10 ? 'K' : String(remainder)
+
+  return verifier === expectedVerifier ? [] : ['Ingresa un RUT válido.']
+}
+
 export function validatePersonName(value, fieldLabel) {
   const errors = validateRequiredText(value, `${fieldLabel} es obligatorio.`)
 
@@ -56,6 +103,7 @@ export function validateUserCreateForm(values) {
     primerNombre: validatePersonName(values.primerNombre, 'El primer nombre'),
     apellidoPaterno: validatePersonName(values.apellidoPaterno, 'El apellido paterno'),
     correoUsuario: validateEmail(values.correoUsuario),
+    rutUsuario: validateRut(values.rutUsuario),
     rolUsuario: validateRole(values.rolUsuario),
   }
 }

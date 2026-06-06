@@ -34,7 +34,7 @@ AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
 - `AUTH0_AUDIENCE`: identificador de la API que debe contener el access token.
-- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M que debe estar autorizada con `create:users`, `read:roles` y `update:users`.
+- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M que debe estar autorizada con `read:users`, `create:users`, `update:users` y `read:roles`.
 - `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
 - `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
 - `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
@@ -45,7 +45,7 @@ Ningun secret real debe quedar en el repositorio. Las variables Management son c
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local` y firma `RS256`.
-- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API con `create:users`, `read:roles` y `update:users`.
+- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API con `read:users`, `create:users`, `update:users` y `read:roles`.
 - Action Post Login: `ITECSA Add Role Claim`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
@@ -54,8 +54,9 @@ La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emit
 
 ## Servicio Interno Auth0
 
-`src/services/auth0Management.service.js` prepara dos operaciones backend:
+`src/services/auth0Management.service.js` prepara las operaciones backend:
 
+- `listAuth0Users(...)` consulta `GET /api/v2/users`, pagina el resultado y proyecta los roles RBAC.
 - `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database con nombre y `app_metadata.rolUsuario`, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
 - `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
 
@@ -93,6 +94,23 @@ Respuestas:
 
 ## Endpoint Administrativo
 
+### `GET /api/admin/users`
+
+Requiere un access token cuyo unico rol sea `Administrador`. Acepta los query params opcionales `page`, `perPage`, `search` y `estadoUsuario`.
+
+El backend solicita un token M2M con `read:users`, consulta Auth0 Management API y devuelve:
+
+```json
+{
+  "usuarios": [],
+  "total": 0,
+  "page": 1,
+  "perPage": 10
+}
+```
+
+Si Auth0 responde `403`, verificar que `ITECSA Backend Management` tenga autorizados `read:users`, `create:users`, `update:users` y `read:roles`.
+
 ### `POST /api/admin/users`
 
 Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
@@ -102,13 +120,14 @@ Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
   "primerNombre": "Ana",
   "apellidoPaterno": "Perez",
   "correoUsuario": "correo.controlado@example.cl",
+  "rutUsuario": "12.345.678-5",
   "rolUsuario": "Ventas"
 }
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend crea la cuenta Auth0, le asigna el rol RBAC existente y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida el digito verificador del RUT, lo guarda en `user_metadata.rut`, crea la cuenta Auth0, le asigna el rol RBAC existente y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
-El cuerpo aceptado no incluye RUT, firma electronica ni contrasena. Esos datos no deben agregarse a este endpoint en la integracion Auth0 inicial.
+El cuerpo aceptado no incluye firma electronica ni contrasena. Esos datos no deben agregarse a este endpoint.
 
 Respuestas:
 

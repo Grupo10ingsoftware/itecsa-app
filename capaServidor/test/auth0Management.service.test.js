@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import {
     Auth0ServiceError,
     createAuth0User,
+    listAuth0Users,
     requestPasswordSetupEmail,
 } from "../src/services/auth0Management.service.js";
 
@@ -69,6 +70,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
         email: "nuevo@example.cl",
         primerNombre: "Ana",
         apellidoPaterno: "Perez",
+        rutUsuario: "12.345.678-5",
         rolUsuario: "Ventas",
     });
 
@@ -82,6 +84,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
         client_id: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_ID,
         client_secret: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_SECRET,
         audience: `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/`,
+        scope: "read:users create:users update:users read:roles",
     });
     assert.equal(
         requests[1].url,
@@ -94,6 +97,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
             family_name: requests[2].body.family_name,
             connection: requests[2].body.connection,
             app_metadata: requests[2].body.app_metadata,
+            user_metadata: requests[2].body.user_metadata,
         },
         {
             email: "nuevo@example.cl",
@@ -101,6 +105,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
             family_name: "Perez",
             connection: ENVIRONMENT.AUTH0_DATABASE_CONNECTION,
             app_metadata: { rolUsuario: "Ventas" },
+            user_metadata: { rut: "12.345.678-5" },
         },
     );
     assert.equal(typeof requests[2].body.password, "string");
@@ -139,11 +144,97 @@ test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
             email: "existente@example.cl",
             primerNombre: "Ana",
             apellidoPaterno: "Perez",
+            rutUsuario: "12.345.678-5",
             rolUsuario: "Ventas",
         }),
         (error) =>
             error instanceof Auth0ServiceError &&
             error.code === "USER_EMAIL_ALREADY_EXISTS",
+    );
+});
+
+test("lista usuarios paginados y normaliza sus roles Auth0", async () => {
+    const requests = [];
+    global.fetch = async (url, options) => {
+        requests.push({ url, options });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.includes("/api/v2/users?")) {
+            return jsonResponse(200, {
+                total: 1,
+                users: [
+                    {
+                        user_id: "auth0|listed-user",
+                        email: "ana@example.cl",
+                        given_name: "Ana",
+                        family_name: "Perez",
+                        blocked: false,
+                        last_login: "2026-06-01T12:00:00.000Z",
+                        created_at: "2026-05-01T12:00:00.000Z",
+                        updated_at: "2026-06-01T12:00:00.000Z",
+                        app_metadata: {},
+                        user_metadata: {},
+                    },
+                ],
+            });
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Clisted-user/roles")) {
+            return jsonResponse(200, [{ id: "rol_admin", name: "Administrador" }]);
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await listAuth0Users({ page: 2, perPage: 10 });
+
+    assert.equal(requests.length, 3);
+    assert.match(requests[1].url, /page=1/);
+    assert.match(requests[1].url, /per_page=10/);
+    assert.match(requests[1].url, /include_totals=true/);
+    assert.deepEqual(result, {
+        usuarios: [
+            {
+                idUsuarioAutenticacionExterna: "auth0|listed-user",
+                primerNombre: "Ana",
+                apellidoPaterno: "Perez",
+                nombreCompleto: "Ana Perez",
+                rut: "No disponible",
+                correoUsuario: "ana@example.cl",
+                rolUsuario: "Administrador",
+                estadoUsuario: "Activo",
+                ultimoAcceso: "2026-06-01T12:00:00.000Z",
+                fechaCreacion: "2026-05-01T12:00:00.000Z",
+                fechaActualizacion: "2026-06-01T12:00:00.000Z",
+            },
+        ],
+        total: 1,
+        page: 2,
+        perPage: 10,
+    });
+});
+
+test("reporta scope insuficiente cuando Auth0 rechaza el listado", async () => {
+    global.fetch = async (url) => {
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        return jsonResponse(403, {
+            error: "insufficient_scope",
+            message: "Insufficient scope",
+        });
+    };
+
+    await assert.rejects(
+        listAuth0Users(),
+        (error) =>
+            error instanceof Auth0ServiceError &&
+            error.code === "AUTH0_INSUFFICIENT_SCOPE" &&
+            error.status === 403,
     );
 });
 
@@ -164,6 +255,7 @@ test("no crea usuario si el rol solicitado no existe en Auth0", async () => {
             email: "nuevo@example.cl",
             primerNombre: "Ana",
             apellidoPaterno: "Perez",
+            rutUsuario: "12.345.678-5",
             rolUsuario: "Ventas",
         }),
         (error) =>
@@ -194,6 +286,7 @@ test("reporta asignacion RBAC incompleta si falla despues de crear usuario", asy
         email: "nuevo@example.cl",
         primerNombre: "Ana",
         apellidoPaterno: "Perez",
+        rutUsuario: "12.345.678-5",
         rolUsuario: "Ventas",
     });
 
@@ -239,6 +332,7 @@ test("rechaza la creacion si falta configuracion Management requerida", async ()
             email: "nuevo@example.cl",
             primerNombre: "Ana",
             apellidoPaterno: "Perez",
+            rutUsuario: "12.345.678-5",
             rolUsuario: "Ventas",
         }),
         (error) =>

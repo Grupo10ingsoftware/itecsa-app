@@ -6,6 +6,7 @@ import { Auth0ServiceError } from "../src/services/auth0Management.service.js";
 import {
     createAdminUserHandler,
     createAdminUsersRouter,
+    createListAdminUsersHandler,
     createPasswordSetupEmailHandler,
 } from "../src/routes/adminUsers.routes.js";
 
@@ -13,6 +14,7 @@ const VALID_BODY = {
     primerNombre: "Ana",
     apellidoPaterno: "Perez",
     correoUsuario: "ana.perez@itecsa.cl",
+    rutUsuario: "12.345.678-5",
     rolUsuario: "Ventas",
 };
 const VALID_PASSWORD_EMAIL_BODY = {
@@ -55,19 +57,95 @@ async function executePasswordEmailHandler({
     return res;
 }
 
+async function executeListHandler({ query = {}, listUsers }) {
+    const res = responseRecorder();
+    const handler = createListAdminUsersHandler({ listUsers });
+
+    await handler({ query }, res);
+
+    return res;
+}
+
+test("responde 200 con el listado y filtros normalizados", async () => {
+    let receivedFilters;
+    const expectedResult = {
+        usuarios: [],
+        total: 0,
+        page: 2,
+        perPage: 20,
+    };
+    const res = await executeListHandler({
+        query: {
+            page: "2",
+            perPage: "20",
+            search: "  ana  ",
+            estadoUsuario: "Activo",
+        },
+        listUsers: async (filters) => {
+            receivedFilters = filters;
+            return expectedResult;
+        },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, expectedResult);
+    assert.deepEqual(receivedFilters, {
+        page: 2,
+        perPage: 20,
+        search: "ana",
+        estadoUsuario: "Activo",
+    });
+});
+
+test("expone los scopes requeridos cuando Auth0 rechaza el listado", async () => {
+    const res = await executeListHandler({
+        listUsers: async () => {
+            throw new Auth0ServiceError(
+                "AUTH0_INSUFFICIENT_SCOPE",
+                "detalle interno",
+                { status: 403 },
+            );
+        },
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(res.body, {
+        message: "La aplicacion administrativa de Auth0 no tiene permisos suficientes para consultar o modificar usuarios.",
+        code: "AUTH0_INSUFFICIENT_SCOPE",
+        requiredScopes: [
+            "read:users",
+            "create:users",
+            "update:users",
+            "read:roles",
+        ],
+    });
+});
+
 test("responde 201 cuando asigna rol y solicita correo", async () => {
+    let receivedUser;
     const res = await executeHandler({
-        createUser: async () => ({
-            userId: "auth0|created-user",
-            roleAssignmentCompleted: true,
-        }),
+        createUser: async (user) => {
+            receivedUser = user;
+            return {
+                userId: "auth0|created-user",
+                roleAssignmentCompleted: true,
+            };
+        },
         requestPasswordEmail: async () => ({ requested: true }),
     });
 
     assert.equal(res.statusCode, 201);
+    assert.deepEqual(receivedUser, {
+        email: VALID_BODY.correoUsuario,
+        primerNombre: VALID_BODY.primerNombre,
+        apellidoPaterno: VALID_BODY.apellidoPaterno,
+        rutUsuario: VALID_BODY.rutUsuario,
+        rolUsuario: VALID_BODY.rolUsuario,
+    });
     assert.deepEqual(res.body, {
         idUsuarioAutenticacionExterna: "auth0|created-user",
         correoUsuario: VALID_BODY.correoUsuario,
+        rut: VALID_BODY.rutUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
         passwordSetupEmailRequested: true,
     });
@@ -175,6 +253,8 @@ test("responde 400 para payload incompleto, correo invalido, rol no permitido o 
     const invalidBodies = [
         { ...VALID_BODY, primerNombre: " " },
         { ...VALID_BODY, correoUsuario: "no-es-correo" },
+        { ...VALID_BODY, rutUsuario: "12.345.678-9" },
+        { ...VALID_BODY, rutUsuario: "12.345.678-5-999" },
         { ...VALID_BODY, rolUsuario: "Supervisor" },
         { ...VALID_BODY, password: "prohibida" },
     ];

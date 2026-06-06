@@ -7,6 +7,10 @@ const requiredEnvironmentVariables = [
     "AUTH0_DOMAIN",
     "AUTH0_AUDIENCE",
     "FRONTEND_ORIGIN",
+    "AUTH0_MANAGEMENT_CLIENT_ID",
+    "AUTH0_MANAGEMENT_CLIENT_SECRET",
+    "AUTH0_DATABASE_CONNECTION",
+    "AUTH0_PASSWORD_RESET_CLIENT_ID",
 ];
 
 function validateEnvironment() {

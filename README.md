@@ -14,6 +14,7 @@ Documentacion especifica:
 - [Frontend](capaVista/README.md)
 - [Backend](capaServidor/README.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
+- [Checklist Auth0 de gestion de usuarios](docs/AUTH0_GESTION_USUARIOS.md)
 - [Convenciones UI Frontend](docs/CONVENCIONES_UI_FRONTEND.md)
 
 ## Requisitos
@@ -74,7 +75,7 @@ La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta contiene `app_meta
 ## Restricciones Vigentes
 
 - No implementar Prisma ni MySQL en esta integracion inicial.
-- No persistir RUT, firma electronica ni contrasenas.
+- Persistir el RUT solo en `user_metadata.rut` de Auth0; no persistir firma electronica ni contrasenas.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

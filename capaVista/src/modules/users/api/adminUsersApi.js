@@ -1,11 +1,46 @@
+function buildQueryString(params) {
+  const searchParams = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      searchParams.set(key, String(value))
+    }
+  })
+
+  const queryString = searchParams.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
 export function createAdminUsersApi(apiClient) {
   return {
-    createUser: ({ primerNombre, apellidoPaterno, correoUsuario, rolUsuario }) =>
+    listUsers: ({ page = 1, perPage = 10, search = '', estadoUsuario = '' } = {}) =>
+      apiClient.get(
+        `/admin/users${buildQueryString({
+          page,
+          perPage,
+          search,
+          estadoUsuario,
+        })}`,
+      ),
+    createUser: ({ primerNombre, apellidoPaterno, correoUsuario, rutUsuario, rolUsuario }) =>
       apiClient.post('/admin/users', {
         primerNombre,
         apellidoPaterno,
         correoUsuario,
+        rutUsuario,
         rolUsuario,
+      }),
+    updateUser: ({ idUsuarioAutenticacionExterna, primerNombre, apellidoPaterno, correoUsuario, rolUsuario, estadoUsuario }) =>
+      apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}`, {
+        primerNombre,
+        apellidoPaterno,
+        correoUsuario,
+        rolUsuario,
+        estadoUsuario,
+      }),
+    unlinkUser: ({ idUsuarioAutenticacionExterna }) =>
+      apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}/status`, {
+        estadoUsuario: 'Desvinculado',
       }),
     requestPasswordSetupEmail: ({ correoUsuario }) =>
       apiClient.post('/admin/users/password-setup-email', { correoUsuario }),

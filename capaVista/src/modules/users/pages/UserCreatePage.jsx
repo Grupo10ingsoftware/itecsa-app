@@ -14,8 +14,8 @@ export default function UserCreatePage() {
 
         <div className={styles.content}>
           <div className={`alert ${styles.noteAlert}`} role="note">
-            <i className="bi bi-info-circle me-2" aria-hidden="true" />
-            RUT, firma electrónica y contraseña no se enviarán en esta etapa.
+            <i className="bi bi-envelope me-2" aria-hidden="true" />
+            Auth0 enviará un correo para que el usuario establezca su contraseña.
           </div>
 
           <div className={styles.formCard}>

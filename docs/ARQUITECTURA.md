@@ -26,6 +26,8 @@ flowchart LR
 
 No se documentan secretos reales. Los `client_id` son identificadores publicos; el secret M2M queda fuera del repositorio y no se expone al frontend.
 
+La aplicacion M2M debe estar autorizada contra Auth0 Management API con `read:users`, `create:users`, `update:users` y `read:roles`.
+
 ## Flujo De Autenticacion
 
 1. `Auth0Provider` configura la SPA con dominio, client ID, audience de la API y URL de retorno.
@@ -63,17 +65,24 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `primerNombre`, `apellidoPaterno`, `correoUsuario` y `rolUsuario`; no recibe RUT, firma electronica ni contrasenas.
+`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `primerNombre`, `apellidoPaterno`, `correoUsuario`, `rutUsuario` y `rolUsuario`; no recibe firma electronica ni contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
 - Obtener un token M2M solo en servidor.
 - Resolver el rol Auth0 RBAC existente.
 - Crear el usuario en `Username-Password-Authentication`.
+- Guardar el RUT validado en `user_metadata.rut`.
 - Asignar el rol RBAC al usuario.
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
+
+## Consulta Administrativa De Usuarios
+
+`GET /api/admin/users` usa el mismo control `checkJwt` + `Administrador`, pero el access token de la SPA nunca se envia directamente a Auth0 Management API. Express obtiene un token Client Credentials de `ITECSA Backend Management`, solicita `read:users`, pagina `GET /api/v2/users` y consulta roles RBAC con `read:roles`.
+
+Con `include_totals=true`, Auth0 devuelve un objeto con `users`, `total`, `start`, `limit` y `length`; el backend lo proyecta a `usuarios`, `total`, `page` y `perPage`.
 
 ## Variables De Entorno
 
@@ -104,7 +113,8 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 ## Limites Vigentes
 
 - No se implementa Prisma ni MySQL en esta rama.
-- No se persisten RUT, firma electronica ni contrasenas.
+- El RUT se persiste solo en `user_metadata.rut` de Auth0.
+- No se persisten firma electronica ni contrasenas.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
 - Pedidos, pagos, Kanban real y persistencia de negocio quedan fuera de esta integracion Auth0 inicial.

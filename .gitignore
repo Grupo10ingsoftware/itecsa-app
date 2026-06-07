@@ -1,6 +1,9 @@
 # Variables de entorno locales
 .env*
 
+# Certificados locales de base de datos
+capaServidor/certs/*.pem
+
 # Dependencias
 node_modules/
 

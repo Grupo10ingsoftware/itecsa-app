@@ -4,7 +4,8 @@ import cors from 'cors';
 import orderRoutes from './modules/orders/routes/order.routes.js';
 import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
-
+import healthRoutes from './modules/health/routes/health.routes.js';
+import orderStatusRoutes from './modules/orders/routes/orderStatus.routes.js';
 class Server {
   constructor() {
     // Creamos como propiedad misma de la clase servidor
@@ -18,6 +19,8 @@ class Server {
         orders : '/api/orders',
         orderDetail: '/api/order-details',
         admin: '/api/admin',
+        health: '/api/health',
+        orderStatus: '/api/order-status',
 
         //* Estados
 
@@ -44,6 +47,7 @@ class Server {
 
     // Directorio publico
     this.app.use(express.static("public"));
+    this.app.use(this.paths.orderStatus, orderStatusRoutes);
 
     
   }
@@ -60,6 +64,7 @@ class Server {
      */
     this.app.use( this.paths.auth, authRoutes)
     this.app.use( this.paths.admin, adminUsersRoutes)
+    this.app.use( this.paths.health, healthRoutes)
 
   }
 

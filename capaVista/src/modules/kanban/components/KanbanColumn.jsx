@@ -52,44 +52,10 @@ import styles from '../styles/Kanban.module.css'
 //   },
 // ]
 
-const columns = [
-  {
-    id: 'confirmacion-pago',
-    title: 'Confirmación de pago',
-    generalStepId: 0,
-    accent: '#f97316',
-    icon: 'bi-cash-coin',
-  },
-  {
-    id: 'listo-produccion',
-    title: 'Listo para producción',
-    generalStepId: 1,
-    accent: '#2563eb',
-    icon: 'bi-clipboard-check',
-  },
-  {
-    id: 'en-produccion',
-    title: 'En producción',
-    generalStepId: 2,
-    accent: '#d97706',
-    icon: 'bi-gear-wide-connected',
-  },
-  {
-    id: 'listo-entrega',
-    title: 'Listo para entrega',
-    generalStepId: 3,
-    accent: '#248f55',
-    icon: 'bi-check2-circle',
-  },
-]
 
 function getColumnTitleByStepId(stepId) {
-  const column = columns.find((item) => Number(item.generalStepId) === Number(stepId))
+  const column = defaultColumns.find((item) => Number(item.generalStepId) === Number(stepId))
   return column?.title ?? 'Confirmación de pago'
-}
-
-function getColumnById(columnId) {
-  return columns.find((column) => column.id === columnId)
 }
 
 function normalizeOrder(order) {
@@ -111,8 +77,29 @@ function normalizeOrder(order) {
   }
 }
 
+const columnVisuals = [
+  { accent: '#f97316', icon: 'bi-cash-coin' },
+  { accent: '#2563eb', icon: 'bi-clipboard-check' },
+  { accent: '#d97706', icon: 'bi-gear-wide-connected' },
+  { accent: '#248f55', icon: 'bi-check2-circle' },
+]
+
+function normalizeStatus(status) {
+  const order = Number(status.orden_kanban)
+  const visual = columnVisuals[order] ?? { accent: '#2563eb', icon: 'bi-kanban' }
+
+  return {
+    id: String(status.id_estado_pedido),
+    title: status.nombre_etapa,
+    generalStepId: order,
+    order,
+    accent: visual.accent,
+    icon: visual.icon,
+  }
+}
 
 function DroppableColumn({ id, accent, icon, count, children }) {
+ 
   const { ref } = useDroppable({ id })
 
   return (
@@ -132,16 +119,28 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 
 function KanbanColumn() {
   const [orders, setOrders] = useState([])
+  const [columns, setColumns] = useState([])
   const [loading, setLoading] = useState(true)
   const kanbanApi = useKanbanApi()
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const data = await kanbanApi.getOrders()
+        const [ordersData, statusesData] = await Promise.all([
+          kanbanApi.getOrders(),
+          kanbanApi.getOrderStatuses(),
+        ])
+        
 
-        const normalizedOrders = Array.isArray(data) ? data.map(normalizeOrder) : []
+        const normalizedOrders = Array.isArray(ordersData) ? ordersData.map(normalizeOrder) : []
+        setColumns(
+          Array.isArray(statusesData)
+          ? statusesData.map(normalizeStatus).sort((a, b) => a.order - b.order)
+          : []
+        )
         setOrders(normalizedOrders)
+
+
       } catch (error) {
         console.error('Error cargando órdenes:', error)
       } finally {
@@ -163,13 +162,16 @@ function KanbanColumn() {
     const order = orders.find((currentOrder) => currentOrder.nv === source.id)
     const targetColumn = columns.find((column) => column.title === target.id)
 
-    if (!order || !targetColumn || order.orderStatus === targetColumn.title) return
+    if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
 
     const previousOrderStatus = order.orderStatus
+    const previousStepId = order.generalStepId
 
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
-        order.nv === source.id ? { ...order, orderStatus: targetColumn.title } : order,
+        order.nv === source.id
+          ? { ...order, generalStepId: targetColumn.generalStepId, orderStatus: targetColumn.title }
+          : order,
       ),
     )
 
@@ -179,7 +181,7 @@ function KanbanColumn() {
         setOrders((prevOrders) =>
           prevOrders.map((currentOrder) =>
             currentOrder.id === order.id && currentOrder.orderStatus === targetColumn.title
-              ? { ...currentOrder, orderStatus: previousOrderStatus }
+              ? { ...currentOrder, generalStepId: previousStepId, orderStatus: previousOrderStatus }
               : currentOrder,
           ),
         )
@@ -190,7 +192,9 @@ function KanbanColumn() {
     <DragDropProvider onDragEnd={handleDragEnd}>
       <div className={styles.kanbanWrapper}>
         {columns.map((column) => {
-          const columnOrders = orders.filter((order) => column.title === order.orderStatus)
+          const columnOrders = orders.filter(
+            (order) => Number(column.generalStepId) === Number(order.generalStepId),
+          )
 
           return (
             <DroppableColumn

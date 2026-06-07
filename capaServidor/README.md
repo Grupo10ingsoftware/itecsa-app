@@ -28,6 +28,12 @@ AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
 AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
+DB_HOST=<host-aiven>
+DB_PORT=<puerto-aiven>
+DB_USER=<usuario-aiven>
+DB_PASSWORD=<password-aiven>
+DB_NAME=<nombre-bd>
+DB_SSL_CA_PATH=./certs/aiven-ca.pem
 ```
 
 - `PORT`: puerto HTTP del servidor.
@@ -38,8 +44,39 @@ AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
 - `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
 - `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
 - `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
+- `DB_HOST`: host MySQL entregado por Aiven.
+- `DB_PORT`: puerto MySQL entregado por Aiven.
+- `DB_USER`: usuario MySQL entregado por Aiven.
+- `DB_PASSWORD`: password MySQL local; debe mantenerse fuera del repositorio.
+- `DB_NAME`: nombre de la base de datos MySQL.
+- `DB_SSL_CA_PATH`: ruta local al certificado CA descargado desde Aiven, relativa a `capaServidor`.
 
 Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
+
+## Conexion Aiven MySQL
+
+El backend usa `mysql2/promise` con pool y SSL. Descargar el certificado CA desde Aiven y guardarlo localmente, por ejemplo:
+
+```txt
+capaServidor/certs/aiven-ca.pem
+```
+
+El archivo `.gitignore` evita versionar certificados `.pem` dentro de `capaServidor/certs/`. Para verificar la conexion sin consultar datos de negocio:
+
+```bash
+curl http://localhost:3000/api/health/db
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "ok",
+  "database": "mysql"
+}
+```
+
+Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el endpoint responde `500` con un mensaje generico sin exponer credenciales.
 
 ## Recursos Auth0 Esperados
 

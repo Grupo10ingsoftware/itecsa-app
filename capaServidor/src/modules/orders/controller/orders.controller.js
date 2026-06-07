@@ -18,6 +18,34 @@ class OrderController {
             res.status(500).json({ message: 'Error al obtener pedidos' });
         }
     }
+
+    getOrder = async ( req = request, res = response) => {
+        try {
+            const { orderId } = req.params;
+            const order = await this.service.getOrderById(orderId);
+
+            if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
+
+            res.status(200).json(order);
+        } catch ( error ) {
+            const statusCode = error.statusCode ?? 500;
+            res.status(statusCode).json({
+                message: error.message || 'Error al obtener pedido',
+            });
+        }
+    }
+
+    createOrder = async ( req = request, res = response) => {
+        try {
+            const order = await this.service.createOrder(req.body ?? {});
+            res.status(201).json(order);
+        } catch ( error ) {
+            const statusCode = error.statusCode ?? 500;
+            res.status(statusCode).json({
+                message: error.message || 'Error al crear pedido',
+            });
+        }
+    }
     
     updatePaymentStatus = async ( req = request, res = response) => {
         

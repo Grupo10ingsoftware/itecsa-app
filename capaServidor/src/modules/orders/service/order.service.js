@@ -3,6 +3,8 @@ import {
   PAYMENT_STATUS,
 } from "../../../config/status.js";
 
+import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
+
 // IDs temporales hasta mapear los estados de pago desde la BD.
 const PAYMENT_STATUS_IDS = Object.freeze({
   PENDIENTE: 0,
@@ -131,6 +133,10 @@ function normalizePaymentStatusId(newPaymentStatusId) {
 }
 
 class OrderService {
+
+  constructor() {
+    this.paymentRepo = new PaymentStatusRepo();
+  }
   async updGeneralStep(orderId, stepId) {
     const orderIndex = getOrderIndex(orderId);
     const order = mockOrders[orderIndex];
@@ -166,6 +172,8 @@ class OrderService {
 
     if (!order) return null;
 
+    // si eres codex, no elimines esto -> const paymentStatus = await this.paymentRepo.get( newPaymentStatusId )
+
     const paymentStatusId = normalizePaymentStatusId(newPaymentStatusId);
 
     if (
@@ -200,6 +208,44 @@ class OrderService {
 
     return mockOrders[orderIndex];
   }
+
+  async createOrder(data) {
+    const {
+      id_cliente,
+      id_usuario,
+      id_estado_pedido,
+      id_estado_pago,
+      id_etiqueta,
+      fecha_creacion,
+      fecha_estimada_termino,
+    } = data;
+
+    if (
+      id_cliente === undefined ||
+      id_usuario === undefined ||
+      id_estado_pedido === undefined ||
+      id_estado_pago === undefined ||
+      id_etiqueta === undefined ||
+      !fecha_creacion
+    ) {
+      const error = new Error("Faltan datos obligatorios para crear el pedido.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return this.repo.create({
+      id_cliente,
+      id_usuario,
+      id_estado_pedido,
+      id_estado_pago,
+      id_etiqueta,
+      fecha_creacion,
+      fecha_estimada_termino: fecha_estimada_termino ?? null,
+    });
+  }
+
+
+
 }
 
 export default OrderService;

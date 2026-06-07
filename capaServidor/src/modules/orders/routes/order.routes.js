@@ -17,6 +17,8 @@ export function createOrderRouter({
 
     router.get("/", authenticate, controller.getOrders);
     router.get("/kanban", authenticate, controller.getOrders);
+    router.get("/:orderId", authenticate, controller.getOrder);
+    router.post("/", authenticate, controller.createOrder);
     router.patch(
         "/:orderId/payment-status",
         authenticate,

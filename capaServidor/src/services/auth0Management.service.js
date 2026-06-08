@@ -438,7 +438,7 @@ function buildAuth0UserSearch({ search, estadoUsuario, rolUsuario }) {
     const queryParts = [];
 
     if (estadoUsuario === "Vinculado" || estadoUsuario === "Activo") {
-        queryParts.push("blocked:false");
+        queryParts.push("(blocked:false OR NOT _exists_:blocked)");
     }
 
     if (estadoUsuario === "Desvinculado") {

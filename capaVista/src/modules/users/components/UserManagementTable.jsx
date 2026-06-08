@@ -1,4 +1,5 @@
 import UserButton from './UserButton'
+import UserManagementMobileList from './UserManagementMobileList'
 import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
 
@@ -92,6 +93,8 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
         </table>
       </div>
 
+      <UserManagementMobileList isLoading={isLoading} onEditUser={onEditUser} users={users} />
+
       <footer className={styles.paginationFooter} aria-label="Paginación de usuarios">
         <UserButton
           className={styles.paginationSideButton}
@@ -100,7 +103,7 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
           variant="secondary"
         >
           <i className="bi bi-arrow-left" aria-hidden="true" />
-          Anterior
+          <span className={styles.paginationButtonLabel}>Anterior</span>
         </UserButton>
 
         <div className={styles.paginationCenter}>
@@ -135,7 +138,7 @@ export default function UserManagementTable({ currentPage, isLoading, onEditUser
           onClick={() => onPageChange(currentPage + 1)}
           variant="secondary"
         >
-          Siguiente
+          <span className={styles.paginationButtonLabel}>Siguiente</span>
           <i className="bi bi-arrow-right" aria-hidden="true" />
         </UserButton>
       </footer>

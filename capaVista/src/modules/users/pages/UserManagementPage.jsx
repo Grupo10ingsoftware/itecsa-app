@@ -105,7 +105,7 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [summary, setSummary] = useState(EMPTY_SUMMARY)
-  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)

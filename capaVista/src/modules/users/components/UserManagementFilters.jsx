@@ -26,6 +26,18 @@ export default function UserManagementFilters({
   return (
     <section className={styles.filtersShell} aria-label="Búsqueda y filtros de usuarios">
       <div className={styles.filtersTopbar}>
+        <label className={styles.searchBox} htmlFor="user-management-search">
+          <i className="bi bi-search" aria-hidden="true" />
+          <span className="visually-hidden">Buscar usuario</span>
+          <input
+            id="user-management-search"
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Buscar por nombre, correo o RUT"
+            type="search"
+            value={searchTerm}
+          />
+        </label>
+
         <button
           aria-controls="user-management-filter-panel"
           aria-expanded={isOpen}
@@ -37,33 +49,19 @@ export default function UserManagementFilters({
           {isOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
         </button>
 
-        <div className={styles.filtersTopbarActions}>
-          <label className={styles.searchBox} htmlFor="user-management-search">
-            <i className="bi bi-search" aria-hidden="true" />
-            <span className="visually-hidden">Buscar usuario</span>
-            <input
-              id="user-management-search"
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Buscar por nombre, correo o RUT"
-              type="search"
-              value={searchTerm}
-            />
-          </label>
-
-          <UserButton
-            className={styles.createUserButton}
-            icon="bi-plus-lg"
-            onClick={onCreateUser}
-            variant="primary"
-          >
-            Crear usuario
-          </UserButton>
-        </div>
+        <UserButton
+          className={styles.createUserButton}
+          icon="bi-plus-lg"
+          onClick={onCreateUser}
+          variant="primary"
+        >
+          Crear usuario
+        </UserButton>
       </div>
 
       {isOpen && (
         <div className={styles.filterPanel} id="user-management-filter-panel">
-          <fieldset className={styles.filterGroup}>
+          <fieldset className={`${styles.filterGroup} ${styles.statusFilterGroup}`}>
             <legend>Estado del usuario</legend>
             <div className={styles.filterOptions}>
               {STATUS_FILTERS.map((filter) => (

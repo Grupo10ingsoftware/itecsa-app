@@ -152,14 +152,6 @@
   padding: 0.85rem 1rem;
 }
 
-.filtersTopbarActions {
-  align-items: center;
-  display: flex;
-  gap: 0.8rem;
-  justify-content: flex-end;
-  margin-left: auto;
-}
-
 .filterToggleButton {
   align-items: center;
   background: var(--users-orange);
@@ -176,6 +168,7 @@
   transition:
     box-shadow 0.15s ease,
     transform 0.15s ease;
+  order: 1;
 }
 
 .filterToggleButton:hover,
@@ -314,6 +307,8 @@
   gap: 0.65rem;
   min-height: 2.8rem;
   min-width: min(25rem, 42vw);
+  margin-left: auto;
+  order: 2;
   padding: 0 0.9rem;
   transition:
     border-color 0.15s ease,
@@ -398,6 +393,7 @@
   background: var(--users-orange);
   border-color: var(--users-orange);
   color: #fff;
+  order: 3;
 }
 
 .createUserButton:hover:not(:disabled),
@@ -456,6 +452,11 @@
 
 .tableResponsive {
   overflow-x: auto;
+}
+
+.mobileUserList,
+.mobileState {
+  display: none;
 }
 
 .usersTable {
@@ -594,6 +595,119 @@
   background: #111;
   border-color: #111;
   color: #fff;
+}
+
+.mobileUserCard {
+  --mobile-user-accent: var(--users-green);
+  --mobile-user-accent-rgb: var(--users-green-rgb);
+
+  background:
+    linear-gradient(90deg, rgba(var(--mobile-user-accent-rgb), 0.08), #fff 4.75rem),
+    #fff;
+  border: 1px solid var(--users-border);
+  border-left: 0.42rem solid var(--mobile-user-accent);
+  border-radius: 0.82rem;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  padding: 1rem;
+}
+
+.mobileUserCardLinked {
+  --mobile-user-accent: var(--users-green);
+  --mobile-user-accent-rgb: var(--users-green-rgb);
+}
+
+.mobileUserCardUnlinked {
+  --mobile-user-accent: var(--users-orange);
+  --mobile-user-accent-rgb: var(--users-orange-rgb);
+}
+
+.mobileUserHeader {
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(var(--mobile-user-accent-rgb), 0.2);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.8rem;
+}
+
+.mobileUserHeader > div {
+  border-left: 3px solid var(--mobile-user-accent);
+  min-width: 0;
+  padding-left: 0.65rem;
+}
+
+.mobileUserHeader span,
+.mobileUserDetails dt {
+  color: var(--users-muted);
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.mobileUserHeader strong {
+  color: #111827;
+  display: block;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.mobileUserHeader small {
+  color: #64748b;
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.mobileUserDetails {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.mobileUserDetails > div {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(var(--mobile-user-accent-rgb), 0.11);
+  border-radius: 0.62rem;
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+}
+
+.mobileUserDetails dd {
+  color: #111827;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mobileEditButton {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+  margin-top: 0.8rem;
+  min-height: 2.45rem;
+  width: 100%;
+}
+
+.mobileEditButton:hover:not(:disabled),
+.mobileEditButton:focus-visible:not(:disabled) {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.mobileState {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 750;
+  padding: 2rem 1rem;
+  text-align: center;
 }
 
 .paginationFooter {
@@ -1334,7 +1448,6 @@
   }
 
   .searchBox {
-    flex: 1 1 18rem;
     min-width: min(100%, 18rem);
   }
 }
@@ -1358,6 +1471,49 @@
     padding-left: 0;
     padding-top: 1rem;
   }
+
+  .tableResponsive {
+    display: none;
+  }
+
+  .mobileUserList {
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .mobileState {
+    display: block;
+  }
+
+  .mobileUserHeader .statusBadge {
+    align-items: center;
+    background: #0f5f25;
+    border-color: transparent;
+    color: #fff;
+    flex-direction: row;
+    line-height: 1rem;
+    padding-block: 0.36rem;
+    white-space: nowrap;
+  }
+
+  .mobileUserHeader .statusDot {
+    background: #22c55e;
+    flex: 0 0 auto;
+    height: 0.62rem;
+    position: relative;
+    top: 0.02rem;
+    width: 0.62rem;
+  }
+
+  .mobileUserCardUnlinked .statusBadge {
+    background: #7c2d12;
+    color: #fff;
+  }
+
+  .mobileUserCardUnlinked .statusDot {
+    background: var(--users-orange);
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -1370,24 +1526,35 @@
     letter-spacing: 0.12em;
   }
 
-  .filtersTopbar,
-  .filtersTopbarActions {
-    align-items: stretch;
-    flex-direction: column;
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .searchBox,
-  .userButton,
-  .filterChip,
-  .filterToggleButton {
-    width: 100%;
+  .filtersTopbar {
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .searchBox {
-    flex: 0 0 auto;
+    grid-column: 1 / -1;
+    margin-left: 0;
     min-width: 0;
+    order: 1;
+    width: 100%;
+  }
+
+  .filterToggleButton {
+    font-size: 0.82rem;
+    min-width: 0;
+    order: 2;
+    padding-inline: 0.7rem;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  .createUserButton {
+    font-size: 0.82rem;
+    min-width: 0;
+    order: 3;
+    padding-inline: 0.7rem;
+    width: 100%;
   }
 
   .filterPanel {
@@ -1398,23 +1565,51 @@
     padding-right: 0;
   }
 
+  .filterOptions {
+    justify-content: center;
+  }
+
+  .filterChip {
+    flex: 0 1 auto;
+    min-width: 7.25rem;
+    width: auto;
+  }
+
   .clearFiltersButton {
     left: 1rem;
   }
 
   .paginationFooter {
-    grid-template-columns: 1fr;
+    grid-template-columns: 3rem minmax(0, 1fr) 3rem;
+    padding: 0.85rem;
   }
 
   .paginationSideButton,
   .paginationFooter > .paginationSideButton:last-child {
-    justify-self: stretch;
+    height: 2.65rem;
+    justify-self: center;
+    min-width: 2.65rem;
+    padding: 0;
+    width: 2.65rem;
   }
 
   .paginationCenter {
     flex-direction: column;
-    gap: 0.75rem;
-    order: -1;
+    gap: 0.55rem;
+  }
+
+  .paginationButtonLabel {
+    display: none;
+  }
+
+  .pageButtons {
+    gap: 0.4rem;
+  }
+
+  .pageButton {
+    height: 2.2rem;
+    min-width: 2.2rem;
+    padding-inline: 0.45rem;
   }
 
   .formRow {
@@ -1618,6 +1813,18 @@
   .createFeedback {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .mobileUserDetails {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mobileUserDetails > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .pageButtons {
+    display: none;
   }
 }
 

@@ -254,6 +254,7 @@ test("filtra vinculados y roles usando la busqueda de Auth0 sin consulta RBAC ad
 
     assert.equal(requests.length, 2);
     assert.match(requests[1].url, /blocked%3Afalse/);
+    assert.match(requests[1].url, /NOT\+_exists_%3Ablocked/);
     assert.match(requests[1].url, /app_metadata\.rolUsuario/);
     assert.equal(result.usuarios[0].rolUsuario, "Gerencia");
     assert.equal(result.usuarios[0].estadoUsuario, "Vinculado");

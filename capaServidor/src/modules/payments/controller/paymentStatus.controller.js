@@ -32,10 +32,10 @@ class PaymentStatusController {
 
     getPaymentStatus = async ( req = request, res = response ) => {
         try {
-            const statusId = req.params;
-            if (!statusId) return res.status( 400 ).json({msg:'Missing ID'});
+            const {id_estado_pago} = req.params;
+            if (!id_estado_pago) return res.status( 400 ).json({msg:'Missing ID'});
             const result = await
-            this.service.getPaymentStatus( statusId );
+            this.service.getPaymentStatus( id_estado_pago );
             if ( !result ) return res.status( 404 ).json({msg:'Estado no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {

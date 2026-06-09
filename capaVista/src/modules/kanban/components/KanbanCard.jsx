@@ -1,7 +1,7 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
-function KanbanCard({ clientName, nv, product, date }) {
+function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
   const { ref } = useDraggable({
     id: nv,
   })
@@ -24,7 +24,12 @@ function KanbanCard({ clientName, nv, product, date }) {
         </div>
       </dl>
 
-      <button className={styles.orderCardButton} type="button">
+      <button className={`${styles['orderCardButton']}`}
+          onClick={(e) => {
+              e.stopPropagation();
+              onOpenDetail();
+          }}
+      >
         <i className="bi bi-eye" aria-hidden="true" />
         <span>Detalle</span>
       </button>

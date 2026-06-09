@@ -419,4 +419,33 @@
   .columnBody {
     min-height: 24rem;
   }
+
+  .offcanvasHeader {
+    background-color: #000;
+    color: #fff;
+    border-bottom: 4px solid #f97316; 
+    padding: 1.25rem;
+  }
+
+  .offcanvasTitle {
+    font-weight: 850;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .offcanvasHeader :global(.btn-close) {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.8;
+  }
+
+  .offcanvasHeader :global(.btn-close):hover {
+    opacity: 1;
+  }
+
+  .offcanvasBody {
+    background-color: #f8fafc; 
+    padding: 1.25rem;
+  }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import KanbanCard from './KanbanCard'
 import styles from '../styles/Kanban.module.css'
+import KanbanOffCanvas from './KanbanOffCanvas';
 
 const initialOrders = [
   {
@@ -94,6 +95,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 
 function KanbanColumn() {
   const [orders, setOrders] = useState(initialOrders)
+  const [selectedOrder, setSelectedOrder] = useState(null)
 
   function handleDragEnd(event) {
     if (event.canceled) return
@@ -109,29 +111,44 @@ function KanbanColumn() {
   }
 
   return (
-    <DragDropProvider onDragEnd={handleDragEnd}>
-      <div className={styles.kanbanWrapper}>
-        {columns.map((column) => {
-          const columnOrders = orders.filter((order) => column.title === order.orderStatus)
+    <>
+        <DragDropProvider onDragEnd={handleDragEnd}>
+          <div className={styles.kanbanWrapper}>
+            {columns.map((column) => {
+              const columnOrders = orders.filter((order) => column.title === order.orderStatus)
 
-          return (
-            <DroppableColumn
-              accent={column.accent}
-              count={columnOrders.length}
-              icon={column.icon}
-              id={column.title}
-              key={column.title}
-            >
-              {columnOrders.length > 0 ? (
-                columnOrders.map((order) => <KanbanCard key={order.id} {...order} />)
-              ) : (
-                <div className={styles.emptyColumn}>Arrastra una orden hacia esta columna.</div>
-              )}
-            </DroppableColumn>
-          )
-        })}
-      </div>
-    </DragDropProvider>
+              return (
+                <DroppableColumn
+                  accent={column.accent}
+                  count={columnOrders.length}
+                  icon={column.icon}
+                  id={column.title}
+                  key={column.title}
+                >
+                  {columnOrders.length > 0 ? (
+                    columnOrders.map((order) => (
+                      <KanbanCard 
+                        key={order.id} 
+                        {...order} 
+                        onOpenDetail={() => setSelectedOrder(order)} 
+                      />
+                    ))
+                  ) : (
+                    <div className={styles.emptyColumn}>Arrastra una orden hacia esta columna.</div>
+                  )}
+                </DroppableColumn>
+              )
+            })}
+          </div>
+        </DragDropProvider>
+        <KanbanOffCanvas
+            isOpen={selectedOrder !== null}
+            onClose={() => setSelectedOrder(null)}
+            order={selectedOrder}
+        />
+    </>
+
+      
   )
 }
 

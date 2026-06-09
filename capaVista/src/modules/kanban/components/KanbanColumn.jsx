@@ -54,7 +54,7 @@ import styles from '../styles/Kanban.module.css'
 
 
 function getColumnTitleByStepId(stepId) {
-  const column = defaultColumns.find((item) => Number(item.generalStepId) === Number(stepId))
+  const column = columnVisuals.find((item) => Number(item.generalStepId) === Number(stepId))
   return column?.title ?? 'Confirmación de pago'
 }
 

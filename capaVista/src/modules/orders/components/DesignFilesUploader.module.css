@@ -1,0 +1,49 @@
+.hiddenInput {
+  clip: rect(0 0 0 0);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.uploadZone {
+  align-items: center;
+  background: #fff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.8rem;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  justify-content: center;
+  min-height: 7.2rem;
+  padding: 1.15rem;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.uploadZoneActive,
+.uploadZone:hover {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.08);
+}
+
+.uploadIcon {
+  align-items: center;
+  background: var(--orders-orange-soft);
+  border-radius: 0.75rem;
+  color: var(--orders-orange);
+  display: inline-flex;
+  font-size: 1.25rem;
+  height: 2.4rem;
+  justify-content: center;
+  width: 2.4rem;
+}
+
+.uploadMainText {
+  color: var(--orders-text);
+  font-weight: 850;
+}

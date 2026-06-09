@@ -1,0 +1,134 @@
+.mainPanelClean {
+  display: grid;
+  gap: 1rem;
+}
+
+.sectionCardClean {
+  background: #fff;
+  border: 1px solid var(--orders-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+  padding: 1.15rem;
+}
+
+.sectionHeader {
+  align-items: center;
+  color: var(--orders-text);
+  display: flex;
+  font-size: 0.95rem;
+  font-weight: 850;
+  gap: 0.55rem;
+  letter-spacing: 0.035em;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+}
+
+.sectionHeader i {
+  color: var(--orders-orange);
+}
+
+.formBlock {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.label {
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.requiredMark {
+  color: var(--orders-red);
+}
+
+.codeFieldRow {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.inputWrapper {
+  display: block;
+  position: relative;
+}
+
+.input {
+  border: 1px solid #dbe3ef;
+  border-radius: 0.65rem;
+  color: var(--orders-text);
+  font-size: 0.95rem;
+  min-height: 3rem;
+  padding: 0.75rem 2.8rem 0.75rem 0.95rem;
+  width: 100%;
+}
+
+.input:focus {
+  border-color: var(--orders-orange);
+  box-shadow: 0 0 0 0.18rem rgba(249, 115, 22, 0.13);
+  outline: none;
+}
+
+.inputValid {
+  border-color: var(--orders-green);
+}
+
+.inlineCheck {
+  align-items: center;
+  border: 1px solid var(--orders-green);
+  border-radius: 50%;
+  color: var(--orders-green);
+  display: inline-flex;
+  height: 1.65rem;
+  justify-content: center;
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.65rem;
+}
+
+.searchButton {
+  align-items: center;
+  background: #000;
+  border: 1px solid #000;
+  border-radius: 0.65rem;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1.15rem;
+  white-space: nowrap;
+}
+
+.searchButton:hover {
+  background: #1f2937;
+}
+
+.errorText {
+  color: var(--orders-red);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0.25rem 0 0;
+}
+
+.helperText {
+  color: var(--orders-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0.65rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .codeFieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .searchButton {
+    width: 100%;
+  }
+}

@@ -1,7 +1,7 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
-function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
+function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, dueDate, isDelayed }) {
   const { ref } = useDraggable({
     id: nv,
   })
@@ -10,7 +10,24 @@ function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
     <article className={styles.orderCard} ref={ref}>
       <div className={styles.orderCardHeader}>
         <span className={styles.orderClient}>{clientName}</span>
-        <span className={styles.orderNv}>{nv}</span>
+        
+        <div className={styles.headerBadgesGroup}>
+          
+          {isDelayed && (
+            <span className={styles.delayBadge} title="Pedido Atrasado">
+              <i className="bi bi-clock-fill" aria-hidden="true"></i>
+            </span>
+          )}
+
+          {isUrgent && (
+            <span className={styles.urgentBadge} title="Pedido Urgente">
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            </span>
+          )}
+
+          <span className={styles.orderNv}>{nv}</span>
+        </div>
+
       </div>
 
       <dl className={styles.orderDetails}>
@@ -24,7 +41,7 @@ function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
         </div>
       </dl>
 
-      <button className={`${styles['orderCardButton']}`}
+      <button className={styles.orderCardButton}
           onClick={(e) => {
               e.stopPropagation();
               onOpenDetail();

@@ -5,6 +5,8 @@
   --kanban-orange-rgb: 249, 115, 22;
   --kanban-muted: #64748b;
   --kanban-text: #111827;
+  --kanban-red: #dc2626;     /* URGENTE */
+  --kanban-yellow: #ca8a04;   /* ATRASADO */
 }
 
 .filtersShell {
@@ -340,16 +342,24 @@
 }
 
 .orderCardButton {
-  background: #000;
+  background: linear-gradient(to top, var(--kanban-orange) 50%, #000 50%);
+  background-size: 100% 200%;
+  background-position: top;
   border: 1px solid #000;
   color: #fff;
   margin-top: 0.1rem;
   width: 100%;
+
+  transition: background-position 0.35s cubic-bezier(0.4,0,0.2,1),
+    color 0.35s ease,
+    border-color 0.35s ease;
+    transform: 0.15s ease;
+
 }
 
 .orderCardButton:hover,
 .orderCardButton:focus {
-  background: var(--kanban-orange);
+  background-position: bottom;
   border-color: var(--kanban-orange);
   color: #111;
   outline: none;
@@ -448,4 +458,44 @@
     background-color: #f8fafc; 
     padding: 1.25rem;
   }
+
+  .headerBadgesGroup {
+    gap: 0.35rem;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .urgentBadge,
+  .delayBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    border:1px solid transparent;
+  }
+
+  .urgentBadge {
+    background-color: rgba(220,38,38,0.12);
+    color: var(--kanban-red);
+    border-color: rgba(220,38,38,0.3);
+  }
+
+  .delayBadge {
+    background-color: rgba(202,138,4,0.12);
+    color: var(--kanban-yellow);
+    border-color: rgba(202,138,4,0.3);
+  }
+
+  .orderDetails .textDelayed dt{
+    color: var(--kanban-red);
+  }
+
+  .orderDetails .textDelayed dd{
+    color: var(--kanban-red);
+  }
+
 }

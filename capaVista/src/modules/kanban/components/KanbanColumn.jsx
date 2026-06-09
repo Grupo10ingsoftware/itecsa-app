@@ -11,6 +11,9 @@ const initialOrders = [
     nv: 'NV-6767',
     product: 'Lanyards',
     date: '21-05-2026',
+    dueDate: '21-06-2026',
+    isUrgent: true,
+    isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para producción',
   },
@@ -20,6 +23,9 @@ const initialOrders = [
     nv: 'NV-6768',
     product: 'Lanyards',
     date: '21-05-2026',
+    dueDate: '21-06-2026',
+    isUrgent: false,
+    isDelayed: true,
     paymentStatus: '',
     orderStatus: 'En producción',
   },
@@ -29,6 +35,9 @@ const initialOrders = [
     nv: 'NV-6769',
     product: 'Lanyards',
     date: '21-05-2026',
+    dueDate: '21-05-2026',
+    isUrgent: false,
+    isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Confirmación de pago',
   },
@@ -38,6 +47,9 @@ const initialOrders = [
     nv: 'NV-6779',
     product: 'Lanyards',
     date: '21-05-2026',
+    dueDate: '21-06-2026',
+    isUrgent: false,
+    isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para entrega',
   },
@@ -47,6 +59,9 @@ const initialOrders = [
     nv: 'NV-6777',
     product: 'Lanyards',
     date: '21-05-2026',
+    dueDate: '21-06-2026',
+    isUrgent: false,
+    isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para entrega',
   },
@@ -96,6 +111,14 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 function KanbanColumn() {
   const [orders, setOrders] = useState(initialOrders)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const handleUpdateOrder = (updatedOrder) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.id === updatedOrder.id ? updatedOrder : order
+      )
+    );
+    setSelectedOrder(updatedOrder);
+  };
 
   function handleDragEnd(event) {
     if (event.canceled) return
@@ -145,6 +168,7 @@ function KanbanColumn() {
             isOpen={selectedOrder !== null}
             onClose={() => setSelectedOrder(null)}
             order={selectedOrder}
+            onUpdateOrder={handleUpdateOrder}
         />
     </>
 

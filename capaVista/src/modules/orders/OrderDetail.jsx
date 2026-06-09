@@ -1,7 +1,10 @@
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import styles from './styles/OrderDetail.module.css'
 
-const OrderDetail = ({ clientName, nv, product, date }) => {
+const OrderDetail = ({ order, onUpdateOrder }) => {
+
+    if(!order) return null;
+    const {clientName, nv, product, date, isUrgent, isDelayed} = order;
   return (
     <div className={styles.detailsContainer}>
         
@@ -26,6 +29,36 @@ const OrderDetail = ({ clientName, nv, product, date }) => {
                     {product}
                 </span>
             </div>
+        </div>
+
+        {/* Asignación etiquetas */}
+        <h6 className={styles.sectionTitle}>Etiquetas de Prioridad</h6>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <button 
+                className={styles.btnPrimary}
+                style={{ 
+                    backgroundColor: isUrgent ? '#dc2626' : '#000', 
+                    borderColor: isUrgent ? '#dc2626' : '#000',
+                    color: '#fff',
+                    flex: 1
+                }}
+                onClick={() => onUpdateOrder({ ...order, isUrgent: !isUrgent })}
+            >
+                {isUrgent ? 'Quitar Urgencia' : 'Marcar Urgente'}
+            </button>
+
+            <button 
+                className={styles.btnPrimary}
+                style={{ 
+                    backgroundColor: isDelayed ? '#ca8a04' : '#000', 
+                    borderColor: isDelayed ? '#ca8a04' : '#000',
+                    color: '#fff',
+                    flex: 1
+                }}
+                onClick={() => onUpdateOrder({ ...order, isDelayed: !isDelayed })}
+            >
+                {isDelayed ? 'Quitar Atraso' : 'Marcar Atraso'}
+            </button>
         </div>
 
         {/* Producción y Avance */}

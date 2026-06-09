@@ -2,7 +2,7 @@ import Offcanvas from 'react-bootstrap/Offcanvas';
 import OrderDetail from '../../orders/OrderDetail.jsx';
 import styles from '../styles/KanbanOffCanvas.module.css'
 
-function KanbanOffCanvas({ isOpen, onClose, order }) {
+function KanbanOffCanvas({ isOpen, onClose, order, onUpdateOrder }) {
     if (!order) return null;
 
     return (
@@ -24,6 +24,8 @@ function KanbanOffCanvas({ isOpen, onClose, order }) {
                     nv={order.nv}
                     product={order.product}
                     date={order.date}
+                    order={order}
+                    onUpdateOrder={onUpdateOrder}
                 />
             </Offcanvas.Body>
         </Offcanvas>

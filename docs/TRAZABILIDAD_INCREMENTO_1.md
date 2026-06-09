@@ -64,21 +64,24 @@ Responsabilidades:
 
 Requiere access token valido y rol unico `Administrador`.
 
-Cuerpo aceptado:
+Cuerpo aceptado como `multipart/form-data`:
 
-```json
-{
-  "correoUsuario": "correo.controlado@example.cl",
-  "rolUsuario": "Ventas"
-}
+```txt
+nombreUsuario=Ana
+apellidoUsuario=Perez
+rutUsuario=12.345.678-9
+correoUsuario=correo.controlado@example.cl
+rolUsuario=Ventas
+firmaElectronica=<archivo PDF, PNG, JPG, JPEG o WebP>
 ```
 
 Responsabilidades:
 
 - Rechazar campos no permitidos.
-- Validar correo y rol permitido.
-- Crear el usuario en Auth0 Database sin nombre, apellido ni `app_metadata.rolUsuario`.
+- Validar nombre, apellido, RUT, correo, rol permitido y firma electronica.
+- Crear el usuario en Auth0 Database sin `app_metadata.rolUsuario`.
 - Resolver y asignar el rol Auth0 RBAC existente.
+- Persistir `Usuario` con datos internos y `ruta_firma`.
 - Solicitar el correo de establecimiento/cambio de contrasena.
 - Normalizar correo duplicado como `409`.
 - No recibir ni retornar contrasenas.
@@ -176,7 +179,7 @@ Frontend:
 - `capaVista/src/shared/components/navigation/RoleGuard.jsx`: aplica control visual por rol o permiso.
 - `capaVista/src/services/api/apiClient.js`: centraliza llamadas HTTP al backend.
 - `capaVista/src/modules/auth/api/authApi.js`: expone `verify()` para validar sesion contra backend.
-- `capaVista/src/modules/users/components/UserCreateForm.jsx`: envia alta administrativa sin RUT, firma electronica ni contrasena.
+- `capaVista/src/modules/users/components/UserCreateForm.jsx`: envia alta administrativa con datos internos y firma electronica; la contrasena queda gestionada por Auth0.
 - `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`: separa permiso de vista y permiso de accion para confirmar pagos.
 - `capaVista/src/modules/payments/components/PaymentRowActions.jsx`: mantiene `Gestionar` visible pero bloqueado cuando falta `update:payment-status`.
 - `capaVista/src/modules/payments/mocks/`: contiene datos y transiciones simuladas hasta integrar BD/backend persistente.

@@ -18,7 +18,7 @@ export default function UserCreatePage() {
         <div className={styles.content}>
           <div className={`alert alert-info ${styles.noteAlert}`} role="note">
             <i className="bi bi-info-circle me-2" aria-hidden="true" />
-            Nombre, apellido, RUT, firma electronica y contrasena no se enviaran en esta etapa.
+            La contrasena sera gestionada por Auth0 mediante correo de establecimiento.
           </div>
 
           <div className={styles.formCard}>

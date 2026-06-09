@@ -5,6 +5,7 @@ import {
     createAdminUserHandler,
     createPasswordSetupEmailHandler,
 } from "../controller/adminUsers.controller.js";
+import { uploadSignatureFile } from "../middleware/signatureUpload.js";
 
 export function createAdminUsersRouter({
     authenticate = checkJwt,
@@ -12,12 +13,14 @@ export function createAdminUsersRouter({
     createUser,
     requestPasswordEmail,
     users,
+    uploadSignature = uploadSignatureFile,
 } = {}) {
     const router = Router();
     router.post(
         "/users",
         authenticate,
         authorize,
+        uploadSignature,
         createAdminUserHandler({ createUser, requestPasswordEmail, users }),
     );
     router.post(

@@ -10,6 +10,7 @@ import {
 import userRepository, {
     UserRepositoryError,
 } from "../repo/users.repo.js";
+import { deleteSignatureFile } from "../middleware/signatureUpload.js";
 
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
@@ -23,8 +24,12 @@ function createdResponse(user, createdUser, passwordSetupEmailRequested) {
             ? { idUsuario: createdUser.internalUser.idUsuario }
             : {}),
         idUsuarioAutenticacionExterna: createdUser.userId,
+        nombreUsuario: user.nombreUsuario,
+        apellidoUsuario: user.apellidoUsuario,
+        rutUsuario: user.rutUsuario,
         correoUsuario: user.correoUsuario,
         rolUsuario: user.rolUsuario,
+        rutaFirma: createdUser.internalUser?.rutaFirma,
         passwordSetupEmailRequested,
     };
 }
@@ -65,7 +70,14 @@ export function createAdminUserHandler({
         const validatedRequest = validateAdminUserRequest(req.body);
 
         if (!validatedRequest.valid) {
+            deleteSignatureFile(req.signatureFile?.path);
             return res.status(400).json({ message: validatedRequest.message });
+        }
+
+        if (!req.signatureFile) {
+            return res.status(400).json({
+                message: "El campo firmaElectronica es obligatorio.",
+            });
         }
 
         const user = validatedRequest.user;
@@ -75,10 +87,12 @@ export function createAdminUserHandler({
         try {
             existingInternalUser = await users.findByEmail(user.correoUsuario);
         } catch {
+            deleteSignatureFile(req.signatureFile.path);
             return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
         }
 
         if (existingInternalUser) {
+            deleteSignatureFile(req.signatureFile.path);
             return res.status(409).json({
                 message: "Ya existe un usuario con ese correo.",
             });
@@ -94,11 +108,13 @@ export function createAdminUserHandler({
                 error instanceof Auth0ServiceError &&
                 error.code === "USER_EMAIL_ALREADY_EXISTS"
             ) {
+                deleteSignatureFile(req.signatureFile.path);
                 return res.status(409).json({
                     message: "Ya existe un usuario con ese correo.",
                 });
             }
 
+            deleteSignatureFile(req.signatureFile.path);
             return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
         }
 
@@ -106,12 +122,18 @@ export function createAdminUserHandler({
             createdUser.internalUser = await users.create({
                 auth0UserId: createdUser.userId,
                 correoUsuario: user.correoUsuario,
+                rutUsuario: user.rutUsuario,
+                nombreUsuario: user.nombreUsuario,
+                apellidoUsuario: user.apellidoUsuario,
                 rolUsuario: user.rolUsuario,
                 estadoUsuario: createdUser.roleAssignmentCompleted
                     ? ACTIVE_USER_STATUS
                     : PENDING_ROLE_USER_STATUS,
+                rutaFirma: req.signatureFile.storedPath,
             });
         } catch (error) {
+            deleteSignatureFile(req.signatureFile.path);
+
             if (
                 error instanceof UserRepositoryError &&
                 error.code === "USER_ALREADY_EXISTS"

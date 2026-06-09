@@ -63,7 +63,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `correoUsuario` y `rolUsuario`; no recibe nombre, apellido, RUT, firma electronica ni contrasenas.
+`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -71,6 +71,7 @@ El backend usa `ITECSA Backend Management` para:
 - Resolver el rol Auth0 RBAC existente.
 - Crear el usuario en `Username-Password-Authentication`.
 - Asignar el rol RBAC al usuario.
+- Registrar la entidad interna `Usuario` con datos personales de negocio y ruta de firma.
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
@@ -104,7 +105,7 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 ## Limites Vigentes
 
 - Prisma y MySQL estan integrados en `capaServidor` para persistir la entidad interna `Usuario` durante la creacion administrativa.
-- No se persisten RUT, firma electronica ni contrasenas.
+- No se persisten contrasenas. RUT y ruta de firma se persisten en la entidad interna `Usuario`.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
 - Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.

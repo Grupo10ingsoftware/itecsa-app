@@ -17,8 +17,12 @@ function toUserResponse(user) {
         idUsuario: user.id_usuario,
         idAuth0: user.id_auth0,
         correoUsuario: user.correo_usuario,
+        rutUsuario: user.rut_usuario,
+        nombreUsuario: user.nombre_usuario,
+        apellidoUsuario: user.apellido_usuario,
         rolUsuario: user.rol_usuario,
         estadoUsuario: user.estado_usuario,
+        rutaFirma: user.ruta_firma,
     };
 }
 
@@ -67,14 +71,27 @@ export class UserRepository {
         }
     }
 
-    async create({ auth0UserId, correoUsuario, rolUsuario, estadoUsuario }) {
+    async create({
+        auth0UserId,
+        correoUsuario,
+        rutUsuario,
+        nombreUsuario,
+        apellidoUsuario,
+        rolUsuario,
+        estadoUsuario,
+        rutaFirma,
+    }) {
         try {
             const user = await this.client.usuario.create({
                 data: {
                     id_auth0: auth0UserId,
                     correo_usuario: normalizeEmail(correoUsuario),
+                    rut_usuario: rutUsuario,
+                    nombre_usuario: nombreUsuario,
+                    apellido_usuario: apellidoUsuario,
                     rol_usuario: rolUsuario,
                     estado_usuario: estadoUsuario,
+                    ruta_firma: rutaFirma,
                 },
             });
 

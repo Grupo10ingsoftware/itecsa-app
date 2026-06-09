@@ -1,4 +1,7 @@
 const USER_FIELDS = new Set([
+    "nombreUsuario",
+    "apellidoUsuario",
+    "rutUsuario",
     "correoUsuario",
     "rolUsuario",
 ]);
@@ -11,6 +14,9 @@ const ROLES = new Set([
     "Cobranzas",
 ]);
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RUT_FORMAT = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/;
+const LETTERS_AND_SPACES_FORMAT =
+    /^[A-Za-z\u00c1\u00c9\u00cd\u00d3\u00da\u00e1\u00e9\u00ed\u00f3\u00fa\u00d1\u00f1\u00dc\u00fc\s]+$/;
 
 function invalidRequest(message) {
     return { valid: false, message };
@@ -38,9 +44,26 @@ export function validateAdminUserRequest(body) {
         return invalidRequest("El correoUsuario no tiene un formato valido.");
     }
 
+    if (!LETTERS_AND_SPACES_FORMAT.test(user.nombreUsuario)) {
+        return invalidRequest("El nombreUsuario solo debe contener letras y espacios.");
+    }
+
+    if (!LETTERS_AND_SPACES_FORMAT.test(user.apellidoUsuario)) {
+        return invalidRequest(
+            "El apellidoUsuario solo debe contener letras y espacios.",
+        );
+    }
+
+    if (!RUT_FORMAT.test(user.rutUsuario)) {
+        return invalidRequest("El rutUsuario no tiene un formato valido.");
+    }
+
     if (!ROLES.has(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
+
+    user.correoUsuario = user.correoUsuario.toLowerCase();
+    user.rutUsuario = user.rutUsuario.toUpperCase();
 
     return { valid: true, user };
 }

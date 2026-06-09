@@ -10,8 +10,15 @@ import {
 import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
 const VALID_BODY = {
+    nombreUsuario: "Ana",
+    apellidoUsuario: "Perez",
+    rutUsuario: "12.345.678-9",
     correoUsuario: "ana.perez@itecsa.cl",
     rolUsuario: "Ventas",
+};
+const VALID_SIGNATURE_FILE = {
+    path: "firma-test.pdf",
+    storedPath: "itecsa-app\\data\\Firmas\\firma-test.pdf",
 };
 const VALID_PASSWORD_EMAIL_BODY = {
     correoUsuario: "ana.perez@itecsa.cl",
@@ -20,8 +27,12 @@ const DEFAULT_INTERNAL_USER = {
     idUsuario: 10,
     idAuth0: "auth0|created-user",
     correoUsuario: VALID_BODY.correoUsuario,
+    rutUsuario: VALID_BODY.rutUsuario,
+    nombreUsuario: VALID_BODY.nombreUsuario,
+    apellidoUsuario: VALID_BODY.apellidoUsuario,
     rolUsuario: VALID_BODY.rolUsuario,
     estadoUsuario: "Activo",
+    rutaFirma: VALID_SIGNATURE_FILE.storedPath,
 };
 
 function responseRecorder() {
@@ -59,6 +70,7 @@ function createUsersRepositoryMock({
 
 async function executeHandler({
     body = VALID_BODY,
+    signatureFile = VALID_SIGNATURE_FILE,
     createUser,
     requestPasswordEmail,
     users = createUsersRepositoryMock(),
@@ -70,7 +82,7 @@ async function executeHandler({
         users,
     });
 
-    await handler({ body }, res);
+    await handler({ body, signatureFile }, res);
 
     return res;
 }
@@ -104,8 +116,12 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
     assert.deepEqual(res.body, {
         idUsuario: DEFAULT_INTERNAL_USER.idUsuario,
         idUsuarioAutenticacionExterna: "auth0|created-user",
+        nombreUsuario: VALID_BODY.nombreUsuario,
+        apellidoUsuario: VALID_BODY.apellidoUsuario,
+        rutUsuario: VALID_BODY.rutUsuario,
         correoUsuario: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
+        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
         passwordSetupEmailRequested: true,
     });
     assert.deepEqual(createUserPayload, {
@@ -138,9 +154,30 @@ test("persiste el usuario interno activo antes de solicitar correo", async () =>
     assert.deepEqual(persistedPayload, {
         auth0UserId: "auth0|created-user",
         correoUsuario: VALID_BODY.correoUsuario,
+        rutUsuario: VALID_BODY.rutUsuario,
+        nombreUsuario: VALID_BODY.nombreUsuario,
+        apellidoUsuario: VALID_BODY.apellidoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
         estadoUsuario: "Activo",
+        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
     });
+});
+
+test("responde 400 si falta la firma electronica", async () => {
+    let auth0Called = false;
+
+    const res = await executeHandler({
+        signatureFile: null,
+        createUser: async () => {
+            auth0Called = true;
+        },
+    });
+
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.body, {
+        message: "El campo firmaElectronica es obligatorio.",
+    });
+    assert.equal(auth0Called, false);
 });
 
 test("responde 409 si el correo ya existe internamente sin llamar Auth0", async () => {
@@ -307,8 +344,14 @@ test("responde 400 para payload incompleto, correo invalido, rol no permitido o 
         {},
         { correoUsuario: VALID_BODY.correoUsuario },
         { rolUsuario: VALID_BODY.rolUsuario },
+        { ...VALID_BODY, nombreUsuario: " " },
+        { ...VALID_BODY, apellidoUsuario: " " },
+        { ...VALID_BODY, rutUsuario: " " },
         { ...VALID_BODY, correoUsuario: " " },
         { ...VALID_BODY, correoUsuario: "no-es-correo" },
+        { ...VALID_BODY, rutUsuario: "123" },
+        { ...VALID_BODY, nombreUsuario: "Ana 123" },
+        { ...VALID_BODY, apellidoUsuario: "Perez 123" },
         { ...VALID_BODY, rolUsuario: "Supervisor" },
         { ...VALID_BODY, primerNombre: "Ana" },
         { ...VALID_BODY, apellidoPaterno: "Perez" },
@@ -386,6 +429,10 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
             requestPasswordEmail: async () => {
                 calls.push("requestPasswordEmail");
             },
+            uploadSignature(req, res, next) {
+                req.signatureFile = VALID_SIGNATURE_FILE;
+                next();
+            },
             users: createUsersRepositoryMock({
                 onCreate: () => {
                     calls.push("createInternalUser");
@@ -455,4 +502,51 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
         "requireAdministrador",
         "requestPasswordEmail",
     ]);
+});
+
+test("rechaza firma electronica con tipo de archivo no permitido", async (t) => {
+    let auth0Called = false;
+    const app = express();
+    app.use(
+        "/api/admin",
+        createAdminUsersRouter({
+            authenticate(req, res, next) {
+                next();
+            },
+            authorize(req, res, next) {
+                next();
+            },
+            createUser: async () => {
+                auth0Called = true;
+            },
+        }),
+    );
+    const server = app.listen(0);
+    t.after(() => server.close());
+    await once(server, "listening");
+
+    const formData = new FormData();
+    for (const [field, value] of Object.entries(VALID_BODY)) {
+        formData.append(field, value);
+    }
+    formData.append(
+        "firmaElectronica",
+        new Blob(["contenido invalido"], { type: "text/plain" }),
+        "firma.txt",
+    );
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/admin/users`,
+        {
+            method: "POST",
+            body: formData,
+        },
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(body, {
+        message: "La firma electronica debe ser PDF, PNG, JPG, JPEG o WebP.",
+    });
+    assert.equal(auth0Called, false);
 });

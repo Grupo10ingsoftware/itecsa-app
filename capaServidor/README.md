@@ -158,18 +158,20 @@ Respuestas:
 
 ### `POST /api/admin/users`
 
-Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
+Requiere un access token cuyo unico rol sea `Administrador`. Acepta `multipart/form-data` con:
 
-```json
-{
-  "correoUsuario": "correo.controlado@example.cl",
-  "rolUsuario": "Ventas"
-}
+```txt
+nombreUsuario=Ana
+apellidoUsuario=Perez
+rutUsuario=12.345.678-9
+correoUsuario=correo.controlado@example.cl
+rolUsuario=Ventas
+firmaElectronica=<archivo PDF, PNG, JPG, JPEG o WebP>
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
-El cuerpo aceptado no incluye RUT, firma electronica ni contrasena. Esos datos no deben agregarse a este endpoint en la integracion Auth0 inicial.
+La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 
 Respuesta exitosa:
 
@@ -177,8 +179,12 @@ Respuesta exitosa:
 {
   "idUsuario": 1,
   "idUsuarioAutenticacionExterna": "auth0|abc123",
+  "nombreUsuario": "Ana",
+  "apellidoUsuario": "Perez",
+  "rutUsuario": "12.345.678-9",
   "correoUsuario": "correo.controlado@example.cl",
   "rolUsuario": "Ventas",
+  "rutaFirma": "itecsa-app\\data\\Firmas\\firma-123.pdf",
   "passwordSetupEmailRequested": true
 }
 ```
@@ -187,7 +193,7 @@ Respuestas:
 
 - `201`: usuario creado, con `passwordSetupEmailRequested: true` si se solicito el correo.
 - `201` recuperable: cuenta Auth0 creada pero fallo la asignacion de rol, el registro interno o la solicitud de correo; no debe repetirse la creacion.
-- `400`: cuerpo invalido, rol no permitido o campos adicionales.
+- `400`: cuerpo invalido, firma ausente, tipo de firma no permitido, rol no permitido o campos adicionales.
 - `401`: access token ausente o invalido.
 - `403`: usuario autenticado sin rol `Administrador`.
 - `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
@@ -254,8 +260,12 @@ Creacion administrativa con token Administrador y un correo controlado nuevo:
 ```bash
 curl -i -X POST http://localhost:3000/api/admin/users \
   -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"correoUsuario":"correo.controlado@example.cl","rolUsuario":"Ventas"}'
+  -F "nombreUsuario=Ana" \
+  -F "apellidoUsuario=Perez" \
+  -F "rutUsuario=12.345.678-9" \
+  -F "correoUsuario=correo.controlado@example.cl" \
+  -F "rolUsuario=Ventas" \
+  -F "firmaElectronica=@./data/Firmas/firma-demo.pdf"
 ```
 
 Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.

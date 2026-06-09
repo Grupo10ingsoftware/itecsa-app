@@ -19,7 +19,7 @@ model Anuncio {
 }
 
 model Cliente {
-  id_cliente     Int       @id
+  id_cliente     Int       @id @default(autoincrement())
   rut_cliente    String?   @unique(map: "rut_cliente_UNIQUE") @db.VarChar(12)
   nombre_cliente String?   @db.VarChar(100)
   razon_social   String?   @db.VarChar(150)
@@ -41,7 +41,7 @@ model Comentario_Produccion {
 }
 
 model Detalle_pedido {
-  id_detalle_pedido      Int                     @id
+  id_detalle_pedido      Int                     @id @default(autoincrement())
   cantidad               Int?
   fecha_estimada_termino DateTime?               @db.DateTime(0)
   fecha_real_termino     DateTime?               @db.DateTime(0)
@@ -180,7 +180,7 @@ model Orden_Produccion {
 }
 
 model Pedidos {
-  id_pedido              Int               @id
+  id_pedido              Int               @id @default(autoincrement())
   fecha_creacion         DateTime?         @db.Date
   fecha_estimada_termino DateTime?         @db.Date
   id_usuario             Int?

@@ -34,6 +34,7 @@ DB_USER=<usuario-aiven>
 DB_PASSWORD=<password-aiven>
 DB_NAME=<nombre-bd>
 DB_SSL_CA_PATH=./certs/aiven-ca.pem
+DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
 ```
 
 - `PORT`: puerto HTTP del servidor.
@@ -50,6 +51,7 @@ DB_SSL_CA_PATH=./certs/aiven-ca.pem
 - `DB_PASSWORD`: password MySQL local; debe mantenerse fuera del repositorio.
 - `DB_NAME`: nombre de la base de datos MySQL.
 - `DB_SSL_CA_PATH`: ruta local al certificado CA descargado desde Aiven, relativa a `capaServidor`.
+- `DATABASE_URL`: URL usada por Prisma para conectar a la misma base MySQL. Debe apuntar a `mydb` y usar SSL con el certificado CA local.
 
 Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
 
@@ -77,6 +79,30 @@ Respuesta esperada:
 ```
 
 Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el endpoint responde `500` con un mensaje generico sin exponer credenciales.
+
+## Prisma ORM
+
+Prisma esta instalado como infraestructura de acceso a datos, pero la logica de negocio actual sigue funcionando con `mysql2/promise` y mocks en memoria donde corresponde. No reemplazar repositorios ni servicios hasta planificar esa migracion por modulo.
+
+La base `mydb` ya existe en Aiven, por lo que el flujo correcto es introspeccion y generacion de cliente:
+
+```bash
+npm run prisma:pull
+npm run prisma:generate
+```
+
+Comandos disponibles:
+
+```bash
+npm run prisma:pull
+npm run prisma:generate
+npm run prisma:validate
+npm run prisma:studio
+```
+
+No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre `mydb` en esta etapa. Esas acciones pueden modificar una base existente y deben quedar para una decision de migraciones posterior.
+
+El cliente generado queda en `src/generated/prisma` y no se versiona. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
 ## Recursos Auth0 Esperados
 

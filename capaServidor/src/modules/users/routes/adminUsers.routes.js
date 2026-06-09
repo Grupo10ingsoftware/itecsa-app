@@ -11,13 +11,14 @@ export function createAdminUsersRouter({
     authorize = requireAdministrador,
     createUser,
     requestPasswordEmail,
+    users,
 } = {}) {
     const router = Router();
     router.post(
         "/users",
         authenticate,
         authorize,
-        createAdminUserHandler({ createUser, requestPasswordEmail }),
+        createAdminUserHandler({ createUser, requestPasswordEmail, users }),
     );
     router.post(
         "/users/password-setup-email",

@@ -7,14 +7,22 @@ import {
     validateAdminUserRequest,
     validatePasswordSetupEmailRequest,
 } from "../validators/adminUsers.validator.js";
+import userRepository, {
+    UserRepositoryError,
+} from "../repo/users.repo.js";
 
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
     "No fue posible solicitar el correo de establecimiento de contrasena.";
+const ACTIVE_USER_STATUS = "Activo";
+const PENDING_ROLE_USER_STATUS = "Pendiente rol";
 
-function createdResponse(user, userId, passwordSetupEmailRequested) {
+function createdResponse(user, createdUser, passwordSetupEmailRequested) {
     return {
-        idUsuarioAutenticacionExterna: userId,
+        ...(createdUser.internalUser?.idUsuario
+            ? { idUsuario: createdUser.internalUser.idUsuario }
+            : {}),
+        idUsuarioAutenticacionExterna: createdUser.userId,
         correoUsuario: user.correoUsuario,
         rolUsuario: user.rolUsuario,
         passwordSetupEmailRequested,
@@ -51,6 +59,7 @@ export function createPasswordSetupEmailHandler({
 export function createAdminUserHandler({
     createUser = createAuth0User,
     requestPasswordEmail = requestPasswordSetupEmail,
+    users = userRepository,
 } = {}) {
     return async function adminUserHandler(req, res) {
         const validatedRequest = validateAdminUserRequest(req.body);
@@ -61,6 +70,19 @@ export function createAdminUserHandler({
 
         const user = validatedRequest.user;
         let createdUser;
+        let existingInternalUser;
+
+        try {
+            existingInternalUser = await users.findByEmail(user.correoUsuario);
+        } catch {
+            return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
+        }
+
+        if (existingInternalUser) {
+            return res.status(409).json({
+                message: "Ya existe un usuario con ese correo.",
+            });
+        }
 
         try {
             createdUser = await createUser({
@@ -80,9 +102,36 @@ export function createAdminUserHandler({
             return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
         }
 
+        try {
+            createdUser.internalUser = await users.create({
+                auth0UserId: createdUser.userId,
+                correoUsuario: user.correoUsuario,
+                rolUsuario: user.rolUsuario,
+                estadoUsuario: createdUser.roleAssignmentCompleted
+                    ? ACTIVE_USER_STATUS
+                    : PENDING_ROLE_USER_STATUS,
+            });
+        } catch (error) {
+            if (
+                error instanceof UserRepositoryError &&
+                error.code === "USER_ALREADY_EXISTS"
+            ) {
+                return res.status(409).json({
+                    message: "Ya existe un usuario con ese correo.",
+                });
+            }
+
+            return res.status(201).json({
+                ...createdResponse(user, createdUser, false),
+                recoverable: true,
+                message:
+                    "La cuenta fue creada, pero no se pudo registrar el usuario interno. No se solicito el correo de establecimiento de contrasena.",
+            });
+        }
+
         if (!createdUser.roleAssignmentCompleted) {
             return res.status(201).json({
-                ...createdResponse(user, createdUser.userId, false),
+                ...createdResponse(user, createdUser, false),
                 roleAssignmentCompleted: false,
                 recoverable: true,
                 message:
@@ -94,7 +143,7 @@ export function createAdminUserHandler({
             await requestPasswordEmail({ email: user.correoUsuario });
         } catch {
             return res.status(201).json({
-                ...createdResponse(user, createdUser.userId, false),
+                ...createdResponse(user, createdUser, false),
                 recoverable: true,
                 message:
                     "La cuenta fue creada, pero no se pudo solicitar el correo de establecimiento de contrasena.",
@@ -103,6 +152,6 @@ export function createAdminUserHandler({
 
         return res
             .status(201)
-            .json(createdResponse(user, createdUser.userId, true));
+            .json(createdResponse(user, createdUser, true));
     };
 }

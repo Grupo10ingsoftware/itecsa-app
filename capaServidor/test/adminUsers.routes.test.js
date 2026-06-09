@@ -16,6 +16,13 @@ const VALID_BODY = {
 const VALID_PASSWORD_EMAIL_BODY = {
     correoUsuario: "ana.perez@itecsa.cl",
 };
+const DEFAULT_INTERNAL_USER = {
+    idUsuario: 10,
+    idAuth0: "auth0|created-user",
+    correoUsuario: VALID_BODY.correoUsuario,
+    rolUsuario: VALID_BODY.rolUsuario,
+    estadoUsuario: "Activo",
+};
 
 function responseRecorder() {
     return {
@@ -32,9 +39,36 @@ function responseRecorder() {
     };
 }
 
-async function executeHandler({ body = VALID_BODY, createUser, requestPasswordEmail }) {
+function createUsersRepositoryMock({
+    existingUser = null,
+    createdUser = DEFAULT_INTERNAL_USER,
+    onFindByEmail,
+    onCreate,
+} = {}) {
+    return {
+        async findByEmail(correoUsuario) {
+            await onFindByEmail?.(correoUsuario);
+            return existingUser;
+        },
+        async create(payload) {
+            await onCreate?.(payload);
+            return createdUser;
+        },
+    };
+}
+
+async function executeHandler({
+    body = VALID_BODY,
+    createUser,
+    requestPasswordEmail,
+    users = createUsersRepositoryMock(),
+}) {
     const res = responseRecorder();
-    const handler = createAdminUserHandler({ createUser, requestPasswordEmail });
+    const handler = createAdminUserHandler({
+        createUser,
+        requestPasswordEmail,
+        users,
+    });
 
     await handler({ body }, res);
 
@@ -68,6 +102,7 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
 
     assert.equal(res.statusCode, 201);
     assert.deepEqual(res.body, {
+        idUsuario: DEFAULT_INTERNAL_USER.idUsuario,
         idUsuarioAutenticacionExterna: "auth0|created-user",
         correoUsuario: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
@@ -77,6 +112,54 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
         email: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
     });
+});
+
+test("persiste el usuario interno activo antes de solicitar correo", async () => {
+    let persistedPayload;
+    let emailRequested = false;
+
+    const res = await executeHandler({
+        createUser: async () => ({
+            userId: "auth0|created-user",
+            roleAssignmentCompleted: true,
+        }),
+        requestPasswordEmail: async () => {
+            emailRequested = true;
+        },
+        users: createUsersRepositoryMock({
+            onCreate: (payload) => {
+                persistedPayload = payload;
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(emailRequested, true);
+    assert.deepEqual(persistedPayload, {
+        auth0UserId: "auth0|created-user",
+        correoUsuario: VALID_BODY.correoUsuario,
+        rolUsuario: VALID_BODY.rolUsuario,
+        estadoUsuario: "Activo",
+    });
+});
+
+test("responde 409 si el correo ya existe internamente sin llamar Auth0", async () => {
+    let auth0Called = false;
+
+    const res = await executeHandler({
+        createUser: async () => {
+            auth0Called = true;
+        },
+        users: createUsersRepositoryMock({
+            existingUser: DEFAULT_INTERNAL_USER,
+        }),
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.body, {
+        message: "Ya existe un usuario con ese correo.",
+    });
+    assert.equal(auth0Called, false);
 });
 
 test("responde 200 cuando solicita reenvio de correo de contrasena", async () => {
@@ -150,6 +233,7 @@ test("responde 201 recuperable si falla el correo tras crear y asignar rol", asy
     });
 
     assert.equal(res.statusCode, 201);
+    assert.equal(res.body.idUsuario, DEFAULT_INTERNAL_USER.idUsuario);
     assert.equal(res.body.passwordSetupEmailRequested, false);
     assert.equal(res.body.recoverable, true);
     assert.equal(
@@ -160,6 +244,7 @@ test("responde 201 recuperable si falla el correo tras crear y asignar rol", asy
 
 test("responde 201 recuperable y no solicita correo si falla la asignacion RBAC", async () => {
     let emailRequested = false;
+    let persistedPayload;
     const res = await executeHandler({
         createUser: async () => ({
             userId: "auth0|created-user",
@@ -168,13 +253,53 @@ test("responde 201 recuperable y no solicita correo si falla la asignacion RBAC"
         requestPasswordEmail: async () => {
             emailRequested = true;
         },
+        users: createUsersRepositoryMock({
+            createdUser: {
+                ...DEFAULT_INTERNAL_USER,
+                estadoUsuario: "Pendiente rol",
+            },
+            onCreate: (payload) => {
+                persistedPayload = payload;
+            },
+        }),
     });
 
     assert.equal(res.statusCode, 201);
+    assert.equal(res.body.idUsuario, DEFAULT_INTERNAL_USER.idUsuario);
     assert.equal(res.body.roleAssignmentCompleted, false);
     assert.equal(res.body.passwordSetupEmailRequested, false);
     assert.equal(res.body.recoverable, true);
     assert.equal(emailRequested, false);
+    assert.equal(persistedPayload.estadoUsuario, "Pendiente rol");
+});
+
+test("responde 201 recuperable si falla la persistencia interna tras crear Auth0", async () => {
+    let emailRequested = false;
+
+    const res = await executeHandler({
+        createUser: async () => ({
+            userId: "auth0|created-user",
+            roleAssignmentCompleted: true,
+        }),
+        requestPasswordEmail: async () => {
+            emailRequested = true;
+        },
+        users: createUsersRepositoryMock({
+            onCreate: () => {
+                throw new Error("database failure");
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.idUsuario, undefined);
+    assert.equal(res.body.passwordSetupEmailRequested, false);
+    assert.equal(res.body.recoverable, true);
+    assert.equal(emailRequested, false);
+    assert.equal(
+        res.body.message,
+        "La cuenta fue creada, pero no se pudo registrar el usuario interno. No se solicito el correo de establecimiento de contrasena.",
+    );
 });
 
 test("responde 400 para payload incompleto, correo invalido, rol no permitido o campo extra", async () => {
@@ -261,6 +386,11 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
             requestPasswordEmail: async () => {
                 calls.push("requestPasswordEmail");
             },
+            users: createUsersRepositoryMock({
+                onCreate: () => {
+                    calls.push("createInternalUser");
+                },
+            }),
         }),
     );
     const server = app.listen(0);
@@ -281,6 +411,7 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
         "checkJwt",
         "requireAdministrador",
         "createUser",
+        "createInternalUser",
         "requestPasswordEmail",
     ]);
 });

@@ -14,12 +14,13 @@ No es una bitacora ni un plan historico. La finalidad es dejar evidencia tecnica
 - Uso de Auth0 RBAC para los roles `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 - Uso del claim estandar `permissions` para permisos visuales en la SPA.
 - Creacion administrativa de usuarios Auth0 con `POST /api/admin/users`.
+- Persistencia de la entidad interna `Usuario` con `id_auth0`, `correo_usuario`, `rol_usuario` y `estado_usuario`.
 - Solicitud de correo de establecimiento/cambio de contrasena con `POST /api/admin/users/password-setup-email`.
 - Proteccion backend de endpoints administrativos mediante JWT Auth0 y rol `Administrador` emitido por Auth0 RBAC.
 - Separacion de permisos de lectura y escritura para el modulo de pagos: `view:payments-module` permite entrar a `/pagos`, mientras `update:payment-status` permite gestionar cambios de estado.
 - Endpoints backend RF32 para consultar Kanban mock, actualizar estado de pago y rechazar movimientos manuales invalidos hacia `Listo para produccion`.
 
-Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con base de datos real, produccion real, Prisma, MySQL y persistencia local de usuarios. Mientras la base de datos del proyecto no este disponible, pagos y Kanban usan datos mock/en memoria.
+Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con base de datos real y produccion real. Pagos y Kanban siguen usando datos mock/en memoria.
 
 ## Trazabilidad UR/RF
 
@@ -206,9 +207,7 @@ Backend:
 ## Limites y Continuidad
 
 - Esta integracion no cubre pedidos, pagos, Kanban ni produccion persistidos en base de datos.
-- Esta integracion no implementa Prisma, MySQL ni persistencia local de usuarios.
-- La creacion administrativa registra identidades en Auth0, pero no crea una entidad interna `Usuario`.
-- Una autorizacion definitiva futura debera vincular cada identidad Auth0 con una entidad interna mediante `Usuario.auth0_user_id` y validar estado/rol desde la base de datos.
-- Mientras no exista esa persistencia, Auth0 RBAC es la fuente operativa de roles para esta integracion inicial.
-- Mientras no exista BD, los endpoints RF32 usan ordenes mock/en memoria y el frontend de pagos conserva mocks/local state.
-- Cuando la BD este disponible, el mock/en memoria del modulo `orders` debe reemplazarse por servicios/repositorios persistentes sin cambiar las reglas RF26/RF28/RF32 ni los permisos Auth0.
+- Prisma y MySQL ya estan integrados para persistir la entidad interna `Usuario` durante la creacion administrativa.
+- Auth0 RBAC sigue siendo la fuente operativa de autorizacion; `Usuario.rol_usuario` es dato interno de negocio.
+- Los endpoints RF32 usan ordenes mock/en memoria y el frontend de pagos conserva mocks/local state.
+- El mock/en memoria del modulo `orders` debe reemplazarse por servicios/repositorios persistentes sin cambiar las reglas RF26/RF28/RF32 ni los permisos Auth0.

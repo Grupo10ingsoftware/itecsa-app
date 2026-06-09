@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -256,8 +255,9 @@ model Tipo_Producto {
 }
 
 model Usuario {
-  id_usuario            Int                     @id
-  id_auth0              String                  @db.VarChar(45)
+  id_usuario            Int                     @id @default(autoincrement())
+  id_auth0              String                  @unique @db.VarChar(128)
+  correo_usuario        String                  @unique @db.VarChar(255)
   rut_usuario           String?                 @db.VarChar(12)
   nombre_usuario        String?                 @db.VarChar(100)
   apellido_usuario      String?                 @db.VarChar(100)

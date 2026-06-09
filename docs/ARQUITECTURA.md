@@ -103,11 +103,11 @@ El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna 
 
 ## Limites Vigentes
 
-- No se implementa Prisma ni MySQL en esta rama.
+- Prisma y MySQL estan integrados en `capaServidor` para persistir la entidad interna `Usuario` durante la creacion administrativa.
 - No se persisten RUT, firma electronica ni contrasenas.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion Auth0 inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
+- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
 
 La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
 

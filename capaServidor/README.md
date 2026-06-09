@@ -82,7 +82,7 @@ Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el en
 
 ## Prisma ORM
 
-Prisma esta instalado como infraestructura de acceso a datos, pero la logica de negocio actual sigue funcionando con `mysql2/promise` y mocks en memoria donde corresponde. No reemplazar repositorios ni servicios hasta planificar esa migracion por modulo.
+Prisma esta instalado como infraestructura de acceso a datos. La creacion administrativa de usuarios ya registra la entidad interna `Usuario`; otros modulos siguen funcionando con `mysql2/promise` y mocks en memoria donde corresponde.
 
 La base `mydb` ya existe en Aiven, por lo que el flujo correcto es introspeccion y generacion de cliente:
 
@@ -102,7 +102,7 @@ npm run prisma:studio
 
 No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre `mydb` en esta etapa. Esas acciones pueden modificar una base existente y deben quedar para una decision de migraciones posterior.
 
-El cliente generado queda en `src/generated/prisma` y no se versiona. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
+El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
 ## Recursos Auth0 Esperados
 
@@ -167,18 +167,30 @@ Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
 }
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend crea la cuenta Auth0, le asigna el rol RBAC existente y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
 El cuerpo aceptado no incluye RUT, firma electronica ni contrasena. Esos datos no deben agregarse a este endpoint en la integracion Auth0 inicial.
+
+Respuesta exitosa:
+
+```json
+{
+  "idUsuario": 1,
+  "idUsuarioAutenticacionExterna": "auth0|abc123",
+  "correoUsuario": "correo.controlado@example.cl",
+  "rolUsuario": "Ventas",
+  "passwordSetupEmailRequested": true
+}
+```
 
 Respuestas:
 
 - `201`: usuario creado, con `passwordSetupEmailRequested: true` si se solicito el correo.
-- `201` recuperable: cuenta creada pero fallo la asignacion de rol o la solicitud de correo; no debe repetirse la creacion.
+- `201` recuperable: cuenta Auth0 creada pero fallo la asignacion de rol, el registro interno o la solicitud de correo; no debe repetirse la creacion.
 - `400`: cuerpo invalido, rol no permitido o campos adicionales.
 - `401`: access token ausente o invalido.
 - `403`: usuario autenticado sin rol `Administrador`.
-- `409`: correo ya existente en Auth0.
+- `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
 - `500`: error controlado anterior a la creacion, sin detalles Auth0.
 
 ### `POST /api/admin/users/password-setup-email`

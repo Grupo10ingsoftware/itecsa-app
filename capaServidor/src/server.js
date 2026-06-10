@@ -1,11 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 
-import orderRoutes from './modules/orders/routes/order.routes.js';
 import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
+
+import orderRoutes from './modules/orders/routes/order.routes.js';
+import orderDetailRoutes from './modules/orders/routes/orderDetail.routes.js';
 import orderStatusRoutes from './modules/orders/routes/orderStatus.routes.js';
+
+import productRoutes from './modules/products/routes/product.routes.js';
+
+
 import paymentStatusRoutes from './modules/payments/routes/paymentStatus.routes.js'
 
 import clientsRoutes from './modules/clients/routes/clients.routes.js';
@@ -29,7 +35,10 @@ class Server {
         paymentStatus: '/api/payment-status',
 
         //* Clientes
-        client: '/api/clients'
+        client: '/api/clients',
+
+        //* Productos
+        product: '/api/products'
 
         }
 
@@ -73,6 +82,9 @@ class Server {
     this.app.use( this.paths.health, healthRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);
     this.app.use(this.paths.orderStatus, orderStatusRoutes);
+    this.app.use(this.paths.orderDetail, orderDetailRoutes );
+
+    this.app.use(this.paths.product, productRoutes)
 
     this.app.use(this.paths.client, clientsRoutes)
 

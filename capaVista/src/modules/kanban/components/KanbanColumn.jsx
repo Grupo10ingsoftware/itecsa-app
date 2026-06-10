@@ -4,6 +4,28 @@ import KanbanCard from './KanbanCard'
 import styles from '../styles/Kanban.module.css'
 import KanbanOffCanvas from './KanbanOffCanvas';
 
+const processTemplates = {
+  'Lanyards': [
+    { id: 'imp', name: 'Impresión', status: 'pending' },
+    { id: 'sub', name: 'Sublimación', status: 'pending' },
+    { id: 'cor', name: 'Corte', status: 'pending' },
+    { id: 'cos', name: 'Costura', status: 'pending' }
+  ],
+  'Tarjeta': [
+    { id: 'rev', name: 'Revisar información', status: 'pending' },
+    { id: 'ord', name: 'Ordenar información', status: 'pending' },
+    { id: 'car', name: 'Cargar datos', status: 'pending' }
+  ],
+  'default': [
+    { id: 'gen', name: 'Producción General', status: 'pending' }
+  ]
+};
+
+const getProcessesFor = (productName) => {
+  const template = processTemplates[productName] || processTemplates['default'];
+  return template.map(step => ({ ...step })); 
+};
+
 const initialOrders = [
   {
     id: 1,
@@ -16,18 +38,22 @@ const initialOrders = [
     isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para producción',
+    subProcesses: getProcessesFor('Lanyards'), 
+    comments: []
   },
   {
     id: 2,
     clientName: 'Chile',
     nv: 'NV-6768',
-    product: 'Lanyards',
+    product: 'Tarjeta',
     date: '21-05-2026',
     dueDate: '21-06-2026',
     isUrgent: false,
     isDelayed: true,
     paymentStatus: '',
     orderStatus: 'En producción',
+    subProcesses: getProcessesFor('Tarjeta'), 
+    comments: []
   },
   {
     id: 3,
@@ -40,6 +66,8 @@ const initialOrders = [
     isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Confirmación de pago',
+    subProcesses: getProcessesFor('Lanyards'), 
+    comments: []
   },
   {
     id: 4,
@@ -52,6 +80,8 @@ const initialOrders = [
     isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para entrega',
+    subProcesses: getProcessesFor('Lanyards'),
+    comments: []
   },
   {
     id: 5,
@@ -64,6 +94,8 @@ const initialOrders = [
     isDelayed: false,
     paymentStatus: '',
     orderStatus: 'Listo para entrega',
+    subProcesses: getProcessesFor('Lanyards'),
+    comments: []
   },
 ]
 

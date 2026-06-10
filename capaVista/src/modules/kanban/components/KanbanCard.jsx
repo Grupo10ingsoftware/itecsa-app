@@ -15,6 +15,12 @@ function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, due
         <span className={styles.orderClient}>{clientName}</span>
         
         <div className={styles.headerBadgesGroup}>
+
+          {isDraggingDisabled && (
+            <span className={styles.lockedBadge} title='Bloqueado por estado de pago'>
+              <i className="bi bi-lock-fill" aria-hidden="true"></i>
+            </span>
+          )}
           
           {isDelayed && (
             <span className={styles.delayBadge} title="Pedido Atrasado">

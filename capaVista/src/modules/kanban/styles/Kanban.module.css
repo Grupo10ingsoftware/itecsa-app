@@ -350,11 +350,11 @@
   margin-top: 0.1rem;
   width: 100%;
 
-  transition: background-position 0.35s cubic-bezier(0.4,0,0.2,1),
+  transition: 
+    background-position 0.35s cubic-bezier(0.4,0,0.2,1),
     color 0.35s ease,
-    border-color 0.35s ease;
-    transform: 0.15s ease;
-
+    border-color 0.35s ease,
+    transform 0.15s ease;
 }
 
 .orderCardButton:hover,
@@ -378,6 +378,60 @@
   padding: 1rem;
   text-align: center;
 }
+  .headerBadgesGroup {
+    gap: 0.35rem;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .urgentBadge,
+  .delayBadge,
+  .lockedBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    border:1px solid transparent;
+  }
+
+  .lockedBadge {
+    background-color: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+    border-color: rgba(100, 116, 139, 0.25);
+  }
+
+  .urgentBadge {
+    background-color: rgba(220,38,38,0.12);
+    color: var(--kanban-red);
+    border-color: rgba(220,38,38,0.3);
+  }
+
+  .delayBadge {
+    background-color: rgba(202,138,4,0.12);
+    color: var(--kanban-yellow);
+    border-color: rgba(202,138,4,0.3);
+  }
+
+  .orderDetails .textDelayed dt{
+    color: var(--kanban-red);
+  }
+
+  .orderDetails .textDelayed dd{
+    color: var(--kanban-red);
+  }
+  
+  .orderCard.nonDraggable {
+    cursor: default !important;
+  }
+
+  .orderCard.nonDraggable:active {
+    cursor: default !important;
+  } 
+
 
 @keyframes filterEnter {
   from {
@@ -459,50 +513,4 @@
     padding: 1.25rem;
   }
 
-  .headerBadgesGroup {
-    gap: 0.35rem;
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-  }
-
-  .urgentBadge,
-  .delayBadge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    border-radius: 50%;
-    font-size: 0.75rem;
-    border:1px solid transparent;
-  }
-
-  .urgentBadge {
-    background-color: rgba(220,38,38,0.12);
-    color: var(--kanban-red);
-    border-color: rgba(220,38,38,0.3);
-  }
-
-  .delayBadge {
-    background-color: rgba(202,138,4,0.12);
-    color: var(--kanban-yellow);
-    border-color: rgba(202,138,4,0.3);
-  }
-
-  .orderDetails .textDelayed dt{
-    color: var(--kanban-red);
-  }
-
-  .orderDetails .textDelayed dd{
-    color: var(--kanban-red);
-  }
-  
-  .orderCard.nonDraggable {
-    cursor: default !important;
-  }
-
-  .orderCard.nonDraggable:active {
-    cursor: default !important;
-  } 
 }

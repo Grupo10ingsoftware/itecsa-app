@@ -174,6 +174,28 @@ function KanbanColumn() {
 
       
   )
+
+  function handleDragEnd(event) {
+    if (event.canceled) return
+
+    const { source, target } = event.operation
+    if (!source || !target) return
+
+    const orderToMove = orders.find(order => order.nv === source.id)
+    
+    if (!orderToMove || orderToMove.orderStatus === target.id) return
+
+    const message = `¿Confirmas mover el pedido ${orderToMove.nv} a "${target.id}"?`;
+    const isConfirmed = window.confirm(message);
+    
+    if (!isConfirmed) return
+
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.nv === source.id ? { ...order, orderStatus: target.id } : order,
+      ),
+    )
+  }
 }
 
 export default KanbanColumn

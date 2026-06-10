@@ -497,5 +497,12 @@
   .orderDetails .textDelayed dd{
     color: var(--kanban-red);
   }
+  
+  .orderCard.nonDraggable {
+    cursor: default !important;
+  }
 
+  .orderCard.nonDraggable:active {
+    cursor: default !important;
+  } 
 }

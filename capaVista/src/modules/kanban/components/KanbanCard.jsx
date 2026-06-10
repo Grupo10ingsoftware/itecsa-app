@@ -1,13 +1,16 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
-function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, dueDate, isDelayed }) {
+function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, dueDate, isDelayed, orderStatus }) {
+  const isDraggingDisabled = orderStatus === 'Confirmación de pago';
   const { ref } = useDraggable({
     id: nv,
+    disabled: isDraggingDisabled
   })
 
   return (
-    <article className={styles.orderCard} ref={ref}>
+    <article className={`${styles.orderCard} ${isDraggingDisabled ? styles.nonDisabled : ''} `} 
+    ref={ref}>
       <div className={styles.orderCardHeader}>
         <span className={styles.orderClient}>{clientName}</span>
         

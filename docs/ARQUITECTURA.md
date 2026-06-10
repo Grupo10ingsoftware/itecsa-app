@@ -81,7 +81,7 @@ La contrasena temporal generada para la creacion Database existe solo en memoria
 Frontend:
 
 ```dotenv
-VITE_AUTH0_DOMAIN=<dominio-auth0>
+VITE_AUTH0_DOMAIN=<tenant-auth0>
 VITE_AUTH0_CLIENT_ID=<client-id-spa>
 VITE_AUTH0_AUDIENCE=https://api.itecsa.local
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -92,15 +92,23 @@ Backend:
 ```dotenv
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
-AUTH0_DOMAIN=<dominio-auth0>
+AUTH0_DOMAIN=<tenant-auth0>
 AUTH0_AUDIENCE=https://api.itecsa.local
 AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
-AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
+AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
+DB_HOST=<host-aiven>
+DB_PORT=<puerto-aiven>
+DB_USER=<usuario-aiven>
+DB_PASSWORD=
+DB_NAME=<nombre-bd>
+DB_SSL_CA_PATH=./certs/aiven-ca.pem
+DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
 ```
 
 El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna credencial Auth0 Management debe agregarse a `capaVista`.
+Las variables `DB_*` alimentan `mysql2/promise` y el adaptador Prisma MariaDB; `DATABASE_URL` se usa por Prisma CLI para introspeccion y generacion.
 
 ## Limites Vigentes
 

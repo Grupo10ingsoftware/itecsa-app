@@ -12,19 +12,22 @@ npm run dev
 Comandos disponibles:
 
 ```bash
+npm run dev
 npm run lint
 npm run build
 npm run preview
 ```
+
+Actualmente no existe script de test frontend en `package.json`; usar `npm run lint` y `npm run build` como verificacion local de la SPA.
 
 ## Variables De Entorno
 
 Crear un archivo `.env` local a partir de `env.example`:
 
 ```dotenv
-VITE_AUTH0_DOMAIN=<dominio-auth0>
+VITE_AUTH0_DOMAIN=<tenant-auth0>
 VITE_AUTH0_CLIENT_ID=<client-id-spa>
-VITE_AUTH0_AUDIENCE=<audience-api>
+VITE_AUTH0_AUDIENCE=https://api.itecsa.local
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 

@@ -38,7 +38,7 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
 | RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:id/payment-status`. |
 | RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje requerido. | `PATCH /api/orders/:id/move`, `order.service.js`. |
-| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; nombre y apellido quedan pendientes para la futura BD propia. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`. |
+| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; los datos internos y la ruta de firma se persisten en la entidad `Usuario`. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`, `createInternalUser(...)`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
 ## Contratos Reales Implementados
@@ -153,7 +153,7 @@ La trazabilidad correcta para Documento 0 usa `RF26`, `RF28` y `RF32`. No se usa
 | RF28 / UR 3.3 | La regla backend mueve automaticamente la orden a `Listo para produccion` cuando el pago queda `Confirmado`. | Implementado y cubierto por tests backend. |
 | RF32 / UR 3.7 | La regla backend impide mover manualmente a `Listo para produccion` si el pago no esta `Confirmado`. | Implementado y cubierto por tests backend. |
 
-Estado actual: backend implementado con datos mock/en memoria. La integracion con base de datos queda pendiente hasta que exista el modelo persistente del proyecto. El frontend de pagos mantiene mocks/local state por la misma razon, pero ya separa lectura y escritura mediante permisos Auth0.
+Estado actual: backend implementado con datos mock/en memoria para pedidos, pagos y Kanban. La persistencia de esos modulos queda pendiente hasta que exista el modelo persistente correspondiente. El frontend de pagos mantiene mocks/local state por la misma razon, pero ya separa lectura y escritura mediante permisos Auth0.
 
 ## Cumplimiento Contra StackTecnologico.docx.md
 
@@ -163,7 +163,7 @@ El cierre RF32 respeta la separacion indicada en la guia tecnica:
 
 - El frontend controla la experiencia visual, navegacion, botones, modales y feedback al usuario.
 - El backend valida reglas criticas: permisos de accion, estados permitidos, cambio automatico a produccion y bloqueo RF32.
-- La integracion real con base de datos queda pendiente porque la BD aun no esta disponible.
+- La integracion real con base de datos para pedidos, pagos y Kanban queda pendiente aunque la BD ya se usa para `Usuario`.
 - El bloqueo visual del frontend no se considera seguridad efectiva; la autorizacion sensible vive en Express mediante `checkJwt`, `requirePermission(...)` y reglas backend.
 - Los mocks quedan identificados como temporales y deben reemplazarse por repositorios/servicios persistentes cuando el equipo habilite la BD.
 

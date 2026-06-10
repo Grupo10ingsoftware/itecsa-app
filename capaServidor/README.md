@@ -15,6 +15,24 @@ Para desarrollo con reinicio automatico:
 npm run dev
 ```
 
+Para ejecutar pruebas backend:
+
+```bash
+npm test
+```
+
+Comandos disponibles:
+
+```bash
+npm start
+npm run dev
+npm test
+npm run prisma:pull
+npm run prisma:generate
+npm run prisma:validate
+npm run prisma:studio
+```
+
 ## Variables De Entorno
 
 Crear un archivo `.env` local a partir de `env.example`:
@@ -22,16 +40,16 @@ Crear un archivo `.env` local a partir de `env.example`:
 ```dotenv
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
-AUTH0_DOMAIN=<dominio-auth0>
-AUTH0_AUDIENCE=<audience-api>
+AUTH0_DOMAIN=<tenant-auth0>
+AUTH0_AUDIENCE=https://api.itecsa.local
 AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
-AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
+AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
 DB_HOST=<host-aiven>
 DB_PORT=<puerto-aiven>
 DB_USER=<usuario-aiven>
-DB_PASSWORD=<password-aiven>
+DB_PASSWORD=
 DB_NAME=<nombre-bd>
 DB_SSL_CA_PATH=./certs/aiven-ca.pem
 DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
@@ -51,7 +69,7 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 - `DB_PASSWORD`: password MySQL local; debe mantenerse fuera del repositorio.
 - `DB_NAME`: nombre de la base de datos MySQL.
 - `DB_SSL_CA_PATH`: ruta local al certificado CA descargado desde Aiven, relativa a `capaServidor`.
-- `DATABASE_URL`: URL usada por Prisma para conectar a la misma base MySQL. Debe apuntar a `mydb` y usar SSL con el certificado CA local.
+- `DATABASE_URL`: URL usada por Prisma para conectar a la misma base MySQL definida en `DB_NAME` y usar SSL con el certificado CA local.
 
 Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
 
@@ -84,7 +102,7 @@ Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el en
 
 Prisma esta instalado como infraestructura de acceso a datos. La creacion administrativa de usuarios ya registra la entidad interna `Usuario`; otros modulos siguen funcionando con `mysql2/promise` y mocks en memoria donde corresponde.
 
-La base `mydb` ya existe en Aiven, por lo que el flujo correcto es introspeccion y generacion de cliente:
+La base indicada en `DB_NAME` debe existir en Aiven. Con esa precondicion, el flujo correcto es introspeccion y generacion de cliente:
 
 ```bash
 npm run prisma:pull
@@ -100,7 +118,7 @@ npm run prisma:validate
 npm run prisma:studio
 ```
 
-No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre `mydb` en esta etapa. Esas acciones pueden modificar una base existente y deben quedar para una decision de migraciones posterior.
+No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre la base existente en esta etapa. Esas acciones pueden modificar datos o estructura y deben quedar para una decision de migraciones posterior.
 
 El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
@@ -299,6 +317,12 @@ curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
 Caso `403` del reenvio: repetir la solicitud valida con un access token autenticado cuyo unico rol no sea `Administrador`.
 
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
+
+Antes de abrir una solicitud de cambios, ejecutar al menos:
+
+```bash
+npm test
+```
 
 Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
 

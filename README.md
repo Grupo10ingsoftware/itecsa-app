@@ -19,8 +19,9 @@ Documentacion especifica:
 
 ## Requisitos
 
-- Node.js y npm.
+- Node.js `20.19+`, `22.12+` o `>=24`, y npm. Prisma 7 y Vite 8 requieren esos rangos de Node.js.
 - Una SPA y una API configuradas en Auth0 para desarrollo local.
+- Una base MySQL/Aiven accesible desde el backend, con certificado CA local para SSL.
 - Variables de entorno locales basadas en las plantillas `env.example`.
 
 ## Ejecucion Local
@@ -33,12 +34,33 @@ npm install
 npm run dev
 ```
 
+Comandos frontend disponibles:
+
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run preview
+```
+
 Backend:
 
 ```bash
 cd capaServidor
 npm install
 npm start
+```
+
+Comandos backend disponibles:
+
+```bash
+npm start
+npm run dev
+npm test
+npm run prisma:pull
+npm run prisma:generate
+npm run prisma:validate
+npm run prisma:studio
 ```
 
 El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000` con las plantillas actuales.
@@ -60,6 +82,7 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
 - La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
+- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Pedidos, pagos y Kanban siguen usando datos mock/en memoria en esta etapa.
 
 Recursos Auth0 esperados/configurados para esta rama:
 
@@ -74,8 +97,8 @@ La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta heredada contiene 
 
 ## Restricciones Vigentes
 
-- No implementar Prisma ni MySQL en esta integracion inicial.
-- No persistir RUT, firma electronica ni contrasenas.
+- No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
+- No usar Prisma/MySQL todavia para pedidos, pagos ni Kanban real; esos modulos siguen mock/en memoria.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

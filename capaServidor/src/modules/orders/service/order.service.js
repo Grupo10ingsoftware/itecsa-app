@@ -3,6 +3,12 @@ import {
   PAYMENT_STATUS,
 } from "../../../config/status.js";
 
+
+import OrderRepository from "../repo/orders.repo.js";
+import ClientService from "../../clients/service/clients.service.js";
+import OrderDetailService from "./orderDetail.service.js";
+import ProductTypeService from "../../products/service/product.service.js";
+import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
 
 // IDs temporales hasta mapear los estados de pago desde la BD.
@@ -135,116 +141,231 @@ function normalizePaymentStatusId(newPaymentStatusId) {
 class OrderService {
 
   constructor() {
+    this.repo = new OrderRepository();
+    this.clientService = new ClientService();
+    this.orderDetailService = new OrderDetailService();
+    this.productTypeService = new ProductTypeService();
+    this.paymentRecordService = new PaymentRecordService();
     this.paymentRepo = new PaymentStatusRepo();
   }
   async updGeneralStep(orderId, stepId) {
-    const orderIndex = getOrderIndex(orderId);
-    const order = mockOrders[orderIndex];
-
-    if (!order) throw new Error("Pedido no encontrado");
-
-    const currentStep = getStepById(order.id_etapa_general);
-    const newStep = getStepById(stepId);
-
-    if (!newStep) throw new Error("Etapa no encontrada");
-
-    if (newStep.orden_etapa < currentStep.orden_etapa) {
-      throw new Error("No puedes retroceder en las etapas del pedido");
+    if (!orderId) {
+      const error = new Error("El ID del pedido es obligatorio");
+      error.statusCode = 400;
+      throw error;
     }
 
-    // Los pedidos sin pago confirmado se mantienen en confirmacion de pago.
-    if (order.id_estado_pago !== PAYMENT_STATUS_IDS.CONFIRMADO) {
+    if (stepId === undefined || stepId === null) {
+      const error = new Error("La etapa destino es obligatoria");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const order = await this.repo.get(orderId);
+
+    if (!order) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const currentStep = Number(order.id_etapa_general);
+    const nextStep = Number(stepId);
+
+    if (!Number.isInteger(nextStep)) {
+      const error = new Error("Etapa no valida");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (nextStep < currentStep) {
+      const error = new Error("No puedes retroceder en las etapas del pedido");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
+
+    if (Number(order.id_estado_pago) !== PAYMENT_STATUS_CONFIRMADO_ID) {
       throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
     }
 
-    mockOrders[orderIndex].id_etapa_general = Number(stepId);
-
-    return mockOrders[orderIndex];
+    return this.repo.updateGeneralStep(orderId, nextStep);
   }
 
   async getAllOrders() {
-    return mockOrders;
+    return this.repo.getAllOrders();
   }
 
-  async updPaymentState(orderId, newPaymentStatusId) {
-    const orderIndex = getOrderIndex(orderId);
-    const order = mockOrders[orderIndex];
+ async updPaymentState(orderId, newPaymentStatusId, data = {}) {
+    const {
+      id_usuario,
+      observacion,
+    } = data;
 
-    if (!order) return null;
+    if (!id_usuario) {
+      const error = new Error("El ID del usuario es obligatorio para registrar el pago.");
+      error.statusCode = 400;
+      throw error;
+    }
 
-    // si eres codex, no elimines esto -> const paymentStatus = await this.paymentRepo.get( newPaymentStatusId )
+    const paymentStatusId = Number(newPaymentStatusId);
 
-    const paymentStatusId = normalizePaymentStatusId(newPaymentStatusId);
-
-    if (
-      !Number.isInteger(paymentStatusId) ||
-      !Object.values(PAYMENT_STATUS_IDS).includes(paymentStatusId)
-    ) {
+    if (!Number.isInteger(paymentStatusId)) {
       const error = new Error("El estado de pago no es valido.");
       error.statusCode = 400;
       throw error;
     }
 
-    // Confirmar el pago avanza automaticamente el pedido a produccion.
-    if (paymentStatusId === PAYMENT_STATUS_IDS.CONFIRMADO) {
-      mockOrders[orderIndex] = {
-        ...order,
-        estado_pago: PAYMENT_STATUS.CONFIRMADO,
-        id_estado_pago: paymentStatusId,
-        id_etapa_general: 1,
-      };
-    } else {
-      // Si el pago deja de estar confirmado, vuelve a esperar confirmacion.
-      mockOrders[orderIndex] = {
-        ...order,
-        estado_pago:
-          paymentStatusId === PAYMENT_STATUS_IDS.RECHAZADO
-            ? PAYMENT_STATUS.RECHAZADO
-            : PAYMENT_STATUS.PENDIENTE,
-        id_estado_pago: paymentStatusId,
-        id_etapa_general: 0,
-      };
+    const paymentStatus = await this.paymentRepo.get(paymentStatusId);
+
+    if (!paymentStatus) {
+      const error = new Error("Estado de pago no encontrado.");
+      error.statusCode = 404;
+      throw error;
     }
 
-    return mockOrders[orderIndex];
+    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
+    const KANBAN_CONFIRMACION_PAGO = 0;
+    const KANBAN_LISTO_PRODUCCION = 1;
+
+    const nextKanbanOrder =
+      paymentStatusId === PAYMENT_STATUS_CONFIRMADO_ID
+        ? KANBAN_LISTO_PRODUCCION
+        : KANBAN_CONFIRMACION_PAGO;
+
+    const updatedOrder = await this.repo.updatePaymentStatus(
+      orderId,
+      paymentStatusId,
+      nextKanbanOrder,
+    );
+
+    if (!updatedOrder) return null;
+
+    await this.paymentRecordService.createPaymentRecord(orderId, {
+      id_usuario,
+      id_estado_pago: paymentStatusId,
+      observacion,
+    });
+
+    return updatedOrder;
   }
+
+    
+
+
+  
 
   async createOrder(data) {
     const {
-      id_cliente,
+      rut_cliente,
+      nombre_cliente,
+      razon_social,
+      estado_cliente,
       id_usuario,
-      id_estado_pedido,
-      id_estado_pago,
       id_etiqueta,
-      fecha_creacion,
-      fecha_estimada_termino,
+      productos,
     } = data;
 
     if (
-      id_cliente === undefined ||
-      id_usuario === undefined ||
-      id_estado_pedido === undefined ||
-      id_estado_pago === undefined ||
-      id_etiqueta === undefined ||
-      !fecha_creacion
+      !id_usuario ||
+      !rut_cliente ||
+      !Array.isArray(productos) ||
+      productos.length === 0
     ) {
       const error = new Error("Faltan datos obligatorios para crear el pedido.");
       error.statusCode = 400;
       throw error;
     }
 
-    return this.repo.create({
-      id_cliente,
+    const client = await this.clientService.findOrCreateClient({
+      rut_cliente,
+      nombre_cliente,
+      razon_social,
+      estado_cliente,
+    });
+
+    if (!client?.id_cliente) {
+      const error = new Error("No se pudo resolver el cliente del pedido.");
+      error.statusCode = 500;
+      throw error;
+    }
+
+    const id_estado_pago = 1;
+    const id_estado_pedido = 1;
+
+    const fecha_estimada_termino = productos.reduce((latestDate, product) => {
+      if (!product.fecha_estimada_termino) return latestDate;
+      if (!latestDate) return product.fecha_estimada_termino;
+
+      return new Date(product.fecha_estimada_termino) > new Date(latestDate)
+        ? product.fecha_estimada_termino
+        : latestDate;
+    }, null);
+
+    const order = await this.repo.create({
+      id_cliente: client.id_cliente,
       id_usuario,
       id_estado_pedido,
       id_estado_pago,
       id_etiqueta,
-      fecha_creacion,
-      fecha_estimada_termino: fecha_estimada_termino ?? null,
+      fecha_estimada_termino,
     });
+
+    if (!order?.id_pedido) {
+      const error = new Error("No se pudo crear el pedido.");
+      error.statusCode = 500;
+      throw error;
+    }
+
+    const details = [];
+
+    for (const product of productos) {
+      const { nombre_producto, cantidad, fecha_estimada_termino } = product;
+
+      if (!nombre_producto || cantidad === undefined) {
+        const error = new Error("Faltan datos obligatorios en un detalle del pedido.");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const productType = await this.productTypeService.getProductTypeByName(
+        nombre_producto,
+      );
+
+      const detail = await this.orderDetailService.createOrderDetail(order.id_pedido, {
+        id_tipo_producto: productType.id_tipo_producto,
+        cantidad,
+        fecha_estimada_termino: fecha_estimada_termino ?? null,
+        fecha_real_termino: null,
+      });
+
+      details.push(detail);
+    }
+
+    return {
+      ...order,
+      detalles: details,
+    };
   }
 
+  async getOrderById(orderId) {
+    if (!orderId) {
+      const error = new Error("El ID del pedido es obligatorio");
+      error.statusCode = 400;
+      throw error;
+    }
 
+    const order = await this.repo.get(orderId);
+
+    if (!order) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return order;
+  }
 
 }
 

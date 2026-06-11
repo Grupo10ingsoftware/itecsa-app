@@ -1,16 +1,42 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
-function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
+function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, dueDate, isDelayed, orderStatus }) {
+  const isDraggingDisabled = orderStatus === 'Confirmación de pago';
   const { ref } = useDraggable({
     id: nv,
+    disabled: isDraggingDisabled
   })
 
   return (
-    <article className={styles.orderCard} ref={ref}>
+    <article className={`${styles.orderCard} ${isDraggingDisabled ? styles.nonDisabled : ''} `} 
+    ref={ref}>
       <div className={styles.orderCardHeader}>
         <span className={styles.orderClient}>{clientName}</span>
-        <span className={styles.orderNv}>{nv}</span>
+        
+        <div className={styles.headerBadgesGroup}>
+
+          {isDraggingDisabled && (
+            <span className={styles.lockedBadge} title='Bloqueado por estado de pago'>
+              <i className="bi bi-lock-fill" aria-hidden="true"></i>
+            </span>
+          )}
+          
+          {isDelayed && (
+            <span className={styles.delayBadge} title="Pedido Atrasado">
+              <i className="bi bi-clock-fill" aria-hidden="true"></i>
+            </span>
+          )}
+
+          {isUrgent && (
+            <span className={styles.urgentBadge} title="Pedido Urgente">
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            </span>
+          )}
+
+          <span className={styles.orderNv}>{nv}</span>
+        </div>
+
       </div>
 
       <dl className={styles.orderDetails}>
@@ -24,7 +50,7 @@ function KanbanCard({ clientName, nv, product, date, onOpenDetail }) {
         </div>
       </dl>
 
-      <button className={`${styles['orderCardButton']}`}
+      <button className={styles.orderCardButton}
           onClick={(e) => {
               e.stopPropagation();
               onOpenDetail();

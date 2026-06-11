@@ -1,8 +1,8 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { PrismaClient } from "@prisma/client";
 
 const REQUIRED_DATABASE_VARIABLES = [
     "DB_HOST",
@@ -17,6 +17,7 @@ let prisma;
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const serverRootDirectory = path.resolve(currentDirectory, "../..");
+const require = createRequire(import.meta.url);
 
 function readPrismaConfiguration() {
     const missingVariables = REQUIRED_DATABASE_VARIABLES.filter(
@@ -61,6 +62,7 @@ export function getPrismaClient() {
     if (!prisma) {
         const { poolConfig, options } = readPrismaConfiguration();
         const adapter = new PrismaMariaDb(poolConfig, options);
+        const { PrismaClient } = require("@prisma/client");
         prisma = new PrismaClient({ adapter });
     }
 

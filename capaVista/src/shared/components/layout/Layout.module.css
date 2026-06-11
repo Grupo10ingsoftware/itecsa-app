@@ -45,43 +45,8 @@
   align-items: center;
   display: flex;
   gap: 0.65rem;
-  justify-content: space-between;
+  justify-content: flex-end;
   min-height: 2.75rem;
-}
-
-.sidebarBrand {
-  align-items: center;
-  display: flex;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.brandIcon {
-  align-items: center;
-  background: rgba(var(--layout-orange-rgb), 0.16);
-  border: 1px solid rgba(var(--layout-orange-rgb), 0.38);
-  border-radius: 0.75rem;
-  color: var(--layout-orange);
-  display: inline-flex;
-  flex: 0 0 2.25rem;
-  font-size: 0.76rem;
-  font-weight: 900;
-  height: 2.25rem;
-  justify-content: center;
-  letter-spacing: 0.05em;
-}
-
-.brandText {
-  color: #fff;
-  font-weight: 850;
-  letter-spacing: 0.03em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  transition:
-    opacity 0.15s ease,
-    width 0.15s ease;
-  white-space: nowrap;
 }
 
 .sidebarIconButton,
@@ -198,7 +163,6 @@
   width: 100%;
 }
 
-.sidebarCollapsed .brandText,
 .sidebarCollapsed .navText {
   opacity: 0;
   pointer-events: none;
@@ -207,10 +171,6 @@
 
 .sidebarCollapsed .desktopToggleButton {
   position: static;
-}
-
-.sidebarCollapsed .sidebarBrand {
-  justify-content: center;
 }
 
 .sidebarCollapsed .navLink {
@@ -307,7 +267,6 @@
     width: min(82vw, 18rem);
   }
 
-  .sidebarCollapsed .brandText,
   .sidebarCollapsed .navText {
     opacity: 1;
     pointer-events: auto;
@@ -321,7 +280,7 @@
 
   .sidebarCollapsed .sidebarHeader {
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
 
   .sidebarCollapsed .navLink {

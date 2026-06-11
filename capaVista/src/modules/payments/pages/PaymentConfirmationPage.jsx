@@ -56,10 +56,14 @@ export default function PaymentConfirmationPage() {
   useEffect(() => {
     if (canUpdatePaymentStatus) return
 
-    clearHoldTimer()
-    setEditingStatus({})
-    setIsHoldingConfirmation(false)
-    setPendingTransition(null)
+    const resetTimer = window.setTimeout(() => {
+      clearHoldTimer()
+      setEditingStatus({})
+      setIsHoldingConfirmation(false)
+      setPendingTransition(null)
+    }, 0)
+
+    return () => window.clearTimeout(resetTimer)
   }, [canUpdatePaymentStatus, clearHoldTimer])
 
   const counters = useMemo(() => {

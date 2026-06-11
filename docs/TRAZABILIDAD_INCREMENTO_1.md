@@ -13,7 +13,7 @@ No es una bitacora ni un plan historico. La finalidad es dejar evidencia tecnica
 - Verificacion backend de access tokens emitidos por Auth0 con `GET /api/auth/verify`.
 - Uso de Auth0 RBAC para los roles `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 - Uso del claim estandar `permissions` para permisos visuales en la SPA.
-- Creacion administrativa de usuarios Auth0 con `POST /api/admin/users`.
+- Creacion y gestion administrativa de usuarios con `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId` y `PATCH /api/admin/users/:userId/status`.
 - Persistencia de la entidad interna `Usuario` con `id_auth0`, `correo_usuario`, `rol_usuario` y `estado_usuario`.
 - Solicitud de correo de establecimiento/cambio de contrasena con `POST /api/admin/users/password-setup-email`.
 - Proteccion backend de endpoints administrativos mediante JWT Auth0 y rol `Administrador` emitido por Auth0 RBAC.
@@ -38,7 +38,7 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
 | RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:orderId/payment-status`. |
 | RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje requerido. | `PATCH /api/orders/:orderId/move`, `order.service.js`. |
-| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; los datos internos y la ruta de firma se persisten en la entidad `Usuario`. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`, `createInternalUser(...)`. |
+| RF - Gestion administrativa de usuarios | Solo `Administrador` puede listar, crear, editar y desvincular usuarios. La creacion conserva Auth0 RBAC, persistencia interna y firma electronica; la edicion sincroniza Auth0 y la tabla interna `Usuario`. | `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId`, `PATCH /api/admin/users/:userId/status`, `requireAdministrador`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
 ## Contratos Reales Implementados

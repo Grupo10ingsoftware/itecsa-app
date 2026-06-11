@@ -62,7 +62,7 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 ## Integraciones Backend Actuales
 
 - Autenticacion: `useAuthApi` consume `GET /api/auth/verify`.
-- Usuarios administrativos: `useAdminUsersApi` consume `POST /api/admin/users` y `POST /api/admin/users/password-setup-email`.
+- Usuarios administrativos: `useAdminUsersApi` consume listado, resumen, edicion, desvinculacion, `POST /api/admin/users` con `FormData` y `POST /api/admin/users/password-setup-email`.
 - Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
 - Pagos: `PaymentConfirmationPage.jsx` usa `createMockPaymentOrders()` y `applyMockPaymentStatusTransition()`; no consume backend actualmente.
 

@@ -64,7 +64,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
+Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -76,6 +76,8 @@ El backend usa `ITECSA Backend Management` para:
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
+
+La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT y ruta de firma siguen siendo datos internos de negocio.
 
 ## Variables De Entorno
 

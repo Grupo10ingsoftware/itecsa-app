@@ -61,6 +61,12 @@ const NOTIFICATION = {
   ERROR_FIELDS: 'ERROR_FIELDS',
 }
 
+const ORDER_STEPS = Object.freeze([
+  { id: 1, title: 'Nota de Venta', helper: 'Codigo y PDF obligatorio' },
+  { id: 2, title: 'Datos de fabricacion', helper: 'Informacion importada' },
+  { id: 3, title: 'Revision', helper: 'Confirmacion del pedido' },
+])
+
 /* ────────────────────────────────────────────────────────────────────────────
    Valores iniciales del formulario
    ──────────────────────────────────────────────────────────────────────────── */
@@ -115,6 +121,7 @@ export default function OrderCreatePage() {
   const capacityPercent = capacityInfo.current
   const capacityLimit = capacityInfo.threshold
   const isOverloaded = capacityPercent >= capacityLimit
+  const currentStep = formData.companyName && formData.rut ? 3 : formData.nvCode || formData.pdfFile ? 2 : 1
 
   // ── Cierra la notificación después de 5 segundos
   useEffect(() => {
@@ -253,7 +260,7 @@ export default function OrderCreatePage() {
       manufacturingData: formData.manufacturingData,
       productType: formData.productType,
       pdfFile: formData.pdfFile,
-      designFiles: [...designFiles],
+      designFiles: formData.designFile ? [formData.designFile] : [...designFiles],
       comments: formData.comments,
       createdAt: formData.createdAt || new Date(),
       orderStatus: ACTION_STATUS.SOLICITADO,
@@ -276,6 +283,79 @@ export default function OrderCreatePage() {
     }, [formData, designFiles, validateForm, showNotification, navigate, capacityLimit, capacityPercent])
 
   // ── Renderiza la barra de notificaciones
+  const renderOrderStepper = () => (
+    <nav aria-label="Progreso del registro de pedido" className={styles.orderStepper}>
+      {ORDER_STEPS.map((step) => {
+        const isActive = step.id === currentStep
+        const isCompleted = step.id < currentStep
+
+        return (
+          <div
+            aria-current={isActive ? 'step' : undefined}
+            className={`${styles.stepItem} ${isActive ? styles.stepActive : ''} ${isCompleted ? styles.stepCompleted : ''}`}
+            key={step.id}
+          >
+            <span className={styles.stepNumber}>
+              {isCompleted ? <i className="bi bi-check-lg" aria-hidden="true" /> : step.id}
+            </span>
+            <span className={styles.stepContent}>
+              <strong>{step.title}</strong>
+              <small>{step.helper}</small>
+            </span>
+          </div>
+        )
+      })}
+    </nav>
+  )
+
+  const renderReviewPanel = () => {
+    const hasAnyData =
+      formData.nvCode ||
+      formData.companyName ||
+      formData.productDescription ||
+      formData.pdfFile ||
+      formData.designFile
+
+    if (!hasAnyData) {
+      return null
+    }
+
+    return (
+      <aside className={styles.reviewPanel} aria-labelledby="order-review-title">
+        <header>
+          <span className={styles.reviewKicker}>Revision</span>
+          <h2 id="order-review-title">Resumen del pedido</h2>
+        </header>
+        <dl className={styles.reviewList}>
+          <div>
+            <dt>Nota de Venta</dt>
+            <dd>{formData.nvCode || 'Pendiente'}</dd>
+          </div>
+          <div>
+            <dt>Cliente</dt>
+            <dd>{formData.companyName || 'Pendiente de busqueda'}</dd>
+          </div>
+          <div>
+            <dt>Producto</dt>
+            <dd>{formData.productDescription || 'Pendiente'}</dd>
+          </div>
+          <div>
+            <dt>Cantidad</dt>
+            <dd>{formData.quantity || 'Pendiente'}</dd>
+          </div>
+          <div>
+            <dt>PDF Nota de Venta</dt>
+            <dd>{formData.pdfFile?.name || 'Sin archivo'}</dd>
+          </div>
+          <div>
+            <dt>Archivo de diseno</dt>
+            <dd>{formData.designFile?.name || 'Opcional no adjuntado'}</dd>
+          </div>
+        </dl>
+      </aside>
+    )
+  }
+
   const renderNotification = () => {
     if (notification === NOTIFICATION.NONE) return null
 
@@ -357,6 +437,9 @@ export default function OrderCreatePage() {
             {renderCapacityWarning()}
             {renderNotification()}
           </div>
+
+          {renderOrderStepper()}
+          {renderReviewPanel()}
 
           <OrderForm
             formData={formData}

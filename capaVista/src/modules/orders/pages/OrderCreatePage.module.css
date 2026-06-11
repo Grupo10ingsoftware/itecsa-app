@@ -96,6 +96,128 @@
   gap: 0.85rem;
 }
 
+.orderStepper {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.72rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.9rem;
+}
+
+.stepItem {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  display: flex;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+}
+
+.stepActive {
+  border-color: rgba(var(--payment-orange-rgb), 0.55);
+  box-shadow: 0 0 0 0.18rem rgba(var(--payment-orange-rgb), 0.14);
+}
+
+.stepCompleted {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.stepNumber {
+  align-items: center;
+  background: #000;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 2.15rem;
+  font-weight: 850;
+  height: 2.15rem;
+  justify-content: center;
+}
+
+.stepCompleted .stepNumber {
+  background: var(--payment-green);
+}
+
+.stepContent {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.stepContent strong {
+  color: var(--payment-text);
+  line-height: 1.2;
+}
+
+.stepContent small {
+  color: var(--payment-muted);
+  line-height: 1.25;
+}
+
+.reviewPanel {
+  background: #fff;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.72rem;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.reviewPanel header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.reviewKicker {
+  color: var(--payment-orange);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.reviewPanel h2 {
+  color: var(--payment-text);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.reviewList {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.reviewList div {
+  background: #f8fafc;
+  border: 1px solid #edf0f3;
+  border-radius: 0.6rem;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+}
+
+.reviewList dt {
+  color: var(--payment-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.reviewList dd {
+  color: var(--payment-text);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .appAlert {
   border: 1px solid var(--payment-border);
   border-left: 5px solid currentColor;
@@ -271,6 +393,11 @@
 
   .content {
     padding: 1rem;
+  }
+
+  .orderStepper,
+  .reviewList {
+    grid-template-columns: 1fr;
   }
 }
 

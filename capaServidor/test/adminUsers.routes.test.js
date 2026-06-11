@@ -5,7 +5,11 @@ import express from "express";
 import { Auth0ServiceError } from "../src/modules/users/service/auth0Management.service.js";
 import {
     createAdminUserHandler,
+    createAdminUsersSummaryHandler,
+    createListAdminUsersHandler,
     createPasswordSetupEmailHandler,
+    createUpdateAdminUserHandler,
+    createUpdateAdminUserStatusHandler,
 } from "../src/modules/users/controller/adminUsers.controller.js";
 import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
@@ -52,18 +56,63 @@ function responseRecorder() {
 
 function createUsersRepositoryMock({
     existingUser = null,
+    existingUserByAuth0Id = DEFAULT_INTERNAL_USER,
     createdUser = DEFAULT_INTERNAL_USER,
+    listResult = {
+        usuarios: [DEFAULT_INTERNAL_USER],
+        total: 1,
+        page: 1,
+        perPage: 10,
+    },
+    summaryResult = {
+        totalUsuarios: 1,
+        vinculados: 1,
+        desvinculados: 0,
+    },
     onFindByEmail,
+    onFindByAuth0Id,
+    onList,
+    onGetSummary,
     onCreate,
+    onUpdateByAuth0Id,
+    onUpdateStatusByAuth0Id,
 } = {}) {
     return {
         async findByEmail(correoUsuario) {
             await onFindByEmail?.(correoUsuario);
             return existingUser;
         },
+        async findByAuth0Id(userId) {
+            await onFindByAuth0Id?.(userId);
+            return existingUserByAuth0Id;
+        },
+        async list(filters) {
+            await onList?.(filters);
+            return listResult;
+        },
+        async getSummary() {
+            await onGetSummary?.();
+            return summaryResult;
+        },
         async create(payload) {
             await onCreate?.(payload);
             return createdUser;
+        },
+        async updateByAuth0Id(userId, payload) {
+            await onUpdateByAuth0Id?.(userId, payload);
+            return {
+                ...DEFAULT_INTERNAL_USER,
+                idAuth0: userId,
+                ...payload,
+            };
+        },
+        async updateStatusByAuth0Id(userId, estadoUsuario) {
+            await onUpdateStatusByAuth0Id?.(userId, estadoUsuario);
+            return {
+                ...DEFAULT_INTERNAL_USER,
+                idAuth0: userId,
+                estadoUsuario,
+            };
         },
     };
 }
@@ -98,6 +147,212 @@ async function executePasswordEmailHandler({
 
     return res;
 }
+
+async function executeListHandler({ query = {}, users = createUsersRepositoryMock() } = {}) {
+    const res = responseRecorder();
+    const handler = createListAdminUsersHandler({ users });
+
+    await handler({ query }, res);
+
+    return res;
+}
+
+async function executeSummaryHandler({ users = createUsersRepositoryMock() } = {}) {
+    const res = responseRecorder();
+    const handler = createAdminUsersSummaryHandler({ users });
+
+    await handler({}, res);
+
+    return res;
+}
+
+async function executeUpdateHandler({
+    body = {
+        nombreUsuario: "Ana Maria",
+        apellidoUsuario: "Perez",
+        correoUsuario: "ana.maria@itecsa.cl",
+        rolUsuario: "Gerencia",
+        estadoUsuario: "Vinculado",
+    },
+    params = { userId: "auth0|created-user" },
+    updateUser,
+    users = createUsersRepositoryMock(),
+} = {}) {
+    const res = responseRecorder();
+    const handler = createUpdateAdminUserHandler({ updateUser, users });
+
+    await handler({ body, params }, res);
+
+    return res;
+}
+
+async function executeStatusHandler({
+    body = { estadoUsuario: "Desvinculado" },
+    params = { userId: "auth0|created-user" },
+    updateStatus,
+    users = createUsersRepositoryMock(),
+} = {}) {
+    const res = responseRecorder();
+    const handler = createUpdateAdminUserStatusHandler({ updateStatus, users });
+
+    await handler({ body, params }, res);
+
+    return res;
+}
+
+test("responde 200 con listado interno y filtros normalizados", async () => {
+    let receivedFilters;
+    const res = await executeListHandler({
+        query: {
+            page: "2",
+            perPage: "20",
+            search: "  ana  ",
+            estadoUsuario: "Vinculado",
+            rolUsuario: "Gerencia",
+        },
+        users: createUsersRepositoryMock({
+            listResult: {
+                usuarios: [DEFAULT_INTERNAL_USER],
+                total: 1,
+                page: 2,
+                perPage: 20,
+            },
+            onList: (filters) => {
+                receivedFilters = filters;
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(receivedFilters, {
+        page: 2,
+        perPage: 20,
+        search: "ana",
+        estadoUsuario: "Vinculado",
+        rolUsuario: "Gerencia",
+    });
+    assert.deepEqual(res.body.usuarios[0], {
+        idUsuario: DEFAULT_INTERNAL_USER.idUsuario,
+        idUsuarioAutenticacionExterna: DEFAULT_INTERNAL_USER.idAuth0,
+        nombreUsuario: DEFAULT_INTERNAL_USER.nombreUsuario,
+        apellidoUsuario: DEFAULT_INTERNAL_USER.apellidoUsuario,
+        nombreCompleto: "Ana Perez",
+        rutUsuario: DEFAULT_INTERNAL_USER.rutUsuario,
+        correoUsuario: DEFAULT_INTERNAL_USER.correoUsuario,
+        rolUsuario: DEFAULT_INTERNAL_USER.rolUsuario,
+        estadoUsuario: DEFAULT_INTERNAL_USER.estadoUsuario,
+        rutaFirma: DEFAULT_INTERNAL_USER.rutaFirma,
+    });
+});
+
+test("rechaza filtros de listado no oficiales", async () => {
+    let calls = 0;
+    const res = await executeListHandler({
+        query: { rolUsuario: "Supervisor" },
+        users: createUsersRepositoryMock({
+            onList: () => {
+                calls += 1;
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(calls, 0);
+});
+
+test("responde 200 con resumen interno de usuarios", async () => {
+    const summaryResult = {
+        totalUsuarios: 12,
+        vinculados: 10,
+        desvinculados: 2,
+    };
+    const res = await executeSummaryHandler({
+        users: createUsersRepositoryMock({ summaryResult }),
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, summaryResult);
+});
+
+test("actualiza usuario en Auth0 y tabla interna con contrato final", async () => {
+    let externalPayload;
+    let internalPayload;
+    const res = await executeUpdateHandler({
+        updateUser: async (payload) => {
+            externalPayload = payload;
+        },
+        users: createUsersRepositoryMock({
+            onUpdateByAuth0Id: (userId, payload) => {
+                internalPayload = { userId, payload };
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(externalPayload, {
+        userId: "auth0|created-user",
+        correoUsuario: "ana.maria@itecsa.cl",
+        rolUsuario: "Gerencia",
+        estadoUsuario: "Activo",
+    });
+    assert.deepEqual(internalPayload, {
+        userId: "auth0|created-user",
+        payload: {
+            nombreUsuario: "Ana Maria",
+            apellidoUsuario: "Perez",
+            correoUsuario: "ana.maria@itecsa.cl",
+            rolUsuario: "Gerencia",
+            estadoUsuario: "Activo",
+        },
+    });
+    assert.equal(res.body.nombreUsuario, "Ana Maria");
+    assert.equal(res.body.estadoUsuario, "Activo");
+});
+
+test("rechaza actualizacion con campos legacy", async () => {
+    let calls = 0;
+    const res = await executeUpdateHandler({
+        body: {
+            primerNombre: "Ana",
+            apellidoPaterno: "Perez",
+            correoUsuario: "ana@itecsa.cl",
+            rolUsuario: "Ventas",
+            estadoUsuario: "Vinculado",
+        },
+        updateUser: async () => {
+            calls += 1;
+        },
+    });
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(calls, 0);
+});
+
+test("desvincula usuario actualizando Auth0 y tabla interna", async () => {
+    let externalPayload;
+    let internalPayload;
+    const res = await executeStatusHandler({
+        updateStatus: async (payload) => {
+            externalPayload = payload;
+        },
+        users: createUsersRepositoryMock({
+            onUpdateStatusByAuth0Id: (userId, estadoUsuario) => {
+                internalPayload = { userId, estadoUsuario };
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(externalPayload, {
+        userId: "auth0|created-user",
+        estadoUsuario: "Desvinculado",
+    });
+    assert.deepEqual(internalPayload, {
+        userId: "auth0|created-user",
+        estadoUsuario: "Desvinculado",
+    });
+    assert.equal(res.body.estadoUsuario, "Desvinculado");
+});
 
 test("responde 201 cuando asigna rol y solicita correo", async () => {
     let createUserPayload;

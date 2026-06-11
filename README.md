@@ -82,14 +82,15 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
 - La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
-- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Pedidos, pagos y Kanban siguen usando datos mock/en memoria en esta etapa.
+- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Los endpoints backend de pedidos/Kanban usan datos mock/en memoria; la vista de pagos usa mocks locales en frontend.
 
 Recursos Auth0 esperados/configurados para esta rama:
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, audience `https://api.itecsa.local`.
-- M2M backend: `ITECSA Backend Management`.
-- Action Post Login: `ITECSA Add Role Claim`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- M2M backend: `ITECSA Backend Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
+- Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 

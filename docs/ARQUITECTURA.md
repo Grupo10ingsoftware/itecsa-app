@@ -19,8 +19,9 @@ flowchart LR
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API.
-- Action Post Login: `ITECSA Add Role Claim`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API con token validado para `create:users`, `read:roles`, `read:users` y `update:users`.
+- Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 

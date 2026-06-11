@@ -789,32 +789,36 @@ Pendiente posible:
 - Retorno de foco al botón que abrió el modal.
 - Pruebas manuales con lector de pantalla.
 
-## Preparación para backend
+## Estado frente al backend
 
-Cuando exista integración real, se espera:
+El flujo actual de pagos no consume backend. `PaymentConfirmationPage.jsx` inicializa datos con `createMockPaymentOrders()` y aplica transiciones con `applyMockPaymentStatusTransition()`.
 
-1. Reemplazar `createMockPaymentOrders()` por carga desde backend.
-2. Reemplazar `applyMockPaymentStatusTransition()` por endpoint de actualización.
+El backend actual expone este contrato para actualizar estado de pago sobre pedidos mock/en memoria:
+
+```txt
+PATCH /api/orders/:orderId/payment-status
+```
+
+Cuerpo aceptado:
+
+```json
+{
+  "paymentStatusId": 1
+}
+```
+
+IDs vigentes en backend: `0` Pendiente, `1` Confirmado y `2` Rechazado. El endpoint requiere access token Auth0 con permiso `update:payment-status`.
+
+No existe integracion actual desde esta pantalla hacia ese endpoint. Tampoco existen endpoints backend documentados en este repo para detalle de pedido, descarga de Nota de Venta o documento firmado de pagos.
+
+Cuando se integre esta vista con backend, el cambio debe ser:
+
+1. Reemplazar `createMockPaymentOrders()` por carga desde un contrato backend implementado.
+2. Reemplazar `applyMockPaymentStatusTransition()` por una llamada al endpoint backend correspondiente.
 3. Reemplazar PDFs mock por URLs/archivos entregados por backend.
-4. Crear `api/` solo cuando el contrato esté definido.
-5. Mover validaciones críticas al backend.
+4. Crear `api/` solo cuando el contrato esté implementado.
+5. Mantener validaciones críticas en backend.
 6. Mantener frontend como capa visual y de feedback.
-
-Endpoint esperado según diseño general:
-
-```txt
-PATCH /api/orders/:id/payment-status
-```
-
-También pueden requerirse endpoints para:
-
-```txt
-GET /api/orders/:id
-GET /api/orders/:id/sales-note
-GET /api/orders/:id/signed-sales-note
-```
-
-Los nombres exactos deben definirse en contrato de integración.
 
 ## Requisitos relacionados
 

@@ -52,11 +52,19 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- Action Post Login: `ITECSA Add Role Claim`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
 El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La fuente de roles es Auth0 RBAC y la validacion de endpoints pertenece al backend.
+
+## Integraciones Backend Actuales
+
+- Autenticacion: `useAuthApi` consume `GET /api/auth/verify`.
+- Usuarios administrativos: `useAdminUsersApi` consume `POST /api/admin/users` y `POST /api/admin/users/password-setup-email`.
+- Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
+- Pagos: `PaymentConfirmationPage.jsx` usa `createMockPaymentOrders()` y `applyMockPaymentStatusTransition()`; no consume backend actualmente.
 
 ## Conectar Una Nueva Vista A Permisos Auth0
 

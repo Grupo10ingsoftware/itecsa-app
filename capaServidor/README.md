@@ -59,7 +59,7 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
 - `AUTH0_AUDIENCE`: identificador de la API que debe contener el access token.
-- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M que debe estar autorizada con `create:users`, `read:roles` y `update:users`.
+- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M que debe estar autorizada con `create:users`, `read:roles`, `read:users` y `update:users`.
 - `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
 - `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
 - `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
@@ -122,12 +122,18 @@ No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sob
 
 El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
+## Override Temporal De Seguridad
+
+`package.json` fuerza temporalmente `@hono/node-server` a `1.19.14` mediante `overrides` por el advisory `GHSA-92pp-h63x-v22m`.
+
+La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar `npm audit fix --force` para este caso, porque npm propone bajar Prisma a una version mayor anterior. Mantener Prisma 7 y retirar el override solo cuando Prisma publique una version que resuelva `@hono/node-server >=1.19.13` sin override y `npm audit` quede limpio.
+
 ## Recursos Auth0 Esperados
 
 - SPA: `ITECSA Frontend Local`.
-- API: `ITECSA API`, con audience `https://api.itecsa.local` y firma `RS256`.
-- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API con `create:users`, `read:roles` y `update:users`.
-- Action Post Login: `ITECSA Add Role Claim`, enlazada al flujo Post Login.
+- API: `ITECSA API`, con audience `https://api.itecsa.local`, firma `RS256` y scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
+- Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
@@ -330,49 +336,48 @@ Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
 
 Estos endpoints cubren el cierre backend de `UR 3.1`, `UR 3.3` y `UR 3.7` usando datos mock en memoria.
 
-### `GET /api/kanban`
+### `GET /api/orders/kanban`
 
-Requiere access token Auth0 valido. Devuelve columnas fijas y ordenes mock:
+Requiere access token Auth0 valido. Devuelve ordenes mock/en memoria:
 
 ```json
-{
-  "columns": [
-    "Confirmacion de pago",
-    "Listo para produccion",
-    "En produccion",
-    "Listo para entrega"
-  ],
-  "orders": []
-}
+[
+  {
+    "id_pedido": 1,
+    "estado_pago": "Pendiente",
+    "id_estado_pago": 0,
+    "id_etapa_general": 0
+  }
+]
 ```
 
-### `PATCH /api/orders/:id/payment-status`
+### `PATCH /api/orders/:orderId/payment-status`
 
 Requiere access token Auth0 valido con permiso `update:payment-status`.
 
 ```json
 {
-  "paymentStatus": "Confirmado"
+  "paymentStatusId": 1
 }
 ```
 
-Estados permitidos: `Pendiente`, `Confirmado`, `Rechazado`.
+IDs de estado aceptados por el backend mock: `0` para `Pendiente`, `1` para `Confirmado` y `2` para `Rechazado`.
 
 - Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
 - Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.
 - Sin permiso `update:payment-status`, responde `403`.
 
-### `PATCH /api/kanban/orders/:id/move`
+### `PATCH /api/orders/:orderId/move`
 
 Requiere access token Auth0 valido.
 
 ```json
 {
-  "targetStatus": "Listo para produccion"
+  "generalStepId": 1
 }
 ```
 
-Si se intenta mover manualmente a `Listo para produccion` con pago distinto de `Confirmado`, responde:
+Etapas mock aceptadas por el backend: `0` Confirmacion de pago, `1` Listo para produccion, `2` En produccion y `3` Listo para entrega. Si se intenta mover un pedido con pago distinto de `Confirmado`, responde `409`:
 
 ```json
 {
@@ -380,8 +385,4 @@ Si se intenta mover manualmente a `Listo para produccion` con pago distinto de `
 }
 ```
 
-Trabajo manual pendiente en Auth0 Dashboard:
-
-- Rol `Cobranzas`: asignar `view:payments-module` y `update:payment-status`.
-- Rol `Administrador`: asignar `view:payments-module`, sin `update:payment-status`.
-- Cerrar sesion y volver a iniciar sesion con usuarios de prueba para emitir tokens nuevos.
+Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de permisos, cerrar sesion y volver a iniciar sesion con usuarios controlados para emitir access tokens nuevos.

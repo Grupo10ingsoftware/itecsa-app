@@ -143,6 +143,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 function KanbanColumn() {
   const [orders, setOrders] = useState(initialOrders)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  
   const handleUpdateOrder = (updatedOrder) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
@@ -154,9 +155,26 @@ function KanbanColumn() {
 
   function handleDragEnd(event) {
     if (event.canceled) return
-
     const { source, target } = event.operation
     if (!source || !target) return
+
+    const orderToMove = orders.find(order => order.nv === source.id)
+    
+    if (!orderToMove || orderToMove.orderStatus === target.id) return
+
+    const message = `¿Confirmas mover el pedido ${orderToMove.nv} a "${target.id}"?`;
+    const isConfirmed = window.confirm(message);
+    if (!isConfirmed) return 
+
+    if (target.id === 'Listo para entrega') {
+      const subProcs = orderToMove.subProcesses || [];
+      const allCompleted = subProcs.length > 0 && subProcs.every(sp => sp.status === 'completed');
+      
+      if (!allCompleted) {
+        alert(`El pedido ${orderToMove.nv} no puede pasar a entrega. Aún tiene etapas de producción pendientes o en curso.`);
+        return; 
+      }
+    }
 
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
@@ -203,31 +221,7 @@ function KanbanColumn() {
             onUpdateOrder={handleUpdateOrder}
         />
     </>
-
-      
   )
-
-  function handleDragEnd(event) {
-    if (event.canceled) return
-
-    const { source, target } = event.operation
-    if (!source || !target) return
-
-    const orderToMove = orders.find(order => order.nv === source.id)
-    
-    if (!orderToMove || orderToMove.orderStatus === target.id) return
-
-    const message = `¿Confirmas mover el pedido ${orderToMove.nv} a "${target.id}"?`;
-    const isConfirmed = window.confirm(message);
-    
-    if (!isConfirmed) return
-
-    setOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.nv === source.id ? { ...order, orderStatus: target.id } : order,
-      ),
-    )
-  }
 }
 
 export default KanbanColumn

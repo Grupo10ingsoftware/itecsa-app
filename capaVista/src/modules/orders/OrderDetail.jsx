@@ -21,7 +21,7 @@ const OrderDetail = ({ order, onUpdateOrder }) => {
             proc.id === processId ? { ...proc, status: newStatus } : proc
         );
 
-        const exactTimestamp = new Date().toLocalString('es-CL', {
+        const exactTimestamp = new Date().toLocaleString('es-CL', {
              day: '2-digit', month: '2-digit', year: 'numeric',
              hour: '2-digit', minute: '2-digit'}
         );

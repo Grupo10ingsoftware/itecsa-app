@@ -337,6 +337,53 @@
   color: #b02a37;
 }
 
+.selfUnlinkControl {
+  display: inline-flex;
+  position: relative;
+}
+
+.selfUnlinkControl:focus {
+  outline: none;
+}
+
+.selfUnlinkControl::after {
+  background: #17202a;
+  border-radius: 6px;
+  bottom: calc(100% + 0.5rem);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 700;
+  left: 50%;
+  line-height: 1.25;
+  max-width: 16rem;
+  opacity: 0;
+  padding: 0.45rem 0.6rem;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  transform: translate(-50%, 0.25rem);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  visibility: hidden;
+  width: max-content;
+  z-index: 20;
+}
+
+.selfUnlinkControl:hover::after,
+.selfUnlinkControl:focus::after,
+.selfUnlinkControl:focus-within::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.selfUnlinkButton {
+  filter: grayscale(0.85);
+  opacity: 0.48 !important;
+}
+
 .userButtonGhost {
   background: transparent;
   color: #243447;
@@ -476,6 +523,13 @@
 .editField span {
   color: #4f5f6f;
   font-weight: 700;
+}
+
+.fieldHelpText {
+  color: #8a6100;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .formControl {

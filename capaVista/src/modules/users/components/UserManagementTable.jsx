@@ -11,6 +11,7 @@ const TABLE_COLUMNS = Object.freeze([
   'Estado',
   'Acciones',
 ])
+const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
 
 function buildNearbyPages(currentPage, totalPages) {
   if (totalPages <= 4) {
@@ -83,14 +84,28 @@ export default function UserManagementTable({
                     <UserButton className={styles.actionButton} onClick={() => onEditUser(user)} variant="secondary">
                       Editar
                     </UserButton>
-                    <UserButton
-                      className={styles.actionButton}
-                      disabled={user.estadoUsuario === 'Desvinculado'}
-                      onClick={() => onUnlinkUser(user)}
-                      variant="danger"
-                    >
-                      Desvincular
-                    </UserButton>
+                    {user.isCurrentUser ? (
+                      <span
+                        aria-label={SELF_UNLINK_MESSAGE}
+                        className={styles.selfUnlinkControl}
+                        data-tooltip={SELF_UNLINK_MESSAGE}
+                        tabIndex={0}
+                        title={SELF_UNLINK_MESSAGE}
+                      >
+                        <UserButton className={styles.selfUnlinkButton} disabled variant="danger">
+                          Desvincular
+                        </UserButton>
+                      </span>
+                    ) : (
+                      <UserButton
+                        className={styles.actionButton}
+                        disabled={user.estadoUsuario === 'Desvinculado'}
+                        onClick={() => onUnlinkUser(user)}
+                        variant="danger"
+                      >
+                        Desvincular
+                      </UserButton>
+                    )}
                   </td>
                 </tr>
               ))}

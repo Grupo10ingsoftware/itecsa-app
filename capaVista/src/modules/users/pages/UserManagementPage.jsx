@@ -52,10 +52,6 @@ function getErrorText(error) {
     return 'Acceso denegado. Solo un administrador puede gestionar usuarios.'
   }
 
-  if (error?.status === 409) {
-    return 'Ya existe un usuario con ese correo.'
-  }
-
   if (error?.code === API_ERROR_CODES.NETWORK_ERROR) {
     return 'No fue posible contactar la API. Revisa la conexion e intenta nuevamente.'
   }
@@ -72,11 +68,19 @@ function getErrorText(error) {
     return `La aplicacion M2M no tiene los permisos Auth0 Management requeridos: ${requiredScopes}.`
   }
 
-  return error?.payload?.message ?? 'No fue posible completar la operacion. Intenta nuevamente.'
+  if (error?.payload?.message) {
+    return error.payload.message
+  }
+
+  if (error?.status === 409) {
+    return 'Ya existe un usuario con ese correo.'
+  }
+
+  return 'No fue posible completar la operacion. Intenta nuevamente.'
 }
 
 export default function UserManagementPage() {
-  const { loginWithRedirect } = useAuth()
+  const { auth0User, loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const latestRequestRef = useRef(0)
   const [users, setUsers] = useState([])
@@ -92,6 +96,7 @@ export default function UserManagementPage() {
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
+  const currentAuth0UserId = auth0User?.sub ?? null
 
   useEffect(() => {
     const debounceTimer = window.setTimeout(() => {
@@ -125,7 +130,19 @@ export default function UserManagementPage() {
           return
         }
 
-        setUsers((response.usuarios ?? []).map(mapApiUser))
+        setUsers(
+          (response.usuarios ?? []).map((user) => {
+            const mappedUser = mapApiUser(user)
+
+            return {
+              ...mappedUser,
+              isCurrentUser: Boolean(
+                currentAuth0UserId &&
+                  mappedUser.idUsuarioAutenticacionExterna === currentAuth0UserId,
+              ),
+            }
+          }),
+        )
         setTotalUsers(response.total ?? 0)
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
@@ -141,7 +158,7 @@ export default function UserManagementPage() {
         }
       }
     },
-    [activeRole, activeStatus, adminUsersApi, debouncedSearchTerm, page],
+    [activeRole, activeStatus, adminUsersApi, currentAuth0UserId, debouncedSearchTerm, page],
   )
 
   const loadSummary = useCallback(async () => {
@@ -294,6 +311,7 @@ export default function UserManagementPage() {
         isOpen={Boolean(editingUser)}
         onClose={() => setEditingUser(null)}
         onSave={handleSaveUser}
+        isCurrentUser={Boolean(editingUser?.isCurrentUser)}
         user={editingUser}
       />
     </main>

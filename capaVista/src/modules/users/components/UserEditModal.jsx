@@ -4,6 +4,7 @@ import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
 const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
+const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
 
 function createFormState(user) {
   return {
@@ -15,7 +16,7 @@ function createFormState(user) {
   }
 }
 
-export default function UserEditModal({ isOpen, onClose, onSave, user }) {
+export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, user }) {
   const [values, setValues] = useState(() => (user ? createFormState(user) : null))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const firstInputRef = useRef(null)
@@ -48,8 +49,11 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }) {
       return false
     }
 
-    return Object.values(values).every((value) => String(value).trim().length > 0)
-  }, [values])
+    return (
+      Object.values(values).every((value) => String(value).trim().length > 0) &&
+      !(isCurrentUser && values.estadoUsuario === 'Desvinculado')
+    )
+  }, [isCurrentUser, values])
 
   if (!isOpen || !user || !values) {
     return null
@@ -71,6 +75,11 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+
+    if (isCurrentUser && values.estadoUsuario === 'Desvinculado') {
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -193,11 +202,16 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }) {
                 value={values.estadoUsuario}
               >
                 {USER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
+                  <option
+                    disabled={isCurrentUser && status === 'Desvinculado'}
+                    key={status}
+                    value={status}
+                  >
                     {status}
                   </option>
                 ))}
               </select>
+              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_UNLINK_MESSAGE}</small>}
             </label>
           </div>
         </div>

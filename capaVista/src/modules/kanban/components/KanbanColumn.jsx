@@ -25,7 +25,7 @@ const processTemplates = {
   default: [{ id: 'gen', name: 'Produccion general', status: 'pending' }],
 }
 
-const columns = [
+const baseColumns = [
   {
     id: 'confirmacion-pago',
     title: 'Confirmacion de pago',
@@ -57,7 +57,7 @@ const columns = [
 ]
 
 function getColumnTitleByStepId(stepId) {
-  const column = columns.find((item) => Number(item.generalStepId) === Number(stepId))
+  const column = baseColumns.find((item) => Number(item.generalStepId) === Number(stepId))
   return column?.title ?? 'Confirmacion de pago'
 }
 
@@ -155,6 +155,20 @@ function normalizeOrder(order) {
   }
 }
 
+function normalizeStatus(status) {
+  const order = Number(status.orden_kanban)
+  const column = baseColumns[order] ?? { accent: '#2563eb', icon: 'bi-kanban' }
+
+  return {
+    id: String(status.id_estado_pedido),
+    title: status.nombre_etapa,
+    generalStepId: order,
+    order,
+    accent: column.accent,
+    icon: column.icon,
+  }
+}
+
 function DroppableColumn({ id, accent, icon, count, children }) {
   const { ref } = useDroppable({ id })
 
@@ -175,6 +189,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 
 function KanbanColumn() {
   const [orders, setOrders] = useState([])
+  const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [loadError, setLoadError] = useState(null)
@@ -184,12 +199,38 @@ function KanbanColumn() {
     const loadOrders = async () => {
       try {
         setLoadError(null)
-        const data = await kanbanApi.getOrders()
-        const normalizedOrders = Array.isArray(data) ? data.map(normalizeOrder) : []
-        setOrders(normalizedOrders)
+
+        const [ordersResult, statusesResult] = await Promise.allSettled([
+          kanbanApi.getOrders(),
+          kanbanApi.getOrderStatuses(),
+        ])
+
+        if (ordersResult.status === 'fulfilled') {
+          const normalizedOrders = Array.isArray(ordersResult.value)
+            ? ordersResult.value.map(normalizeOrder)
+            : []
+          setOrders(normalizedOrders)
+        } else {
+          console.error('Error cargando ordenes:', ordersResult.reason)
+          setLoadError('No fue posible cargar las ordenes.')
+        }
+
+        if (statusesResult.status === 'fulfilled' && Array.isArray(statusesResult.value)) {
+          const normalizedStatuses = statusesResult.value
+            .map(normalizeStatus)
+            .sort((a, b) => a.order - b.order)
+
+          setColumns(normalizedStatuses.length > 0 ? normalizedStatuses : baseColumns)
+        } else {
+          if (statusesResult.status === 'rejected') {
+            console.warn('No fue posible cargar los estados del kanban:', statusesResult.reason)
+          }
+          setColumns(baseColumns)
+        }
       } catch (error) {
-        console.error('Error cargando ordenes:', error)
+        console.error('Error inesperado cargando kanban:', error)
         setLoadError('No fue posible cargar las ordenes.')
+        setColumns(baseColumns)
       } finally {
         setLoading(false)
       }
@@ -207,17 +248,20 @@ function KanbanColumn() {
     const order = orders.find((currentOrder) => currentOrder.nv === source.id)
     const targetColumn = columns.find((column) => column.title === target.id)
 
-    if (!order || !targetColumn || order.orderStatus === targetColumn.title) return
+    if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
 
     if (!window.confirm(`Mover ${order.nv} a "${targetColumn.title}"?`)) {
       return
     }
 
     const previousOrderStatus = order.orderStatus
+    const previousStepId = order.generalStepId
 
     setOrders((prevOrders) =>
       prevOrders.map((currentOrder) =>
-        currentOrder.nv === source.id ? { ...currentOrder, orderStatus: targetColumn.title } : currentOrder,
+        currentOrder.nv === source.id
+          ? { ...currentOrder, orderStatus: targetColumn.title, generalStepId: targetColumn.generalStepId }
+          : currentOrder,
       ),
     )
 
@@ -225,8 +269,12 @@ function KanbanColumn() {
       console.error('Error moviendo orden:', error)
       setOrders((prevOrders) =>
         prevOrders.map((currentOrder) =>
-          currentOrder.id === order.id && currentOrder.orderStatus === targetColumn.title
-            ? { ...currentOrder, orderStatus: previousOrderStatus }
+          currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)
+            ? {
+                ...currentOrder,
+                orderStatus: previousOrderStatus,
+                generalStepId: previousStepId,
+              }
             : currentOrder,
         ),
       )
@@ -246,7 +294,9 @@ function KanbanColumn() {
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {
-            const columnOrders = orders.filter((order) => column.title === order.orderStatus)
+            const columnOrders = orders.filter(
+              (order) => Number(column.generalStepId) === Number(order.generalStepId),
+            )
 
             return (
               <DroppableColumn

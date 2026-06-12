@@ -1,0 +1,51 @@
+.mainPanel {
+  background: #fff;
+  border: 1px solid var(--orders-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+  padding: 1rem;
+}
+
+.designFilesPanel {
+  min-height: 28rem;
+}
+
+.designFilesHeader {
+  margin-bottom: 1rem;
+}
+
+.sectionHeader {
+  align-items: center;
+  color: var(--orders-text);
+  display: flex;
+  font-size: 0.95rem;
+  font-weight: 850;
+  gap: 0.55rem;
+  letter-spacing: 0.035em;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+}
+
+.sectionHeader i {
+  color: var(--orders-orange);
+}
+
+.helperText {
+  color: var(--orders-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.designFilesUploadBlock {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.errorText {
+  color: var(--orders-red);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+}

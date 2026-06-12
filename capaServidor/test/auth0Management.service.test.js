@@ -4,6 +4,8 @@ import {
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
+    setAuth0UserStatus,
+    updateAuth0User,
 } from "../src/modules/users/service/auth0Management.service.js";
 
 const ENVIRONMENT = {
@@ -80,6 +82,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
         client_id: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_ID,
         client_secret: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_SECRET,
         audience: `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/`,
+        scope: "read:users create:users update:users read:roles",
     });
     assert.equal(
         requests[1].url,
@@ -189,6 +192,91 @@ test("reporta asignacion RBAC incompleta si falla despues de crear usuario", asy
     assert.deepEqual(result, {
         userId: "auth0|created-user",
         roleAssignmentCompleted: false,
+    });
+});
+
+test("actualiza correo, estado y rol de usuario Auth0", async () => {
+    const requests = [];
+    global.fetch = async (url, options = {}) => {
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        requests.push({ url, options, body });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1")) {
+            return jsonResponse(200, { user_id: "auth0|user-1" });
+        }
+
+        if (url.includes("/api/v2/roles?")) {
+            return jsonResponse(200, [
+                { id: "rol_admin", name: "Administrador" },
+                { id: "rol_ventas", name: "Ventas" },
+            ]);
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1/roles")) {
+            return { ok: true, status: 204, async json() { return null; } };
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await updateAuth0User({
+        userId: "auth0|user-1",
+        correoUsuario: "editado@example.cl",
+        rolUsuario: "Ventas",
+        estadoUsuario: "Desvinculado",
+    });
+
+    assert.deepEqual(result, {
+        idUsuarioAutenticacionExterna: "auth0|user-1",
+        correoUsuario: "editado@example.cl",
+        rolUsuario: "Ventas",
+        estadoUsuario: "Desvinculado",
+    });
+    assert.deepEqual(requests[1].body, {
+        email: "editado@example.cl",
+        blocked: true,
+        app_metadata: {
+            rolUsuario: "Ventas",
+            estadoUsuario: "Desvinculado",
+        },
+    });
+    assert.equal(requests.some((request) => request.options.method === "DELETE"), true);
+    assert.equal(requests.some((request) => request.body?.roles?.includes("rol_ventas")), true);
+});
+
+test("actualiza solo el estado de usuario Auth0", async () => {
+    const requests = [];
+    global.fetch = async (url, options = {}) => {
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        requests.push({ url, options, body });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1")) {
+            return jsonResponse(200, { user_id: "auth0|user-1" });
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await setAuth0UserStatus({
+        userId: "auth0|user-1",
+        estadoUsuario: "Activo",
+    });
+
+    assert.deepEqual(result, {
+        idUsuarioAutenticacionExterna: "auth0|user-1",
+        estadoUsuario: "Activo",
+    });
+    assert.deepEqual(requests[1].body, {
+        blocked: false,
+        app_metadata: { estadoUsuario: "Activo" },
     });
 });
 

@@ -1,0 +1,21 @@
+.toastAlert {
+  align-items: center;
+  border-radius: 0.75rem;
+  display: flex;
+  font-weight: 750;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.toastAlertError {
+  background: var(--orders-red-soft);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  color: #991b1b;
+}
+
+.toastAlertSuccess {
+  background: var(--orders-green-soft);
+  border: 1px solid rgba(36, 143, 85, 0.22);
+  color: #166534;
+}

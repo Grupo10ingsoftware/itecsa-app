@@ -1,12 +1,17 @@
 .logoutButton {
+  align-items: center;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.75rem;
   color: #ffffff;
+  display: inline-flex;
   font-weight: 750;
+  justify-content: center;
   letter-spacing: 0.02em;
-  min-height: 2.65rem;
-  padding: 0.65rem 0.9rem;
+  line-height: 1.15;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -16,9 +21,10 @@
 
 .logoutButton:hover,
 .logoutButton:focus {
-  background: #ef121c;
-  border-color: #ef121c;
+  background: rgba(var(--itexsa-orange-rgb, 249, 115, 22), 0.12);
+  border-color: rgba(var(--itexsa-orange-rgb, 249, 115, 22), 0.42);
   color: #ffffff;
+  outline: none;
   transform: translateY(-1px);
 }
 

@@ -1,0 +1,128 @@
+.successViewport {
+  align-items: center;
+  display: grid;
+  min-height: calc(100vh - 5rem);
+  padding: 1rem 0;
+  width: 100%;
+}
+
+.successShell {
+  background: #fff;
+  border: 1px solid var(--orders-border);
+  border-radius: 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  margin: 0 auto;
+  max-width: 52rem;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  width: min(100%, 52rem);
+}
+
+.successIcon {
+  align-items: center;
+  background: var(--orders-green-soft);
+  border-radius: 50%;
+  color: var(--orders-green);
+  display: inline-flex;
+  font-size: 2.45rem;
+  height: 5.25rem;
+  justify-content: center;
+  margin-bottom: 1.15rem;
+  width: 5.25rem;
+}
+
+.successTitle {
+  color: var(--orders-text);
+  font-size: clamp(2rem, 3.2vw, 2.8rem);
+  font-weight: 850;
+  margin: 0;
+}
+
+.successText {
+  color: var(--orders-muted);
+  font-size: 1.08rem;
+  line-height: 1.65;
+  margin: 1rem auto 0;
+  max-width: 40rem;
+}
+
+.successActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2.1rem;
+}
+
+.darkButton,
+.primaryButton {
+  align-items: center;
+  border-radius: 0.8rem;
+  display: inline-flex;
+  font-size: 1.05rem;
+  font-weight: 850;
+  gap: 0.6rem;
+  justify-content: center;
+  min-height: 3.5rem;
+  min-width: 15.5rem;
+  padding: 0.9rem 1.6rem;
+}
+
+.darkButton {
+  background: #111827;
+  border: 1px solid #111827;
+  color: #fff;
+}
+
+.primaryButton {
+  background: var(--orders-orange);
+  border: 1px solid var(--orders-orange);
+  color: #fff;
+}
+
+.primaryButton:hover,
+.primaryButton:focus-visible {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+.darkButton:hover,
+.darkButton:focus-visible {
+  background: #0b1220;
+  border-color: #0b1220;
+}
+
+@media (max-width: 700px) {
+  .successViewport {
+    min-height: auto;
+    padding: 0;
+  }
+
+  .successShell {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .successIcon {
+    font-size: 2rem;
+    height: 4.35rem;
+    width: 4.35rem;
+  }
+
+  .successTitle {
+    font-size: 1.85rem;
+  }
+
+  .successText {
+    font-size: 1rem;
+  }
+
+  .successActions {
+    flex-direction: column;
+  }
+
+  .darkButton,
+  .primaryButton {
+    min-width: 100%;
+    width: 100%;
+  }
+}

@@ -119,7 +119,7 @@ Las variables `DB_*` alimentan `mysql2/promise` y el adaptador Prisma MariaDB; `
 - No se persisten contrasenas. RUT y ruta de firma se persisten en la entidad interna `Usuario`.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
+- Pedidos, pagos persistidos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria para consultar ordenes, actualizar estado de pago y mover Kanban; la pantalla de pagos actual conserva datos locales/mock y no consume todavia el endpoint de cambio de estado.
 
 La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
 

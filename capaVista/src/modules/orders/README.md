@@ -41,7 +41,7 @@ src/hooks/useOrderCreateFlow.js
 
 Esta decisión evita que `OrderCreatePage.jsx` se convierta en una vista monolítica. La página principal actúa como orquestadora y delega responsabilidades en componentes pequeños, siguiendo el mismo criterio usado en `payments`.
 
-En esta etapa, el frontend prepara la interacción visual y usa datos simulados. En integración posterior, los mocks deberán ser reemplazados por respuestas del backend y la creación real del pedido deberá validarse desde servicios backend.
+En el estado actual, el frontend implementa la interacción visual y usa datos simulados para el alta de pedidos. En una integración posterior, esos mocks deberán ser reemplazados por respuestas del backend y la creación real del pedido deberá validarse desde servicios backend.
 
 No debe agregarse `api/` dentro de `src/modules/orders/` en esta fase. Cuando existan contratos backend aprobados, la integración debe hacerse desde la capa correspondiente, no desde componentes visuales.
 
@@ -120,7 +120,7 @@ src/hooks/
 - Las funciones auxiliares reutilizables viven en `utils/`.
 - La lógica de flujo visual vive en `src/hooks/useOrderCreateFlow.js`.
 - El módulo no contiene `styles/Orders.module.css` porque se eliminó el CSS monolítico.
-- El módulo no contiene `api/` porque sigue en fase de frontend inicial con mocks.
+- El módulo no contiene `api/` porque la creación real de pedidos todavía no tiene contrato backend conectado.
 - Los archivos de detalle de pedido se eliminaron de este flujo. El detalle deberá consultarse desde Kanban cuando corresponda.
 
 ## Flujo funcional principal
@@ -224,7 +224,7 @@ Funciones relevantes:
 Notas de integración futura:
 
 - `handleConfirmRegister()` deberá reemplazar `buildRegisteredOrder()` por una llamada a `orderApi.create` cuando exista contrato backend.
-- La persistencia en `sessionStorage` es solo apoyo visual para frontend inicial.
+- La persistencia en `sessionStorage` es solo apoyo visual temporal.
 - El backend debe validar rol, datos, PDF, duplicidad de Nota de Venta y reglas de estado.
 
 ## Archivos de `components/`
@@ -981,7 +981,7 @@ Estos requisitos sugeridos deben formalizarse en la matriz de trazabilidad si se
 
 ## Estado actual del módulo
 
-Estado: funcional en frontend inicial con mocks.
+Estado: funcional como flujo visual integrado con datos locales/mock.
 
 Pendiente antes de integración real:
 

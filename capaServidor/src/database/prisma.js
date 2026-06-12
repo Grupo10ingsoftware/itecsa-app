@@ -41,27 +41,22 @@ function readPrismaConfiguration() {
         : path.resolve(serverRootDirectory, process.env.DB_SSL_CA_PATH);
 
     return {
-        poolConfig: {
-            host: process.env.DB_HOST.trim(),
-            port,
-            user: process.env.DB_USER.trim(),
-            password: process.env.DB_PASSWORD,
-            connectTimeout: 8000,
-            ssl: {
-                ca: fs.readFileSync(sslCaPath, "utf8"),
-            },
-            connectionLimit: 10,
+        host: process.env.DB_HOST.trim(),
+        port,
+        user: process.env.DB_USER.trim(),
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME.trim(),
+        connectTimeout: 8000,
+        ssl: {
+            ca: fs.readFileSync(sslCaPath, "utf8"),
         },
-        options: {
-            database: process.env.DB_NAME.trim(),
-        },
+        connectionLimit: 10,
     };
 }
 
 export function getPrismaClient() {
     if (!prisma) {
-        const { poolConfig, options } = readPrismaConfiguration();
-        const adapter = new PrismaMariaDb(poolConfig, options);
+        const adapter = new PrismaMariaDb(readPrismaConfiguration());
         const { PrismaClient } = require("@prisma/client");
         prisma = new PrismaClient({ adapter });
     }

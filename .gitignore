@@ -1,15 +1,5 @@
 # Variables de entorno locales
 .env*
-!.env.example
-!**/.env.example
-!env.example
-!**/env.example
-!*.env.example
-!**/*.env.example
-!*.env.sample
-!**/*.env.sample
-!*.env.template
-!**/*.env.template
 
 # Certificados locales de base de datos
 capaServidor/certs/*.pem

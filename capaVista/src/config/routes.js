@@ -5,7 +5,6 @@ export const APP_ROUTES = Object.freeze({
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
   PAYMENTS: '/pagos',
-  ADMIN_USERS: '/admin/usuarios',
   ADMIN_USERS_CREATE: '/admin/usuarios/nuevo',
   ORDERS_CREATE: '/ordenes/nuevo',
 })
@@ -30,10 +29,9 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     requirementIds: Object.freeze(['UR 3.1', 'UR 3.3', 'UR 3.7']),
   },
   {
-    label: 'Gestion de usuarios',
-    path: APP_ROUTES.ADMIN_USERS,
-    permission: PERMISSIONS.MANAGE_USERS_VISUALLY,
-    requiredRoles: Object.freeze(['Administrador']),
+    label: 'Crear usuario',
+    path: APP_ROUTES.ADMIN_USERS_CREATE,
+    permission: PERMISSIONS.CREATE_USERS_VISUALLY,
     requirementIds: Object.freeze(['UR 1.4', 'UR 1.12', 'UR 1.13']),
   },
   {

@@ -12,22 +12,19 @@ npm run dev
 Comandos disponibles:
 
 ```bash
-npm run dev
 npm run lint
 npm run build
 npm run preview
 ```
-
-Actualmente no existe script de test frontend en `package.json`; usar `npm run lint` y `npm run build` como verificacion local de la SPA.
 
 ## Variables De Entorno
 
 Crear un archivo `.env` local a partir de `env.example`:
 
 ```dotenv
-VITE_AUTH0_DOMAIN=<tenant-auth0>
+VITE_AUTH0_DOMAIN=<dominio-auth0>
 VITE_AUTH0_CLIENT_ID=<client-id-spa>
-VITE_AUTH0_AUDIENCE=https://api.itecsa.local
+VITE_AUTH0_AUDIENCE=<audience-api>
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
@@ -52,19 +49,11 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
-- Action Post Login: `ITECSA Add Claims`.
+- Action Post Login: `ITECSA Add Role Claim`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
 El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La fuente de roles es Auth0 RBAC y la validacion de endpoints pertenece al backend.
-
-## Integraciones Backend Actuales
-
-- Autenticacion: `useAuthApi` consume `GET /api/auth/verify`.
-- Usuarios administrativos: `useAdminUsersApi` consume listado, resumen, edicion, desvinculacion, `POST /api/admin/users` con `FormData` y `POST /api/admin/users/password-setup-email`.
-- Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
-- Pagos: `PaymentConfirmationPage.jsx` usa `createMockPaymentOrders()` y `applyMockPaymentStatusTransition()`; no consume backend actualmente.
 
 ## Conectar Una Nueva Vista A Permisos Auth0
 

@@ -1,8 +1,8 @@
 import PaymentRecordRepo from "../repo/paymentRecord.repo.js";
 
 class PaymentRecordService {
-  constructor() {
-    this.repo = new PaymentRecordRepo();
+  constructor({ repo } = {}) {
+    this.repo = repo ?? new PaymentRecordRepo();
   }
 
   async createPaymentRecord(orderId, data) {

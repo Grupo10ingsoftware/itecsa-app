@@ -1,8 +1,8 @@
 import ClientRepo from "../repo/clients.repo.js";
 
 class ClientService {
-  constructor() {
-    this.repo = new ClientRepo();
+  constructor({ repo } = {}) {
+    this.repo = repo ?? new ClientRepo();
   }
 
   async createClient(data) {

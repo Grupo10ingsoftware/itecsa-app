@@ -1,6 +1,18 @@
-import pool from "../../../database/connection.js";
+import getPrismaClient from "../../../database/prisma.js";
 
 class PaymentRecordRepo {
+  constructor({ prisma } = {}) {
+    this.prisma = prisma;
+  }
+
+  get client() {
+    if (!this.prisma) {
+      this.prisma = getPrismaClient();
+    }
+
+    return this.prisma;
+  }
+
   async create(orderId, data) {
     const {
       fecha_registro,
@@ -9,68 +21,40 @@ class PaymentRecordRepo {
       id_estado_pago,
     } = data;
 
-    const [result] = await pool.execute(
-      `
-      INSERT INTO Registro_Pago (
-        fecha_registro,
-        observacion,
-        id_pedido,
-        id_usuario,
-        id_estado_pago
-      )
-      VALUES (COALESCE(?, NOW()), ?, ?, ?, ?)
-      `,
-      [
-        fecha_registro ?? null,
-        observacion ?? null,
-        orderId,
-        id_usuario,
-        id_estado_pago,
-      ],
-    );
-
-    return this.getById(result.insertId);
+    return this.client.registro_Pago.create({
+      data: {
+        fecha_registro: fecha_registro ?? new Date(),
+        observacion: observacion ?? null,
+        id_pedido: Number(orderId),
+        id_usuario: Number(id_usuario),
+        id_estado_pago: Number(id_estado_pago),
+      },
+    });
   }
 
   async getById(paymentRecordId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Registro_Pago
-      WHERE id_registro_pago = ?
-      `,
-      [paymentRecordId],
-    );
-
-    return rows[0] || null;
+    return this.client.registro_Pago.findUnique({
+      where: { id_registro_pago: Number(paymentRecordId) },
+    });
   }
 
   async getByOrderId(orderId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Registro_Pago
-      WHERE id_pedido = ?
-      ORDER BY fecha_registro DESC, id_registro_pago DESC
-      `,
-      [orderId],
-    );
-
-    return rows;
+    return this.client.registro_Pago.findMany({
+      where: { id_pedido: Number(orderId) },
+      orderBy: [
+        { fecha_registro: "desc" },
+        { id_registro_pago: "desc" },
+      ],
+    });
   }
 
   async getByOrderIdAndRecordId(orderId, paymentRecordId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Registro_Pago
-      WHERE id_pedido = ?
-        AND id_registro_pago = ?
-      `,
-      [orderId, paymentRecordId],
-    );
-
-    return rows[0] || null;
+    return this.client.registro_Pago.findFirst({
+      where: {
+        id_pedido: Number(orderId),
+        id_registro_pago: Number(paymentRecordId),
+      },
+    });
   }
 }
 

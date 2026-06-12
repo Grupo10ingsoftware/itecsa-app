@@ -3,8 +3,8 @@ import OrderStatusRepository from "../repo/orderStatus.repo.js";
 
 
 class OrderStatusService {
-    constructor() {
-        this.repo = new OrderStatusRepository();
+    constructor({ repo } = {}) {
+        this.repo = repo ?? new OrderStatusRepository();
     }
 
     async createOrderStatus( data ) {

@@ -42,8 +42,8 @@ class ClientController {
 
     getClient = async ( req = request, res = response ) => {
         try {
-            const { id_cliente } = req.params;
-            if (! id_cliente ) return res.status( 400 ).json({msg:'Missing ID'});
+            const id_cliente = req.params.id_cliente ?? req.params.clientId;
+            if (!id_cliente) return res.status( 400 ).json({msg:'Missing ID'});
             const result = await
             this.service.getClient(  id_cliente  );
             if ( !result ) return res.status( 404 ).json({msg:'Cliente no encontrado'})

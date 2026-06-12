@@ -190,8 +190,8 @@ model Pedidos {
   id_etiqueta            Int?
   Detalle_pedido         Detalle_pedido[]
   Documento              Documento[]
-  Estado_Pedido          Estado_Pedido?    @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
   Cliente                Cliente?          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "id_cliente")
+  Estado_Pedido          Estado_Pedido?    @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
   etiqueta               etiqueta?         @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: NoAction, onUpdate: NoAction, map: "id_etiqueta")
   Usuario                Usuario?          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "id_usuario")
   Registro_Etapas        Registro_Etapas[]
@@ -208,8 +208,8 @@ model Producto_Subproceso {
   id_tipo_producto     Int
   id_estado_subproceso Int
   orden_flujo          Int?
-  Estado_Subprocesos   Estado_Subprocesos @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_Producto_Subproceso_estado_subproceso")
   Tipo_Producto        Tipo_Producto      @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_Producto_Subproceso_tipo_producto")
+  Estado_Subprocesos   Estado_Subprocesos @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_Producto_Subproceso_estado_subproceso")
 
   @@id([id_tipo_producto, id_estado_subproceso])
   @@index([id_estado_subproceso], map: "id_estado_subproceso_idx")
@@ -232,9 +232,9 @@ model Registro_Etapas {
 }
 
 model Registro_Pago {
-  id_registro_pago Int       @id
+  id_registro_pago Int       @id @default(autoincrement())
   fecha_registro   DateTime? @db.DateTime(0)
-  observaci_n      String?   @map("observación") @db.LongText
+  observacion      String?   @db.LongText
   id_pedido        Int?
   id_usuario       Int?
   id_estado_pago   Int?
@@ -247,7 +247,7 @@ model Registro_Pago {
 }
 
 model Tipo_Producto {
-  id_tipo_producto     Int                   @id
+  id_tipo_producto     Int                   @id @default(autoincrement())
   nombre_producto      String?               @db.VarChar(255)
   descripcion_producto String?               @db.Text
   Detalle_pedido       Detalle_pedido[]
@@ -289,9 +289,9 @@ model registro_subprocesos {
   id_detalle_pedido      Int?
   id_estado_subproceso   Int?
   id_usuario             Int?
-  Detalle_pedido         Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
   Estado_Subprocesos     Estado_Subprocesos? @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_estado_subprocesos")
   Usuario                Usuario?            @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_usuario")
+  Detalle_pedido         Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
 
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")
   @@index([id_estado_subproceso], map: "id_estado_subproceso_idx")

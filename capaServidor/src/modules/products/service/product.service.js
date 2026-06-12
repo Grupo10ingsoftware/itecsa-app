@@ -1,8 +1,8 @@
 import ProductTypeRepo from "../repo/product.repo.js";
 
 class ProductTypeService {
-  constructor() {
-    this.repo = new ProductTypeRepo();
+  constructor({ repo } = {}) {
+    this.repo = repo ?? new ProductTypeRepo();
   }
 
   async getProductTypes() {

@@ -4,15 +4,24 @@ import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import { hasValidationErrors, validateUserCreateForm } from '../utils/userValidation'
+import FileInput from '../../../shared/components/forms/FileInput'
 
 const INITIAL_VALUES = Object.freeze({
+  nombreUsuario: '',
+  apellidoUsuario: '',
+  rutUsuario: '',
   correoUsuario: '',
   rolUsuario: '',
+  firmaElectronica: null,
 })
 
 const INITIAL_ERRORS = Object.freeze({
+  nombreUsuario: [],
+  apellidoUsuario: [],
+  rutUsuario: [],
   correoUsuario: [],
   rolUsuario: [],
+  firmaElectronica: [],
 })
 
 const MESSAGE_TYPES = Object.freeze({
@@ -95,7 +104,7 @@ function buildCreatedUserMessage(user) {
   }
 }
 
-export default function UserCreateForm() {
+export default function UserCreateForm({ onCreated } = {}) {
   const { loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const [values, setValues] = useState(INITIAL_VALUES)
@@ -120,6 +129,14 @@ export default function UserCreateForm() {
     clearResultState()
   }
 
+  function handleSignatureFileChange(file) {
+    setValues((currentValues) => ({
+      ...currentValues,
+      firmaElectronica: file,
+    }))
+    clearResultState()
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
 
@@ -132,8 +149,12 @@ export default function UserCreateForm() {
     }
 
     const payload = {
+      nombreUsuario: values.nombreUsuario.trim(),
+      apellidoUsuario: values.apellidoUsuario.trim(),
+      rutUsuario: values.rutUsuario.trim().toUpperCase(),
       correoUsuario: values.correoUsuario.trim().toLowerCase(),
       rolUsuario: values.rolUsuario,
+      firmaElectronica: values.firmaElectronica,
     }
 
     setIsSubmitting(true)
@@ -144,6 +165,7 @@ export default function UserCreateForm() {
       setMessage(buildCreatedUserMessage(user))
       setValues(INITIAL_VALUES)
       setFieldErrors(INITIAL_ERRORS)
+      onCreated?.(user)
     } catch (error) {
       setMessage(getErrorMessage(error))
     } finally {
@@ -192,6 +214,12 @@ export default function UserCreateForm() {
     createdUser?.passwordSetupEmailRequested === false &&
     createdUser?.roleAssignmentCompleted !== false
   const isSessionInvalid = message?.requiresLogin === true
+  const nombreUsuarioErrors = fieldErrors.nombreUsuario ?? []
+  const apellidoUsuarioErrors = fieldErrors.apellidoUsuario ?? []
+  const rutUsuarioErrors = fieldErrors.rutUsuario ?? []
+  const correoUsuarioErrors = fieldErrors.correoUsuario ?? []
+  const rolUsuarioErrors = fieldErrors.rolUsuario ?? []
+  const firmaElectronicaErrors = fieldErrors.firmaElectronica ?? []
 
   return (
     <form className="row g-3" noValidate onSubmit={handleSubmit}>
@@ -217,17 +245,18 @@ export default function UserCreateForm() {
           Primer nombre
         </label>
         <input
-          aria-describedby="user-first-name-help"
-          className="form-control"
-          disabled
+          aria-describedby="user-first-name-errors"
+          aria-invalid={nombreUsuarioErrors.length > 0}
+          className={`form-control ${
+            nombreUsuarioErrors.length > 0 ? 'is-invalid' : ''
+          }`}
           id="user-first-name"
-          name="primerNombre"
-          placeholder="No disponible"
+          name="nombreUsuario"
+          onChange={handleFieldChange}
           type="text"
+          value={values.nombreUsuario}
         />
-        <div className="form-text" id="user-first-name-help">
-          Disponible cuando se integre la base de datos.
-        </div>
+        <FieldErrors errors={nombreUsuarioErrors} id="user-first-name-errors" />
       </div>
 
       <div className="col-md-6">
@@ -235,17 +264,18 @@ export default function UserCreateForm() {
           Apellido paterno
         </label>
         <input
-          aria-describedby="user-last-name-help"
-          className="form-control"
-          disabled
+          aria-describedby="user-last-name-errors"
+          aria-invalid={apellidoUsuarioErrors.length > 0}
+          className={`form-control ${
+            apellidoUsuarioErrors.length > 0 ? 'is-invalid' : ''
+          }`}
           id="user-last-name"
-          name="apellidoPaterno"
-          placeholder="No disponible"
+          name="apellidoUsuario"
+          onChange={handleFieldChange}
           type="text"
+          value={values.apellidoUsuario}
         />
-        <div className="form-text" id="user-last-name-help">
-          Disponible cuando se integre la base de datos.
-        </div>
+        <FieldErrors errors={apellidoUsuarioErrors} id="user-last-name-errors" />
       </div>
 
       <div className="col-md-6">
@@ -253,17 +283,17 @@ export default function UserCreateForm() {
           RUT
         </label>
         <input
-          aria-describedby="user-rut-help"
-          className="form-control"
-          disabled
+          aria-describedby="user-rut-errors"
+          aria-invalid={rutUsuarioErrors.length > 0}
+          className={`form-control ${rutUsuarioErrors.length > 0 ? 'is-invalid' : ''}`}
           id="user-rut"
           name="rutUsuario"
-          placeholder="No disponible"
+          onChange={handleFieldChange}
+          placeholder="12.345.678-9"
           type="text"
+          value={values.rutUsuario}
         />
-        <div className="form-text" id="user-rut-help">
-          Disponible cuando se integre la base de datos.
-        </div>
+        <FieldErrors errors={rutUsuarioErrors} id="user-rut-errors" />
       </div>
 
       <div className="col-md-6">
@@ -272,9 +302,9 @@ export default function UserCreateForm() {
         </label>
         <input
           aria-describedby="user-email-errors"
-          aria-invalid={fieldErrors.correoUsuario.length > 0}
+          aria-invalid={correoUsuarioErrors.length > 0}
           className={`form-control ${
-            fieldErrors.correoUsuario.length > 0 ? 'is-invalid' : ''
+            correoUsuarioErrors.length > 0 ? 'is-invalid' : ''
           }`}
           id="user-email"
           name="correoUsuario"
@@ -282,7 +312,7 @@ export default function UserCreateForm() {
           type="email"
           value={values.correoUsuario}
         />
-        <FieldErrors errors={fieldErrors.correoUsuario} id="user-email-errors" />
+        <FieldErrors errors={correoUsuarioErrors} id="user-email-errors" />
       </div>
 
       <div className="col-md-6">
@@ -291,8 +321,8 @@ export default function UserCreateForm() {
         </label>
         <select
           aria-describedby="user-role-errors"
-          aria-invalid={fieldErrors.rolUsuario.length > 0}
-          className={`form-select ${fieldErrors.rolUsuario.length > 0 ? 'is-invalid' : ''}`}
+          aria-invalid={rolUsuarioErrors.length > 0}
+          className={`form-select ${rolUsuarioErrors.length > 0 ? 'is-invalid' : ''}`}
           id="user-role"
           name="rolUsuario"
           onChange={handleFieldChange}
@@ -305,25 +335,18 @@ export default function UserCreateForm() {
             </option>
           ))}
         </select>
-        <FieldErrors errors={fieldErrors.rolUsuario} id="user-role-errors" />
+        <FieldErrors errors={rolUsuarioErrors} id="user-role-errors" />
       </div>
 
       <div className="col-md-6">
-        <label className="form-label" htmlFor="user-signature">
-          Firma electronica
-        </label>
-        <input
-          aria-describedby="user-signature-help"
-          className="form-control"
-          disabled
-          id="user-signature"
-          name="referenciaFirmaElectronica"
-          placeholder="No disponible"
-          type="text"
+        <FileInput
+          accept="application/pdf,image/png,image/jpeg,image/webp"
+          error={firmaElectronicaErrors.join(' ')}
+          file={values.firmaElectronica}
+          label="Firma electronica"
+          maxSizeMB={10}
+          onFileChange={handleSignatureFileChange}
         />
-        <div className="form-text" id="user-signature-help">
-          Disponible cuando se integre la base de datos.
-        </div>
       </div>
 
       <div className="col-12">
@@ -365,6 +388,14 @@ export default function UserCreateForm() {
           <div className="border rounded p-3 bg-light">
             <h2 className="h6 mb-3">Resultado de creacion</h2>
             <dl className="row mb-0 small">
+              <div className="col-md-6">
+                <dt className="text-secondary">Nombre</dt>
+                <dd>{createdUser.nombreUsuario} {createdUser.apellidoUsuario}</dd>
+              </div>
+              <div className="col-md-6">
+                <dt className="text-secondary">RUT</dt>
+                <dd>{createdUser.rutUsuario}</dd>
+              </div>
               <div className="col-md-6">
                 <dt className="text-secondary">Correo electronico</dt>
                 <dd>{createdUser.correoUsuario}</dd>

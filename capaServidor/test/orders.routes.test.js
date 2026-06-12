@@ -23,6 +23,12 @@ function createController(updatePaymentStatus) {
         getOrders(req, res) {
             return res.status(200).json([]);
         },
+        getOrder(req, res) {
+            return res.status(200).json({});
+        },
+        createOrder(req, res) {
+            return res.status(201).json({});
+        },
         updateGeneralStep(req, res) {
             return res.status(200).json({});
         },

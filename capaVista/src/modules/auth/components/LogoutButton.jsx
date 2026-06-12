@@ -9,8 +9,12 @@ export default function LogoutButton() {
   }
 
   return (
-    <button className={`btn btn-sm w-100 ${styles.logoutButton}`} onClick={handleLogout} type="button">
-      <i className="bi bi-box-arrow-right me-2" aria-hidden="true" />
+    <button
+      aria-label="Cerrar sesión"
+      className={`btn btn-sm w-100 ${styles.logoutButton}`}
+      onClick={handleLogout}
+      type="button"
+    >
       Cerrar sesión
     </button>
   )

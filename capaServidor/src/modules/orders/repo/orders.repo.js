@@ -5,14 +5,23 @@ class OrderRepository {
     const [rows] = await pool.execute(`
       SELECT
         p.*,
+        c.nombre_cliente,
+        GROUP_CONCAT(DISTINCT tp.nombre_producto SEPARATOR ', ') AS nombre_producto,
         ep.orden_kanban AS id_etapa_general,
         ep.nombre_etapa AS nombre_etapa_general,
         epa.nombre_estado_pago AS estado_pago
       FROM Pedidos p
+      LEFT JOIN Cliente c
+        ON c.id_cliente = p.id_cliente
+      LEFT JOIN Detalle_pedido dp
+        ON dp.id_pedido = p.id_pedido
+      LEFT JOIN Tipo_Producto tp
+        ON tp.id_tipo_producto = dp.id_tipo_producto
       LEFT JOIN Estado_Pedido ep
         ON ep.id_estado_pedido = p.id_estado_pedido
       LEFT JOIN Estado_Pago epa
         ON epa.id_estado_pago = p.id_estado_pago
+      GROUP BY p.id_pedido
       ORDER BY p.id_pedido DESC
     `);
 
@@ -47,7 +56,6 @@ class OrderRepository {
       id_estado_pedido,
       id_estado_pago,
       id_etiqueta,
-      fecha_creacion,
       fecha_estimada_termino,
     } = data;
 
@@ -62,16 +70,15 @@ class OrderRepository {
         id_cliente,
         id_etiqueta
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (NOW(), ?, ?, ?, ?, ?, ?)
       `,
       [
-        fecha_creacion,
-        fecha_estimada_termino,
+        fecha_estimada_termino ?? null,
         id_usuario,
         id_estado_pedido,
         id_estado_pago,
         id_cliente,
-        id_etiqueta,
+        id_etiqueta ?? null,
       ],
     );
 

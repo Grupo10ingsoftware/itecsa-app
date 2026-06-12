@@ -5,7 +5,7 @@ import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js
 
 
 class OrderController {
-    
+
     constructor() {
         this.service = new OrderService()
     }
@@ -35,55 +35,65 @@ class OrderController {
         }
     }
 
-    createOrder = async ( req = request, res = response) => {
+    createOrder = async (req = request, res = response) => {
         try {
             const order = await this.service.createOrder(req.body ?? {});
+
             res.status(201).json(order);
-        } catch ( error ) {
+        } catch (error) {
             const statusCode = error.statusCode ?? 500;
+
             res.status(statusCode).json({
                 message: error.message || 'Error al crear pedido',
             });
         }
-    }
-    
-    updatePaymentStatus = async ( req = request, res = response) => {
-        
+}
+
+    updatePaymentStatus = async (req = request, res = response) => {
         try {
-
             const { orderId } = req.params;
-            if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
 
+            if (!orderId) {
+                return res.status(400).json({ msg: 'Missing ID' });
+            }
 
             const paymentStatusId = req.body?.paymentStatusId ?? req.body?.paymentStatus;
-            const result = await 
-            this.service.updPaymentState( 
-                orderId, 
-                paymentStatusId
+            const { id_usuario, observacion } = req.body ?? {};
+
+            const result = await this.service.updPaymentState(
+                orderId,
+                paymentStatusId,
+                {
+                    id_usuario,
+                    observacion,
+                },
             );
 
-            if ( !result ) return res.status(404).json({
-                message: 'Pedido no encontrado'
-            })
+            if (!result) {
+                return res.status(404).json({
+                    message: 'Pedido no encontrado',
+                });
+            }
 
-            res.status( 200 ).json(result);
-        } catch ( error ) {
+            res.status(200).json(result);
+        } catch (error) {
             const statusCode = error.statusCode ?? 500;
-            res.status( statusCode ).json({
+
+            res.status(statusCode).json({
                 message: error.message || 'Error al actualizar el pedido',
-            })
+            });
         }
     }
-    
+
     updateGeneralStep = async ( req = request, res = response) => {
-        
+
         try {
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
             const { generalStepId } = req.body ?? {};
-            const result = await 
-            this.service.updGeneralStep( 
-                orderId, 
+            const result = await
+            this.service.updGeneralStep(
+                orderId,
                 generalStepId
             );
 

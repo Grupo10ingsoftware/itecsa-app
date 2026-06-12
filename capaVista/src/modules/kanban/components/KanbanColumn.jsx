@@ -1,105 +1,175 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import KanbanCard from './KanbanCard'
+import KanbanOffCanvas from './KanbanOffCanvas'
 import styles from '../styles/Kanban.module.css'
 
-// const initialOrders = [
-//   {
-//     id: 1,
-//     clientName: 'Colegio Andes',
-//     nv: 'NV-6767',
-//     product: 'Lanyards',
-//     date: '21-05-2026',
-//     paymentStatus: '',
-//     orderStatus: 'Listo para producción',
-//   },
-//   {
-//     id: 2,
-//     clientName: 'Chile',
-//     nv: 'NV-6768',
-//     product: 'Lanyards',
-//     date: '21-05-2026',
-//     paymentStatus: '',
-//     orderStatus: 'En producción',
-//   },
-//   {
-//     id: 3,
-//     clientName: 'Bulla de mi vida',
-//     nv: 'NV-6769',
-//     product: 'Lanyards',
-//     date: '21-05-2026',
-//     paymentStatus: '',
-//     orderStatus: 'Confirmación de pago',
-//   },
-//   {
-//     id: 4,
-//     clientName: 'Bulla de mi amor',
-//     nv: 'NV-6779',
-//     product: 'Lanyards',
-//     date: '21-05-2026',
-//     paymentStatus: '',
-//     orderStatus: 'Listo para entrega',
-//   },
-//   {
-//     id: 5,
-//     clientName: 'Puro sentimiento',
-//     nv: 'NV-6777',
-//     product: 'Lanyards',
-//     date: '21-05-2026',
-//     paymentStatus: '',
-//     orderStatus: 'Listo para entrega',
-//   },
-// ]
+const processTemplates = {
+  Lanyards: [
+    { id: 'imp', name: 'Impresion', status: 'pending' },
+    { id: 'sub', name: 'Sublimacion', status: 'pending' },
+    { id: 'cor', name: 'Corte', status: 'pending' },
+    { id: 'cos', name: 'Costura', status: 'pending' },
+  ],
+  Cordones: [
+    { id: 'imp', name: 'Impresion', status: 'pending' },
+    { id: 'cor', name: 'Corte', status: 'pending' },
+    { id: 'ter', name: 'Terminacion', status: 'pending' },
+  ],
+  Tarjeta: [
+    { id: 'rev', name: 'Revision de informacion', status: 'pending' },
+    { id: 'ord', name: 'Orden de datos', status: 'pending' },
+    { id: 'car', name: 'Carga de datos', status: 'pending' },
+  ],
+  default: [{ id: 'gen', name: 'Produccion general', status: 'pending' }],
+}
 
+const baseColumns = [
+  {
+    id: 'confirmacion-pago',
+    title: 'Confirmacion de pago',
+    generalStepId: 0,
+    accent: '#f97316',
+    icon: 'bi-cash-coin',
+  },
+  {
+    id: 'listo-produccion',
+    title: 'Listo para produccion',
+    generalStepId: 1,
+    accent: '#2563eb',
+    icon: 'bi-clipboard-check',
+  },
+  {
+    id: 'en-produccion',
+    title: 'En produccion',
+    generalStepId: 2,
+    accent: '#d97706',
+    icon: 'bi-gear-wide-connected',
+  },
+  {
+    id: 'listo-entrega',
+    title: 'Listo para entrega',
+    generalStepId: 3,
+    accent: '#248f55',
+    icon: 'bi-check2-circle',
+  },
+]
 
 function getColumnTitleByStepId(stepId) {
-  const column = defaultColumns.find((item) => Number(item.generalStepId) === Number(stepId))
-  return column?.title ?? 'Confirmación de pago'
+  const column = baseColumns.find((item) => Number(item.generalStepId) === Number(stepId))
+  return column?.title ?? 'Confirmacion de pago'
+}
+
+function getProcessesFor(productName) {
+  const template = processTemplates[productName] ?? processTemplates.default
+  return template.map((step) => ({ ...step }))
+}
+
+function parseDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (!Number.isNaN(date.getTime())) {
+    return date
+  }
+
+  const [day, month, year] = String(value).split('-').map(Number)
+  const parsedDate = new Date(year, month - 1, day)
+
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+function isOrderDelayed(dueDate) {
+  const parsedDueDate = parseDate(dueDate)
+
+  if (!parsedDueDate) {
+    return false
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  parsedDueDate.setHours(0, 0, 0, 0)
+
+  return parsedDueDate < today
+}
+
+function isOrderUrgent(dueDate) {
+  const parsedDueDate = parseDate(dueDate)
+
+  if (!parsedDueDate || isOrderDelayed(dueDate)) {
+    return false
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const daysUntilDue = Math.ceil((parsedDueDate - today) / 86_400_000)
+
+  return daysUntilDue <= 3
+}
+
+function isPaymentConfirmed(order) {
+  return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
 }
 
 function normalizeOrder(order) {
   const id = order.id ?? order.id_pedido
+  const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
+  const dueDate =
+    order.dueDate ??
+    order.fecha_estimada_termino ??
+    order.fecha_entrega ??
+    order.fecha_compromiso ??
+    ''
 
   return {
     id,
     clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
     nv: order.nv ?? order.codigo_nota_venta ?? order.codigo_nv ?? `PED-${id}`,
-    product: order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido',
+    product,
     date: order.date ?? order.fecha ?? order.fecha_pedido ?? '',
+    dueDate,
     paymentStatus: order.paymentStatus ?? order.estado_pago ?? '',
+    paymentStatusId: order.paymentStatusId ?? order.id_estado_pago,
     orderStatus:
       order.orderStatus ??
       order.etapa_general ??
       order.nombre_etapa_general ??
       getColumnTitleByStepId(order.id_etapa_general),
     generalStepId: order.generalStepId ?? order.id_etapa_general,
+    isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
+    isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
+    subProcesses: Array.isArray(order.subProcesses)
+      ? order.subProcesses
+      : Array.isArray(order.subprocesos)
+        ? order.subprocesos
+        : getProcessesFor(product),
+    comments: Array.isArray(order.comments)
+      ? order.comments
+      : Array.isArray(order.comentarios)
+        ? order.comentarios
+        : [],
   }
 }
 
-const columnVisuals = [
-  { accent: '#f97316', icon: 'bi-cash-coin' },
-  { accent: '#2563eb', icon: 'bi-clipboard-check' },
-  { accent: '#d97706', icon: 'bi-gear-wide-connected' },
-  { accent: '#248f55', icon: 'bi-check2-circle' },
-]
-
 function normalizeStatus(status) {
   const order = Number(status.orden_kanban)
-  const visual = columnVisuals[order] ?? { accent: '#2563eb', icon: 'bi-kanban' }
+  const column = baseColumns[order] ?? { accent: '#2563eb', icon: 'bi-kanban' }
 
   return {
     id: String(status.id_estado_pedido),
     title: status.nombre_etapa,
     generalStepId: order,
     order,
-    accent: visual.accent,
-    icon: visual.icon,
+    accent: column.accent,
+    icon: column.icon,
   }
 }
 
 function DroppableColumn({ id, accent, icon, count, children }) {
- 
   const { ref } = useDroppable({ id })
 
   return (
@@ -119,30 +189,49 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 
 function KanbanColumn() {
   const [orders, setOrders] = useState([])
-  const [columns, setColumns] = useState([])
+  const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [moveError, setMoveError] = useState(null)
   const kanbanApi = useKanbanApi()
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const [ordersData, statusesData] = await Promise.all([
+        setLoadError(null)
+
+        const [ordersResult, statusesResult] = await Promise.allSettled([
           kanbanApi.getOrders(),
           kanbanApi.getOrderStatuses(),
         ])
-        
 
-        const normalizedOrders = Array.isArray(ordersData) ? ordersData.map(normalizeOrder) : []
-        setColumns(
-          Array.isArray(statusesData)
-          ? statusesData.map(normalizeStatus).sort((a, b) => a.order - b.order)
-          : []
-        )
-        setOrders(normalizedOrders)
+        if (ordersResult.status === 'fulfilled') {
+          const normalizedOrders = Array.isArray(ordersResult.value)
+            ? ordersResult.value.map(normalizeOrder)
+            : []
+          setOrders(normalizedOrders)
+        } else {
+          console.error('Error cargando ordenes:', ordersResult.reason)
+          setLoadError('No fue posible cargar las ordenes.')
+        }
 
+        if (statusesResult.status === 'fulfilled' && Array.isArray(statusesResult.value)) {
+          const normalizedStatuses = statusesResult.value
+            .map(normalizeStatus)
+            .sort((a, b) => a.order - b.order)
 
+          setColumns(normalizedStatuses.length > 0 ? normalizedStatuses : baseColumns)
+        } else {
+          if (statusesResult.status === 'rejected') {
+            console.warn('No fue posible cargar los estados del kanban:', statusesResult.reason)
+          }
+          setColumns(baseColumns)
+        }
       } catch (error) {
-        console.error('Error cargando órdenes:', error)
+        console.error('Error inesperado cargando kanban:', error)
+        setLoadError('No fue posible cargar las ordenes.')
+        setColumns(baseColumns)
       } finally {
         setLoading(false)
       }
@@ -150,8 +239,6 @@ function KanbanColumn() {
 
     loadOrders()
   }, [kanbanApi])
-
-
 
   function handleDragEnd(event) {
     if (event.canceled) return
@@ -164,56 +251,95 @@ function KanbanColumn() {
 
     if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
 
+    const isForwardMove = Number(targetColumn.generalStepId) > Number(order.generalStepId)
+
+    if (isForwardMove && !isPaymentConfirmed(order)) {
+      setMoveError('Debes confirmar el pago antes de mover esta orden.')
+      return
+    }
+
+    setMoveError(null)
+
+    if (!window.confirm(`Mover ${order.nv} a "${targetColumn.title}"?`)) {
+      return
+    }
+
     const previousOrderStatus = order.orderStatus
     const previousStepId = order.generalStepId
 
     setOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.nv === source.id
-          ? { ...order, generalStepId: targetColumn.generalStepId, orderStatus: targetColumn.title }
-          : order,
+      prevOrders.map((currentOrder) =>
+        currentOrder.nv === source.id
+          ? { ...currentOrder, orderStatus: targetColumn.title, generalStepId: targetColumn.generalStepId }
+          : currentOrder,
       ),
     )
 
-    kanbanApi.moveOrder(order.id, targetColumn.generalStepId)
-      .catch((error) => {
-        console.error('Error moviendo orden:', error)
-        setOrders((prevOrders) =>
-          prevOrders.map((currentOrder) =>
-            currentOrder.id === order.id && currentOrder.orderStatus === targetColumn.title
-              ? { ...currentOrder, generalStepId: previousStepId, orderStatus: previousOrderStatus }
-              : currentOrder,
-          ),
-        )
-      })
+    kanbanApi.moveOrder(order.id, targetColumn.generalStepId).catch((error) => {
+      console.error('Error moviendo orden:', error)
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) =>
+          currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)
+            ? {
+                ...currentOrder,
+                orderStatus: previousOrderStatus,
+                generalStepId: previousStepId,
+              }
+            : currentOrder,
+        ),
+      )
+    })
+  }
+
+  function handleUpdateOrder(updatedOrder) {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
+    )
+    setSelectedOrder(updatedOrder)
   }
 
   return (
-    <DragDropProvider onDragEnd={handleDragEnd}>
-      <div className={styles.kanbanWrapper}>
-        {columns.map((column) => {
-          const columnOrders = orders.filter(
-            (order) => Number(column.generalStepId) === Number(order.generalStepId),
-          )
+    <>
+      {loadError && <div className={styles.kanbanError}>{loadError}</div>}
+      {moveError && <div className={styles.kanbanError}>{moveError}</div>}
+      <DragDropProvider onDragEnd={handleDragEnd}>
+        <div className={styles.kanbanWrapper}>
+          {columns.map((column) => {
+            const columnOrders = orders.filter(
+              (order) => Number(column.generalStepId) === Number(order.generalStepId),
+            )
 
-          return (
-            <DroppableColumn
-              accent={column.accent}
-              count={columnOrders.length}
-              icon={column.icon}
-              id={column.title}
-              key={column.title}
-            >
-              {columnOrders.length > 0 ? (
-                columnOrders.map((order) => <KanbanCard key={order.id} {...order} />)
-              ) : (
-                <div className={styles.emptyColumn}>Arrastra una orden hacia esta columna.</div>
-              )}
-            </DroppableColumn>
-          )
-        })}
-      </div>
-    </DragDropProvider>
+            return (
+              <DroppableColumn
+                accent={column.accent}
+                count={columnOrders.length}
+                icon={column.icon}
+                id={column.title}
+                key={column.title}
+              >
+                {loading && <div className={styles.emptyColumn}>Cargando ordenes...</div>}
+                {!loading && columnOrders.length > 0
+                  ? columnOrders.map((order) => (
+                      <KanbanCard
+                        isMoveBlocked={!isPaymentConfirmed(order)}
+                        key={order.id}
+                        onOpenDetail={() => setSelectedOrder(order)}
+                        {...order}
+                      />
+                    ))
+                  : !loading && <div className={styles.emptyColumn}>Arrastra una orden hacia esta columna.</div>}
+              </DroppableColumn>
+            )
+          })}
+        </div>
+      </DragDropProvider>
+      <KanbanOffCanvas
+        isOpen={selectedOrder !== null}
+        onClose={() => setSelectedOrder(null)}
+        onUpdateOrder={handleUpdateOrder}
+        order={selectedOrder}
+      />
+    </>
   )
 }
 

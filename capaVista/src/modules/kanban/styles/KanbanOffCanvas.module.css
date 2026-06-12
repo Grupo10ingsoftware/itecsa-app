@@ -1,0 +1,32 @@
+.customOffcanvas {
+  background-color: #f8fafc !important;
+}
+
+.customHeader {
+  background-color: #000 !important;
+  border-bottom: 4px solid #f97316 !important;
+  padding: 1.25rem !important;
+}
+
+.customTitle {
+  color: #fff !important;
+  font-weight: 850 !important;
+  font-size: 1.1rem !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
+}
+
+.customHeader :global(.btn-close) {
+  filter: invert(1) grayscale(100%) brightness(200%) !important;
+  opacity: 0.8 !important;
+}
+
+.customHeader :global(.btn-close):hover {
+  opacity: 1 !important;
+}
+
+.customBody {
+  background-color: #f8fafc !important;
+  padding: 1.25rem !important;
+}

@@ -104,7 +104,7 @@ function buildCreatedUserMessage(user) {
   }
 }
 
-export default function UserCreateForm() {
+export default function UserCreateForm({ onCreated } = {}) {
   const { loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const [values, setValues] = useState(INITIAL_VALUES)
@@ -165,6 +165,7 @@ export default function UserCreateForm() {
       setMessage(buildCreatedUserMessage(user))
       setValues(INITIAL_VALUES)
       setFieldErrors(INITIAL_ERRORS)
+      onCreated?.(user)
     } catch (error) {
       setMessage(getErrorMessage(error))
     } finally {

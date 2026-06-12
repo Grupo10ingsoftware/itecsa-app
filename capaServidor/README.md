@@ -144,6 +144,8 @@ La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emit
 `src/modules/users/service/auth0Management.service.js` prepara dos operaciones backend:
 
 - `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database solo con correo y contrasena temporal, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
+- `updateAuth0User(...)` actualiza correo, estado de bloqueo y rol RBAC del usuario Auth0 durante la edicion administrativa.
+- `setAuth0UserStatus(...)` vincula o desvincula una cuenta Auth0 sin modificar datos personales internos.
 - `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
 
 El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. Tampoco persiste nombre, apellido ni `app_metadata.rolUsuario` en Auth0; la autorizacion efectiva utiliza el rol Auth0 RBAC asignado y el claim `https://itecsa.local/roles`.
@@ -222,6 +224,45 @@ Respuestas:
 - `403`: usuario autenticado sin rol `Administrador`.
 - `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
 - `500`: error controlado anterior a la creacion, sin detalles Auth0.
+
+### `GET /api/admin/users`
+
+Requiere un access token cuyo unico rol sea `Administrador`. Lista usuarios desde la tabla interna `Usuario`, con filtros opcionales `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`.
+
+Respuesta exitosa:
+
+```json
+{
+  "usuarios": [
+    {
+      "idUsuario": 1,
+      "idUsuarioAutenticacionExterna": "auth0|abc123",
+      "nombreUsuario": "Ana",
+      "apellidoUsuario": "Perez",
+      "rutUsuario": "12.345.678-9",
+      "correoUsuario": "correo.controlado@example.cl",
+      "rolUsuario": "Ventas",
+      "estadoUsuario": "Activo",
+      "rutaFirma": "itecsa-app\\data\\Firmas\\firma-123.pdf"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "perPage": 10
+}
+```
+
+### `GET /api/admin/users/summary`
+
+Requiere rol `Administrador`. Devuelve contadores internos de usuarios totales, vinculados y desvinculados.
+
+### `PATCH /api/admin/users/:userId`
+
+Requiere rol `Administrador`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario`, `rolUsuario` y `estadoUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`.
+
+### `PATCH /api/admin/users/:userId/status`
+
+Requiere rol `Administrador`. Actualiza solo `estadoUsuario`, usado por la SPA para desvincular usuarios.
 
 ### `POST /api/admin/users/password-setup-email`
 

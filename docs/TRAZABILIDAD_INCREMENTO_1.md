@@ -13,14 +13,14 @@ No es una bitacora ni un plan historico. La finalidad es dejar evidencia tecnica
 - Verificacion backend de access tokens emitidos por Auth0 con `GET /api/auth/verify`.
 - Uso de Auth0 RBAC para los roles `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 - Uso del claim estandar `permissions` para permisos visuales en la SPA.
-- Creacion administrativa de usuarios Auth0 con `POST /api/admin/users`.
+- Creacion y gestion administrativa de usuarios con `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId` y `PATCH /api/admin/users/:userId/status`.
 - Persistencia de la entidad interna `Usuario` con `id_auth0`, `correo_usuario`, `rol_usuario` y `estado_usuario`.
 - Solicitud de correo de establecimiento/cambio de contrasena con `POST /api/admin/users/password-setup-email`.
 - Proteccion backend de endpoints administrativos mediante JWT Auth0 y rol `Administrador` emitido por Auth0 RBAC.
 - Separacion de permisos de lectura y escritura para el modulo de pagos: `view:payments-module` permite entrar a `/pagos`, mientras `update:payment-status` permite gestionar cambios de estado.
 - Endpoints backend RF32 para consultar pedidos/Kanban mock, actualizar estado de pago y rechazar movimientos manuales invalidos hacia `Listo para produccion`.
 
-Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con base de datos real y produccion real. El backend de pedidos/Kanban usa datos mock/en memoria; la vista frontend de pagos usa mocks locales.
+Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con base de datos real y produccion real. El backend de pedidos/Kanban usa datos mock/en memoria y expone el cambio de estado de pago protegido por `update:payment-status`; la vista frontend de pagos usa datos locales/mock y no consume todavia ese endpoint.
 
 ## Trazabilidad UR/RF
 
@@ -38,7 +38,7 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
 | RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:orderId/payment-status`. |
 | RF32 / UR 3.7 - Bloqueo de avance sin pago confirmado | El backend rechaza mover manualmente un pedido a `Listo para produccion` si el pago asociado no esta `Confirmado`, y responde el mensaje requerido. | `PATCH /api/orders/:orderId/move`, `order.service.js`. |
-| RF - Creacion administrativa de usuarios | Solo `Administrador` puede crear usuarios Auth0 con correo y rol permitido; los datos internos y la ruta de firma se persisten en la entidad `Usuario`. | `POST /api/admin/users`, `requireAdministrador`, `createAuth0User(...)`, `createInternalUser(...)`. |
+| RF - Gestion administrativa de usuarios | Solo `Administrador` puede listar, crear, editar y desvincular usuarios. La creacion conserva Auth0 RBAC, persistencia interna y firma electronica; la edicion sincroniza Auth0 y la tabla interna `Usuario`. | `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId`, `PATCH /api/admin/users/:userId/status`, `requireAdministrador`. |
 | RF - Seguridad de secretos | El frontend no recibe credenciales Auth0 Management; los secrets quedan fuera del repositorio y de variables `VITE_*`. | `capaVista/env.example`, `capaServidor/env.example`, `capaVista/README.md`, `capaServidor/README.md`. |
 
 ## Contratos Reales Implementados
@@ -154,7 +154,7 @@ La trazabilidad correcta para Documento 0 usa `RF26`, `RF28` y `RF32`. No se usa
 | RF28 / UR 3.3 | La regla backend mueve automaticamente la orden a `Listo para produccion` cuando el pago queda `Confirmado`. | Implementado y cubierto por tests backend. |
 | RF32 / UR 3.7 | La regla backend impide mover manualmente a `Listo para produccion` si el pago no esta `Confirmado`. | Implementado y cubierto por tests backend. |
 
-Estado actual: backend implementado con datos mock/en memoria para pedidos/Kanban y reglas de estado de pago. La persistencia de esos modulos queda pendiente hasta que exista el modelo persistente correspondiente. El frontend de pagos mantiene mocks/local state, pero ya separa lectura y escritura mediante permisos Auth0.
+Estado actual: backend implementado con datos mock/en memoria para pedidos/Kanban y reglas de estado de pago. La persistencia de esos modulos queda pendiente hasta que exista el modelo persistente correspondiente. El frontend de pagos mantiene datos locales/mock; visualmente separa lectura y escritura mediante permisos Auth0, pero la transicion de estado en pantalla no llama todavia al endpoint backend.
 
 ## Cumplimiento Contra StackTecnologico.docx.md
 
@@ -181,7 +181,7 @@ Frontend:
 - `capaVista/src/services/api/apiClient.js`: centraliza llamadas HTTP al backend.
 - `capaVista/src/modules/auth/api/authApi.js`: expone `verify()` para validar sesion contra backend.
 - `capaVista/src/modules/users/components/UserCreateForm.jsx`: envia alta administrativa con datos internos y firma electronica; la contrasena queda gestionada por Auth0.
-- `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`: separa permiso de vista y permiso de accion para confirmar pagos.
+- `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`: separa permiso de vista y permiso de accion para confirmar pagos en la experiencia visual actual.
 - `capaVista/src/modules/payments/components/PaymentRowActions.jsx`: mantiene `Gestionar` visible pero bloqueado cuando falta `update:payment-status`.
 - `capaVista/src/modules/payments/mocks/`: contiene datos y transiciones simuladas hasta integrar BD/backend persistente.
 
@@ -213,5 +213,5 @@ Backend:
 - Esta integracion no cubre pedidos, pagos, Kanban ni produccion persistidos en base de datos.
 - Prisma y MySQL ya estan integrados para persistir la entidad interna `Usuario` durante la creacion administrativa.
 - Auth0 RBAC sigue siendo la fuente operativa de autorizacion; `Usuario.rol_usuario` es dato interno de negocio.
-- Los endpoints RF32 usan ordenes mock/en memoria y el frontend de pagos conserva mocks/local state.
+- Los endpoints RF32 usan ordenes mock/en memoria y el frontend de pagos conserva datos locales/mock sin consumir todavia el endpoint backend de estado de pago.
 - El mock/en memoria del modulo `orders` debe reemplazarse por servicios/repositorios persistentes sin cambiar las reglas RF26/RF28/RF32 ni los permisos Auth0.

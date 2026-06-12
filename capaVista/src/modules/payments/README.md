@@ -1,6 +1,6 @@
 # Módulo `payments` / Cobranzas
 
-Este módulo implementa la vista de Cobranzas para revisar Notas de Venta, visualizar documentos PDF asociados, gestionar el estado de pago y consultar el detalle de documentos firmados. Actualmente corresponde a la fase de **Frontend inicial con mocks**, por lo que no realiza llamadas reales al backend ni contiene carpeta `api/`.
+Este módulo implementa la vista de Cobranzas para revisar Notas de Venta, visualizar documentos PDF asociados, gestionar visualmente el estado de pago y consultar el detalle de documentos firmados. En el estado actual de la rama, la pantalla trabaja con datos locales/mock y no contiene carpeta `api/`. El backend si expone `PATCH /api/orders/:orderId/payment-status` protegido por `update:payment-status`, pero esta pantalla todavía no consume ese endpoint.
 
 La pantalla principal permite:
 
@@ -25,9 +25,9 @@ src/modules/payments/
 └── utils/
 ```
 
-La lógica real de negocio todavía no vive aquí. En esta etapa el frontend prepara la interacción visual y usa datos simulados. En integración posterior, los mocks se reemplazarán por respuestas del backend y el cambio real de estado se validará desde servicios backend.
+La lógica persistente de negocio todavía no vive aquí. La pantalla prepara la interacción visual y usa datos simulados. En una integración posterior, los mocks se reemplazarán por respuestas del backend y el cambio de estado deberá delegarse al endpoint backend ya protegido por permiso.
 
-No debe agregarse `api/` dentro del módulo en esta fase. La integración debe hacerse cuando existan contratos backend aprobados.
+No debe agregarse `api/` dentro del módulo hasta conectar formalmente esta vista con los contratos backend vigentes.
 
 ## Dependencia adicional
 
@@ -791,7 +791,7 @@ Pendiente posible:
 
 ## Estado frente al backend
 
-El flujo actual de pagos no consume backend. `PaymentConfirmationPage.jsx` inicializa datos con `createMockPaymentOrders()` y aplica transiciones con `applyMockPaymentStatusTransition()`.
+El flujo actual de pagos en frontend no consume backend. `PaymentConfirmationPage.jsx` inicializa datos con `createMockPaymentOrders()` y aplica transiciones locales con `applyMockPaymentStatusTransition()`.
 
 El backend actual expone este contrato para actualizar estado de pago sobre pedidos mock/en memoria:
 
@@ -809,7 +809,7 @@ Cuerpo aceptado:
 
 IDs vigentes en backend: `0` Pendiente, `1` Confirmado y `2` Rechazado. El endpoint requiere access token Auth0 con permiso `update:payment-status`.
 
-No existe integracion actual desde esta pantalla hacia ese endpoint. Tampoco existen endpoints backend documentados en este repo para detalle de pedido, descarga de Nota de Venta o documento firmado de pagos.
+La pantalla todavia no esta conectada a ese endpoint. Tampoco existen endpoints backend documentados en este repo para detalle de pedido, descarga de Nota de Venta o documento firmado de pagos.
 
 Cuando se integre esta vista con backend, el cambio debe ser:
 
@@ -896,7 +896,7 @@ Estos requisitos sugeridos deben formalizarse en la matriz de trazabilidad si se
 
 ## Estado actual del módulo
 
-Estado: funcional en frontend inicial con mocks.
+Estado: funcional como vista de Cobranzas con datos locales/mock. El backend RF32 de estado de pago existe y esta protegido, pero queda pendiente conectarlo a esta pantalla.
 
 Pendiente antes de integración real:
 

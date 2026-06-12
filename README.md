@@ -82,7 +82,7 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
 - La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
-- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Los endpoints backend de pedidos/Kanban usan datos mock/en memoria; la vista de pagos usa mocks locales en frontend.
+- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Los endpoints backend de pedidos/Kanban usan datos mock/en memoria; el backend expone reglas RF32 para estado de pago y movimiento Kanban. La vista de pagos conserva datos locales/mock y no consume todavia el endpoint backend de cambio de estado.
 
 Recursos Auth0 esperados/configurados para esta rama:
 
@@ -99,7 +99,7 @@ La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta heredada contiene 
 ## Restricciones Vigentes
 
 - No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
-- No usar Prisma/MySQL todavia para pedidos, pagos ni Kanban real; esos modulos siguen mock/en memoria.
+- No usar Prisma/MySQL todavia para pedidos, pagos ni Kanban real. Pedidos/Kanban se resuelven con datos backend mock/en memoria; pagos tiene regla backend protegida para estado de pago, pero la pantalla actual sigue usando datos locales/mock.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

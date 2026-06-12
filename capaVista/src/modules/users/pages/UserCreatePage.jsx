@@ -11,14 +11,14 @@ export default function UserCreatePage() {
             Crear usuario
           </h1>
           <p className={styles.pageSubtitle}>
-            Completa los datos de acceso para crear una nueva cuenta Auth0.
+            Completa los datos del usuario, su rol y la firma electronica para registrarlo en el sistema.
           </p>
         </header>
 
         <div className={styles.content}>
           <div className={`alert alert-info ${styles.noteAlert}`} role="note">
             <i className="bi bi-info-circle me-2" aria-hidden="true" />
-            La contrasena sera gestionada por Auth0 mediante correo de establecimiento.
+            El usuario se guarda en la BD interna y se sincroniza con Auth0 para acceso y contrasena.
           </div>
 
           <div className={styles.formCard}>

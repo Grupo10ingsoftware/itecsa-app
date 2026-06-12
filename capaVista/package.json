@@ -16,7 +16,6 @@
     "bootstrap-icons": "^1.13.1",
     "pdfjs-dist": "^5.7.284",
     "react": "^19.2.6",
-    "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1"
   },

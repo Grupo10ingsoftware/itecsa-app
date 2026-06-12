@@ -10,7 +10,7 @@ export function createPaymentStatusRouter({
 } = {}) {
     const router = Router();
 
-    router.get("/", authenticate, controller.getPaymentStatuses);
+    router.get("/", authenticate, controller.getPaymentStatus);
     router.get("/:id", authenticate, controller.getPaymentStatus);
     router.post("/", authenticate, controller.postPaymentStatus);
 

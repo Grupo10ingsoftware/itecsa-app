@@ -75,10 +75,6 @@ async function getBearerToken(getAccessToken) {
   }
 }
 
-function isFormDataBody(body) {
-  return typeof FormData !== 'undefined' && body instanceof FormData
-}
-
 export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken } = {}) {
   if (typeof getAccessToken !== 'function') {
     throw new ApiClientError('apiClient requiere una funcion getAccessToken.', {
@@ -91,9 +87,7 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
     const requestHeaders = new Headers(headers)
     requestHeaders.set('Authorization', `Bearer ${token}`)
 
-    const isFormData = isFormDataBody(body)
-
-    if (body !== undefined && !isFormData && !requestHeaders.has('Content-Type')) {
+    if (body !== undefined && !requestHeaders.has('Content-Type')) {
       requestHeaders.set('Content-Type', 'application/json')
     }
 
@@ -103,7 +97,7 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
       response = await fetch(buildUrl(baseUrl, path), {
         method,
         headers: requestHeaders,
-        body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
+        body: body === undefined ? undefined : JSON.stringify(body),
       })
     } catch (error) {
       throw new ApiClientError('No fue posible contactar la API.', {
@@ -136,7 +130,6 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
   return {
     get: (path, options) => request(path, { ...options, method: 'GET' }),
     post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
-    patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
     request,
   }
 }

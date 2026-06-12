@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkDatabaseConnection } from "../../../database/prisma.js";
+import { checkDatabaseConnection } from "../../../database/connection.js";
 
 export function createHealthRouter({
   checkDatabase = checkDatabaseConnection,

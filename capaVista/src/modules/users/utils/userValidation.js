@@ -1,9 +1,6 @@
 import { OFFICIAL_ROLES } from '../../../config/roles'
 
 const LETTERS_AND_SPACES_PATTERN = /^[A-Za-z\u00c1\u00c9\u00cd\u00d3\u00da\u00e1\u00e9\u00ed\u00f3\u00fa\u00d1\u00f1\u00dc\u00fc\s]+$/
-const RUT_PATTERN = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/
-const SIGNATURE_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp'])
-const SIGNATURE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.webp']
 
 function validateRequiredText(value, requiredMessage) {
   return value.trim() ? [] : [requiredMessage]
@@ -54,46 +51,10 @@ export function validateRole(value) {
   return errors
 }
 
-export function validateRut(value) {
-  const trimmedRut = value.trim()
-  const errors = validateRequiredText(trimmedRut, 'El RUT es obligatorio.')
-
-  if (trimmedRut && !RUT_PATTERN.test(trimmedRut)) {
-    errors.push('Ingresa un RUT con formato 12.345.678-9 o 12345678-9.')
-  }
-
-  return errors
-}
-
-export function validateSignatureFile(file) {
-  if (!file) {
-    return ['La firma electronica es obligatoria.']
-  }
-
-  const fileName = file.name.toLowerCase()
-  const hasAllowedExtension = SIGNATURE_EXTENSIONS.some((extension) =>
-    fileName.endsWith(extension),
-  )
-
-  if (!SIGNATURE_TYPES.has(file.type) || !hasAllowedExtension) {
-    return ['La firma electronica debe ser PDF, PNG, JPG, JPEG o WebP.']
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    return ['La firma electronica no debe superar 10 MB.']
-  }
-
-  return []
-}
-
 export function validateUserCreateForm(values) {
   return {
-    nombreUsuario: validatePersonName(values.nombreUsuario, 'El nombre'),
-    apellidoUsuario: validatePersonName(values.apellidoUsuario, 'El apellido'),
-    rutUsuario: validateRut(values.rutUsuario),
     correoUsuario: validateEmail(values.correoUsuario),
     rolUsuario: validateRole(values.rolUsuario),
-    firmaElectronica: validateSignatureFile(values.firmaElectronica),
   }
 }
 

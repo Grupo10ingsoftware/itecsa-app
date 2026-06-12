@@ -19,9 +19,8 @@ flowchart LR
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
-- M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API con token validado para `create:users`, `read:roles`, `read:users` y `update:users`.
-- Action Post Login: `ITECSA Add Claims`.
+- M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API.
+- Action Post Login: `ITECSA Add Role Claim`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
@@ -64,7 +63,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
+`POST /api/admin/users` esta protegido con `checkJwt` y rol `Administrador`. El endpoint acepta solo `correoUsuario` y `rolUsuario`; no recibe nombre, apellido, RUT, firma electronica ni contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -72,19 +71,16 @@ El backend usa `ITECSA Backend Management` para:
 - Resolver el rol Auth0 RBAC existente.
 - Crear el usuario en `Username-Password-Authentication`.
 - Asignar el rol RBAC al usuario.
-- Registrar la entidad interna `Usuario` con datos personales de negocio y ruta de firma.
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
-
-La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT y ruta de firma siguen siendo datos internos de negocio.
 
 ## Variables De Entorno
 
 Frontend:
 
 ```dotenv
-VITE_AUTH0_DOMAIN=<tenant-auth0>
+VITE_AUTH0_DOMAIN=<dominio-auth0>
 VITE_AUTH0_CLIENT_ID=<client-id-spa>
 VITE_AUTH0_AUDIENCE=https://api.itecsa.local
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -95,31 +91,23 @@ Backend:
 ```dotenv
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
-AUTH0_DOMAIN=<tenant-auth0>
+AUTH0_DOMAIN=<dominio-auth0>
 AUTH0_AUDIENCE=https://api.itecsa.local
 AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
-AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
-DB_HOST=<host-aiven>
-DB_PORT=<puerto-aiven>
-DB_USER=<usuario-aiven>
-DB_PASSWORD=
-DB_NAME=<nombre-bd>
-DB_SSL_CA_PATH=./certs/aiven-ca.pem
-DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
+AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-publico-spa>
 ```
 
 El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna credencial Auth0 Management debe agregarse a `capaVista`.
-Las variables `DB_*` alimentan `mysql2/promise` y el adaptador Prisma MariaDB; `DATABASE_URL` se usa por Prisma CLI para introspeccion y generacion.
 
 ## Limites Vigentes
 
-- Prisma y MySQL estan integrados en `capaServidor` para persistir la entidad interna `Usuario` durante la creacion administrativa.
-- No se persisten contrasenas. RUT y ruta de firma se persisten en la entidad interna `Usuario`.
+- No se implementa Prisma ni MySQL en esta rama.
+- No se persisten RUT, firma electronica ni contrasenas.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos persistidos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria para consultar ordenes, actualizar estado de pago y mover Kanban; la pantalla de pagos actual conserva datos locales/mock y no consume todavia el endpoint de cambio de estado.
+- Pedidos, pagos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion Auth0 inicial. El cierre backend RF32 existe con datos mock/en memoria y se documenta como parte de la trazabilidad del incremento.
 
 La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
 

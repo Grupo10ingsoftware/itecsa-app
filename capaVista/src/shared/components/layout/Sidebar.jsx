@@ -6,6 +6,13 @@ export default function Sidebar({ isCollapsed = false, onCloseMobile, onToggleCo
   return (
     <nav className={styles.sidebarNav} aria-label="Menú principal">
       <div className={styles.sidebarHeader}>
+        <div className={styles.sidebarBrand}>
+          <span className={styles.brandIcon} aria-hidden="true">
+            IT
+          </span>
+          <span className={styles.brandText}>Itecsa</span>
+        </div>
+
         <button
           aria-label={isCollapsed ? 'Abrir barra lateral' : 'Cerrar barra lateral'}
           className={`${styles.sidebarIconButton} ${styles.desktopToggleButton}`}

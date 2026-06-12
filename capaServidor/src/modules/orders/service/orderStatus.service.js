@@ -3,8 +3,8 @@ import OrderStatusRepository from "../repo/orderStatus.repo.js";
 
 
 class OrderStatusService {
-    constructor({ repo } = {}) {
-        this.repo = repo ?? new OrderStatusRepository();
+    constructor() {
+        this.repo = new OrderStatusRepository();
     }
 
     async createOrderStatus( data ) {
@@ -14,15 +14,15 @@ class OrderStatusService {
         console.log(nombre_etapa);
         console.log(orden_kanban);
         console.log( descripcion_estado);
-
+        
         if (!nombre_etapa || orden_kanban === undefined) {
             const error = new Error("Faltan datos obligatorios");
             error.statusCode = 400;
             throw error;
         }
         return await this.repo.create( {
-            nombre_etapa,
-            orden_kanban,
+            nombre_etapa, 
+            orden_kanban, 
             descripcion_estado
         } )
 
@@ -35,7 +35,7 @@ class OrderStatusService {
 
         } catch (error) {
             console.log( error );
-
+            
         }
     }
 
@@ -46,7 +46,7 @@ class OrderStatusService {
 
             return status
         } catch (error) {
-
+            
         }
     }
 

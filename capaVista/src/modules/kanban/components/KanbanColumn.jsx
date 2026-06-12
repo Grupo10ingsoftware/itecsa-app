@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
+import { PERMISSIONS } from '../../../config/permissions'
+import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import KanbanCard from './KanbanCard'
 import KanbanOffCanvas from './KanbanOffCanvas'
 import styles from '../styles/Kanban.module.css'
+
+const MOVE_TO_PRODUCTION_PERMISSION_MESSAGE = 'Solo un administrador puede mover pedidos a En produccion.'
+const KANBAN_EN_PRODUCCION_STEP = 2
 
 const processTemplates = {
   Lanyards: [
@@ -195,6 +200,7 @@ function KanbanColumn() {
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
   const kanbanApi = useKanbanApi()
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -258,6 +264,14 @@ function KanbanColumn() {
       return
     }
 
+    const isMoveToProduction =
+      isForwardMove && Number(targetColumn.generalStepId) === KANBAN_EN_PRODUCCION_STEP
+
+    if (isMoveToProduction && !hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)) {
+      setMoveError(MOVE_TO_PRODUCTION_PERMISSION_MESSAGE)
+      return
+    }
+
     setMoveError(null)
 
     if (!window.confirm(`Mover ${order.nv} a "${targetColumn.title}"?`)) {
@@ -277,6 +291,7 @@ function KanbanColumn() {
 
     kanbanApi.moveOrder(order.id, targetColumn.generalStepId).catch((error) => {
       console.error('Error moviendo orden:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
       setOrders((prevOrders) =>
         prevOrders.map((currentOrder) =>
           currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)

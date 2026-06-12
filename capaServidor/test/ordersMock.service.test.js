@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
+    KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+    MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
     PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
     PAYMENT_STATUS,
 } from "../src/config/status.js";
@@ -128,4 +130,26 @@ test("permite mover a Listo para produccion con pago confirmado", async () => {
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 1);
+});
+
+test("bloquea mover a En produccion sin permiso admin", async () => {
+    const service = createService();
+
+    await assert.rejects(
+        () => service.updGeneralStep(6, 2, { permissions: ["view:kanban-module"] }),
+        {
+            statusCode: 403,
+            message: KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+        },
+    );
+});
+
+test("permite mover a En produccion con el permiso requerido", async () => {
+    const service = createService();
+    const order = await service.updGeneralStep(6, 2, {
+        permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+    });
+
+    assert.equal(order.id_estado_pago, 2);
+    assert.equal(order.id_etapa_general, 2);
 });

@@ -1,4 +1,7 @@
 import {
+  KANBAN_EN_PRODUCCION_STEP,
+  KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+  MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
 } from "../../../config/status.js";
 
@@ -80,7 +83,7 @@ class OrderService {
       paymentRepo: new PaymentStatusRepo({ prisma: tx }),
     }));
   }
-  async updGeneralStep(orderId, stepId) {
+  async updGeneralStep(orderId, stepId, options = {}) {
     if (!orderId) {
       const error = new Error("El ID del pedido es obligatorio");
       error.statusCode = 400;
@@ -113,6 +116,20 @@ class OrderService {
     if (nextStep < currentStep) {
       const error = new Error("No puedes retroceder en las etapas del pedido");
       error.statusCode = 409;
+      throw error;
+    }
+
+    const isMoveToProduction =
+      currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
+    const permissions = options.permissions;
+
+    if (
+      isMoveToProduction &&
+      (!Array.isArray(permissions) ||
+        !permissions.includes(MOVE_KANBAN_TO_PRODUCTION_PERMISSION))
+    ) {
+      const error = new Error(KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
+      error.statusCode = 403;
       throw error;
     }
 

@@ -21,3 +21,11 @@ export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
     "Pedido en espera de confirmacion de pago";
 
 export const UPDATE_PAYMENT_STATUS_PERMISSION = "update:payment-status";
+
+export const MOVE_KANBAN_TO_PRODUCTION_PERMISSION =
+    "move:kanban-to-production";
+
+export const KANBAN_EN_PRODUCCION_STEP = 2;
+
+export const KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE =
+    "Solo un administrador puede mover pedidos a En produccion.";

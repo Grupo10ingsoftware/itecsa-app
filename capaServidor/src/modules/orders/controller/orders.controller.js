@@ -6,8 +6,8 @@ import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js
 
 class OrderController {
 
-    constructor() {
-        this.service = new OrderService()
+    constructor({ service } = {}) {
+        this.service = service ?? new OrderService()
     }
 
     getOrders = async ( req = request, res = response) => {
@@ -94,7 +94,10 @@ class OrderController {
             const result = await
             this.service.updGeneralStep(
                 orderId,
-                generalStepId
+                generalStepId,
+                {
+                    permissions: req.auth?.payload?.permissions,
+                },
             );
 
             if ( !result ) return res.status(404).json({

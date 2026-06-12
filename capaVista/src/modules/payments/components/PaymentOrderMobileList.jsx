@@ -12,6 +12,7 @@ const MOBILE_CARD_STATUS_CLASS = {
 }
 
 export default function PaymentOrderMobileList({
+  canUpdatePaymentStatus,
   editingStatus,
   orders,
   onCloseEditor,
@@ -63,6 +64,7 @@ export default function PaymentOrderMobileList({
             <div className="d-grid gap-2 mt-3">
               <SalesNoteButton isMobile order={order} onOpen={onOpenSalesNote} />
               <PaymentRowActions
+                canUpdatePaymentStatus={canUpdatePaymentStatus}
                 editingStatus={editingStatus}
                 isMobile
                 onCloseEditor={onCloseEditor}

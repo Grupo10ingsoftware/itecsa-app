@@ -6,4 +6,5 @@ export const PERMISSIONS = Object.freeze({
   CREATE_USERS_VISUALLY: 'create:users-visually',
   MANAGE_USERS_VISUALLY: 'manage:users-visually',
   VIEW_ORDERS_MODULE: 'view:orders-module',
+  UPDATE_PAYMENT_STATUS: 'update:payment-status',
 })

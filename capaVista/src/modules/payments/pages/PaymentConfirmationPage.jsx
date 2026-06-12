@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
+import { useAuth } from '@/hooks/useAuth'
 import { downloadNVPDF } from '@/utils/fileUtils'
 import PaymentActionConfirmModal from '../components/PaymentActionConfirmModal'
 import PaymentFilters from '../components/PaymentFilters'
@@ -29,6 +31,7 @@ const FILTERS = [
 ]
 
 export default function PaymentConfirmationPage() {
+  const { hasPermission } = useAuth()
   const holdTimerRef = useRef(null)
   const [orders, setOrders] = useState(() => createMockPaymentOrders())
   const [activeFilter, setActiveFilter] = useState('TODOS')
@@ -37,6 +40,7 @@ export default function PaymentConfirmationPage() {
   const [previewState, setPreviewState] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [isHoldingConfirmation, setIsHoldingConfirmation] = useState(false)
+  const canUpdatePaymentStatus = hasPermission(PERMISSIONS.UPDATE_PAYMENT_STATUS)
 
   const clearHoldTimer = useCallback(() => {
     if (!holdTimerRef.current) return
@@ -48,6 +52,19 @@ export default function PaymentConfirmationPage() {
   useEffect(() => {
     return () => clearHoldTimer()
   }, [clearHoldTimer])
+
+  useEffect(() => {
+    if (canUpdatePaymentStatus) return
+
+    const resetTimer = window.setTimeout(() => {
+      clearHoldTimer()
+      setEditingStatus({})
+      setIsHoldingConfirmation(false)
+      setPendingTransition(null)
+    }, 0)
+
+    return () => window.clearTimeout(resetTimer)
+  }, [canUpdatePaymentStatus, clearHoldTimer])
 
   const counters = useMemo(() => {
     return {
@@ -101,6 +118,7 @@ export default function PaymentConfirmationPage() {
   )
 
   const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
+    if (!canUpdatePaymentStatus) return
     if (!isValidPaymentStatus(newStatus)) return
 
     setOrders((prev) =>
@@ -112,7 +130,7 @@ export default function PaymentConfirmationPage() {
     )
 
     setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
-  }, [])
+  }, [canUpdatePaymentStatus])
 
   const handleDownloadNV = useCallback(async (order, variant, options = {}) => {
     try {
@@ -150,16 +168,27 @@ export default function PaymentConfirmationPage() {
   }, [])
 
   const openPaymentEditor = useCallback((orderId) => {
+    if (!canUpdatePaymentStatus) {
+      setEditingStatus({})
+      return
+    }
+
     setEditingStatus((prev) => ({
       [orderId]: !prev[orderId],
     }))
-  }, [])
+  }, [canUpdatePaymentStatus])
 
   const closePaymentEditor = useCallback(() => {
     setEditingStatus({})
   }, [])
 
   const openPaymentActionConfirmation = useCallback((order, targetStatus) => {
+    if (!canUpdatePaymentStatus) {
+      setEditingStatus({})
+      setPendingTransition(null)
+      return
+    }
+
     if (order.paymentStatus === targetStatus) {
       setEditingStatus({})
       return
@@ -167,7 +196,7 @@ export default function PaymentConfirmationPage() {
 
     setPendingTransition({ order, targetStatus })
     setEditingStatus({})
-  }, [])
+  }, [canUpdatePaymentStatus])
 
   const closePaymentActionConfirmation = useCallback(() => {
     clearHoldTimer()
@@ -176,6 +205,13 @@ export default function PaymentConfirmationPage() {
   }, [clearHoldTimer])
 
   const completePendingTransition = useCallback(() => {
+    if (!canUpdatePaymentStatus) {
+      clearHoldTimer()
+      setIsHoldingConfirmation(false)
+      setPendingTransition(null)
+      return
+    }
+
     if (!pendingTransition) return
 
     handleUpdatePaymentStatus(
@@ -186,9 +222,15 @@ export default function PaymentConfirmationPage() {
     clearHoldTimer()
     setIsHoldingConfirmation(false)
     setPendingTransition(null)
-  }, [clearHoldTimer, handleUpdatePaymentStatus, pendingTransition])
+  }, [
+    canUpdatePaymentStatus,
+    clearHoldTimer,
+    handleUpdatePaymentStatus,
+    pendingTransition,
+  ])
 
   const startHoldConfirmation = useCallback(() => {
+    if (!canUpdatePaymentStatus) return
     if (!pendingTransition || holdTimerRef.current) return
 
     setIsHoldingConfirmation(true)
@@ -196,7 +238,7 @@ export default function PaymentConfirmationPage() {
       completePendingTransition,
       HOLD_CONFIRM_MS,
     )
-  }, [completePendingTransition, pendingTransition])
+  }, [canUpdatePaymentStatus, completePendingTransition, pendingTransition])
 
   const cancelHoldConfirmation = useCallback(() => {
     clearHoldTimer()
@@ -235,6 +277,7 @@ export default function PaymentConfirmationPage() {
         />
 
         <PaymentOrdersTable
+          canUpdatePaymentStatus={canUpdatePaymentStatus}
           editingStatus={editingStatus}
           onCloseEditor={closePaymentEditor}
           onOpenSalesNote={openOriginalPreview}
@@ -245,6 +288,7 @@ export default function PaymentConfirmationPage() {
         />
 
         <PaymentOrderMobileList
+          canUpdatePaymentStatus={canUpdatePaymentStatus}
           editingStatus={editingStatus}
           onCloseEditor={closePaymentEditor}
           onOpenSalesNote={openOriginalPreview}

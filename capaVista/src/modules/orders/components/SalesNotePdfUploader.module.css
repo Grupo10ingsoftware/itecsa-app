@@ -1,0 +1,144 @@
+.hiddenInput {
+  clip: rect(0 0 0 0);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.uploadZoneClean {
+  align-items: center;
+  background: #fff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.8rem;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  justify-content: center;
+  min-height: 7.2rem;
+  padding: 1.15rem;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.uploadZoneActive,
+.uploadZoneClean:hover {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.08);
+}
+
+.uploadIcon {
+  align-items: center;
+  background: var(--orders-orange-soft);
+  border-radius: 0.75rem;
+  color: var(--orders-orange);
+  display: inline-flex;
+  font-size: 1.25rem;
+  height: 2.4rem;
+  justify-content: center;
+  width: 2.4rem;
+}
+
+.uploadMainText {
+  color: var(--orders-text);
+  font-weight: 850;
+}
+
+.fileCardClean {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.8rem;
+}
+
+.fileCardValid {
+  border-color: rgba(36, 143, 85, 0.55);
+}
+
+.fileIcon {
+  align-items: center;
+  border-radius: 0.7rem;
+  display: inline-flex;
+  font-size: 1.25rem;
+  height: 2.8rem;
+  justify-content: center;
+  width: 2.8rem;
+}
+
+.fileIconPdf {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--orders-red);
+}
+
+.fileTitle {
+  color: var(--orders-text);
+  font-weight: 850;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.fileMeta {
+  color: var(--orders-muted);
+  font-size: 0.82rem;
+  margin: 0.2rem 0 0;
+}
+
+.fileActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.smallAction {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.55rem;
+  color: var(--orders-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 850;
+  gap: 0.35rem;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.65rem;
+  text-decoration: none;
+}
+
+.smallActionDark {
+  border-color: #111827;
+  color: #111827;
+}
+
+.smallActionRed {
+  border-color: rgba(220, 38, 38, 0.3);
+  color: var(--orders-red);
+}
+
+.errorText {
+  color: var(--orders-red);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0.55rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .fileCardClean {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .fileActions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

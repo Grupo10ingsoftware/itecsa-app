@@ -4,7 +4,9 @@ import {
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
-} from "../src/services/auth0Management.service.js";
+    setAuth0UserStatus,
+    updateAuth0User,
+} from "../src/modules/users/service/auth0Management.service.js";
 
 const ENVIRONMENT = {
     AUTH0_DOMAIN: "tenant.example.auth0.com",
@@ -67,8 +69,6 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
 
     const result = await createAuth0User({
         email: "nuevo@example.cl",
-        primerNombre: "Ana",
-        apellidoPaterno: "Perez",
         rolUsuario: "Ventas",
     });
 
@@ -82,6 +82,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
         client_id: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_ID,
         client_secret: ENVIRONMENT.AUTH0_MANAGEMENT_CLIENT_SECRET,
         audience: `https://${ENVIRONMENT.AUTH0_DOMAIN}/api/v2/`,
+        scope: "read:users create:users update:users read:roles",
     });
     assert.equal(
         requests[1].url,
@@ -90,19 +91,16 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
     assert.deepEqual(
         {
             email: requests[2].body.email,
-            given_name: requests[2].body.given_name,
-            family_name: requests[2].body.family_name,
             connection: requests[2].body.connection,
-            app_metadata: requests[2].body.app_metadata,
         },
         {
             email: "nuevo@example.cl",
-            given_name: "Ana",
-            family_name: "Perez",
             connection: ENVIRONMENT.AUTH0_DATABASE_CONNECTION,
-            app_metadata: { rolUsuario: "Ventas" },
         },
     );
+    assert.equal("given_name" in requests[2].body, false);
+    assert.equal("family_name" in requests[2].body, false);
+    assert.equal("app_metadata" in requests[2].body, false);
     assert.equal(typeof requests[2].body.password, "string");
     assert.ok(requests[2].body.password.length > 30);
     assert.equal(JSON.stringify(result).includes(requests[2].body.password), false);
@@ -137,8 +135,6 @@ test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
     await assert.rejects(
         createAuth0User({
             email: "existente@example.cl",
-            primerNombre: "Ana",
-            apellidoPaterno: "Perez",
             rolUsuario: "Ventas",
         }),
         (error) =>
@@ -162,8 +158,6 @@ test("no crea usuario si el rol solicitado no existe en Auth0", async () => {
     await assert.rejects(
         createAuth0User({
             email: "nuevo@example.cl",
-            primerNombre: "Ana",
-            apellidoPaterno: "Perez",
             rolUsuario: "Ventas",
         }),
         (error) =>
@@ -192,14 +186,97 @@ test("reporta asignacion RBAC incompleta si falla despues de crear usuario", asy
 
     const result = await createAuth0User({
         email: "nuevo@example.cl",
-        primerNombre: "Ana",
-        apellidoPaterno: "Perez",
         rolUsuario: "Ventas",
     });
 
     assert.deepEqual(result, {
         userId: "auth0|created-user",
         roleAssignmentCompleted: false,
+    });
+});
+
+test("actualiza correo, estado y rol de usuario Auth0", async () => {
+    const requests = [];
+    global.fetch = async (url, options = {}) => {
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        requests.push({ url, options, body });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1")) {
+            return jsonResponse(200, { user_id: "auth0|user-1" });
+        }
+
+        if (url.includes("/api/v2/roles?")) {
+            return jsonResponse(200, [
+                { id: "rol_admin", name: "Administrador" },
+                { id: "rol_ventas", name: "Ventas" },
+            ]);
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1/roles")) {
+            return { ok: true, status: 204, async json() { return null; } };
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await updateAuth0User({
+        userId: "auth0|user-1",
+        correoUsuario: "editado@example.cl",
+        rolUsuario: "Ventas",
+        estadoUsuario: "Desvinculado",
+    });
+
+    assert.deepEqual(result, {
+        idUsuarioAutenticacionExterna: "auth0|user-1",
+        correoUsuario: "editado@example.cl",
+        rolUsuario: "Ventas",
+        estadoUsuario: "Desvinculado",
+    });
+    assert.deepEqual(requests[1].body, {
+        email: "editado@example.cl",
+        blocked: true,
+        app_metadata: {
+            rolUsuario: "Ventas",
+            estadoUsuario: "Desvinculado",
+        },
+    });
+    assert.equal(requests.some((request) => request.options.method === "DELETE"), true);
+    assert.equal(requests.some((request) => request.body?.roles?.includes("rol_ventas")), true);
+});
+
+test("actualiza solo el estado de usuario Auth0", async () => {
+    const requests = [];
+    global.fetch = async (url, options = {}) => {
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        requests.push({ url, options, body });
+
+        if (url.endsWith("/oauth/token")) {
+            return jsonResponse(200, { access_token: "management-access-token" });
+        }
+
+        if (url.endsWith("/api/v2/users/auth0%7Cuser-1")) {
+            return jsonResponse(200, { user_id: "auth0|user-1" });
+        }
+
+        throw new Error(`Solicitud inesperada: ${url}`);
+    };
+
+    const result = await setAuth0UserStatus({
+        userId: "auth0|user-1",
+        estadoUsuario: "Activo",
+    });
+
+    assert.deepEqual(result, {
+        idUsuarioAutenticacionExterna: "auth0|user-1",
+        estadoUsuario: "Activo",
+    });
+    assert.deepEqual(requests[1].body, {
+        blocked: false,
+        app_metadata: { estadoUsuario: "Activo" },
     });
 });
 
@@ -237,8 +314,6 @@ test("rechaza la creacion si falta configuracion Management requerida", async ()
     await assert.rejects(
         createAuth0User({
             email: "nuevo@example.cl",
-            primerNombre: "Ana",
-            apellidoPaterno: "Perez",
             rolUsuario: "Ventas",
         }),
         (error) =>

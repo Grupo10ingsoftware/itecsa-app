@@ -6,19 +6,19 @@ export default function UserCreatePage() {
     <main className={`container-fluid ${styles.page}`} aria-labelledby="user-create-title">
       <section className={styles.dashboardShell}>
         <header className={styles.hero}>
-          <span className={styles.sectionLabel}>Administración</span>
+          <span className={styles.sectionLabel}>Administracion</span>
           <h1 className={styles.pageTitle} id="user-create-title">
             Crear usuario
           </h1>
           <p className={styles.pageSubtitle}>
-            Completa los datos obligatorios para crear una nueva cuenta Auth0.
+            Completa los datos del usuario, su rol y la firma electronica para registrarlo en el sistema.
           </p>
         </header>
 
         <div className={styles.content}>
           <div className={`alert alert-info ${styles.noteAlert}`} role="note">
             <i className="bi bi-info-circle me-2" aria-hidden="true" />
-            RUT, firma electrónica y contraseña no se enviarán en esta etapa.
+            El usuario se guarda en la BD interna y se sincroniza con Auth0 para acceso y contrasena.
           </div>
 
           <div className={styles.formCard}>

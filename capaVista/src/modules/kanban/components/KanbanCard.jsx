@@ -1,42 +1,44 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
-function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, dueDate, isDelayed, orderStatus }) {
-  const isDraggingDisabled = orderStatus === 'Confirmación de pago';
+function KanbanCard({
+  clientName,
+  nv,
+  product,
+  date,
+  dueDate,
+  isDelayed,
+  isMoveBlocked,
+  isUrgent,
+  onOpenDetail,
+}) {
   const { ref } = useDraggable({
     id: nv,
-    disabled: isDraggingDisabled
+    disabled: isMoveBlocked,
   })
 
   return (
-    <article className={`${styles.orderCard} ${isDraggingDisabled ? styles.nonDisabled : ''} `} 
-    ref={ref}>
+    <article className={`${styles.orderCard} ${isMoveBlocked ? styles.orderCardBlocked : ''}`} ref={ref}>
       <div className={styles.orderCardHeader}>
         <span className={styles.orderClient}>{clientName}</span>
-        
         <div className={styles.headerBadgesGroup}>
-
-          {isDraggingDisabled && (
-            <span className={styles.lockedBadge} title='Bloqueado por estado de pago'>
-              <i className="bi bi-lock-fill" aria-hidden="true"></i>
+          {isMoveBlocked && (
+            <span className={styles.lockedBadge} title="Pago pendiente">
+              <i className="bi bi-lock-fill" aria-hidden="true" />
             </span>
           )}
-          
           {isDelayed && (
-            <span className={styles.delayBadge} title="Pedido Atrasado">
-              <i className="bi bi-clock-fill" aria-hidden="true"></i>
+            <span className={styles.delayBadge} title="Pedido atrasado">
+              <i className="bi bi-clock-fill" aria-hidden="true" />
             </span>
           )}
-
           {isUrgent && (
-            <span className={styles.urgentBadge} title="Pedido Urgente">
-              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            <span className={styles.urgentBadge} title="Pedido urgente">
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
             </span>
           )}
-
           <span className={styles.orderNv}>{nv}</span>
         </div>
-
       </div>
 
       <dl className={styles.orderDetails}>
@@ -48,13 +50,21 @@ function KanbanCard({ clientName, nv, product, date, onOpenDetail, isUrgent, due
           <dt>Fecha</dt>
           <dd>{date}</dd>
         </div>
+        {dueDate && (
+          <div>
+            <dt>Entrega</dt>
+            <dd>{dueDate}</dd>
+          </div>
+        )}
       </dl>
 
-      <button className={styles.orderCardButton}
-          onClick={(e) => {
-              e.stopPropagation();
-              onOpenDetail();
-          }}
+      <button
+        className={styles.orderCardButton}
+        onClick={(event) => {
+          event.stopPropagation()
+          onOpenDetail?.()
+        }}
+        type="button"
       >
         <i className="bi bi-eye" aria-hidden="true" />
         <span>Detalle</span>

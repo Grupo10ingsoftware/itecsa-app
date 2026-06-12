@@ -1,0 +1,547 @@
+.page {
+  color: #17202a;
+}
+
+.dashboardShell {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem 0 2rem;
+}
+
+.hero {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sectionLabel,
+.modalKicker {
+  color: #6c757d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  font-size: clamp(1.65rem, 2vw, 2.2rem);
+  font-weight: 800;
+  margin: 0;
+}
+
+.pageSubtitle {
+  color: #5f6b76;
+  margin: 0;
+}
+
+.summaryGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summaryCard,
+.filtersShell,
+.tableCard,
+.createModal,
+.editModal {
+  background: #fff;
+  border: 1px solid #e3e7ed;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgb(16 24 40 / 7%);
+}
+
+.summaryCard {
+  align-items: center;
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.summaryIcon {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  flex: 0 0 2.65rem;
+  height: 2.65rem;
+  justify-content: center;
+}
+
+.summaryIcontotal {
+  background: #e8f1ff;
+  color: #1f5fbf;
+}
+
+.summaryIconlinked {
+  background: #e9f7ef;
+  color: #18794e;
+}
+
+.summaryIconunlinked {
+  background: #fff1f0;
+  color: #c0392b;
+}
+
+.summaryContent {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.summaryContent span {
+  color: #5f6b76;
+  font-size: 0.86rem;
+}
+
+.summaryContent strong {
+  font-size: 1.5rem;
+}
+
+.content {
+  display: grid;
+  gap: 1rem;
+}
+
+.feedbackMessage {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+}
+
+.feedbacksuccess {
+  background: #e9f7ef;
+  color: #146c43;
+}
+
+.feedbackdanger {
+  background: #fff1f0;
+  color: #b02a37;
+}
+
+.filtersShell {
+  padding: 1rem;
+}
+
+.filtersTopbar {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(16rem, 1fr) auto auto;
+}
+
+.searchBox {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0 0.85rem;
+}
+
+.searchBox input {
+  background: transparent;
+  border: 0;
+  min-height: 2.65rem;
+  outline: 0;
+  width: 100%;
+}
+
+.filterToggleButton,
+.clearFiltersButton,
+.userButton,
+.pageButton,
+.modalCloseButton {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 2.4rem;
+}
+
+.filterToggleButton,
+.clearFiltersButton,
+.pageButton,
+.modalCloseButton {
+  background: #fff;
+  border: 1px solid #d9e0e8;
+  color: #243447;
+  padding: 0.45rem 0.75rem;
+}
+
+.filterPanel {
+  border-top: 1px solid #edf0f3;
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.filterGroup {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.filterGroup legend {
+  color: #4f5f6f;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.filterOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filterChip {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d9e0e8;
+  border-radius: 999px;
+  color: #243447;
+  display: inline-flex;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.85rem;
+}
+
+.filterChipActive {
+  background: #17202a;
+  border-color: #17202a;
+  color: #fff;
+}
+
+.tableCard {
+  overflow: hidden;
+}
+
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.usersTable {
+  border-collapse: collapse;
+  min-width: 820px;
+  width: 100%;
+}
+
+.usersTable th,
+.usersTable td {
+  border-bottom: 1px solid #edf0f3;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.usersTable th {
+  background: #f8fafc;
+  color: #4f5f6f;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.nameCell {
+  font-weight: 700;
+}
+
+.emailCell {
+  word-break: break-word;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.tableStateCell {
+  color: #5f6b76;
+  padding: 2rem;
+  text-align: center;
+}
+
+.statusBadge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.85rem;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.statusDot {
+  border-radius: 50%;
+  display: inline-block;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.statusLinked {
+  background: #e9f7ef;
+  color: #146c43;
+}
+
+.statusLinked .statusDot {
+  background: #198754;
+}
+
+.statusUnlinked {
+  background: #fff1f0;
+  color: #b02a37;
+}
+
+.statusUnlinked .statusDot {
+  background: #dc3545;
+}
+
+.statusPending,
+.statusNeutral {
+  background: #fff8e6;
+  color: #8a6100;
+}
+
+.statusPending .statusDot,
+.statusNeutral .statusDot {
+  background: #f0ad00;
+}
+
+.userButton {
+  border: 1px solid transparent;
+  font-weight: 700;
+  padding: 0.45rem 0.8rem;
+}
+
+.userButton:disabled,
+.pageButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.userButtonPrimary {
+  background: #17202a;
+  color: #fff;
+}
+
+.userButtonSecondary {
+  background: #fff;
+  border-color: #d9e0e8;
+  color: #243447;
+}
+
+.userButtonDanger {
+  background: #fff;
+  border-color: #f1b5b5;
+  color: #b02a37;
+}
+
+.userButtonGhost {
+  background: transparent;
+  color: #243447;
+}
+
+.paginationFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.paginationCenter {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.pageButtons {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pageButton {
+  min-width: 2.35rem;
+}
+
+.pageButtonActive {
+  background: #17202a;
+  border-color: #17202a;
+  color: #fff;
+}
+
+.pageSummary,
+.pageEllipsis {
+  color: #5f6b76;
+}
+
+.mobileList {
+  display: none;
+}
+
+.modalLayer {
+  align-items: center;
+  background: rgb(15 23 42 / 52%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1050;
+}
+
+.createModal,
+.editModal {
+  max-height: min(92vh, 860px);
+  max-width: 840px;
+  overflow: auto;
+  width: min(100%, 840px);
+}
+
+.editModal {
+  max-width: 680px;
+}
+
+.modalHeader,
+.modalFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+}
+
+.modalHeader {
+  border-bottom: 1px solid #edf0f3;
+}
+
+.modalHeader h2 {
+  font-size: 1.25rem;
+  margin: 0.15rem 0 0;
+}
+
+.modalBody {
+  padding: 1.25rem;
+}
+
+.modalFooter {
+  border-top: 1px solid #edf0f3;
+}
+
+.editIdentityCard {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #edf0f3;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.editIdentityAvatar {
+  align-items: center;
+  background: #e8f1ff;
+  border-radius: 8px;
+  color: #1f5fbf;
+  display: inline-flex;
+  height: 2.8rem;
+  justify-content: center;
+  width: 2.8rem;
+}
+
+.editIdentityCard h3,
+.editIdentityCard p {
+  margin: 0;
+}
+
+.editIdentityCard p {
+  color: #5f6b76;
+}
+
+.editFieldsGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editField {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.editField span {
+  color: #4f5f6f;
+  font-weight: 700;
+}
+
+.formControl {
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.7rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .summaryGrid,
+  .filtersTopbar,
+  .editFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tableResponsive {
+    display: none;
+  }
+
+  .mobileList {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+
+  .mobileUserCard {
+    border: 1px solid #edf0f3;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .mobileUserCard header,
+  .mobileUserCard footer {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+    justify-content: space-between;
+  }
+
+  .mobileUserCard dl {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0;
+  }
+
+  .mobileUserCard div {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .mobileUserCard dt {
+    color: #5f6b76;
+    font-size: 0.8rem;
+  }
+
+  .mobileUserCard dd {
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .paginationFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

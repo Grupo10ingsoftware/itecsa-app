@@ -181,7 +181,7 @@ async function executeUpdateHandler({
     const res = responseRecorder();
     const handler = createUpdateAdminUserHandler({ updateUser, users });
 
-    await handler({ body, params }, res);
+    await handler({ auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -195,7 +195,7 @@ async function executeStatusHandler({
     const res = responseRecorder();
     const handler = createUpdateAdminUserStatusHandler({ updateStatus, users });
 
-    await handler({ body, params }, res);
+    await handler({ auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -352,6 +352,74 @@ test("desvincula usuario actualizando Auth0 y tabla interna", async () => {
         estadoUsuario: "Desvinculado",
     });
     assert.equal(res.body.estadoUsuario, "Desvinculado");
+});
+
+test("rechaza autodesvinculacion por endpoint de estado", async () => {
+    let externalCalls = 0;
+    let internalCalls = 0;
+    const handler = createUpdateAdminUserStatusHandler({
+        updateStatus: async () => {
+            externalCalls += 1;
+        },
+        users: createUsersRepositoryMock({
+            onUpdateStatusByAuth0Id: () => {
+                internalCalls += 1;
+            },
+        }),
+    });
+    const selfRes = responseRecorder();
+    await handler(
+        {
+            auth: { payload: { sub: "auth0|created-user" } },
+            body: { estadoUsuario: "Desvinculado" },
+            params: { userId: "auth0|created-user" },
+        },
+        selfRes,
+    );
+
+    assert.equal(selfRes.statusCode, 409);
+    assert.deepEqual(selfRes.body, {
+        message: "No puedes desvincular tu propio usuario administrador.",
+    });
+    assert.equal(externalCalls, 0);
+    assert.equal(internalCalls, 0);
+});
+
+test("rechaza autodesvinculacion desde edicion completa", async () => {
+    let externalCalls = 0;
+    let internalCalls = 0;
+    const handler = createUpdateAdminUserHandler({
+        updateUser: async () => {
+            externalCalls += 1;
+        },
+        users: createUsersRepositoryMock({
+            onUpdateByAuth0Id: () => {
+                internalCalls += 1;
+            },
+        }),
+    });
+    const selfRes = responseRecorder();
+    await handler(
+        {
+            auth: { payload: { sub: "auth0|created-user" } },
+            body: {
+                nombreUsuario: "Ana Maria",
+                apellidoUsuario: "Perez",
+                correoUsuario: "ana.maria@itecsa.cl",
+                rolUsuario: "Administrador",
+                estadoUsuario: "Desvinculado",
+            },
+            params: { userId: "auth0|created-user" },
+        },
+        selfRes,
+    );
+
+    assert.equal(selfRes.statusCode, 409);
+    assert.deepEqual(selfRes.body, {
+        message: "No puedes desvincular tu propio usuario administrador.",
+    });
+    assert.equal(externalCalls, 0);
+    assert.equal(internalCalls, 0);
 });
 
 test("responde 201 cuando asigna rol y solicita correo", async () => {

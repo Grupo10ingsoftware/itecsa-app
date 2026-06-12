@@ -64,4 +64,17 @@ export function getPrismaClient() {
     return prisma;
 }
 
+export async function checkDatabaseConnection() {
+    const rows = await getPrismaClient().$queryRaw`SELECT 1 AS ok`;
+
+    return rows?.[0]?.ok === 1 || rows?.[0]?.ok === 1n;
+}
+
+export async function disconnectPrismaClient() {
+    if (!prisma) return;
+
+    await prisma.$disconnect();
+    prisma = undefined;
+}
+
 export default getPrismaClient;

@@ -24,6 +24,8 @@ const PASSWORD_EMAIL_ERROR_MESSAGE =
 const LIST_USERS_ERROR_MESSAGE = "No fue posible consultar los usuarios.";
 const UPDATE_USER_ERROR_MESSAGE = "No fue posible actualizar el usuario.";
 const UPDATE_STATUS_ERROR_MESSAGE = "No fue posible actualizar el estado del usuario.";
+const SELF_UNLINK_ERROR_MESSAGE =
+    "No puedes desvincular tu propio usuario administrador.";
 const ACTIVE_USER_STATUS = "Activo";
 const PENDING_ROLE_USER_STATUS = "Pendiente rol";
 
@@ -102,6 +104,19 @@ function invalidUserId(userId) {
     return typeof userId !== "string" || userId.trim().length === 0;
 }
 
+function getAuthenticatedUserId(req) {
+    const subject = req.auth?.payload?.sub;
+
+    return typeof subject === "string" ? subject.trim() : "";
+}
+
+function isSelfUnlinkRequest(req, targetUserId, estadoUsuario) {
+    return (
+        estadoUsuario === "Desvinculado" &&
+        getAuthenticatedUserId(req) === targetUserId
+    );
+}
+
 export function createListAdminUsersHandler({ users = userRepository } = {}) {
     return async function listAdminUsersHandler(req, res) {
         const validatedQuery = validateListUsersQuery(req.query ?? {});
@@ -153,6 +168,12 @@ export function createUpdateAdminUserHandler({
 
         const normalizedUserId = userId.trim();
         const user = validatedRequest.user;
+
+        if (isSelfUnlinkRequest(req, normalizedUserId, user.estadoUsuario)) {
+            return res.status(409).json({
+                message: SELF_UNLINK_ERROR_MESSAGE,
+            });
+        }
 
         try {
             const existingUser = await users.findByAuth0Id(normalizedUserId);
@@ -220,6 +241,18 @@ export function createUpdateAdminUserStatusHandler({
         }
 
         const normalizedUserId = userId.trim();
+
+        if (
+            isSelfUnlinkRequest(
+                req,
+                normalizedUserId,
+                validatedRequest.estadoUsuario,
+            )
+        ) {
+            return res.status(409).json({
+                message: SELF_UNLINK_ERROR_MESSAGE,
+            });
+        }
 
         try {
             const existingUser = await users.findByAuth0Id(normalizedUserId);

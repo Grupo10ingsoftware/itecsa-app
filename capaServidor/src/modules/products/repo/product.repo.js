@@ -1,68 +1,49 @@
-import pool from "../../../database/connection.js";
+import getPrismaClient from "../../../database/prisma.js";
 
 class ProductTypeRepo {
-  async getAll() {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Tipo_Producto
-      ORDER BY nombre_producto ASC
-      `,
-    );
+  constructor({ prisma } = {}) {
+    this.prisma = prisma;
+  }
 
-    return rows;
+  get client() {
+    if (!this.prisma) {
+      this.prisma = getPrismaClient();
+    }
+
+    return this.prisma;
+  }
+
+  async getAll() {
+    return this.client.tipo_Producto.findMany({
+      orderBy: { nombre_producto: "asc" },
+    });
   }
 
   async getById(productTypeId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Tipo_Producto
-      WHERE id_tipo_producto = ?
-      `,
-      [productTypeId],
-    );
-
-    return rows[0] || null;
+    return this.client.tipo_Producto.findUnique({
+      where: { id_tipo_producto: Number(productTypeId) },
+    });
   }
 
   async create(data) {
-    const {
-      nombre_producto,
-      descripcion_producto,
+    const { nombre_producto, descripcion_producto } = data;
 
-    } = data;
-
-    const [result] = await pool.execute(
-      `
-      INSERT INTO Tipo_Producto (
+    return this.client.tipo_Producto.create({
+      data: {
         nombre_producto,
-        descripcion_producto
-
-      )
-      VALUES (?, ?)
-      `,
-      [
-        nombre_producto,
-        descripcion_producto ?? null,
-      ],
-    );
-
-    return this.getById(result.insertId);
+        descripcion_producto: descripcion_producto ?? null,
+      },
+    });
   }
 
   async getByName(nombreProducto) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Tipo_Producto
-      WHERE LOWER(nombre_producto) = LOWER(?)
-      LIMIT 1
-      `,
-      [nombreProducto],
-    );
-
-    return rows[0] || null;
+    return this.client.tipo_Producto.findFirst({
+      where: {
+        nombre_producto: {
+          equals: nombreProducto,
+        },
+      },
+    });
   }
 }
 

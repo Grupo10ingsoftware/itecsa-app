@@ -25,7 +25,7 @@ export function createOrderRouter({
     router.patch(
         "/:orderId/payment-status",
         authenticate,
-        // authorizePaymentStatusUpdate,
+        authorizePaymentStatusUpdate,
         controller.updatePaymentStatus,
     );
     router.patch("/:orderId/move", authenticate, controller.updateGeneralStep);

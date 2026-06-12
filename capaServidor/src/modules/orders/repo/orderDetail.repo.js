@@ -1,7 +1,19 @@
-import pool from "../../../database/connection.js";
+import getPrismaClient from "../../../database/prisma.js";
 
 class OrderDetailRepo {
-async create(orderId, data) {
+  constructor({ prisma } = {}) {
+    this.prisma = prisma;
+  }
+
+  get client() {
+    if (!this.prisma) {
+      this.prisma = getPrismaClient();
+    }
+
+    return this.prisma;
+  }
+
+  async create(orderId, data) {
     const {
       id_tipo_producto,
       cantidad,
@@ -9,68 +21,37 @@ async create(orderId, data) {
       fecha_real_termino,
     } = data;
 
-    const [result] = await pool.execute(
-      `
-      INSERT INTO Detalle_pedido (
-        id_pedido,
-        id_tipo_producto,
+    return this.client.detalle_pedido.create({
+      data: {
+        id_pedido: Number(orderId),
+        id_tipo_producto: Number(id_tipo_producto),
         cantidad,
-        fecha_estimada_termino,
-        fecha_real_termino
-      )
-      VALUES (?, ?, ?, ?, ?)
-      `,
-      [
-        orderId,
-        id_tipo_producto,
-        cantidad,
-        fecha_estimada_termino,
-        fecha_real_termino ?? null,
-      ],
-    );
-
-    return this.getById(result.insertId);
+        fecha_estimada_termino: fecha_estimada_termino ?? null,
+        fecha_real_termino: fecha_real_termino ?? null,
+      },
+    });
   }
 
   async getById(detailId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Detalle_pedido
-      WHERE id_detalle_pedido = ?
-      `,
-      [detailId],
-    );
-
-    return rows[0] || null;
+    return this.client.detalle_pedido.findUnique({
+      where: { id_detalle_pedido: Number(detailId) },
+    });
   }
 
   async getByOrderId(orderId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Detalle_pedido
-      WHERE id_pedido = ?
-      ORDER BY id_detalle_pedido ASC
-      `,
-      [orderId],
-    );
-
-    return rows;
+    return this.client.detalle_pedido.findMany({
+      where: { id_pedido: Number(orderId) },
+      orderBy: { id_detalle_pedido: "asc" },
+    });
   }
 
   async getByOrderIdAndDetailId(orderId, detailId) {
-    const [rows] = await pool.execute(
-      `
-      SELECT *
-      FROM Detalle_pedido
-      WHERE id_pedido = ?
-        AND id_detalle_pedido = ?
-      `,
-      [orderId, detailId],
-    );
-
-    return rows[0] || null;
+    return this.client.detalle_pedido.findFirst({
+      where: {
+        id_pedido: Number(orderId),
+        id_detalle_pedido: Number(detailId),
+      },
+    });
   }
 }
 

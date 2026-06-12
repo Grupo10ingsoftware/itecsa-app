@@ -1,8 +1,8 @@
 import OrderDetailRepo from "../repo/orderDetail.repo.js";
 
 class OrderDetailService {
-  constructor() {
-    this.repo = new OrderDetailRepo();
+  constructor({ repo } = {}) {
+    this.repo = repo ?? new OrderDetailRepo();
   }
 
   async createOrderDetail(orderId, data) {

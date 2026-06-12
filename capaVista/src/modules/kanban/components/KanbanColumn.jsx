@@ -112,7 +112,7 @@ function isOrderUrgent(dueDate) {
 }
 
 function isPaymentConfirmed(order) {
-  return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 1
+  return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
 }
 
 function normalizeOrder(order) {
@@ -193,6 +193,7 @@ function KanbanColumn() {
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  const [moveError, setMoveError] = useState(null)
   const kanbanApi = useKanbanApi()
 
   useEffect(() => {
@@ -250,6 +251,15 @@ function KanbanColumn() {
 
     if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
 
+    const isForwardMove = Number(targetColumn.generalStepId) > Number(order.generalStepId)
+
+    if (isForwardMove && !isPaymentConfirmed(order)) {
+      setMoveError('Debes confirmar el pago antes de mover esta orden.')
+      return
+    }
+
+    setMoveError(null)
+
     if (!window.confirm(`Mover ${order.nv} a "${targetColumn.title}"?`)) {
       return
     }
@@ -291,6 +301,7 @@ function KanbanColumn() {
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
+      {moveError && <div className={styles.kanbanError}>{moveError}</div>}
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {

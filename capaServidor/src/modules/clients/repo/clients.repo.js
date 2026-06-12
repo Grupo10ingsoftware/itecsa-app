@@ -1,6 +1,18 @@
-import pool from "../../../database/connection.js";
+import getPrismaClient from "../../../database/prisma.js";
 
 class ClientRepo {
+  constructor({ prisma } = {}) {
+    this.prisma = prisma;
+  }
+
+  get client() {
+    if (!this.prisma) {
+      this.prisma = getPrismaClient();
+    }
+
+    return this.prisma;
+  }
+
   async create(data) {
     try {
       const {
@@ -10,36 +22,25 @@ class ClientRepo {
         estado_cliente
         } = data;
 
-      const [result] = await pool.execute(
-        `INSERT INTO Cliente (
-                    rut_cliente,
-                    nombre_cliente,
-                    razon_social,
-                    estado_cliente
-                )
-                VALUES (?, ?, ?, ?)
-                `,
-        [rut_cliente, nombre_cliente, razon_social, estado_cliente],
-      );
-      return {
-        id_cliente: result.insertId,
-        rut_cliente,
-        nombre_cliente,
-        razon_social,
-        estado_cliente,
-      };
+      return this.client.cliente.create({
+        data: {
+          rut_cliente,
+          nombre_cliente,
+          razon_social,
+          estado_cliente,
+        },
+      });
     } catch (error) {
       console.log(error);
+      return null;
     }
   }
 
   async get(id) {
     try {
-      const [rows] = await pool.execute(
-        `SELECT * FROM Cliente WHERE id_cliente = ?`,
-        [id],
-      );
-      return rows[0] || null;
+      return this.client.cliente.findUnique({
+        where: { id_cliente: Number(id) },
+      });
     } catch (error) {
       console.log(error);
       return null;
@@ -48,8 +49,7 @@ class ClientRepo {
 
   async getAll() {
     try {
-      const [rows] = await pool.execute(`SELECT * FROM Cliente`);
-      return rows;
+      return this.client.cliente.findMany();
     } catch (error) {
       console.log(error);
       return null;
@@ -57,19 +57,15 @@ class ClientRepo {
   }
 
   async getByRut(rutCliente) {
-        try {
-            const [rows] = await pool.execute(
-            `SELECT * FROM Cliente WHERE rut_cliente = ? LIMIT 1`,
-            [rutCliente],
-            );
-
-            return rows[0] || null;
-        } catch (error) {
-            console.log(error);
-            return null;
-        }
+    try {
+      return this.client.cliente.findUnique({
+        where: { rut_cliente: rutCliente },
+      });
+    } catch (error) {
+      console.log(error);
+      return null;
     }
-
+  }
 }
 
 export default ClientRepo;

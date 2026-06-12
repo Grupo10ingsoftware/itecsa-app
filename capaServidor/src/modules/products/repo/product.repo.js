@@ -30,7 +30,7 @@ class ProductTypeRepo {
     const {
       nombre_producto,
       descripcion_producto,
-      
+
     } = data;
 
     const [result] = await pool.execute(
@@ -38,7 +38,7 @@ class ProductTypeRepo {
       INSERT INTO Tipo_Producto (
         nombre_producto,
         descripcion_producto
-        
+
       )
       VALUES (?, ?)
       `,
@@ -50,7 +50,7 @@ class ProductTypeRepo {
 
     return this.getById(result.insertId);
   }
-  
+
   async getByName(nombreProducto) {
     const [rows] = await pool.execute(
       `

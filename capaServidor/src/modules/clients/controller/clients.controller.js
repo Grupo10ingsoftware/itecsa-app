@@ -2,7 +2,7 @@ import { response, request } from "express";
 
 import ClientService from "../service/clients.service.js";
 /**
- * 
+ *
  *  = async ( req = request, res = response ) => {}
  */
 
@@ -13,19 +13,19 @@ class ClientController {
 
     postClient = async ( req = request, res = response ) => {
         try {
-            const { 
-                rut_cliente, 
-                nombre_cliente, 
-                razon_social, 
-                estado_cliente 
+            const {
+                rut_cliente,
+                nombre_cliente,
+                razon_social,
+                estado_cliente
             } = req.body ?? {};
-            
+
             const result = await
             this.service.createClient({
-                rut_cliente, 
-                nombre_cliente, 
-                razon_social, 
-                estado_cliente 
+                rut_cliente,
+                nombre_cliente,
+                razon_social,
+                estado_cliente
             })
 
             if( !result ) return res.status( 500 ).json({

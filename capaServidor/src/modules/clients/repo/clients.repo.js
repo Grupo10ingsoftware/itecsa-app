@@ -3,11 +3,11 @@ import pool from "../../../database/connection.js";
 class ClientRepo {
   async create(data) {
     try {
-      const { 
-        rut_cliente, 
-        nombre_cliente, 
-        razon_social, 
-        estado_cliente 
+      const {
+        rut_cliente,
+        nombre_cliente,
+        razon_social,
+        estado_cliente
         } = data;
 
       const [result] = await pool.execute(

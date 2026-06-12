@@ -5,7 +5,7 @@ import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js
 
 
 class OrderController {
-    
+
     constructor() {
         this.service = new OrderService()
     }
@@ -48,7 +48,7 @@ class OrderController {
             });
         }
 }
-    
+
     updatePaymentStatus = async (req = request, res = response) => {
         try {
             const { orderId } = req.params;
@@ -84,16 +84,16 @@ class OrderController {
             });
         }
     }
-    
+
     updateGeneralStep = async ( req = request, res = response) => {
-        
+
         try {
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
             const { generalStepId } = req.body ?? {};
-            const result = await 
-            this.service.updGeneralStep( 
-                orderId, 
+            const result = await
+            this.service.updGeneralStep(
+                orderId,
                 generalStepId
             );
 

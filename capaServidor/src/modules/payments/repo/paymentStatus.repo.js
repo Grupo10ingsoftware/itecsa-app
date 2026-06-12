@@ -33,7 +33,7 @@ class PaymentStatusRepo {
         } catch ( error ) {
             console.log( error );
             return null;
-            
+
         }
     }
 
@@ -41,13 +41,13 @@ class PaymentStatusRepo {
         try {
             const [rows] = await pool.execute(
                 `SELECT * FROM Estado_Pago`,
-                
+
             )
             return rows;
         } catch ( error ) {
             console.log( error );
             return null;
-            
+
         }
     }
 

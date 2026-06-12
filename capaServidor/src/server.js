@@ -29,7 +29,7 @@ class Server {
         orderDetail: '/api/order-details',
         admin: '/api/admin',
         health: '/api/health',
-        
+
         //* Estados
         orderStatus: '/api/order-status',
         paymentStatus: '/api/payment-status',
@@ -52,7 +52,7 @@ class Server {
 
   // aca mismo podemos tener una función asincrona para conectar a la base de datos cuando este disponible
   middlewares() {
-      
+
     // Cors
     this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
 
@@ -62,17 +62,17 @@ class Server {
 
     // Directorio publico
     this.app.use(express.static("public"));
-    
 
-    
+
+
   }
 
   routes() {
-    
+
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
     /**
-     * Un ejemplo sería    
+     * Un ejemplo sería
      * this.app.use(this.paths.users, user_route);
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API

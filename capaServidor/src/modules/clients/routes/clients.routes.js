@@ -13,7 +13,7 @@ export function createPaymentStatusRouter({
     router.post("/", authenticate, controller.postClient);
     router.get("/rut/:rutCliente", authenticate, controller.getClientByRut);
     router.get("/:clientId", authenticate, controller.getClient);
-    
+
     return router;
 }
 

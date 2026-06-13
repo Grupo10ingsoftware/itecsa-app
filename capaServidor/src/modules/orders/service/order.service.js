@@ -6,7 +6,6 @@ import {
   PAYMENT_STATUS,
 } from "../../../config/status.js";
 
-
 import OrderRepository from "../repo/orders.repo.js";
 import ClientRepo from "../../clients/repo/clients.repo.js";
 import ClientService from "../../clients/service/clients.service.js";
@@ -31,7 +30,6 @@ function toPrismaDate(value) {
 }
 
 class OrderService {
-
   constructor({
     repo,
     clientService,
@@ -55,12 +53,12 @@ class OrderService {
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
       repo ||
-      clientService ||
-      orderDetailService ||
-      productTypeService ||
-      paymentRecordService ||
-      paymentRepo ||
-      paymentSignatureService
+        clientService ||
+        orderDetailService ||
+        productTypeService ||
+        paymentRecordService ||
+        paymentRepo ||
+        paymentSignatureService,
     );
   }
 
@@ -85,24 +83,31 @@ class OrderService {
       });
     }
 
-    return this.client.$transaction((tx) => callback({
-      repo: new OrderRepository({ prisma: tx }),
-      clientService: new ClientService({
-        repo: new ClientRepo({ prisma: tx }),
+    return this.client.$transaction(
+      (tx) => callback({
+        repo: new OrderRepository({ prisma: tx }),
+        clientService: new ClientService({
+          repo: new ClientRepo({ prisma: tx }),
+        }),
+        orderDetailService: new OrderDetailService({
+          repo: new OrderDetailRepo({ prisma: tx }),
+        }),
+        productTypeService: new ProductTypeService({
+          repo: new ProductTypeRepo({ prisma: tx }),
+        }),
+        paymentRecordService: new PaymentRecordService({
+          repo: new PaymentRecordRepo({ prisma: tx }),
+        }),
+        paymentRepo: new PaymentStatusRepo({ prisma: tx }),
+        paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
       }),
-      orderDetailService: new OrderDetailService({
-        repo: new OrderDetailRepo({ prisma: tx }),
-      }),
-      productTypeService: new ProductTypeService({
-        repo: new ProductTypeRepo({ prisma: tx }),
-      }),
-      paymentRecordService: new PaymentRecordService({
-        repo: new PaymentRecordRepo({ prisma: tx }),
-      }),
-      paymentRepo: new PaymentStatusRepo({ prisma: tx }),
-      paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
-    }));
+      {
+        timeout: 20000,
+        maxWait: 10000,
+      },
+    );
   }
+
   async updGeneralStep(orderId, stepId, options = {}) {
     if (!orderId) {
       const error = new Error("El ID del pedido es obligatorio");
@@ -186,16 +191,16 @@ class OrderService {
     throw error;
   }
 
-    async previewPaymentSignature(orderId, data = {}) {
+  async previewPaymentSignature(orderId, data = {}) {
     const resolvedUserId = await this.resolveInternalUserId(data);
 
     return this.paymentSignatureService.previewSignedPaymentDocument(
-    orderId,
-    resolvedUserId,
-  );
-}
+      orderId,
+      resolvedUserId,
+    );
+  }
 
- async updPaymentState(orderId, newPaymentStatusId, data = {}) {
+  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
       auth0UserId,
       id_usuario,
@@ -284,11 +289,6 @@ class OrderService {
       return updatedOrder;
     });
   }
-
-
-
-
-
 
   async createOrder(data) {
     const {
@@ -407,7 +407,6 @@ class OrderService {
 
     return order;
   }
-
 }
 
 export default OrderService;

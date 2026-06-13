@@ -4,6 +4,8 @@ import { useAuth } from '../../../hooks/useAuth'
 import styles from './LoginPage.module.css'
 
 const LOGIN_REDIRECT_TIMEOUT_MS = 10000
+const BLOCKED_ACCOUNT_MESSAGE = 'Tu cuenta se encuentra desactivada. Comunicate con el administrador.'
+const GENERIC_LOGIN_ERROR_MESSAGE = 'No fue posible iniciar sesion. Intenta nuevamente.'
 
 function getSafeRedirectPath(state, search) {
   const searchParams = new URLSearchParams(search)
@@ -20,6 +22,31 @@ function getSafeRedirectPath(state, search) {
   return '/kanban'
 }
 
+function getErrorText(error) {
+  return [
+    error?.error,
+    error?.error_description,
+    error?.message,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+function isBlockedAccountError(error) {
+  const errorText = getErrorText(error)
+
+  return (
+    error?.error === 'unauthorized' ||
+    errorText.includes('blocked') ||
+    errorText.includes('user is blocked')
+  )
+}
+
+function getLoginErrorMessage(error) {
+  return isBlockedAccountError(error) ? BLOCKED_ACCOUNT_MESSAGE : GENERIC_LOGIN_ERROR_MESSAGE
+}
+
 export default function LoginPage() {
   const { auth0User, error, isAuthenticated, isLoading, loginWithRedirect } = useAuth()
   const [shouldStartLogin, setShouldStartLogin] = useState(false)
@@ -27,7 +54,7 @@ export default function LoginPage() {
   const returnTo = getSafeRedirectPath(location.state, location.search)
 
   useEffect(() => {
-    if (isAuthenticated || auth0User || shouldStartLogin) {
+    if (error || isAuthenticated || auth0User || shouldStartLogin) {
       return undefined
     }
 
@@ -39,10 +66,10 @@ export default function LoginPage() {
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [auth0User, isAuthenticated, isLoading, shouldStartLogin])
+  }, [auth0User, error, isAuthenticated, isLoading, shouldStartLogin])
 
   useEffect(() => {
-    if (!shouldStartLogin || isAuthenticated) {
+    if (error || !shouldStartLogin || isAuthenticated) {
       return
     }
 
@@ -51,10 +78,45 @@ export default function LoginPage() {
         returnTo,
       },
     })
-  }, [isAuthenticated, loginWithRedirect, returnTo, shouldStartLogin])
+  }, [error, isAuthenticated, loginWithRedirect, returnTo, shouldStartLogin])
+
+  const handleLoginRetry = () => {
+    loginWithRedirect({
+      appState: {
+        returnTo,
+      },
+    })
+  }
 
   if (isAuthenticated) {
     return <Navigate replace to={returnTo} />
+  }
+
+  if (error) {
+    return (
+      <main className={`container-fluid ${styles.loginPage}`}>
+        <section className={styles.loginPanel} aria-labelledby="login-title">
+          <div className={styles.loginHero}>
+            <span className={styles.brandMark}>ITECSA</span>
+            <h1 className="h3 mt-3 mb-2" id="login-title">
+              Inicio de sesion
+            </h1>
+            <p className="text-secondary mb-0">
+              Ingresa mediante el acceso seguro de Auth0.
+            </p>
+          </div>
+
+          <div className={styles.loginBody}>
+            <div className="alert alert-danger" role="alert">
+              {getLoginErrorMessage(error)}
+            </div>
+            <button className="btn btn-warning w-100" type="button" onClick={handleLoginRetry}>
+              Volver a intentar
+            </button>
+          </div>
+        </section>
+      </main>
+    )
   }
 
   if (isLoading || auth0User || shouldStartLogin) {
@@ -80,11 +142,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {error && (
-          <div className="alert alert-danger" role="alert">
-            No fue posible iniciar sesion. Intenta nuevamente.
-          </div>
-        )}
+        <div className={styles.loginBody}>
+          <button className="btn btn-warning w-100" type="button" onClick={handleLoginRetry}>
+            Iniciar sesion
+          </button>
+        </div>
       </section>
     </main>
   )

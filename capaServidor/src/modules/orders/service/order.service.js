@@ -23,6 +23,12 @@ import getPrismaClient from "../../../database/prisma.js";
 export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
   "No se puede cambiar el estado de un pago confirmado.";
 
+function toPrismaDate(value) {
+  if (!value) return null;
+
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
 class OrderService {
 
   constructor({
@@ -309,7 +315,7 @@ class OrderService {
         id_estado_pedido,
         id_estado_pago,
         id_etiqueta,
-        fecha_estimada_termino,
+        fecha_estimada_termino: toPrismaDate(fecha_estimada_termino),
       });
 
       if (!order?.id_pedido) {
@@ -336,7 +342,7 @@ class OrderService {
         const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
           id_tipo_producto: productType.id_tipo_producto,
           cantidad,
-          fecha_estimada_termino: fecha_estimada_termino ?? null,
+          fecha_estimada_termino: toPrismaDate(fecha_estimada_termino) ?? null,
           fecha_real_termino: null,
         });
 

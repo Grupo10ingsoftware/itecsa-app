@@ -2,6 +2,7 @@ import { PERMISSIONS } from './permissions'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
+  PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
   PAYMENTS: '/pagos',

@@ -7,6 +7,7 @@ import requirePermission from "../../../middlewares/requirePermission.js";
 import OrderController from "../controller/orders.controller.js";
 import orderDetailRoutes from "./orderDetail.routes.js";
 import paymentRecordRoutes from "../../payments/routes/paymentRecord.routes.js";
+
 export function createOrderRouter({
     authenticate = checkJwt,
     authorizePaymentStatusUpdate = requirePermission(
@@ -25,7 +26,7 @@ export function createOrderRouter({
         authenticate,
         authorizePaymentStatusUpdate,
         controller.previewPaymentSignature,
-        );
+    );
     router.get("/:orderId", authenticate, controller.getOrder);
     router.post("/", authenticate, controller.createOrder);
     router.patch(

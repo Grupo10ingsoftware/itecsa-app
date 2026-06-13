@@ -76,7 +76,10 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 ## Estado Actual De Auth0
 
 - La SPA inicia y cierra sesion mediante Auth0 Universal Login/Logout.
+- El link de recuperacion en Classic Universal Login apunta a la ruta publica propia `/recuperar-contrasena`.
+- La SPA muestra un mensaje controlado cuando Auth0 rechaza el login por cuenta bloqueada/desvinculada.
 - La API expone `GET /api/auth/verify`, protegido por bearer access token Auth0.
+- La API expone `POST /api/auth/password-reset/request`, publico, para validar el estado interno del correo antes de solicitar a Auth0 el correo de cambio de contrasena.
 - La validacion backend comprueba issuer y audience configurados.
 - La SPA consume `GET /api/auth/verify` mediante `authApi.verify()` para restaurar sesion, rol y permisos visuales.
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
@@ -95,6 +98,8 @@ Recursos Auth0 esperados/configurados para esta rama:
 - Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
 
 La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta heredada contiene `app_metadata.rolUsuario`, ese dato es auxiliar y no reemplaza los roles RBAC ni debe usarse como fuente de autorizacion.
+
+El tenant usa Classic Universal Login con template personalizado. En desarrollo, el template debe mantener `forgotPasswordLink` apuntando a `http://localhost:5173/recuperar-contrasena`; en produccion debe cambiarse al dominio HTTPS de la SPA. Los usuarios desvinculados se sincronizan como `blocked` en Auth0 y no deben recibir correos de recuperacion desde el flujo publico.
 
 ## Restricciones Vigentes
 

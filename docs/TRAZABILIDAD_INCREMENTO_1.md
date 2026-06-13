@@ -16,6 +16,7 @@ No es una bitacora ni un plan historico. La finalidad es dejar evidencia tecnica
 - Creacion y gestion administrativa de usuarios con `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId` y `PATCH /api/admin/users/:userId/status`.
 - Persistencia de la entidad interna `Usuario` con `id_auth0`, `correo_usuario`, `rol_usuario` y `estado_usuario`.
 - Solicitud de correo de establecimiento/cambio de contrasena con `POST /api/admin/users/password-setup-email`.
+- Recuperacion publica de contrasena con `/recuperar-contrasena` y `POST /api/auth/password-reset/request`, validando existencia y estado interno antes de llamar Auth0.
 - Proteccion backend de endpoints administrativos mediante JWT Auth0 y rol `Administrador` emitido por Auth0 RBAC.
 - Separacion de permisos de lectura y escritura para el modulo de pagos: `view:payments-module` permite entrar a `/pagos`, mientras `update:payment-status` permite gestionar cambios de estado.
 - Endpoints backend RF32 para consultar pedidos/Kanban mock, actualizar estado de pago y rechazar movimientos manuales invalidos hacia `Listo para produccion`.
@@ -29,11 +30,11 @@ Quedan fuera de este alcance pedidos persistidos, pagos persistidos, Kanban con 
 | UR 1.1 - Ingresar credenciales validas | La SPA inicia sesion mediante Auth0 Universal Login. ITECSA no captura credenciales en una pantalla propia. | `capaVista/src/modules/auth/components/LoginForm.jsx`, `capaVista/src/modules/auth/pages/LoginPage.jsx`, `capaVista/src/app/providers/AppProviders.jsx`. |
 | UR 1.4 - Permisos por roles minimos | Auth0 RBAC es la fuente de roles y permisos. La SPA consume permisos visuales desde el claim `permissions` emitido por Auth0. | `capaVista/src/config/permissions.js`, `capaVista/src/shared/components/navigation/RoleGuard.jsx`, `capaVista/src/app/providers/AuthProvider.jsx`. |
 | UR 1.10 - Validar correo y contrasena | La validacion de credenciales ocurre en Auth0 Universal Login y en la conexion Database configurada, no en codigo propio. | `@auth0/auth0-react`, `Auth0Provider`, tenant Auth0 y conexion `Username-Password-Authentication`. |
-| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. | `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/modules/auth/controller/auth.controller.js`. |
+| UR 1.11 - Ingresar solo usuarios validados y vinculados | La SPA espera sesion Auth0 y el backend valida que el access token emitido por Auth0 contenga identidad, rol y permisos con el contrato esperado. Los usuarios `Desvinculado` se sincronizan como `blocked` en Auth0 y la SPA muestra cuenta desactivada si Auth0 devuelve `unauthorized`. | `capaVista/src/modules/auth/pages/LoginPage.jsx`, `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`, `capaVista/src/modules/auth/api/authApi.js`, `capaServidor/src/modules/auth/controller/auth.controller.js`, `setAuth0UserStatus(...)`. |
 | UR 1.12 - Impedir correos duplicados | La creacion administrativa delega unicidad de correo en Auth0 y normaliza el duplicado como respuesta `409`. | `capaServidor/src/modules/users/controller/adminUsers.controller.js`, `capaServidor/src/modules/users/service/auth0Management.service.js`. |
 | UR 1.13 - Restringir URL protegidas por rol | El frontend aplica restricciones visuales usando roles/permisos emitidos por Auth0 y el backend protege endpoints administrativos validando el rol `Administrador` del token Auth0. | `RoleGuard`, `ProtectedRoute`, `capaServidor/src/middlewares/checkJwt.js`, `capaServidor/src/middlewares/requireAdministrador.js`. |
 | UR 1.14 - Mostrar acceso denegado | La SPA redirige a una vista de acceso denegado cuando el rol o permiso visual no permite continuar. | `capaVista/src/modules/auth/pages/AccessDeniedPage.jsx`, `RoleGuard`. |
-| UR 1.15 - Recuperar o establecer contrasena por correo | El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena sin retornar tickets, enlaces ni contrasenas. | `POST /api/admin/users/password-setup-email`, `requestPasswordSetupEmail(...)`. |
+| UR 1.15 - Recuperar o establecer contrasena por correo | El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena sin retornar tickets, enlaces ni contrasenas. El flujo publico valida correo y estado interno antes de llamar Auth0. | `/recuperar-contrasena`, `POST /api/auth/password-reset/request`, `POST /api/admin/users/password-setup-email`, `requestPasswordSetupEmail(...)`. |
 | UR 1.18 - Cerrar sesion desde cualquier interfaz | La SPA ejecuta Auth0 Universal Logout y retorna al origen local autorizado. | `capaVista/src/modules/auth/components/LogoutButton.jsx`, `AuthProvider.logout(...)`. |
 | RF26 / UR 3.1 - Cobranzas clasifica estado de pago | El rol `Cobranzas` puede gestionar estados de pago; `Administrador` mantiene lectura del modulo sin permiso de edicion. El backend exige `update:payment-status` para ejecutar cambios sensibles. | `capaVista/src/config/permissions.js`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx`, `capaServidor/src/modules/orders/routes/order.routes.js`, `requirePermission("update:payment-status")`. |
 | RF28 / UR 3.3 - Cambio automatico a Listo para produccion | Cuando el estado de pago queda `Confirmado`, la regla backend actualiza automaticamente el estado del pedido a `Listo para produccion`. | `capaServidor/src/modules/orders/service/order.service.js`, `PATCH /api/orders/:orderId/payment-status`. |
@@ -59,6 +60,27 @@ Responsabilidades:
 - Exigir exactamente un rol oficial emitido por Auth0 RBAC en `https://itecsa.local/roles`.
 - Validar que `permissions`, emitido por Auth0 para la API ITECSA, sea un arreglo si existe.
 - Devolver `sub`, `email`, `rolUsuario`, `isAdministrador` y `permissions`.
+
+### `POST /api/auth/password-reset/request`
+
+Endpoint publico llamado por `/recuperar-contrasena`.
+
+Cuerpo aceptado:
+
+```json
+{
+  "email": "correo.controlado@example.cl"
+}
+```
+
+Responsabilidades:
+
+- Validar que solo se envie `email`.
+- Consultar la entidad interna `Usuario` por correo normalizado.
+- No llamar Auth0 si el correo no existe.
+- No llamar Auth0 si el usuario existe pero no esta `Activo`.
+- Solicitar a Auth0 el correo de cambio de contrasena solo para usuarios activos.
+- No devolver tickets, enlaces, tokens ni contrasenas.
 
 ### `POST /api/admin/users`
 
@@ -175,6 +197,9 @@ Frontend:
 - `capaVista/src/app/providers/AppProviders.jsx`: configura `Auth0Provider` con dominio, client ID, audience y retorno local.
 - `capaVista/src/app/providers/AuthProvider.jsx`: mantiene la fachada interna `useAuth()`, consulta `/api/auth/verify`, expone rol y permisos provenientes de Auth0 y verificados por backend.
 - `capaVista/src/modules/auth/components/LoginForm.jsx`: inicia Universal Login con `loginWithRedirect`.
+- `capaVista/src/modules/auth/pages/LoginPage.jsx`: corta el relanzamiento automatico de Auth0 cuando existe error de cuenta bloqueada y muestra el mensaje de cuenta desactivada.
+- `capaVista/src/modules/auth/pages/PasswordResetPage.jsx`: pantalla publica para solicitar recuperacion de contrasena.
+- `capaVista/src/modules/auth/api/passwordResetApi.js`: consume `POST /api/auth/password-reset/request`.
 - `capaVista/src/modules/auth/components/LogoutButton.jsx`: ejecuta Universal Logout.
 - `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`: espera sesion Auth0 y verificacion backend.
 - `capaVista/src/shared/components/navigation/RoleGuard.jsx`: aplica control visual por rol o permiso.
@@ -190,7 +215,7 @@ Backend:
 - `capaServidor/src/middlewares/checkJwt.js`: valida access tokens emitidos por Auth0 destinados a `AUTH0_AUDIENCE`.
 - `capaServidor/src/middlewares/requireAdministrador.js`: autoriza solo tokens Auth0 con `https://itecsa.local/roles: ["Administrador"]`.
 - `capaServidor/src/middlewares/requirePermission.js`: autoriza acciones sensibles segun el claim `permissions`.
-- `capaServidor/src/modules/auth/controller/auth.controller.js`: implementa `GET /api/auth/verify` y proyecta identidad, rol y permisos emitidos por Auth0.
+- `capaServidor/src/modules/auth/controller/auth.controller.js`: implementa `GET /api/auth/verify`, proyecta identidad, rol y permisos emitidos por Auth0, y expone el endpoint publico de recuperacion.
 - `capaServidor/src/modules/users/controller/adminUsers.controller.js`: implementa alta administrativa y solicitud de correo de contrasena.
 - `capaServidor/src/modules/orders/routes/order.routes.js`: implementa rutas de pedidos, pago y movimiento Kanban.
 - `capaServidor/src/modules/orders/service/order.service.js`: aplica reglas RF26/RF28/RF32 con ordenes mock/en memoria.
@@ -201,6 +226,7 @@ Backend:
 - La SPA no captura, valida, almacena ni transmite contrasenas de usuario hacia ITECSA.
 - ITECSA no persiste contrasenas, hashes, tokens, tickets ni enlaces de recuperacion.
 - Auth0 Management API se usa solo desde `capaServidor`; nunca desde `capaVista`.
+- La recuperacion publica de contrasena no devuelve tickets ni enlaces y no dispara correo para usuarios inexistentes o desactivados.
 - Las variables `VITE_*` no contienen secrets porque quedan expuestas en el navegador.
 - Los guards frontend (`ProtectedRoute`, `RoleGuard`, `hasPermission(...)`) usan roles y permisos emitidos por Auth0 como controles de experiencia visual, no como autorizacion efectiva de servidor.
 - La autorizacion sensible se valida en Express contra el JWT, roles y permisos emitidos por Auth0, usando `checkJwt`, `requireAdministrador`, `requirePermission(...)` y reglas backend.

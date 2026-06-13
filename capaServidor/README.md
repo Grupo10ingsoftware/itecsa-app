@@ -180,6 +180,53 @@ Respuestas:
 - `401`: bearer token ausente o invalido.
 - `403`: token autenticado sin email requerido, sin rol oficial unico, con multiples roles o con `permissions` malformado.
 
+### `POST /api/auth/password-reset/request`
+
+Endpoint publico usado por la pantalla `/recuperar-contrasena`. Acepta solo:
+
+```json
+{
+  "email": "correo.controlado@example.cl"
+}
+```
+
+El backend normaliza el correo, consulta la tabla interna `Usuario` y decide si corresponde solicitar a Auth0 el correo de cambio de contrasena mediante `requestPasswordSetupEmail(...)`.
+
+Reglas:
+
+- Usuario no registrado: no llama Auth0 y devuelve mensaje controlado.
+- Usuario `Desvinculado` o distinto de `Activo`: no llama Auth0 y devuelve mensaje de cuenta desactivada.
+- Usuario `Activo`: solicita a Auth0 el correo de cambio de contrasena.
+
+Respuesta de usuario no registrado:
+
+```json
+{
+  "status": "not_registered",
+  "message": "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunicate con el administrador."
+}
+```
+
+Respuesta de usuario desactivado:
+
+```json
+{
+  "status": "disabled",
+  "message": "Tu cuenta se encuentra desactivada. Comunicate con el administrador."
+}
+```
+
+Respuesta de usuario activo:
+
+```json
+{
+  "status": "sent",
+  "message": "Si la cuenta esta activa, enviaremos las instrucciones de recuperacion al correo indicado."
+}
+```
+
+Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite simple en memoria por IP y correo para reducir abuso local.
+
 ## Endpoint Administrativo
 
 ### `POST /api/admin/users`
@@ -362,6 +409,16 @@ curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
 ```
 
 Caso `403` del reenvio: repetir la solicitud valida con un access token autenticado cuyo unico rol no sea `Administrador`.
+
+Solicitud publica de recuperacion con un correo controlado:
+
+```bash
+curl -i -X POST http://localhost:3000/api/auth/password-reset/request \
+  -H "Content-Type: application/json" \
+  -d '{"email":"correo.controlado@example.cl"}'
+```
+
+Probar con tres casos controlados: correo inexistente, usuario `Desvinculado` y usuario `Activo`. Solo el usuario `Activo` debe disparar correo Auth0.
 
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
 

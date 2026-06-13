@@ -14,6 +14,7 @@ const KanbanBoardPage = lazy(() => import('../modules/kanban/pages/KanbanBoardPa
 const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/PaymentConfirmationPage'))
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
+const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordResetPage'))
 
 function RouteLoadingState() {
   return (
@@ -36,6 +37,7 @@ export default function AppRouter() {
     <Suspense fallback={<RouteLoadingState />}>
       <Routes>
         <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={APP_ROUTES.PASSWORD_RESET} element={<PasswordResetPage />} />
         <Route path={APP_ROUTES.ACCESS_DENIED} element={<AccessDeniedPage />} />
 
         <Route element={<ProtectedRoute />}>

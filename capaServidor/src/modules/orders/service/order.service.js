@@ -3,6 +3,7 @@ import {
   KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
   MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
+  PAYMENT_STATUS,
 } from "../../../config/status.js";
 
 
@@ -16,6 +17,7 @@ import ProductTypeService from "../../products/service/product.service.js";
 import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
+import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
 class OrderService {
@@ -27,6 +29,7 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
+    userRepo,
     prisma,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
@@ -35,6 +38,7 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
+    this.userRepo = userRepo ?? defaultUserRepository;
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
       repo ||
@@ -133,9 +137,7 @@ class OrderService {
       throw error;
     }
 
-    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
-
-    if (Number(order.id_estado_pago) !== PAYMENT_STATUS_CONFIRMADO_ID) {
+    if (order.estado_pago !== PAYMENT_STATUS.CONFIRMADO) {
       throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
     }
 
@@ -146,17 +148,34 @@ class OrderService {
     return this.repo.getAllOrders();
   }
 
+  async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {
+    if (auth0UserId) {
+      const user = await this.userRepo.findByAuth0Id(auth0UserId);
+
+      if (!user?.idUsuario) {
+        const error = new Error("No existe un usuario interno vinculado a la sesion.");
+        error.statusCode = 403;
+        throw error;
+      }
+
+      return user.idUsuario;
+    }
+
+    if (id_usuario) {
+      return id_usuario;
+    }
+
+    const error = new Error("El usuario autenticado es obligatorio para registrar el pago.");
+    error.statusCode = 400;
+    throw error;
+  }
+
  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
+      auth0UserId,
       id_usuario,
       observacion,
     } = data;
-
-    if (!id_usuario) {
-      const error = new Error("El ID del usuario es obligatorio para registrar el pago.");
-      error.statusCode = 400;
-      throw error;
-    }
 
     const paymentStatusId = Number(newPaymentStatusId);
 
@@ -174,12 +193,15 @@ class OrderService {
       throw error;
     }
 
-    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
+    const resolvedUserId = await this.resolveInternalUserId({
+      auth0UserId,
+      id_usuario,
+    });
 
     const nextKanbanOrder =
-      paymentStatusId === PAYMENT_STATUS_CONFIRMADO_ID
+      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
@@ -193,7 +215,7 @@ class OrderService {
       if (!updatedOrder) return null;
 
       await paymentRecordService.createPaymentRecord(orderId, {
-        id_usuario,
+        id_usuario: resolvedUserId,
         id_estado_pago: paymentStatusId,
         observacion,
       });

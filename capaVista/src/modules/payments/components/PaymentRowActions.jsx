@@ -52,6 +52,7 @@ function PaymentActionOption({
 
 function ManageButton({
   disabled = false,
+  disabledTooltip,
   isMobile,
   isOpen,
   onClose,
@@ -122,8 +123,8 @@ function ManageButton({
     options[nextIndex]?.focus()
   }
 
-  const disabledTooltip = disabled
-    ? 'No tienes permisos para interactuar con esta accion.'
+  const tooltip = disabled
+    ? disabledTooltip ?? 'No tienes permisos para interactuar con esta accion.'
     : undefined
 
   return (
@@ -131,7 +132,7 @@ function ManageButton({
       className={styles.actionDropdownWrap}
       data-disabled={disabled ? 'true' : undefined}
       data-payment-action-root={order.id}
-      data-tooltip={disabledTooltip}
+      data-tooltip={tooltip}
       ref={dropdownRef}
     >
       <button
@@ -182,6 +183,7 @@ export default function PaymentRowActions({
   canUpdatePaymentStatus = false,
   editingStatus,
   isMobile = false,
+  isUpdatingPaymentStatus = false,
   onCloseEditor,
   onSelectStatus,
   onToggleEditor,
@@ -197,7 +199,12 @@ export default function PaymentRowActions({
       }`}
     >
       <ManageButton
-        disabled={!canUpdatePaymentStatus}
+        disabled={!canUpdatePaymentStatus || isUpdatingPaymentStatus}
+        disabledTooltip={
+          isUpdatingPaymentStatus
+            ? 'Actualizando estado de pago.'
+            : undefined
+        }
         isMobile={isMobile}
         isOpen={Boolean(editingStatus[order.id])}
         onClose={onCloseEditor}

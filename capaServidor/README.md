@@ -455,11 +455,12 @@ Requiere access token Auth0 valido con permiso `update:payment-status`.
 
 ```json
 {
-  "paymentStatusId": 1
+  "paymentStatusId": 2,
+  "observacion": "Cambio de estado a Confirmado desde modulo de pagos."
 }
 ```
 
-IDs de estado aceptados por el backend mock: `0` para `Pendiente`, `1` para `Confirmado` y `2` para `Rechazado`.
+IDs reales de `Estado_Pago`: `1` para `Pendiente`, `2` para `Confirmado` y `3` para `Rechazado`. El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
 
 - Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
 - Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.

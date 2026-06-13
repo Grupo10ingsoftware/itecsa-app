@@ -58,13 +58,13 @@ class OrderController {
             }
 
             const paymentStatusId = req.body?.paymentStatusId ?? req.body?.paymentStatus;
-            const { id_usuario, observacion } = req.body ?? {};
+            const { observacion } = req.body ?? {};
 
             const result = await this.service.updPaymentState(
                 orderId,
                 paymentStatusId,
                 {
-                    id_usuario,
+                    auth0UserId: req.auth?.payload?.sub,
                     observacion,
                 },
             );

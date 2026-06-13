@@ -47,10 +47,11 @@ function createService() {
                 if (!order) return null;
 
                 order.id_estado_pago = Number(paymentStatusId);
-                order.estado_pago =
-                    Number(paymentStatusId) === 2
-                        ? PAYMENT_STATUS.CONFIRMADO
-                        : PAYMENT_STATUS.PENDIENTE;
+                order.estado_pago = {
+                    1: PAYMENT_STATUS.PENDIENTE,
+                    2: PAYMENT_STATUS.CONFIRMADO,
+                    3: PAYMENT_STATUS.RECHAZADO,
+                }[Number(paymentStatusId)];
                 order.id_etapa_general = Number(nextKanbanOrder);
 
                 return { ...order };
@@ -75,6 +76,10 @@ function createService() {
                     return { id_estado_Pago: 2, nombre_estado_pago: PAYMENT_STATUS.CONFIRMADO };
                 }
 
+                if (Number(paymentStatusId) === 3) {
+                    return { id_estado_Pago: 3, nombre_estado_pago: PAYMENT_STATUS.RECHAZADO };
+                }
+
                 return null;
             },
         },
@@ -82,6 +87,15 @@ function createService() {
             async createPaymentRecord(orderId, data) {
                 paymentRecords.push({ orderId, ...data });
                 return paymentRecords.at(-1);
+            },
+        },
+        userRepo: {
+            async findByAuth0Id(auth0UserId) {
+                if (auth0UserId === "auth0|user-10") {
+                    return { idUsuario: 10 };
+                }
+
+                return null;
             },
         },
     });
@@ -111,6 +125,36 @@ test("al dejar pago pendiente devuelve la orden a Confirmacion de pago", async (
 
     assert.equal(order.estado_pago, "Pendiente");
     assert.equal(order.id_etapa_general, 0);
+});
+
+test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
+    const service = createService();
+    const order = await service.updPaymentState(1, 3, { id_usuario: 10 });
+
+    assert.equal(order.estado_pago, "Rechazado");
+    assert.equal(order.id_etapa_general, 0);
+    assert.deepEqual(paymentRecords, [
+        {
+            orderId: 1,
+            id_usuario: 10,
+            id_estado_pago: 3,
+            observacion: undefined,
+        },
+    ]);
+});
+
+test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
+    const service = createService();
+    await service.updPaymentState(1, 2, { auth0UserId: "auth0|user-10" });
+
+    assert.deepEqual(paymentRecords, [
+        {
+            orderId: 1,
+            id_usuario: 10,
+            id_estado_pago: 2,
+            observacion: undefined,
+        },
+    ]);
 });
 
 test("bloquea mover a Listo para produccion con pago pendiente", async () => {

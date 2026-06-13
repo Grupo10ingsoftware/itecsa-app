@@ -67,7 +67,7 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 - Recuperacion publica de contrasena: `PasswordResetPage` consume `POST /api/auth/password-reset/request` sin token Auth0.
 - Usuarios administrativos: `useAdminUsersApi` consume listado, resumen, edicion, desvinculacion, `POST /api/admin/users` con `FormData` y `POST /api/admin/users/password-setup-email`.
 - Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
-- Pagos: `PaymentConfirmationPage.jsx` usa `createMockPaymentOrders()` y `applyMockPaymentStatusTransition()`; no consume backend actualmente.
+- Pagos: `usePaymentsApi` consume `GET /api/orders`, `GET /api/payment-status` y `PATCH /api/orders/:orderId/payment-status`; los mocks quedan solo como fixtures de desarrollo.
 
 ## Conectar Una Nueva Vista A Permisos Auth0
 

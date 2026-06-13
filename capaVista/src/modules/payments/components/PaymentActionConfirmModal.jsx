@@ -8,10 +8,10 @@ import {
   getPaymentActionMeta,
   getPdfAsset,
 } from '../utils/paymentDocuments'
-import { MOCK_SIGNED_SALES_NOTE_DOCUMENT } from '../mocks/paymentDocuments.mock'
 
 export default function PaymentActionConfirmModal({
   isHolding,
+  isUpdating = false,
   onCancel,
   onHoldEnd,
   onHoldStart,
@@ -24,16 +24,7 @@ export default function PaymentActionConfirmModal({
   if (!order || !targetStatus) return null
 
   const actionMeta = getPaymentActionMeta(targetStatus)
-  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant, {
-    fallbackSignedFileName:
-      targetStatus === PAYMENT_STATUS.CONFIRMADO
-        ? MOCK_SIGNED_SALES_NOTE_DOCUMENT.fileName
-        : undefined,
-    fallbackSignedFilePath:
-      targetStatus === PAYMENT_STATUS.CONFIRMADO
-        ? MOCK_SIGNED_SALES_NOTE_DOCUMENT.filePath
-        : undefined,
-  })
+  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant)
   const statusClassByValue = {
     [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
     [PAYMENT_STATUS.RECHAZADO]: styles.detailStatusRejected,
@@ -64,6 +55,7 @@ export default function PaymentActionConfirmModal({
 
   const handleHoldPointerStart = (event) => {
     if (shouldPreventNativeTouchAction(event)) event.preventDefault()
+    if (isUpdating) return
     onHoldStart()
   }
 
@@ -150,6 +142,7 @@ export default function PaymentActionConfirmModal({
     <>
       <button
         className="btn btn-outline-secondary"
+        disabled={isUpdating}
         onClick={onCancel}
         type="button"
       >
@@ -158,15 +151,18 @@ export default function PaymentActionConfirmModal({
 
       <button
         className={`${styles.holdConfirmButton} ${
-          isHolding ? styles.holdConfirmButtonHolding : ''
+          isHolding || isUpdating ? styles.holdConfirmButtonHolding : ''
         }`}
+        disabled={isUpdating}
         onKeyDown={(event) => {
+          if (isUpdating) return
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             onHoldStart()
           }
         }}
         onKeyUp={(event) => {
+          if (isUpdating) return
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
             onHoldEnd()
@@ -184,7 +180,11 @@ export default function PaymentActionConfirmModal({
         type="button"
         {...touchHoldHandlers}
       >
-        <span>{isHolding ? actionMeta.completedLabel : actionMeta.holdLabel}</span>
+        <span>
+          {isHolding || isUpdating
+            ? actionMeta.completedLabel
+            : actionMeta.holdLabel}
+        </span>
       </button>
     </>
   )

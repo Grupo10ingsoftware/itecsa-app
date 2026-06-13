@@ -250,7 +250,7 @@ export default function SalesNotePreviewModal({
 
         <PdfPreviewFrame
           className={styles.pdfPreviewFrame}
-          emptyMessage="Esta Nota de Venta todavía no tiene una ruta de archivo asociada en los datos simulados."
+          emptyMessage="Esta Nota de Venta todavia no tiene una ruta de archivo asociada."
           filePath={pdfAsset.filePath}
           title={`Vista previa PDF de ${order.nvNumber}`}
           zoom={previewZoom}

@@ -241,6 +241,54 @@ class PaymentSignatureService {
 
     return signature;
   }
+
+    async generateSignedPdfPreview({ salesNoteDocument, user }) {
+    const originalPdfPath = getPathInsideProject(salesNoteDocument.ruta_pdf);
+    const signaturePath = getPathInsideProject(user.ruta_firma);
+
+    if (!originalPdfPath) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_SALES_NOTE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    if (!signaturePath) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_USER_SIGNATURE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const originalPdfBytes = await fs.readFile(originalPdfPath);
+    const pdfDoc = await PDFDocument.load(originalPdfBytes);
+    const signatureImage = await embedSignatureImage(pdfDoc, signaturePath);
+
+    drawSignatureOnLastPage(pdfDoc, signatureImage);
+
+    return pdfDoc.save();
+  }
+
+  async previewSignedPaymentDocument(orderId, userId) {
+    const salesNoteDocument = await this.getOrderSalesNote(orderId);
+
+    if (!salesNoteDocument?.id_documento || !salesNoteDocument?.ruta_pdf) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_SALES_NOTE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const user = await this.client.usuario.findUnique({
+      where: { id_usuario: Number(userId) },
+      select: { id_usuario: true, ruta_firma: true },
+    });
+
+    if (!user?.ruta_firma) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_USER_SIGNATURE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    return this.generateSignedPdfPreview({ salesNoteDocument, user });
+  }
 }
 
 export default PaymentSignatureService;

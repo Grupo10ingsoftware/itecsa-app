@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
@@ -15,21 +15,70 @@ export default function PaymentActionConfirmModal({
   onCancel,
   onHoldEnd,
   onHoldStart,
+  paymentsApi,
   order,
   targetStatus,
 }) {
   const [confirmPreviewZoom, setConfirmPreviewZoom] = useState(100)
   const [isConfirmPreviewExpanded, setIsConfirmPreviewExpanded] = useState(false)
+  const [signedPreviewUrl, setSignedPreviewUrl] = useState(null)
+  const [signedPreviewError, setSignedPreviewError] = useState(null)
+  const [isLoadingSignedPreview, setIsLoadingSignedPreview] = useState(false)
+
+  const isConfirmingPayment = targetStatus === PAYMENT_STATUS.CONFIRMADO
+
+  useEffect(() => {
+    let isCancelled = false
+    let objectUrl = null
+
+    if (!isConfirmingPayment || !order?.id || !paymentsApi) {
+      return undefined
+    }
+
+    paymentsApi.getPaymentSignaturePreview(order.id)
+      .then((pdfBlob) => {
+        if (isCancelled) return
+
+        objectUrl = URL.createObjectURL(pdfBlob)
+        setSignedPreviewUrl(objectUrl)
+        setSignedPreviewError(null)
+        setIsLoadingSignedPreview(false)
+      })
+      .catch((error) => {
+        if (isCancelled) return
+
+        setSignedPreviewUrl(null)
+        setSignedPreviewError(
+          error?.payload?.message ??
+            'No fue posible generar la vista previa firmada.',
+        )
+        setIsLoadingSignedPreview(false)
+      })
+
+    setTimeout(() => {
+      if (!isCancelled) setIsLoadingSignedPreview(true)
+    }, 0)
+
+    return () => {
+      isCancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [isConfirmingPayment, order?.id, paymentsApi])
 
   if (!order || !targetStatus) return null
 
   const actionMeta = getPaymentActionMeta(targetStatus)
-  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant)
+  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant, {
+    fallbackSignedFilePath: signedPreviewUrl,
+    fallbackSignedFileName: `${order.nvNumber}-firmado-preview.pdf`,
+  })
+
   const statusClassByValue = {
     [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
     [PAYMENT_STATUS.RECHAZADO]: styles.detailStatusRejected,
     [PAYMENT_STATUS.CONFIRMADO]: styles.detailStatusConfirmed,
   }
+
   const currentStatusClass =
     statusClassByValue[order.paymentStatus] || styles.detailStatusPending
   const targetStatusClass =
@@ -100,9 +149,7 @@ export default function PaymentActionConfirmModal({
       icon: 'bi-clock',
       label: 'Estado actual',
       content: (
-        <strong
-          className={`${styles.detailStatusPill} ${currentStatusClass}`}
-        >
+        <strong className={`${styles.detailStatusPill} ${currentStatusClass}`}>
           {order.paymentStatus}
         </strong>
       ),
@@ -111,9 +158,7 @@ export default function PaymentActionConfirmModal({
       icon: actionMeta.icon,
       label: 'Nuevo estado',
       content: (
-        <strong
-          className={`${styles.detailStatusPill} ${targetStatusClass}`}
-        >
+        <strong className={`${styles.detailStatusPill} ${targetStatusClass}`}>
           {actionMeta.statusLabel}
         </strong>
       ),
@@ -281,7 +326,12 @@ export default function PaymentActionConfirmModal({
 
         <PdfPreviewFrame
           className={styles.pdfPreviewFrame}
-          emptyMessage="No existe un PDF asociado para mostrar la vista previa de esta acción."
+          emptyMessage={
+            isLoadingSignedPreview
+              ? 'Generando vista previa firmada...'
+              : signedPreviewError ||
+                'No existe un PDF asociado para mostrar la vista previa de esta acción.'
+          }
           filePath={pdfAsset.filePath}
           title={`${actionMeta.previewTitle} ${order.nvNumber}`}
           zoom={confirmPreviewZoom}

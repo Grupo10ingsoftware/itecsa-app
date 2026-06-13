@@ -35,6 +35,27 @@ class OrderController {
         }
     }
 
+    previewPaymentSignature = async (req = request, res = response) => {
+        try {
+            const { orderId } = req.params;
+
+            const pdfBytes = await this.service.previewPaymentSignature(orderId, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
+
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", "inline");
+
+            return res.send(Buffer.from(pdfBytes));
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            return res.status(statusCode).json({
+                message: error.message || "Error al generar vista previa firmada",
+            });
+        }
+    }
+
     createOrder = async (req = request, res = response) => {
         try {
             const order = await this.service.createOrder(req.body ?? {});

@@ -440,6 +440,7 @@ export default function PaymentConfirmationPage() {
       <PaymentActionConfirmModal
         isHolding={isHoldingConfirmation}
         isUpdating={isUpdatingPaymentStatus}
+        paymentsApi={paymentsApi}
         onCancel={closePaymentActionConfirmation}
         onHoldEnd={cancelHoldConfirmation}
         onHoldStart={startHoldConfirmation}

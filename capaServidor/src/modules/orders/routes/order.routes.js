@@ -20,6 +20,12 @@ export function createOrderRouter({
     router.get("/kanban", authenticate, controller.getOrders);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);
+    router.get(
+        "/:orderId/payment-signature-preview",
+        authenticate,
+        authorizePaymentStatusUpdate,
+        controller.previewPaymentSignature,
+        );
     router.get("/:orderId", authenticate, controller.getOrder);
     router.post("/", authenticate, controller.createOrder);
     router.patch(

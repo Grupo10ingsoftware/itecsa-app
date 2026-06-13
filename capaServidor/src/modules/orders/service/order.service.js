@@ -186,6 +186,15 @@ class OrderService {
     throw error;
   }
 
+    async previewPaymentSignature(orderId, data = {}) {
+    const resolvedUserId = await this.resolveInternalUserId(data);
+
+    return this.paymentSignatureService.previewSignedPaymentDocument(
+    orderId,
+    resolvedUserId,
+  );
+}
+
  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
       auth0UserId,

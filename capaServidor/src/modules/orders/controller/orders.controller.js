@@ -47,7 +47,7 @@ class OrderController {
                 message: error.message || 'Error al crear pedido',
             });
         }
-}
+    }
 
     updatePaymentStatus = async (req = request, res = response) => {
         try {

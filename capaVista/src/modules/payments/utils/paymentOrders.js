@@ -51,7 +51,15 @@ export function resolveApiAssetUrl(filePath, baseUrl = import.meta.env.VITE_API_
   }
 
   try {
-    return new URL(trimmedPath.replace(/^\/+/, ''), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString()
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+    const base = new URL(normalizedBaseUrl)
+    const apiBasePath = base.pathname.replace(/\/+$/, '')
+
+    if (apiBasePath && trimmedPath.startsWith(`${apiBasePath}/`)) {
+      return new URL(trimmedPath, base.origin).toString()
+    }
+
+    return new URL(trimmedPath.replace(/^\/+/, ''), normalizedBaseUrl).toString()
   } catch {
     return trimmedPath
   }

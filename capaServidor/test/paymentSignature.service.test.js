@@ -44,10 +44,23 @@ async function writeTestFiles() {
   await fs.writeFile(TEST_SIGNATURE_PATH, ONE_PIXEL_PNG);
 }
 
-function createPrismaMock() {
+function createPrismaMock({ existingPaymentSignature = false } = {}) {
   const state = {
-    firmaDocumento: [],
-    firmaPago: [],
+    firmaDocumento: existingPaymentSignature
+      ? [
+          {
+            id_firma_documento: 7,
+            hash_firma: "hash-anterior",
+            fecha_firma: new Date("2026-06-13T00:00:00.000Z"),
+            id_usuario: 10,
+            id_documento: 99,
+            Firma_Pago: { id_firma_documento: 7 },
+          },
+        ]
+      : [],
+    firmaPago: existingPaymentSignature
+      ? [{ id_firma_documento: 7 }]
+      : [],
     notaVenta: {
       id_documento: 99,
       firmado: 0,
@@ -65,7 +78,7 @@ function createPrismaMock() {
               id_documento: 99,
               ruta_pdf: TEST_SALES_NOTE_STORED_PATH,
               Nota_Venta: state.notaVenta,
-              Firma_Documento: [],
+              Firma_Documento: state.firmaDocumento,
             },
           ],
         };
@@ -86,6 +99,19 @@ function createPrismaMock() {
       async create({ data }) {
         state.firmaDocumento.push(data);
         return data;
+      },
+      async update({ where, data }) {
+        const index = state.firmaDocumento.findIndex(
+          (signature) =>
+            signature.id_firma_documento === where.id_firma_documento,
+        );
+
+        state.firmaDocumento[index] = {
+          ...state.firmaDocumento[index],
+          ...data,
+        };
+
+        return state.firmaDocumento[index];
       },
     },
     firma_Pago: {
@@ -124,4 +150,36 @@ test("genera PDF firmado y registra Firma_Documento/Firma_Pago", async () => {
     () => fs.stat(TEST_SIGNED_PATH),
     { code: "ENOENT" },
   );
+});
+
+test("repara PDF vigente si ya existe Firma_Pago sin duplicar registros", async () => {
+  await writeTestFiles();
+  const originalBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
+  const prisma = createPrismaMock({ existingPaymentSignature: true });
+  const service = new PaymentSignatureService({ prisma });
+
+  const signature = await service.signPaymentDocument(99, 10);
+  const signedBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
+
+  assert.equal(signature.id_firma_documento, 7);
+  assert.equal(prisma.state.firmaDocumento.length, 1);
+  assert.equal(prisma.state.firmaPago.length, 1);
+  assert.notEqual(prisma.state.firmaDocumento[0].hash_firma, "hash-anterior");
+  assert.notEqual(Buffer.compare(originalBytes, signedBytes), 0);
+});
+
+test("preview firmado no sobrescribe el PDF vigente ni crea firma", async () => {
+  await writeTestFiles();
+  const originalBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
+  const prisma = createPrismaMock();
+  const service = new PaymentSignatureService({ prisma });
+
+  const previewBytes = await service.previewSignedPaymentDocument(99, 10);
+  const currentBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
+
+  assert.ok(previewBytes.length > 0);
+  assert.equal(Buffer.compare(originalBytes, currentBytes), 0);
+  assert.equal(prisma.state.firmaDocumento.length, 0);
+  assert.equal(prisma.state.firmaPago.length, 0);
+  assert.equal(prisma.state.notaVenta.firmado, 0);
 });

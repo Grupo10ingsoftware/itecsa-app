@@ -171,15 +171,7 @@ class PaymentSignatureService {
     };
   }
 
-  async previewSignedPaymentDocument(orderId, userId) {
-    const salesNoteDocument = await this.getOrderSalesNote(orderId);
-
-    if (!salesNoteDocument?.id_documento || !salesNoteDocument?.ruta_pdf) {
-      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_SALES_NOTE);
-      error.statusCode = 409;
-      throw error;
-    }
-
+  async getUserSignature(userId) {
     const user = await this.client.usuario.findUnique({
       where: { id_usuario: Number(userId) },
       select: { id_usuario: true, ruta_firma: true },
@@ -190,6 +182,32 @@ class PaymentSignatureService {
       error.statusCode = 409;
       throw error;
     }
+
+    return user;
+  }
+
+  async updateExistingSignatureFile({ salesNoteDocument, signature }) {
+    const user = await this.getUserSignature(signature.id_usuario);
+    const signedPdf = await this.generateSignedPdf({ salesNoteDocument, user });
+
+    return this.client.firma_Documento.update({
+      where: { id_firma_documento: signature.id_firma_documento },
+      data: {
+        hash_firma: signedPdf.hash,
+      },
+    });
+  }
+
+  async previewSignedPaymentDocument(orderId, userId) {
+    const salesNoteDocument = await this.getOrderSalesNote(orderId);
+
+    if (!salesNoteDocument?.id_documento || !salesNoteDocument?.ruta_pdf) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_SALES_NOTE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const user = await this.getUserSignature(userId);
 
     return this.buildSignedPdfBytes({ salesNoteDocument, user });
   }
@@ -208,19 +226,13 @@ class PaymentSignatureService {
     );
 
     if (existingPaymentSignature) {
-      return existingPaymentSignature;
+      return this.updateExistingSignatureFile({
+        salesNoteDocument,
+        signature: existingPaymentSignature,
+      });
     }
 
-    const user = await this.client.usuario.findUnique({
-      where: { id_usuario: Number(userId) },
-      select: { id_usuario: true, ruta_firma: true },
-    });
-
-    if (!user?.ruta_firma) {
-      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_USER_SIGNATURE);
-      error.statusCode = 409;
-      throw error;
-    }
+    const user = await this.getUserSignature(userId);
 
     const signedPdf = await this.generateSignedPdf({ salesNoteDocument, user });
     const signatureId = await nextId(

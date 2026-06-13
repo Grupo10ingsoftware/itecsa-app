@@ -36,7 +36,7 @@ export function getPaymentActionMeta(targetStatus) {
       statusLabel: PAYMENT_STATUS.CONFIRMADO,
       previewTitle: 'Vista previa de Nota de Venta firmada',
       previewDescription:
-        'Se muestra una firma digital demo antes de aplicar el cambio de estado.',
+        'Se muestra el documento firmado si existe una ruta asociada.',
       pdfVariant: PDF_VARIANT.SIGNED,
       holdLabel: 'Mantener para confirmar cambio',
       completedLabel: 'Confirmando cambio...',

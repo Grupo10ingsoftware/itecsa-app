@@ -14,6 +14,7 @@ const MOBILE_CARD_STATUS_CLASS = {
 export default function PaymentOrderMobileList({
   canUpdatePaymentStatus,
   editingStatus,
+  isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
   onOpenSalesNote,
@@ -66,6 +67,7 @@ export default function PaymentOrderMobileList({
               <PaymentRowActions
                 canUpdatePaymentStatus={canUpdatePaymentStatus}
                 editingStatus={editingStatus}
+                isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                 isMobile
                 onCloseEditor={onCloseEditor}
                 onSelectStatus={onSelectStatus}

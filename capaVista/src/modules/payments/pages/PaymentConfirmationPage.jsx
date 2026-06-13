@@ -2,18 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
 import { useAuth } from '@/hooks/useAuth'
-import { downloadNVPDF } from '@/utils/fileUtils'
 import PaymentActionConfirmModal from '../components/PaymentActionConfirmModal'
 import PaymentFilters from '../components/PaymentFilters'
 import PaymentOrderMobileList from '../components/PaymentOrderMobileList'
 import PaymentOrdersTable from '../components/PaymentOrdersTable'
 import PaymentSummaryCards from '../components/PaymentSummaryCards'
 import SalesNotePreviewModal from '../components/SalesNotePreviewModal'
-import { createMockPaymentOrders } from '../mocks/paymentOrders.mock'
+import { usePaymentsApi } from '../hooks/usePaymentsApi'
 import {
-  applyMockPaymentStatusTransition,
-  isValidPaymentStatus,
-} from '../mocks/paymentTransitions.mock'
+  getPaymentStatusIdByName,
+  normalizePaymentOrder,
+  normalizePaymentOrders,
+} from '../utils/paymentOrders'
 import {
   PREVIEW_CONTEXT,
   formatPaymentDateTime,
@@ -32,13 +32,21 @@ const FILTERS = [
 
 export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
+  const paymentsApi = usePaymentsApi()
   const holdTimerRef = useRef(null)
-  const [orders, setOrders] = useState(() => createMockPaymentOrders())
+  // Mock historico/fallback dev: createMockPaymentOrders() documenta el shape
+  // esperado por esta vista. No usar como fuente productiva.
+  const [orders, setOrders] = useState([])
+  const [paymentStatuses, setPaymentStatuses] = useState([])
   const [activeFilter, setActiveFilter] = useState('TODOS')
   const [editingStatus, setEditingStatus] = useState({})
   const [pendingTransition, setPendingTransition] = useState(null)
   const [previewState, setPreviewState] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [updateError, setUpdateError] = useState(null)
+  const [isUpdatingPaymentStatus, setIsUpdatingPaymentStatus] = useState(false)
   const [isHoldingConfirmation, setIsHoldingConfirmation] = useState(false)
   const canUpdatePaymentStatus = hasPermission(PERMISSIONS.UPDATE_PAYMENT_STATUS)
 
@@ -65,6 +73,40 @@ export default function PaymentConfirmationPage() {
 
     return () => window.clearTimeout(resetTimer)
   }, [canUpdatePaymentStatus, clearHoldTimer])
+
+  const loadPaymentData = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError(null)
+    setUpdateError(null)
+
+    try {
+      const [ordersResponse, statusesResponse] = await Promise.all([
+        paymentsApi.getPaymentOrders(),
+        paymentsApi.getPaymentStatuses(),
+      ])
+
+      setOrders(normalizePaymentOrders(ordersResponse))
+      setPaymentStatuses(Array.isArray(statusesResponse) ? statusesResponse : [])
+    } catch (error) {
+      console.error('Error cargando pagos:', error)
+      setOrders([])
+      setPaymentStatuses([])
+      setLoadError(
+        error?.payload?.message ??
+          'No fue posible cargar los pedidos de pago.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [paymentsApi])
+
+  useEffect(() => {
+    const loadTimer = window.setTimeout(() => {
+      loadPaymentData()
+    }, 0)
+
+    return () => window.clearTimeout(loadTimer)
+  }, [loadPaymentData])
 
   const counters = useMemo(() => {
     return {
@@ -117,20 +159,56 @@ export default function PaymentConfirmationPage() {
     [counters],
   )
 
-  const handleUpdatePaymentStatus = useCallback((orderId, newStatus) => {
-    if (!canUpdatePaymentStatus) return
-    if (!isValidPaymentStatus(newStatus)) return
+  const handleUpdatePaymentStatus = useCallback(async (orderId, newStatus) => {
+    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) return false
 
-    setOrders((prev) =>
-      prev.map((order) => {
-        if (order.id !== orderId) return order
+    const paymentStatusId = getPaymentStatusIdByName(paymentStatuses, newStatus)
 
-        return applyMockPaymentStatusTransition(order, newStatus)
-      }),
-    )
+    if (!paymentStatusId) {
+      setUpdateError('No fue posible resolver el estado de pago seleccionado.')
+      return false
+    }
 
-    setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
-  }, [canUpdatePaymentStatus])
+    setIsUpdatingPaymentStatus(true)
+    setUpdateError(null)
+
+    try {
+      const updatedOrder = await paymentsApi.updatePaymentStatus(orderId, {
+        paymentStatusId,
+        observacion: `Cambio de estado a ${newStatus} desde modulo de pagos.`,
+      })
+
+      if (updatedOrder?.id_pedido !== undefined || updatedOrder?.id !== undefined) {
+        const normalizedOrder = normalizePaymentOrder(updatedOrder)
+
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === normalizedOrder.id ? normalizedOrder : order,
+          ),
+        )
+      } else {
+        await loadPaymentData()
+      }
+
+      setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
+      return true
+    } catch (error) {
+      console.error('Error actualizando estado de pago:', error)
+      setUpdateError(
+        error?.payload?.message ??
+          'No fue posible actualizar el estado de pago.',
+      )
+      return false
+    } finally {
+      setIsUpdatingPaymentStatus(false)
+    }
+  }, [
+    canUpdatePaymentStatus,
+    isUpdatingPaymentStatus,
+    loadPaymentData,
+    paymentStatuses,
+    paymentsApi,
+  ])
 
   const handleDownloadNV = useCallback(async (order, variant, options = {}) => {
     try {
@@ -147,7 +225,7 @@ export default function PaymentConfirmationPage() {
         return
       }
 
-      await downloadNVPDF(order.nvNumber)
+      return
     } catch (err) {
       console.error('Error downloading NV PDF:', err)
     }
@@ -168,7 +246,7 @@ export default function PaymentConfirmationPage() {
   }, [])
 
   const openPaymentEditor = useCallback((orderId) => {
-    if (!canUpdatePaymentStatus) {
+    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) {
       setEditingStatus({})
       return
     }
@@ -176,16 +254,26 @@ export default function PaymentConfirmationPage() {
     setEditingStatus((prev) => ({
       [orderId]: !prev[orderId],
     }))
-  }, [canUpdatePaymentStatus])
+  }, [canUpdatePaymentStatus, isUpdatingPaymentStatus])
 
   const closePaymentEditor = useCallback(() => {
     setEditingStatus({})
   }, [])
 
   const openPaymentActionConfirmation = useCallback((order, targetStatus) => {
-    if (!canUpdatePaymentStatus) {
+    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) {
       setEditingStatus({})
       setPendingTransition(null)
+      return
+    }
+
+    if (
+      order.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+      targetStatus !== PAYMENT_STATUS.CONFIRMADO
+    ) {
+      setEditingStatus({})
+      setPendingTransition(null)
+      setUpdateError('El pago confirmado no puede modificarse.')
       return
     }
 
@@ -196,15 +284,17 @@ export default function PaymentConfirmationPage() {
 
     setPendingTransition({ order, targetStatus })
     setEditingStatus({})
-  }, [canUpdatePaymentStatus])
+  }, [canUpdatePaymentStatus, isUpdatingPaymentStatus])
 
   const closePaymentActionConfirmation = useCallback(() => {
+    if (isUpdatingPaymentStatus) return
+
     clearHoldTimer()
     setIsHoldingConfirmation(false)
     setPendingTransition(null)
-  }, [clearHoldTimer])
+  }, [clearHoldTimer, isUpdatingPaymentStatus])
 
-  const completePendingTransition = useCallback(() => {
+  const completePendingTransition = useCallback(async () => {
     if (!canUpdatePaymentStatus) {
       clearHoldTimer()
       setIsHoldingConfirmation(false)
@@ -214,14 +304,17 @@ export default function PaymentConfirmationPage() {
 
     if (!pendingTransition) return
 
-    handleUpdatePaymentStatus(
+    const wasUpdated = await handleUpdatePaymentStatus(
       pendingTransition.order.id,
       pendingTransition.targetStatus,
     )
 
     clearHoldTimer()
     setIsHoldingConfirmation(false)
-    setPendingTransition(null)
+
+    if (wasUpdated) {
+      setPendingTransition(null)
+    }
   }, [
     canUpdatePaymentStatus,
     clearHoldTimer,
@@ -230,7 +323,7 @@ export default function PaymentConfirmationPage() {
   ])
 
   const startHoldConfirmation = useCallback(() => {
-    if (!canUpdatePaymentStatus) return
+    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) return
     if (!pendingTransition || holdTimerRef.current) return
 
     setIsHoldingConfirmation(true)
@@ -238,12 +331,19 @@ export default function PaymentConfirmationPage() {
       completePendingTransition,
       HOLD_CONFIRM_MS,
     )
-  }, [canUpdatePaymentStatus, completePendingTransition, pendingTransition])
+  }, [
+    canUpdatePaymentStatus,
+    completePendingTransition,
+    isUpdatingPaymentStatus,
+    pendingTransition,
+  ])
 
   const cancelHoldConfirmation = useCallback(() => {
+    if (isUpdatingPaymentStatus) return
+
     clearHoldTimer()
     setIsHoldingConfirmation(false)
-  }, [clearHoldTimer])
+  }, [clearHoldTimer, isUpdatingPaymentStatus])
 
   const openOriginalPreview = useCallback((order) => {
     setPreviewState({ context: PREVIEW_CONTEXT.ORIGINAL, order })
@@ -261,7 +361,7 @@ export default function PaymentConfirmationPage() {
         >
           <div>
             <span className={styles.sectionLabel}>Cobranzas</span>
-            <h1 className={styles.pageTitle}>Confirmación de pago</h1>
+            <h1 className={styles.pageTitle}>Confirmacion de pago</h1>
           </div>
         </header>
 
@@ -276,27 +376,54 @@ export default function PaymentConfirmationPage() {
           searchTerm={searchTerm}
         />
 
-        <PaymentOrdersTable
-          canUpdatePaymentStatus={canUpdatePaymentStatus}
-          editingStatus={editingStatus}
-          onCloseEditor={closePaymentEditor}
-          onOpenSalesNote={openOriginalPreview}
-          onSelectStatus={openPaymentActionConfirmation}
-          onToggleEditor={openPaymentEditor}
-          onViewSignedDetail={openSignedDetailPreview}
-          orders={filteredOrders}
-        />
+        {loadError && (
+          <div className={`alert alert-danger ${styles.stateMessage}`} role="alert">
+            <span>{loadError}</span>
+            <button
+              className="btn btn-sm btn-outline-danger"
+              onClick={loadPaymentData}
+              type="button"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
 
-        <PaymentOrderMobileList
-          canUpdatePaymentStatus={canUpdatePaymentStatus}
-          editingStatus={editingStatus}
-          onCloseEditor={closePaymentEditor}
-          onOpenSalesNote={openOriginalPreview}
-          onSelectStatus={openPaymentActionConfirmation}
-          onToggleEditor={openPaymentEditor}
-          onViewSignedDetail={openSignedDetailPreview}
-          orders={filteredOrders}
-        />
+        {updateError && (
+          <div className={`alert alert-warning ${styles.stateMessage}`} role="alert">
+            {updateError}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className={styles.loadingState}>Cargando pedidos de pago...</div>
+        ) : (
+          <>
+            <PaymentOrdersTable
+              canUpdatePaymentStatus={canUpdatePaymentStatus}
+              editingStatus={editingStatus}
+              isUpdatingPaymentStatus={isUpdatingPaymentStatus}
+              onCloseEditor={closePaymentEditor}
+              onOpenSalesNote={openOriginalPreview}
+              onSelectStatus={openPaymentActionConfirmation}
+              onToggleEditor={openPaymentEditor}
+              onViewSignedDetail={openSignedDetailPreview}
+              orders={filteredOrders}
+            />
+
+            <PaymentOrderMobileList
+              canUpdatePaymentStatus={canUpdatePaymentStatus}
+              editingStatus={editingStatus}
+              isUpdatingPaymentStatus={isUpdatingPaymentStatus}
+              onCloseEditor={closePaymentEditor}
+              onOpenSalesNote={openOriginalPreview}
+              onSelectStatus={openPaymentActionConfirmation}
+              onToggleEditor={openPaymentEditor}
+              onViewSignedDetail={openSignedDetailPreview}
+              orders={filteredOrders}
+            />
+          </>
+        )}
       </section>
 
       <SalesNotePreviewModal
@@ -310,6 +437,7 @@ export default function PaymentConfirmationPage() {
 
       <PaymentActionConfirmModal
         isHolding={isHoldingConfirmation}
+        isUpdating={isUpdatingPaymentStatus}
         onCancel={closePaymentActionConfirmation}
         onHoldEnd={cancelHoldConfirmation}
         onHoldStart={startHoldConfirmation}

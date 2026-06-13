@@ -1,9 +1,6 @@
 import { ACTION_STATUS, PAYMENT_STATUS } from '@/config/status'
 import { formatPaymentDateTime } from '../utils/paymentDocuments'
-import {
-  MOCK_SIGNATURE_NOTE,
-  MOCK_SIGNED_SALES_NOTE_DOCUMENT,
-} from './paymentDocuments.mock'
+import { MOCK_SIGNATURE_NOTE } from './paymentDocuments.mock'
 
 const VALID_PAYMENT_STATUSES = Object.values(PAYMENT_STATUS)
 
@@ -25,8 +22,7 @@ function removeSignedDocumentData(order) {
   const nextOrder = { ...order }
 
   delete nextOrder.signature
-  delete nextOrder.signedNvFileName
-  delete nextOrder.signedNvFilePath
+  delete nextOrder.isSigned
 
   return nextOrder
 }
@@ -45,8 +41,7 @@ export function applyMockPaymentStatusTransition(order, newStatus) {
       ...baseOrder,
       orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
       signature: buildMockSignature(order.id, newStatus),
-      signedNvFileName: MOCK_SIGNED_SALES_NOTE_DOCUMENT.fileName,
-      signedNvFilePath: MOCK_SIGNED_SALES_NOTE_DOCUMENT.filePath,
+      isSigned: true,
     }
   }
 

@@ -1,18 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import getPrismaClient from "../../../database/prisma.js";
-import {
-  buildSignedSalesNoteFilename,
-  resolveStoredProjectPath,
-} from "../../documents/service/paymentSignature.service.js";
 
 const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
-const SIGNED_SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/firmadas/";
-const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-const serverRootDirectory = path.resolve(currentDirectory, "../../../..");
-const projectRootDirectory = path.resolve(serverRootDirectory, "..");
-const signedSalesNotesDirectory = path.resolve(projectRootDirectory, "data", "NVS", "Firmadas");
 
 const ORDER_UPDATE_FIELDS = new Set([
   "fecha_estimada_termino",
@@ -85,31 +73,6 @@ export function buildSalesNotePdfUrl(storedPath) {
   return `${SALES_NOTE_DOCUMENT_URL_PREFIX}${encodeURIComponent(filename)}`;
 }
 
-export function buildSignedSalesNotePdfUrl(storedPath, paymentSignature) {
-  if (!paymentSignature || !storedPath) {
-    return null;
-  }
-
-  const originalPath = resolveStoredProjectPath(storedPath);
-
-  if (!originalPath) {
-    return null;
-  }
-
-  const signedFilename = buildSignedSalesNoteFilename(storedPath);
-  const signedPath = path.resolve(signedSalesNotesDirectory, signedFilename);
-
-  if (!signedPath.startsWith(`${signedSalesNotesDirectory}${path.sep}`)) {
-    return null;
-  }
-
-  if (!fs.existsSync(signedPath)) {
-    return null;
-  }
-
-  return `${SIGNED_SALES_NOTE_DOCUMENT_URL_PREFIX}${encodeURIComponent(signedFilename)}`;
-}
-
 function mapOrderRow(order, paymentStatusName = null) {
   if (!order) return null;
 
@@ -140,10 +103,6 @@ function mapOrderRow(order, paymentStatusName = null) {
     numero_nota_venta:
       salesNoteDocument?.Nota_Venta?.numero_nota_venta ?? null,
     firmado: salesNoteDocument?.Nota_Venta?.firmado ?? null,
-    signed_ruta_pdf: buildSignedSalesNotePdfUrl(
-      salesNoteDocument?.ruta_pdf,
-      paymentSignature,
-    ),
     firma_pago: paymentSignature
       ? {
           fecha_firma: paymentSignature.fecha_firma ?? null,

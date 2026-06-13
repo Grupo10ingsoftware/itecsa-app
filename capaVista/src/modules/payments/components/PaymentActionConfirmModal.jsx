@@ -338,7 +338,10 @@ export default function PaymentActionConfirmModal({
         {isWaitingForSignedPreview ? (
           <div className={styles.pdfPreviewFrame}>
             <div className="d-flex h-100 flex-column align-items-center justify-content-center gap-2 text-center">
-              <span className="spinner-border text-warning" aria-hidden="true" />
+              <span
+                className={`spinner-border ${styles.previewSpinner}`}
+                aria-hidden="true"
+              />
               <strong>Generando vista previa firmada</strong>
               <span>Preparando el PDF antes de confirmar el cambio.</span>
             </div>

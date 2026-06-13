@@ -83,10 +83,11 @@ export function getPdfAsset(order, variant = PDF_VARIANT.ORIGINAL, options = {})
   }
 
   const wantsSigned = variant === PDF_VARIANT.SIGNED
-  const signedFilePath =
-    order.signedNvFilePath || options.fallbackSignedFilePath || null
+  const signedFilePath = options.fallbackSignedFilePath || (
+    order.isSigned ? order.nvFilePath : null
+  )
   const signedFileName =
-    order.signedNvFileName || options.fallbackSignedFileName || 'Documento firmado.pdf'
+    options.fallbackSignedFileName || order.nvFileName || 'Documento firmado.pdf'
 
   if (wantsSigned) {
     return {

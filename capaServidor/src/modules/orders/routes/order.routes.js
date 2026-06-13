@@ -16,26 +16,39 @@ export function createOrderRouter({
     controller = new OrderController(),
 } = {}) {
     const router = Router();
+    const fallbackController = new OrderController();
+    const routeController = {
+        getOrders: controller.getOrders ?? fallbackController.getOrders,
+        getOrder: controller.getOrder ?? fallbackController.getOrder,
+        previewPaymentSignature:
+            controller.previewPaymentSignature ??
+            fallbackController.previewPaymentSignature,
+        createOrder: controller.createOrder ?? fallbackController.createOrder,
+        updatePaymentStatus:
+            controller.updatePaymentStatus ?? fallbackController.updatePaymentStatus,
+        updateGeneralStep:
+            controller.updateGeneralStep ?? fallbackController.updateGeneralStep,
+    };
 
-    router.get("/", authenticate, controller.getOrders);
-    router.get("/kanban", authenticate, controller.getOrders);
+    router.get("/", authenticate, routeController.getOrders);
+    router.get("/kanban", authenticate, routeController.getOrders);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);
     router.get(
         "/:orderId/payment-signature-preview",
         authenticate,
         authorizePaymentStatusUpdate,
-        controller.previewPaymentSignature,
+        routeController.previewPaymentSignature,
     );
-    router.get("/:orderId", authenticate, controller.getOrder);
-    router.post("/", authenticate, controller.createOrder);
+    router.get("/:orderId", authenticate, routeController.getOrder);
+    router.post("/", authenticate, routeController.createOrder);
     router.patch(
         "/:orderId/payment-status",
         authenticate,
         authorizePaymentStatusUpdate,
-        controller.updatePaymentStatus,
+        routeController.updatePaymentStatus,
     );
-    router.patch("/:orderId/move", authenticate, controller.updateGeneralStep);
+    router.patch("/:orderId/move", authenticate, routeController.updateGeneralStep);
 
     return router;
 }

@@ -10,12 +10,6 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const serverRootDirectory = path.resolve(currentDirectory, "../../../..");
 const projectRootDirectory = path.resolve(serverRootDirectory, "..");
 const projectDirectoryName = path.basename(projectRootDirectory);
-const signedSalesNotesDirectory = path.resolve(
-  projectRootDirectory,
-  "data",
-  "NVS",
-  "Firmadas",
-);
 const MAX_SIGNATURE_WIDTH = 150;
 const MAX_SIGNATURE_HEIGHT = 55;
 
@@ -46,24 +40,6 @@ function getPathInsideProject(storedPath) {
   }
 
   return resolvedPath;
-}
-
-export function buildSignedSalesNoteFilename(originalStoredPath) {
-  const originalFilename = path.basename(originalStoredPath.replace(/\\/g, "/"));
-  const extension = path.extname(originalFilename);
-  const baseName = path.basename(originalFilename, extension);
-
-  return `${baseName}-firmado.pdf`;
-}
-
-export function buildStoredSignedSalesNotePath(originalStoredPath) {
-  return path.join(
-    projectDirectoryName,
-    "data",
-    "NVS",
-    "Firmadas",
-    buildSignedSalesNoteFilename(originalStoredPath),
-  );
 }
 
 export function resolveStoredProjectPath(storedPath) {
@@ -180,15 +156,18 @@ class PaymentSignatureService {
       salesNoteDocument,
       user,
     });
-    const signedFilename = buildSignedSalesNoteFilename(salesNoteDocument.ruta_pdf);
-    const signedPdfPath = path.resolve(signedSalesNotesDirectory, signedFilename);
+    const originalPdfPath = getPathInsideProject(salesNoteDocument.ruta_pdf);
 
-    await fs.mkdir(signedSalesNotesDirectory, { recursive: true });
-    await fs.writeFile(signedPdfPath, signedPdfBytes);
+    if (!originalPdfPath) {
+      const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.MISSING_SALES_NOTE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    await fs.writeFile(originalPdfPath, signedPdfBytes);
 
     return {
       hash: createHash("sha256").update(signedPdfBytes).digest("hex"),
-      storedPath: buildStoredSignedSalesNotePath(salesNoteDocument.ruta_pdf),
     };
   }
 

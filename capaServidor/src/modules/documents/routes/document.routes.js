@@ -7,7 +7,6 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const serverRootDirectory = path.resolve(currentDirectory, "../../../..");
 const projectRootDirectory = path.resolve(serverRootDirectory, "..");
 const salesNotesDirectory = path.resolve(projectRootDirectory, "data", "NVS");
-const signedSalesNotesDirectory = path.resolve(salesNotesDirectory, "Firmadas");
 
 function isPdfFilename(filename) {
   return typeof filename === "string" && /^[^\\/]+\.pdf$/i.test(filename);
@@ -15,10 +14,6 @@ function isPdfFilename(filename) {
 
 export function resolveSalesNotePdfPath(filename) {
   return resolvePdfPathInsideDirectory(salesNotesDirectory, filename);
-}
-
-export function resolveSignedSalesNotePdfPath(filename) {
-  return resolvePdfPathInsideDirectory(signedSalesNotesDirectory, filename);
 }
 
 function resolvePdfPathInsideDirectory(directory, filename) {
@@ -55,18 +50,6 @@ export function createDocumentRouter() {
 
   router.get("/nvs/:filename", (req, res) => {
     const pdfPath = resolveSalesNotePdfPath(req.params.filename);
-
-    if (!pdfPath) {
-      return res.status(400).json({
-        message: "El archivo solicitado no es una Nota de Venta valida.",
-      });
-    }
-
-    return sendPdfFile(res, pdfPath);
-  });
-
-  router.get("/nvs/firmadas/:filename", (req, res) => {
-    const pdfPath = resolveSignedSalesNotePdfPath(req.params.filename);
 
     if (!pdfPath) {
       return res.status(400).json({

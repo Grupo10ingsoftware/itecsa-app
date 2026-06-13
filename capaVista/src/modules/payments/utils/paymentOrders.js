@@ -78,7 +78,11 @@ export function normalizePaymentOrder(order) {
   const productName = hasText(order?.nombre_producto)
     ? order.nombre_producto.trim()
     : null
-  const signedFilePath = resolveApiAssetUrl(order?.signed_ruta_pdf)
+  const nvFilePath = resolveApiAssetUrl(order?.ruta_pdf)
+  const isSigned =
+    Number(order?.firmado) === 1 ||
+    order?.firmado === true ||
+    Boolean(order?.firma_pago)
   const signature = order?.firma_pago
     ? {
         timestamp: order.firma_pago.fecha_firma ?? 'Fecha no disponible',
@@ -106,9 +110,8 @@ export function normalizePaymentOrder(order) {
       : '',
     productType: productName || 'Producto',
     nvFileName: getSalesNoteFileName(order ?? {}, nvNumber),
-    nvFilePath: resolveApiAssetUrl(order?.ruta_pdf),
-    signedNvFileName: getFileNameFromPath(signedFilePath),
-    signedNvFilePath: signedFilePath,
+    nvFilePath,
+    isSigned,
     orderStatus: order?.nombre_etapa_general ?? null,
     paymentStatus: normalizeStatusName(
       order?.estado_pago ?? order?.nombre_estado_pago,

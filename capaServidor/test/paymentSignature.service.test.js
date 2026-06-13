@@ -5,9 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, test } from "node:test";
 import { PDFDocument } from "pdf-lib";
 
-import PaymentSignatureService, {
-  buildStoredSignedSalesNotePath,
-} from "../src/modules/documents/service/paymentSignature.service.js";
+import PaymentSignatureService from "../src/modules/documents/service/paymentSignature.service.js";
 
 const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(CURRENT_DIRECTORY, "../..");
@@ -34,6 +32,8 @@ afterEach(async () => {
 });
 
 async function writeTestFiles() {
+  await fs.rm(TEST_SIGNED_PATH, { force: true });
+
   const pdfDoc = await PDFDocument.create();
   pdfDoc.addPage([612, 792]);
   const bytes = await pdfDoc.save();
@@ -105,11 +105,12 @@ function createPrismaMock() {
 
 test("genera PDF firmado y registra Firma_Documento/Firma_Pago", async () => {
   await writeTestFiles();
+  const originalBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
   const prisma = createPrismaMock();
   const service = new PaymentSignatureService({ prisma });
 
   const signature = await service.signPaymentDocument(99, 10);
-  const signedFile = await fs.stat(TEST_SIGNED_PATH);
+  const signedBytes = await fs.readFile(TEST_SALES_NOTE_PATH);
 
   assert.equal(signature.id_firma_documento, 1);
   assert.equal(prisma.state.firmaDocumento.length, 1);
@@ -118,9 +119,9 @@ test("genera PDF firmado y registra Firma_Documento/Firma_Pago", async () => {
   assert.match(prisma.state.firmaDocumento[0].hash_firma, /^[a-f0-9]{64}$/);
   assert.deepEqual(prisma.state.firmaPago, [{ id_firma_documento: 1 }]);
   assert.equal(prisma.state.notaVenta.firmado, 1);
-  assert.equal(
-    buildStoredSignedSalesNotePath(TEST_SALES_NOTE_STORED_PATH),
-    "itecsa-app\\data\\NVS\\Firmadas\\Pedido99-firmado.pdf",
+  assert.notEqual(Buffer.compare(originalBytes, signedBytes), 0);
+  await assert.rejects(
+    () => fs.stat(TEST_SIGNED_PATH),
+    { code: "ENOENT" },
   );
-  assert.ok(signedFile.size > 0);
 });

@@ -1,5 +1,13 @@
 import getPrismaClient from "../../../database/prisma.js";
 
+async function nextPaymentRecordId(client) {
+  const result = await client.registro_Pago.aggregate({
+    _max: { id_registro_pago: true },
+  });
+
+  return Number(result._max.id_registro_pago ?? 0) + 1;
+}
+
 class PaymentRecordRepo {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -23,6 +31,7 @@ class PaymentRecordRepo {
 
     return this.client.registro_Pago.create({
       data: {
+        id_registro_pago: await nextPaymentRecordId(this.client),
         fecha_registro: fecha_registro ?? new Date(),
         observacion: observacion ?? null,
         id_pedido: Number(orderId),

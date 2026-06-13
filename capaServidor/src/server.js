@@ -3,6 +3,7 @@ import cors from 'cors';
 
 import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
+import documentRoutes from './modules/documents/routes/document.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
 
 import orderRoutes from './modules/orders/routes/order.routes.js';
@@ -28,6 +29,7 @@ class Server {
         orders : '/api/orders',
         orderDetail: '/api/order-details',
         admin: '/api/admin',
+        documents: '/api/documents',
         health: '/api/health',
 
         //* Estados
@@ -79,6 +81,7 @@ class Server {
      */
     this.app.use( this.paths.auth, authRoutes)
     this.app.use( this.paths.admin, adminUsersRoutes)
+    this.app.use( this.paths.documents, documentRoutes)
     this.app.use( this.paths.health, healthRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);
     this.app.use(this.paths.orderStatus, orderStatusRoutes);

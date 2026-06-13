@@ -350,6 +350,8 @@ export default function PaymentConfirmationPage() {
   }, [])
 
   const openSignedDetailPreview = useCallback((order) => {
+    if (!order?.signedNvFilePath) return
+
     setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
   }, [])
 

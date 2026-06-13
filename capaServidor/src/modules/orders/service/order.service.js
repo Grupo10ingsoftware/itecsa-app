@@ -17,6 +17,7 @@ import ProductTypeService from "../../products/service/product.service.js";
 import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
+import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
@@ -38,6 +39,7 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
+    paymentSignatureService,
     userRepo,
     prisma,
   } = {}) {
@@ -47,6 +49,8 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
+    this.paymentSignatureService =
+      paymentSignatureService ?? new PaymentSignatureService();
     this.userRepo = userRepo ?? defaultUserRepository;
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
@@ -55,7 +59,8 @@ class OrderService {
       orderDetailService ||
       productTypeService ||
       paymentRecordService ||
-      paymentRepo
+      paymentRepo ||
+      paymentSignatureService
     );
   }
 
@@ -76,6 +81,7 @@ class OrderService {
         productTypeService: this.productTypeService,
         paymentRecordService: this.paymentRecordService,
         paymentRepo: this.paymentRepo,
+        paymentSignatureService: this.paymentSignatureService,
       });
     }
 
@@ -94,6 +100,7 @@ class OrderService {
         repo: new PaymentRecordRepo({ prisma: tx }),
       }),
       paymentRepo: new PaymentStatusRepo({ prisma: tx }),
+      paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
     }));
   }
   async updGeneralStep(orderId, stepId, options = {}) {
@@ -220,6 +227,10 @@ class OrderService {
       throw error;
     }
 
+    if (isConfirmedPayment && keepsConfirmedPayment) {
+      return currentOrder;
+    }
+
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
     const resolvedUserId = await this.resolveInternalUserId({
@@ -232,7 +243,21 @@ class OrderService {
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
-    return this.runInTransaction(async ({ repo, paymentRecordService }) => {
+    return this.runInTransaction(async ({
+      repo,
+      paymentRecordService,
+      paymentSignatureService,
+    }) => {
+      const shouldSignPaymentDocument =
+        paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+
+      if (shouldSignPaymentDocument) {
+        await paymentSignatureService.signPaymentDocument(
+          orderId,
+          resolvedUserId,
+        );
+      }
+
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,

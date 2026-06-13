@@ -33,6 +33,30 @@ function getSalesNoteFileName(order, nvNumber) {
   return null
 }
 
+export function resolveApiAssetUrl(filePath, baseUrl = import.meta.env.VITE_API_BASE_URL) {
+  if (!hasText(filePath)) return null
+
+  const trimmedPath = filePath.trim()
+
+  if (/^https?:\/\//i.test(trimmedPath)) {
+    return trimmedPath
+  }
+
+  if (!trimmedPath.startsWith('/api/')) {
+    return trimmedPath
+  }
+
+  if (!hasText(baseUrl)) {
+    return trimmedPath
+  }
+
+  try {
+    return new URL(trimmedPath.replace(/^\/+/, ''), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString()
+  } catch {
+    return trimmedPath
+  }
+}
+
 export function normalizePaymentOrder(order) {
   const id = order?.id_pedido ?? order?.id
   const nvNumber = hasText(order?.numero_nota_venta)
@@ -46,7 +70,7 @@ export function normalizePaymentOrder(order) {
   const productName = hasText(order?.nombre_producto)
     ? order.nombre_producto.trim()
     : null
-  const signedFilePath = order?.signed_ruta_pdf || null
+  const signedFilePath = resolveApiAssetUrl(order?.signed_ruta_pdf)
   const signature = order?.firma_pago
     ? {
         timestamp: order.firma_pago.fecha_firma ?? 'Fecha no disponible',
@@ -74,7 +98,7 @@ export function normalizePaymentOrder(order) {
       : '',
     productType: productName || 'Producto',
     nvFileName: getSalesNoteFileName(order ?? {}, nvNumber),
-    nvFilePath: order?.ruta_pdf || null,
+    nvFilePath: resolveApiAssetUrl(order?.ruta_pdf),
     signedNvFileName: getFileNameFromPath(signedFilePath),
     signedNvFilePath: signedFilePath,
     orderStatus: order?.nombre_etapa_general ?? null,

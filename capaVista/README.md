@@ -42,6 +42,8 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 
 - `Auth0Provider` configura el dominio, client ID, audience y URL de retorno local.
 - El login redirige a Auth0 Universal Login.
+- El Classic Universal Login personalizado envia el link `Recuperar contrasena` a `/recuperar-contrasena`.
+- Si Auth0 devuelve un error de cuenta bloqueada o `unauthorized`, `LoginPage` muestra el mensaje de cuenta desactivada y no relanza automaticamente `loginWithRedirect`.
 - El logout termina la sesion Auth0 y retorna al origin de la SPA.
 - `AuthProvider` mantiene la interfaz interna de autenticacion para los componentes React y verifica la sesion contra `GET /api/auth/verify`.
 - La SPA obtiene access tokens con `getAccessTokenSilently`; no los persiste manualmente en `localStorage` ni `sessionStorage`.
@@ -62,6 +64,7 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 ## Integraciones Backend Actuales
 
 - Autenticacion: `useAuthApi` consume `GET /api/auth/verify`.
+- Recuperacion publica de contrasena: `PasswordResetPage` consume `POST /api/auth/password-reset/request` sin token Auth0.
 - Usuarios administrativos: `useAdminUsersApi` consume listado, resumen, edicion, desvinculacion, `POST /api/admin/users` con `FormData` y `POST /api/admin/users/password-setup-email`.
 - Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
 - Pagos: `PaymentConfirmationPage.jsx` usa `createMockPaymentOrders()` y `applyMockPaymentStatusTransition()`; no consume backend actualmente.
@@ -83,6 +86,7 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 - `ProtectedRoute` espera Auth0 y la verificacion backend para navegacion visual.
 - `RoleGuard`, `hasPermission(...)` y la ruta `/access-denied` siguen siendo controles de experiencia de usuario.
 - La autorizacion efectiva de endpoints debe permanecer en la API.
+- `/recuperar-contrasena` es publica, pero la decision de enviar correo queda en backend segun existencia y estado interno del usuario.
 - ITECSA no recibe ni persiste contrasenas; la captura y gestion de contrasenas ocurre en Auth0.
 
 Consulta el diseno transversal en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md) y las convenciones visuales en [docs/CONVENCIONES_UI_FRONTEND.md](../docs/CONVENCIONES_UI_FRONTEND.md).

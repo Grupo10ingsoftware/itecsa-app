@@ -20,6 +20,9 @@ import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
+export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
+  "No se puede cambiar el estado de un pago confirmado.";
+
 class OrderService {
 
   constructor({
@@ -190,6 +193,24 @@ class OrderService {
     if (!paymentStatus) {
       const error = new Error("Estado de pago no encontrado.");
       error.statusCode = 404;
+      throw error;
+    }
+
+    const currentOrder = await this.repo.get(orderId);
+
+    if (!currentOrder) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
+    const keepsConfirmedPayment =
+      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+
+    if (isConfirmedPayment && !keepsConfirmedPayment) {
+      const error = new Error(CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE);
+      error.statusCode = 409;
       throw error;
     }
 

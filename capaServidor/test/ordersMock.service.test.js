@@ -6,7 +6,9 @@ import {
     PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
     PAYMENT_STATUS,
 } from "../src/config/status.js";
-import OrderService from "../src/modules/orders/service/order.service.js";
+import OrderService, {
+    CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+} from "../src/modules/orders/service/order.service.js";
 
 const INITIAL_ORDERS = [
     {
@@ -117,9 +119,9 @@ test("al confirmar pago mueve la orden a Listo para produccion", async () => {
     ]);
 });
 
-test("al dejar pago pendiente devuelve la orden a Confirmacion de pago", async () => {
+test("al dejar pago pendiente desde rechazado devuelve la orden a Confirmacion de pago", async () => {
     const service = createService();
-    await service.updPaymentState(1, 2, { id_usuario: 10 });
+    await service.updPaymentState(1, 3, { id_usuario: 10 });
 
     const order = await service.updPaymentState(1, 1, { id_usuario: 10 });
 
@@ -141,6 +143,34 @@ test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
             observacion: undefined,
         },
     ]);
+});
+
+test("bloquea devolver un pago confirmado a pendiente sin crear auditoria", async () => {
+    const service = createService();
+
+    await assert.rejects(
+        () => service.updPaymentState(6, 1, { id_usuario: 10 }),
+        {
+            statusCode: 409,
+            message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+        },
+    );
+
+    assert.deepEqual(paymentRecords, []);
+});
+
+test("bloquea rechazar un pago confirmado sin crear auditoria", async () => {
+    const service = createService();
+
+    await assert.rejects(
+        () => service.updPaymentState(6, 3, { id_usuario: 10 }),
+        {
+            statusCode: 409,
+            message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+        },
+    );
+
+    assert.deepEqual(paymentRecords, []);
 });
 
 test("resuelve usuario interno desde Auth0 al registrar pago", async () => {

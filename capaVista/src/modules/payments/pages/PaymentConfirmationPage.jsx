@@ -267,6 +267,16 @@ export default function PaymentConfirmationPage() {
       return
     }
 
+    if (
+      order.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+      targetStatus !== PAYMENT_STATUS.CONFIRMADO
+    ) {
+      setEditingStatus({})
+      setPendingTransition(null)
+      setUpdateError('El pago confirmado no puede modificarse.')
+      return
+    }
+
     if (order.paymentStatus === targetStatus) {
       setEditingStatus({})
       return

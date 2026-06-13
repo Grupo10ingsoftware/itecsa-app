@@ -191,6 +191,13 @@ export default function PaymentRowActions({
   order,
 }) {
   const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
+  const isManageDisabled =
+    !canUpdatePaymentStatus || isUpdatingPaymentStatus || isConfirmed
+  const manageDisabledTooltip = isConfirmed
+    ? 'El pago confirmado no puede modificarse.'
+    : isUpdatingPaymentStatus
+      ? 'Actualizando estado de pago.'
+      : undefined
 
   return (
     <div
@@ -199,12 +206,8 @@ export default function PaymentRowActions({
       }`}
     >
       <ManageButton
-        disabled={!canUpdatePaymentStatus || isUpdatingPaymentStatus}
-        disabledTooltip={
-          isUpdatingPaymentStatus
-            ? 'Actualizando estado de pago.'
-            : undefined
-        }
+        disabled={isManageDisabled}
+        disabledTooltip={manageDisabledTooltip}
         isMobile={isMobile}
         isOpen={Boolean(editingStatus[order.id])}
         onClose={onCloseEditor}

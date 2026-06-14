@@ -81,7 +81,7 @@ test("rechaza que un administrador edite su propio rol", async () => {
 
     assert.equal(res.statusCode, 409);
     assert.deepEqual(res.body, {
-        message: "No puedes editar tu propio rol administrador.",
+        message: "No puedes cambiar tu propio rol de administrador.",
     });
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);

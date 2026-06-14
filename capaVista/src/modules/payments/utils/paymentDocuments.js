@@ -186,13 +186,56 @@ function buildPrintablePdfUrl(filePath) {
   return `${filePath}${separator}toolbar=0&navpanes=0&statusbar=0&messages=0&pagemode=none&scrollbar=1&view=FitH`
 }
 
+const PRINT_REQUEST_COOLDOWN_MS = 1500
+
+let activePrintJob = null
+let lastPrintRequest = {
+  filePath: null,
+  timestamp: 0,
+}
+
+function clearActivePrintJob({ removeFrame = true } = {}) {
+  if (!activePrintJob) return
+
+  window.clearTimeout(activePrintJob.printDelayTimer)
+  window.clearTimeout(activePrintJob.cleanupTimer)
+  window.removeEventListener('afterprint', activePrintJob.cleanup)
+
+  if (removeFrame) {
+    activePrintJob.printFrame?.remove()
+  }
+
+  activePrintJob = null
+}
+
 function removePreviousPrintFrame() {
+  clearActivePrintJob()
+
   const previousFrame = document.querySelector('[data-payments-print-frame="true"]')
   previousFrame?.remove()
 }
 
+function shouldIgnoreDuplicatePrintRequest(filePath) {
+  const now = Date.now()
+  const isSameFile = lastPrintRequest.filePath === filePath
+  const isTooSoon = now - lastPrintRequest.timestamp < PRINT_REQUEST_COOLDOWN_MS
+
+  if (isSameFile && isTooSoon) {
+    return true
+  }
+
+  lastPrintRequest = {
+    filePath,
+    timestamp: now,
+  }
+
+  return false
+}
+
 export function printPdf(filePath) {
   if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
+
+  if (shouldIgnoreDuplicatePrintRequest(filePath)) return
 
   if (isMobileDevice()) {
     openPdfForMobilePrint(filePath)
@@ -209,6 +252,10 @@ export function printPdf(filePath) {
     window.clearTimeout(cleanupTimer)
     window.removeEventListener('afterprint', cleanup)
     printFrame.remove()
+
+    if (activePrintJob?.printFrame === printFrame) {
+      activePrintJob = null
+    }
   }
 
   printFrame.dataset.paymentsPrintFrame = 'true'
@@ -227,17 +274,29 @@ export function printPdf(filePath) {
     if (hasRequestedPrint) return
     hasRequestedPrint = true
 
-    window.setTimeout(() => {
+    const printDelayTimer = window.setTimeout(() => {
       try {
         printFrame.contentWindow?.focus()
         printFrame.contentWindow?.print()
         window.addEventListener('afterprint', cleanup, { once: true })
+
         cleanupTimer = window.setTimeout(cleanup, 120000)
+
+        if (activePrintJob?.printFrame === printFrame) {
+          activePrintJob.cleanupTimer = cleanupTimer
+        }
       } catch {
         cleanup()
         openPdfAsFallback(filePath)
       }
     }, 500)
+
+    activePrintJob = {
+      printFrame,
+      printDelayTimer,
+      cleanupTimer,
+      cleanup,
+    }
   }
 
   printFrame.onerror = () => {

@@ -18,6 +18,7 @@ import {
   PREVIEW_CONTEXT,
   formatPaymentDateTime,
   getPdfAsset,
+  openFileForDownload,
   openPdfForDownload,
   printPdf,
 } from '../utils/paymentDocuments'
@@ -233,6 +234,24 @@ export default function PaymentConfirmationPage() {
     printPdf(filePath)
   }, [])
 
+  const handleOpenSignatureEvidence = useCallback(async (order, fileName) => {
+    if (!order?.id) return
+
+    try {
+      const evidenceBlob = await paymentsApi.getPaymentSignatureEvidence(order.id)
+      const objectUrl = URL.createObjectURL(evidenceBlob)
+
+      openFileForDownload(objectUrl, fileName || 'evidencia-firma')
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+    } catch (error) {
+      console.error('Error abriendo evidencia de firma:', error)
+      setUpdateError(
+        error?.payload?.message ??
+          'No fue posible abrir la evidencia de firma.',
+      )
+    }
+  }, [paymentsApi])
+
   const handleFilterChange = useCallback((filterKey) => {
     setActiveFilter(filterKey)
     setEditingStatus({})
@@ -431,6 +450,7 @@ export default function PaymentConfirmationPage() {
         key={`${previewState?.context || 'closed'}-${previewState?.order?.id || 'none'}`}
         onClose={() => setPreviewState(null)}
         onDownload={handleDownloadNV}
+        onOpenSignatureEvidence={handleOpenSignatureEvidence}
         onPrint={handlePrintNV}
         order={previewState?.order}
       />

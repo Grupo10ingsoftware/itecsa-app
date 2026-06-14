@@ -1,4 +1,5 @@
 import { response, request } from "express";
+import path from "node:path";
 
 import OrderService from "../service/order.service.js";
 import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
@@ -52,6 +53,34 @@ class OrderController {
 
             return res.status(statusCode).json({
                 message: error.message || "Error al generar vista previa firmada",
+            });
+        }
+    }
+
+    getPaymentSignatureEvidence = async (req = request, res = response) => {
+        try {
+            const { orderId } = req.params;
+            const evidence = await this.service.getPaymentSignatureEvidence(orderId);
+            const fileExtension = path.extname(evidence.filePath).toLowerCase();
+            const contentTypes = {
+                ".pdf": "application/pdf",
+                ".xml": "application/xml",
+                ".cms": "application/cms",
+                ".p7s": "application/pkcs7-signature",
+                ".p7m": "application/pkcs7-mime",
+            };
+
+            return res.sendFile(evidence.filePath, {
+                headers: {
+                    "Content-Disposition": `inline; filename="${path.basename(evidence.filePath)}"`,
+                    "Content-Type": contentTypes[fileExtension] ?? "application/octet-stream",
+                },
+            });
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            return res.status(statusCode).json({
+                message: error.message || "Error al obtener evidencia de firma",
             });
         }
     }

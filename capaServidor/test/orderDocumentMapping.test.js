@@ -86,6 +86,9 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
                       id_firma_documento: 1,
                       fecha_firma: new Date("2026-06-11T00:00:00.000Z"),
                       id_usuario: 10,
+                      Usuario: {
+                        ruta_firma: "itecsa-app\\data\\Firmas\\firma-test.pdf",
+                      },
                       Firma_Pago: { id_firma_documento: 1 },
                     },
                   ],
@@ -113,5 +116,11 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
   assert.equal(orders[0].ruta_pdf, "/api/documents/nvs/Pedido2.pdf");
   assert.equal(orders[0].signed_ruta_pdf, undefined);
   assert.equal(orders[0].firmado, 1);
+  assert.equal(orders[0].firma_pago.id_firma_documento, 1);
   assert.equal(orders[0].firma_pago.id_usuario, 10);
+  assert.equal(orders[0].firma_pago.evidenceFileName, "firma-test.pdf");
+  assert.equal(
+    orders[0].firma_pago.evidenceUrl,
+    "/api/orders/2/payment-signature-evidence",
+  );
 });

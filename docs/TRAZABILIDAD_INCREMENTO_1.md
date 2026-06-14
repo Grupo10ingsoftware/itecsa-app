@@ -94,7 +94,7 @@ apellidoUsuario=Perez
 rutUsuario=12.345.678-9
 correoUsuario=correo.controlado@example.cl
 rolUsuario=Ventas
-firmaElectronica=<archivo PDF, PNG, JPG, JPEG o WebP>
+firmaElectronica=<archivo XML, CMS o PDF>
 ```
 
 Responsabilidades:

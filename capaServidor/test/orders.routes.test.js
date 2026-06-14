@@ -32,6 +32,9 @@ function createController(updatePaymentStatus) {
         updateGeneralStep(req, res) {
             return res.status(200).json({});
         },
+        getPaymentSignatureEvidence(req, res) {
+            return res.status(200).send("evidence");
+        },
         updatePaymentStatus,
     };
 }
@@ -104,6 +107,35 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
         "requirePermission",
         "updatePaymentStatus",
     ]);
+});
+
+test("monta checkJwt antes de obtener evidencia de firma", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate(req, res, next) {
+                calls.push("checkJwt");
+                next();
+            },
+            controller: {
+                ...createController(() => {}),
+                getPaymentSignatureEvidence(req, res) {
+                    calls.push("getPaymentSignatureEvidence");
+                    return res.status(200).send("evidence");
+                },
+            },
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/1/payment-signature-evidence`,
+    );
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.equal(body, "evidence");
+    assert.deepEqual(calls, ["checkJwt", "getPaymentSignatureEvidence"]);
 });
 
 test("responde 403 si el token no contiene update:payment-status", async (t) => {

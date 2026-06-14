@@ -20,7 +20,7 @@ Principales riesgos encontrados:
 - **Dependencias externas aceptadas como parte del sistema:** `RF01` y `RF06` quedan implementados con Auth0 Universal Login y Auth0 change password, respaldados por `docs/auth0/universal-login.html` y `docs/ARQUITECTURA.md`.
 - **Primer ingreso no trazable:** `RF02` sigue sin evidencia suficiente; el HTML de Universal Login no demuestra deteccion de primer ingreso ni bloqueo del acceso solo a cambio de contrasena.
 - **Registro de usuarios inconsistente:** `RF31` pide contrasena y firma XML/CMS/PDF, pero el codigo establece contrasena por correo Auth0 y acepta firma PDF/PNG/JPG/JPEG/WebP.
-- **Roles documentados vs codigo:** `RF12` menciona rol `Produccion`, pero el catalogo real usa `Operario`. El codigo tambien controla acciones por permisos Auth0, no solo por rol.
+- **Roles documentados vs codigo:** `RF12` menciona rol `Produccion`; el catalogo real usa `Producción`. El codigo tambien controla acciones por permisos Auth0, no solo por rol.
 - **Formatos de firma inconsistentes:** el documento pide firma XML/CMS/PDF para usuarios, pero frontend/backend aceptan PDF/PNG/JPG/JPEG/WebP; la firma de pagos solo soporta imagen PNG/JPG/JPEG.
 - **Persistencia desigual:** usuarios estan persistidos en Prisma/MySQL; pagos, Kanban y pedidos tienen integracion backend real, pero hay evidencia historica en docs de uso mock y algunos flujos frontend aun tienen componentes/mock de apoyo.
 - **Pruebas concentradas en backend:** hay pruebas para auth, usuarios, pagos, firma y Kanban; no se encontro suite frontend automatizada.
@@ -53,7 +53,7 @@ Principales riesgos encontrados:
 | RF36 | Edicion de usuarios por Administrador | Parcialmente implementado | Modal edita nombre, apellido, correo, rol, estado; backend actualiza Auth0 e interno | `capaVista/src/modules/users/components/UserEditModal.jsx:94`, `capaVista/src/modules/users/components/UserEditModal.jsx:183`, `capaVista/src/modules/users/api/adminUsersApi.js:47`, `capaServidor/src/modules/users/routes/adminUsers.routes.js:50`, `capaServidor/src/modules/users/validators/adminUsers.validator.js:154`, `capaServidor/src/modules/users/repo/users.repo.js:197` | No edita RUT ni firma electronica aunque el RF lo pide; no hay carga de nueva firma en PATCH | Medio | Extender edicion o corregir RF a campos reales |
 | RF11 | Detalle de pedido desde Kanban | Implementado | Tarjeta tiene accion Detalle y abre offcanvas/modal con datos del pedido | `capaVista/src/modules/kanban/components/KanbanCard.jsx:70`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:199`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:341`, `capaVista/src/modules/kanban/components/KanbanOffCanvas.jsx:54`, `capaVista/src/modules/kanban/components/KanbanOffCanvas.jsx:58` | El documento dice modal; codigo usa offcanvas con role dialog | Bajo | Documentar offcanvas como variante de modal o ajustar texto del RF |
 | RF10 | Acceso al tablero Kanban | Implementado | Ruta `/kanban`, navegacion y guard por permiso | `capaVista/src/config/routes.js:7`, `capaVista/src/config/routes.js:17`, `capaVista/src/app/router.jsx:49`, `capaVista/src/modules/auth/pages/AccessDeniedPage.jsx:16`, `capaServidor/src/modules/orders/routes/order.routes.js:34` | Boton documentado como "Principal"; codigo usa ruta Kanban/area principal | Bajo | Alinear nombre UI en documento o menu |
-| RF12 | Cambio manual por arrastrar y soltar | Parcialmente implementado | DnD frontend y PATCH backend existen; bloqueo por pago y permiso para mover a produccion | `capaVista/src/modules/kanban/components/KanbanColumn.jsx:2`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:249`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:292`, `capaServidor/src/modules/orders/routes/order.routes.js:51`, `capaServidor/src/modules/orders/service/order.service.js:161` | No se encontro modal de segunda confirmacion; rol `Produccion` no existe, se usa `Operario` y permisos | Alto por autorizacion y flujo de confirmacion | Definir rol oficial y agregar confirmacion o ajustar RF |
+| RF12 | Cambio manual por arrastrar y soltar | Parcialmente implementado | DnD frontend y PATCH backend existen; bloqueo por pago y permiso para mover a produccion | `capaVista/src/modules/kanban/components/KanbanColumn.jsx:2`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:249`, `capaVista/src/modules/kanban/components/KanbanColumn.jsx:292`, `capaServidor/src/modules/orders/routes/order.routes.js:51`, `capaServidor/src/modules/orders/service/order.service.js:161` | No se encontro modal de segunda confirmacion; el rol oficial es `Producción` y se usan permisos | Alto por autorizacion y flujo de confirmacion | Confirmar permisos del rol Producción y agregar confirmacion o ajustar RF |
 | RF17 | Vista previa de edicion de estado de pago | Implementado | Boton Gestionar, opciones Confirmar/Rechazar/Pendiente y modal de confirmacion | `capaVista/src/modules/payments/components/PaymentRowActions.jsx:14`, `capaVista/src/modules/payments/components/PaymentRowActions.jsx:20`, `capaVista/src/modules/payments/components/PaymentRowActions.jsx:152`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx:261`, `capaVista/src/modules/payments/components/PaymentActionConfirmModal.jsx:252` | Backend controla permiso, no rol literal Cobranzas | Medio | Trazar permiso `update:payment-status` al rol Cobranzas en configuracion Auth0 |
 | RF09 | Actualizacion automatica a Listo para produccion al confirmar pago y firmar | Implementado | Backend firma NV, actualiza pago y mueve Kanban; frontend invoca endpoint real | `capaVista/src/modules/payments/api/paymentsApi.js:5`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx:177`, `capaServidor/src/modules/orders/service/order.service.js:248`, `capaServidor/src/modules/orders/service/order.service.js:269`, `capaServidor/src/modules/orders/service/order.service.js:275`, `capaServidor/test/ordersMock.service.test.js:114` | Estado en codigo usa "Listo para produccion" sin tilde | Bajo | Normalizar nombres de estados entre documento, BD y UI |
 | RF25 | Filtros rapidos por estado de pago | Implementado | Chips/filtros por Pendientes, Rechazados, Confirmados y conteos | `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx:29`, `capaVista/src/modules/payments/components/PaymentFilters.jsx:16`, `capaVista/src/modules/payments/components/PaymentFilters.jsx:28`, `capaVista/src/modules/payments/pages/PaymentConfirmationPage.jsx:127` | Etiquetas en plural, no singular | Bajo | Aceptar plural como UI o documentarlo |
@@ -334,7 +334,7 @@ Normalizar nombres en UI y RF.
 **Resultado:** Parcialmente implementado
 
 **Que pide el documento:**  
-Usuarios autorizados, Administrador y Produccion, arrastran pedidos entre columnas con confirmacion modal.
+Usuarios autorizados, Administrador y Producción, arrastran pedidos entre columnas con confirmacion modal.
 
 **Evidencia encontrada en el codigo:**  
 - DnD con `@dnd-kit/react`: `capaVista/src/modules/kanban/components/KanbanColumn.jsx:2`.
@@ -344,10 +344,10 @@ Usuarios autorizados, Administrador y Produccion, arrastran pedidos entre column
 - Regla backend de movimiento: `capaServidor/src/modules/orders/service/order.service.js:161`.
 
 **Analisis:**  
-El drag and drop existe. La autorizacion se expresa con permisos y reglas, no con rol `Produccion`. No se encontro modal de segunda confirmacion.
+El drag and drop existe. La autorizacion se expresa con permisos y reglas, no solo con rol `Producción`. No se encontro modal de segunda confirmacion.
 
 **Brechas:**  
-- Rol `Produccion` no existe; catalogo real usa `Operario`.
+- Rol oficial vigente: `Producción`.
 - Falta modal de confirmacion.
 - Documento dice destino no automatico; la regla real tambien considera pago confirmado.
 
@@ -592,7 +592,7 @@ Agregar manejo/mensaje especifico para falla de consulta de pago.
 - `RF31`: contrasena administrada documentada vs correo Auth0 de establecimiento real.
 - `RF31`: firma XML/CMS/PDF documentada vs PDF/PNG/JPG/JPEG/WebP real.
 - `RF36`: firma editable documentada vs sin endpoint/campo de edicion de firma.
-- `RF12`: rol `Produccion` documentado vs rol real `Operario` y permiso `move:kanban-to-production`.
+- `RF12`: rol `Produccion` documentado vs rol real `Producción` y permiso `move:kanban-to-production`.
 - Estados con diferencias de escritura: `Listo para producción` en documento vs `Listo para produccion` en codigo.
 - Mensajes de excepcion del documento no siempre aparecen literalmente en UI/backend.
 - Documento de trazabilidad actual menciona RF26/RF28/RF32 para pagos, pero esos RF no aparecen asi en el `.docx` adjunto auditado.
@@ -637,8 +637,8 @@ Agregar manejo/mensaje especifico para falla de consulta de pago.
 - [ ] Definir fuente unica de numeracion RF y resolver colision `RF32`.
 - [ ] Mantener versionada la evidencia Auth0 de RF01 y RF06 (`docs/auth0/universal-login.html` y `docs/ARQUITECTURA.md`).
 - [ ] Incorporar evidencia adicional de Auth0 o codigo propio para primer ingreso obligatorio de RF02.
-- [ ] Mapear permisos Auth0 por rol real: Administrador, Gerencia, Operario, Ventas, Cobranzas.
-- [ ] Corregir `Produccion` vs `Operario` en documento o codigo.
+- [ ] Mapear permisos Auth0 por rol real: Administrador, Gerencia, Producción, Ventas, Cobranzas.
+- [ ] Corregir `Produccion` vs `Producción` en documento o codigo.
 - [ ] Normalizar estados: Confirmacion de pago, Listo para produccion, En produccion, Listo para entrega; con o sin tildes.
 - [ ] Alinear formatos de firma electronica entre RF, frontend y backend.
 - [ ] Completar edicion de firma/RUT o ajustar `RF36`.

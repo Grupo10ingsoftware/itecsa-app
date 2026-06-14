@@ -159,6 +159,26 @@ function openPdfAsFallback(filePath) {
   }
 }
 
+export function openPdfForDownload(filePath, fileName = 'documento.pdf') {
+  if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
+
+  const openedWindow = window.open(filePath, '_blank')
+
+  if (openedWindow) {
+    openedWindow.opener = null
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = filePath
+  link.download = fileName
+  link.target = '_blank'
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
 
 function buildPrintablePdfUrl(filePath) {
   const separator = filePath.includes('#') ? '&' : '#'

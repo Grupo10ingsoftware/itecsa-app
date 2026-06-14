@@ -1,10 +1,12 @@
 import {
   KANBAN_EN_PRODUCCION_STEP,
   KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+  KANBAN_STAGE_SKIP_MESSAGE,
   MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
+  PAYMENT_STATUS,
 } from "../../../config/status.js";
-
+import fs from "node:fs/promises";
 
 import OrderRepository from "../repo/orders.repo.js";
 import ClientRepo from "../../clients/repo/clients.repo.js";
@@ -16,10 +18,21 @@ import ProductTypeService from "../../products/service/product.service.js";
 import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
+import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
+import { resolveStoredSignaturePath } from "../../documents/service/paymentSignature.service.js";
+import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
-class OrderService {
+export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
+  "No se puede cambiar el estado de un pago confirmado.";
 
+function toPrismaDate(value) {
+  if (!value) return null;
+
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+class OrderService {
   constructor({
     repo,
     clientService,
@@ -27,6 +40,8 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
+    paymentSignatureService,
+    userRepo,
     prisma,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
@@ -35,14 +50,18 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
+    this.paymentSignatureService =
+      paymentSignatureService ?? new PaymentSignatureService();
+    this.userRepo = userRepo ?? defaultUserRepository;
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
       repo ||
-      clientService ||
-      orderDetailService ||
-      productTypeService ||
-      paymentRecordService ||
-      paymentRepo
+        clientService ||
+        orderDetailService ||
+        productTypeService ||
+        paymentRecordService ||
+        paymentRepo ||
+        paymentSignatureService,
     );
   }
 
@@ -63,26 +82,35 @@ class OrderService {
         productTypeService: this.productTypeService,
         paymentRecordService: this.paymentRecordService,
         paymentRepo: this.paymentRepo,
+        paymentSignatureService: this.paymentSignatureService,
       });
     }
 
-    return this.client.$transaction((tx) => callback({
-      repo: new OrderRepository({ prisma: tx }),
-      clientService: new ClientService({
-        repo: new ClientRepo({ prisma: tx }),
+    return this.client.$transaction(
+      (tx) => callback({
+        repo: new OrderRepository({ prisma: tx }),
+        clientService: new ClientService({
+          repo: new ClientRepo({ prisma: tx }),
+        }),
+        orderDetailService: new OrderDetailService({
+          repo: new OrderDetailRepo({ prisma: tx }),
+        }),
+        productTypeService: new ProductTypeService({
+          repo: new ProductTypeRepo({ prisma: tx }),
+        }),
+        paymentRecordService: new PaymentRecordService({
+          repo: new PaymentRecordRepo({ prisma: tx }),
+        }),
+        paymentRepo: new PaymentStatusRepo({ prisma: tx }),
+        paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
       }),
-      orderDetailService: new OrderDetailService({
-        repo: new OrderDetailRepo({ prisma: tx }),
-      }),
-      productTypeService: new ProductTypeService({
-        repo: new ProductTypeRepo({ prisma: tx }),
-      }),
-      paymentRecordService: new PaymentRecordService({
-        repo: new PaymentRecordRepo({ prisma: tx }),
-      }),
-      paymentRepo: new PaymentStatusRepo({ prisma: tx }),
-    }));
+      {
+        timeout: 20000,
+        maxWait: 10000,
+      },
+    );
   }
+
   async updGeneralStep(orderId, stepId, options = {}) {
     if (!orderId) {
       const error = new Error("El ID del pedido es obligatorio");
@@ -119,6 +147,16 @@ class OrderService {
       throw error;
     }
 
+    if (nextStep === currentStep) {
+      return order;
+    }
+
+    if (nextStep !== currentStep + 1) {
+      const error = new Error(KANBAN_STAGE_SKIP_MESSAGE);
+      error.statusCode = 409;
+      throw error;
+    }
+
     const isMoveToProduction =
       currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
     const permissions = options.permissions;
@@ -133,9 +171,7 @@ class OrderService {
       throw error;
     }
 
-    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
-
-    if (Number(order.id_estado_pago) !== PAYMENT_STATUS_CONFIRMADO_ID) {
+    if (order.estado_pago !== PAYMENT_STATUS.CONFIRMADO) {
       throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
     }
 
@@ -146,17 +182,88 @@ class OrderService {
     return this.repo.getAllOrders();
   }
 
- async updPaymentState(orderId, newPaymentStatusId, data = {}) {
+  async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {
+    if (auth0UserId) {
+      const user = await this.userRepo.findByAuth0Id(auth0UserId);
+
+      if (!user?.idUsuario) {
+        const error = new Error("No existe un usuario interno vinculado a la sesion.");
+        error.statusCode = 403;
+        throw error;
+      }
+
+      return user.idUsuario;
+    }
+
+    if (id_usuario) {
+      return id_usuario;
+    }
+
+    const error = new Error("El usuario autenticado es obligatorio para registrar el pago.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  async previewPaymentSignature(orderId, data = {}) {
+    const resolvedUserId = await this.resolveInternalUserId(data);
+
+    return this.paymentSignatureService.previewSignedPaymentDocument(
+      orderId,
+      resolvedUserId,
+    );
+  }
+
+  async getPaymentSignatureEvidence(orderId) {
+    const salesNoteDocument = await this.paymentSignatureService.getOrderSalesNote(
+      orderId,
+    );
+
+    if (!salesNoteDocument?.id_documento) {
+      const error = new Error("El pedido no tiene una Nota de Venta asociada.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const paymentSignature = salesNoteDocument.Firma_Documento?.find(
+      (signature) => signature.Firma_Pago,
+    );
+
+    if (!paymentSignature?.id_usuario) {
+      const error = new Error("El pedido no tiene evidencia de firma de pago.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const user = await this.paymentSignatureService.getUserSignature(
+      paymentSignature.id_usuario,
+    );
+    const signaturePath = resolveStoredSignaturePath(user.ruta_firma);
+
+    if (!signaturePath) {
+      const error = new Error("La evidencia de firma no tiene una ruta valida.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    try {
+      await fs.access(signaturePath);
+    } catch {
+      const error = new Error("El archivo de evidencia de firma no existe.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return {
+      filePath: signaturePath,
+    };
+  }
+
+  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
+      auth0UserId,
       id_usuario,
       observacion,
     } = data;
-
-    if (!id_usuario) {
-      const error = new Error("El ID del usuario es obligatorio para registrar el pago.");
-      error.statusCode = 400;
-      throw error;
-    }
 
     const paymentStatusId = Number(newPaymentStatusId);
 
@@ -174,16 +281,55 @@ class OrderService {
       throw error;
     }
 
-    const PAYMENT_STATUS_CONFIRMADO_ID = 2;
+    const currentOrder = await this.repo.get(orderId);
+
+    if (!currentOrder) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
+    const keepsConfirmedPayment =
+      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+
+    if (isConfirmedPayment && !keepsConfirmedPayment) {
+      const error = new Error(CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    if (isConfirmedPayment && keepsConfirmedPayment) {
+      return currentOrder;
+    }
+
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
+    const resolvedUserId = await this.resolveInternalUserId({
+      auth0UserId,
+      id_usuario,
+    });
 
     const nextKanbanOrder =
-      paymentStatusId === PAYMENT_STATUS_CONFIRMADO_ID
+      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
-    return this.runInTransaction(async ({ repo, paymentRecordService }) => {
+    return this.runInTransaction(async ({
+      repo,
+      paymentRecordService,
+      paymentSignatureService,
+    }) => {
+      const shouldSignPaymentDocument =
+        paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+
+      if (shouldSignPaymentDocument) {
+        await paymentSignatureService.signPaymentDocument(
+          orderId,
+          resolvedUserId,
+        );
+      }
+
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,
@@ -193,7 +339,7 @@ class OrderService {
       if (!updatedOrder) return null;
 
       await paymentRecordService.createPaymentRecord(orderId, {
-        id_usuario,
+        id_usuario: resolvedUserId,
         id_estado_pago: paymentStatusId,
         observacion,
       });
@@ -201,11 +347,6 @@ class OrderService {
       return updatedOrder;
     });
   }
-
-
-
-
-
 
   async createOrder(data) {
     const {
@@ -266,7 +407,7 @@ class OrderService {
         id_estado_pedido,
         id_estado_pago,
         id_etiqueta,
-        fecha_estimada_termino,
+        fecha_estimada_termino: toPrismaDate(fecha_estimada_termino),
       });
 
       if (!order?.id_pedido) {
@@ -293,7 +434,7 @@ class OrderService {
         const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
           id_tipo_producto: productType.id_tipo_producto,
           cantidad,
-          fecha_estimada_termino: fecha_estimada_termino ?? null,
+          fecha_estimada_termino: toPrismaDate(fecha_estimada_termino) ?? null,
           fecha_real_termino: null,
         });
 
@@ -324,7 +465,6 @@ class OrderService {
 
     return order;
   }
-
 }
 
 export default OrderService;

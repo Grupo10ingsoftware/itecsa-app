@@ -2,6 +2,7 @@ import { PERMISSIONS } from './permissions'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
+  PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
   PAYMENTS: '/pagos',
@@ -16,12 +17,6 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.KANBAN,
     permission: PERMISSIONS.VIEW_KANBAN_MODULE,
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),
-  },
-  {
-    label: 'Kanban',
-    path: APP_ROUTES.KANBAN,
-    permission: PERMISSIONS.VIEW_KANBAN_MODULE,
-    requirementIds: Object.freeze(['UR 5.1', 'UR 5.2', 'UR 5.3']),
   },
   {
     label: 'Confirmar pago',

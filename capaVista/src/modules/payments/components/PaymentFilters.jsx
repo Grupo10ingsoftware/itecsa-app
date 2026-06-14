@@ -45,7 +45,7 @@ export default function PaymentFilters({
         <input
           id="payment-search"
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Buscar..."
+          placeholder="Buscar por RUT, NV, empresa o fecha"
           type="search"
           value={searchTerm}
         />

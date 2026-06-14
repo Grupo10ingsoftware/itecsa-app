@@ -131,6 +131,32 @@
   color: var(--payment-green) !important;
 }
 
+.evidenceAction {
+  border-top: 1px solid #edf2f7;
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.85rem;
+}
+
+.evidenceAction span {
+  color: #64748b;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.065em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.evidenceAction strong {
+  color: #111;
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .documentPanel {
   background: #fff;
   border: 1px solid var(--payment-border);

@@ -135,7 +135,7 @@ La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar 
 - M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
-- Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
 
 La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC.
 
@@ -180,6 +180,53 @@ Respuestas:
 - `401`: bearer token ausente o invalido.
 - `403`: token autenticado sin email requerido, sin rol oficial unico, con multiples roles o con `permissions` malformado.
 
+### `POST /api/auth/password-reset/request`
+
+Endpoint publico usado por la pantalla `/recuperar-contrasena`. Acepta solo:
+
+```json
+{
+  "email": "correo.controlado@example.cl"
+}
+```
+
+El backend normaliza el correo, consulta la tabla interna `Usuario` y decide si corresponde solicitar a Auth0 el correo de cambio de contrasena mediante `requestPasswordSetupEmail(...)`.
+
+Reglas:
+
+- Usuario no registrado: no llama Auth0 y devuelve mensaje controlado.
+- Usuario `Desvinculado` o distinto de `Activo`: no llama Auth0 y devuelve mensaje de cuenta desactivada.
+- Usuario `Activo`: solicita a Auth0 el correo de cambio de contrasena.
+
+Respuesta de usuario no registrado:
+
+```json
+{
+  "status": "not_registered",
+  "message": "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunicate con el administrador."
+}
+```
+
+Respuesta de usuario desactivado:
+
+```json
+{
+  "status": "disabled",
+  "message": "Tu cuenta se encuentra desactivada. Comunicate con el administrador."
+}
+```
+
+Respuesta de usuario activo:
+
+```json
+{
+  "status": "sent",
+  "message": "Si la cuenta esta activa, enviaremos las instrucciones de recuperacion al correo indicado."
+}
+```
+
+Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite simple en memoria por IP y correo para reducir abuso local.
+
 ## Endpoint Administrativo
 
 ### `POST /api/admin/users`
@@ -192,10 +239,10 @@ apellidoUsuario=Perez
 rutUsuario=12.345.678-9
 correoUsuario=correo.controlado@example.cl
 rolUsuario=Ventas
-firmaElectronica=<archivo PDF, PNG, JPG, JPEG o WebP>
+firmaElectronica=<archivo XML, CMS o PDF>
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
 La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 
@@ -363,6 +410,16 @@ curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
 
 Caso `403` del reenvio: repetir la solicitud valida con un access token autenticado cuyo unico rol no sea `Administrador`.
 
+Solicitud publica de recuperacion con un correo controlado:
+
+```bash
+curl -i -X POST http://localhost:3000/api/auth/password-reset/request \
+  -H "Content-Type: application/json" \
+  -d '{"email":"correo.controlado@example.cl"}'
+```
+
+Probar con tres casos controlados: correo inexistente, usuario `Desvinculado` y usuario `Activo`. Solo el usuario `Activo` debe disparar correo Auth0.
+
 No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
 
 Antes de abrir una solicitud de cambios, ejecutar al menos:
@@ -398,11 +455,12 @@ Requiere access token Auth0 valido con permiso `update:payment-status`.
 
 ```json
 {
-  "paymentStatusId": 1
+  "paymentStatusId": 2,
+  "observacion": "Cambio de estado a Confirmado desde modulo de pagos."
 }
 ```
 
-IDs de estado aceptados por el backend mock: `0` para `Pendiente`, `1` para `Confirmado` y `2` para `Rechazado`.
+IDs reales de `Estado_Pago`: `1` para `Pendiente`, `2` para `Confirmado` y `3` para `Rechazado`. El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
 
 - Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
 - Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.

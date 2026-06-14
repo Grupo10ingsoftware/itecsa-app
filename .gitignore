@@ -30,6 +30,7 @@ dist/
 capaVista/**/dist-ssr/
 capaServidor/**/build/
 capaServidor/**/coverage/
+data/backups/
 
 # Configuracion local frontend
 capaVista/**/*.local

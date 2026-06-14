@@ -11,7 +11,7 @@ const TABLE_COLUMNS = Object.freeze([
   'Estado',
   'Acciones',
 ])
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
+const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
 
 function buildNearbyPages(currentPage, totalPages) {
   if (totalPages <= 4) {

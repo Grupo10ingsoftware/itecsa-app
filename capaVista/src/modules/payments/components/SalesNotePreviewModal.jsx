@@ -14,6 +14,7 @@ export default function SalesNotePreviewModal({
   context,
   onClose,
   onDownload,
+  onOpenSignatureEvidence,
   onPrint,
   order,
 }) {
@@ -26,6 +27,20 @@ export default function SalesNotePreviewModal({
   const pdfVariant = isSignedDetail ? PDF_VARIANT.SIGNED : PDF_VARIANT.ORIGINAL
   const pdfAsset = getPdfAsset(order, pdfVariant)
   const modalTitle = isSignedDetail ? 'Documento firmado' : 'Vista previa'
+  const documentPanelTitle = isSignedDetail
+    ? 'Documento firmado'
+    : 'Vista previa del documento'
+  const closeAriaLabel = isSignedDetail
+    ? 'Cerrar documento firmado'
+    : 'Cerrar vista previa'
+  const expandAriaLabel = isExpanded
+    ? 'Restaurar tamaño'
+    : isSignedDetail
+      ? 'Agrandar documento'
+      : 'Agrandar vista previa'
+  const pdfTitle = isSignedDetail
+    ? `Documento firmado PDF de ${order.nvNumber}`
+    : `Vista previa PDF de ${order.nvNumber}`
   const previewDescription = isSignedDetail
     ? 'PDF firmado disponible para revisión, impresión y descarga.'
     : 'PDF original asociado a la Nota de Venta antes de la firma digital.'
@@ -130,6 +145,14 @@ export default function SalesNotePreviewModal({
   const secondaryRows = isSignedDetail ? signatureRows : generalRows
   const secondaryCardTitle = isSignedDetail ? 'Datos de firma' : 'Información general'
   const secondaryCardIcon = isSignedDetail ? 'bi-pen' : 'bi-info-circle'
+  const hasSignatureEvidence =
+    isSignedDetail && Boolean(order.signature?.evidenceUrl)
+  const handleOpenSignatureEvidence = () => {
+    onOpenSignatureEvidence?.(
+      order,
+      order.signature.evidenceFileName,
+    )
+  }
 
   const footer = (
     <>
@@ -160,13 +183,25 @@ export default function SalesNotePreviewModal({
         <i className="bi bi-file-earmark-arrow-down me-1" />
         Descargar PDF
       </button>
+
+      {isSignedDetail && (
+        <button
+          className="btn btn-outline-primary"
+          disabled={!hasSignatureEvidence}
+          onClick={handleOpenSignatureEvidence}
+          type="button"
+        >
+          <i className="bi bi-paperclip me-1" />
+          Ver evidencia
+        </button>
+      )}
     </>
   )
 
   return (
     <DocumentPreviewModalLayout
       bodyClassName={styles.modalPreview}
-      closeAriaLabel="Cerrar vista previa"
+      closeAriaLabel={closeAriaLabel}
       description={modalHeaderDescription}
       footer={footer}
       kicker={isSignedDetail ? 'Detalle de pago' : 'Nota de Venta'}
@@ -195,6 +230,20 @@ export default function SalesNotePreviewModal({
 
             <div className={styles.cardBody}>
               {secondaryRows.map(renderDetailItem)}
+              {hasSignatureEvidence && (
+                <div className={styles.evidenceAction}>
+                  <span>Evidencia adjunta</span>
+                  <strong>{order.signature.evidenceFileName || 'Archivo de firma'}</strong>
+                  <button
+                    className="btn btn-sm btn-outline-dark"
+                    onClick={handleOpenSignatureEvidence}
+                    type="button"
+                  >
+                    <i className="bi bi-paperclip me-1" />
+                    Ver evidencia
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -208,7 +257,7 @@ export default function SalesNotePreviewModal({
         <div className={styles.documentHeader}>
           <div className={styles.documentTitle}>
             <i className="bi bi-file-earmark-pdf" aria-hidden="true" />
-            <span>Vista previa del documento</span>
+            <span>{documentPanelTitle}</span>
           </div>
 
           <div
@@ -234,7 +283,7 @@ export default function SalesNotePreviewModal({
               <i className="bi bi-plus-lg" />
             </button>
             <button
-              aria-label={isExpanded ? 'Restaurar tamaño' : 'Agrandar vista previa'}
+              aria-label={expandAriaLabel}
               aria-pressed={isExpanded}
               onClick={() => setIsExpanded((currentValue) => !currentValue)}
               type="button"
@@ -250,9 +299,9 @@ export default function SalesNotePreviewModal({
 
         <PdfPreviewFrame
           className={styles.pdfPreviewFrame}
-          emptyMessage="Esta Nota de Venta todavía no tiene una ruta de archivo asociada en los datos simulados."
+          emptyMessage="Esta Nota de Venta todavia no tiene una ruta de archivo asociada."
           filePath={pdfAsset.filePath}
-          title={`Vista previa PDF de ${order.nvNumber}`}
+          title={pdfTitle}
           zoom={previewZoom}
         />
       </section>

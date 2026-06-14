@@ -7,6 +7,8 @@ ITECSA utiliza una SPA React para la experiencia de usuario y una API Express pa
 ```mermaid
 flowchart LR
     SPA["SPA React (capaVista)"] -->|"Universal Login"| AUTH0["Auth0"]
+    AUTH0 -->|"Forgot password custom link"| RESET_PAGE["/recuperar-contrasena"]
+    RESET_PAGE -->|"POST /api/auth/password-reset/request"| API
     AUTH0 -->|"Access token audience https://api.itecsa.local"| SPA
     SPA -->|"Bearer access token"| API["API Express (capaServidor)"]
     API --> JWT["checkJwt"]
@@ -23,9 +25,11 @@ flowchart LR
 - M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API con token validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
-- Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
 
 No se documentan secretos reales. Los `client_id` son identificadores publicos; el secret M2M queda fuera del repositorio y no se expone al frontend.
+
+El tenant usa Classic Universal Login con template personalizado gratuito. El template mantiene `allowSignUp: false`, limita la conexion a `Username-Password-Authentication` y reemplaza el link nativo de recuperacion por `/recuperar-contrasena` en la SPA. Los mensajes de Lock para `unauthorized`, `lock.unauthorized`, `blocked_user` y `too_many_attempts` se personalizan para evitar una experiencia ambigua en cuentas bloqueadas.
 
 ## Flujo De Autenticacion
 
@@ -39,6 +43,20 @@ No se documentan secretos reales. Los `client_id` son identificadores publicos; 
 6. La SPA llama `GET /api/auth/verify` mediante `authApi.verify()` y bearer token Auth0.
 7. El backend valida issuer, audience, email, rol unico permitido y formato de permisos.
 8. La API devuelve `rolUsuario`, `isAdministrador` y `permissions` para que la SPA controle navegacion y experiencia visual.
+
+Si Auth0 rechaza el inicio de sesion por cuenta `blocked`, la SPA conserva el error del SDK Auth0 React, no relanza automaticamente `loginWithRedirect()` y muestra el mensaje de cuenta desactivada. Esto evita un bucle visual de retorno al Universal Login.
+
+## Recuperacion Publica De Contrasena
+
+El usuario inicia la recuperacion desde el link personalizado de Classic Universal Login hacia `/recuperar-contrasena`. La SPA no consulta Auth0 directamente; envia el correo al backend mediante `POST /api/auth/password-reset/request`.
+
+El backend aplica estas reglas:
+
+- Si el correo no existe en la tabla interna `Usuario`, responde el mensaje de cuenta no encontrada y no llama Auth0.
+- Si el usuario existe pero su `estadoUsuario` no es `Activo`, responde el mensaje de cuenta desactivada y no llama Auth0.
+- Si el usuario existe y esta `Activo`, solicita a Auth0 el correo de cambio de contrasena mediante `/dbconnections/change_password`.
+
+El flujo nunca retorna tickets, enlaces, tokens ni contrasenas a la SPA. La distincion de mensajes entre cuenta inexistente y desactivada es una decision funcional del sistema y debe mantenerse con rate limiting, logs y monitoreo para reducir enumeracion abusiva.
 
 ## Autorizacion
 

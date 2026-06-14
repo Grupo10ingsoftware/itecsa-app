@@ -3,6 +3,7 @@ import { once } from "node:events";
 import { test } from "node:test";
 import express from "express";
 import {
+    KANBAN_STAGE_SKIP_MESSAGE,
     PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
 } from "../src/config/status.js";
 import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
@@ -137,4 +138,33 @@ test("PATCH move permite Listo para produccion si el pago esta confirmado", asyn
 
     assert.equal(response.status, 200);
     assert.equal(body.id_etapa_general, 1);
+});
+
+test("PATCH move devuelve el mensaje si se intenta saltar etapas", async (t) => {
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate,
+            controller: createController({
+                updateGeneralStep(req, res) {
+                    return res.status(409).json({
+                        message: KANBAN_STAGE_SKIP_MESSAGE,
+                    });
+                },
+            }),
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/6/move`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ generalStepId: 3 }),
+        },
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 409);
+    assert.deepEqual(body, { message: KANBAN_STAGE_SKIP_MESSAGE });
 });

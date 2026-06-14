@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Log in | ITECSA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+
+  <style>
+    html,
+    body {
+      background: #000;
+      height: 100%;
+      margin: 0;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-header-logo {
+      height: auto;
+      max-height: 52px;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-submit {
+      background: #ff6817;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-submit:hover,
+    .auth0-lock.auth0-lock .auth0-lock-submit:focus {
+      background: #f97316;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!--[if IE 8]>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/ie8/0.2.5/ie8.js"></script>
+  <![endif]-->
+
+  <!--[if lte IE 9]>
+  <script src="https://cdn.auth0.com/js/base64.js"></script>
+  <script src="https://cdn.auth0.com/js/es5-shim.min.js"></script>
+  <![endif]-->
+
+  <script src="https://cdn.auth0.com/js/lock/14.2.3/lock.min.js"></script>
+
+  <script>
+    var config = JSON.parse(decodeURIComponent(escape(window.atob('@@config@@'))));
+    config.extraParams = config.extraParams || {};
+
+    var prompt = config.prompt;
+    var loginHint = config.extraParams.login_hint;
+    var colors = config.colors || {};
+
+    var language = 'es';
+    var languageDictionary = {};
+
+    var databaseConnection = 'Username-Password-Authentication';
+
+    var passwordResetUrl = 'http://localhost:5173/recuperar-contrasena';
+    // Producción futura: cambiar a https://app.itecsa.cl/recuperar-contrasena
+
+    languageDictionary.title = 'ITECSA';
+
+    languageDictionary.loginLabel = 'Ingresar';
+    languageDictionary.loginSubmitLabel = 'Ingresar';
+
+    languageDictionary.emailInputPlaceholder = 'Correo electrónico';
+    languageDictionary.passwordInputPlaceholder = 'Contraseña';
+    languageDictionary.forgotPasswordAction = 'Recuperar contraseña';
+
+    languageDictionary.blankPasswordErrorHint = 'La contraseña no puede estar vacía';
+    languageDictionary.blankEmailErrorHint = 'El correo no puede estar vacío';
+    languageDictionary.blankUsernameErrorHint = 'El usuario no puede estar vacío';
+    languageDictionary.blankErrorHint = 'Este campo es obligatorio';
+
+    languageDictionary.invalidPasswordErrorHint = 'La contraseña no es válida';
+    languageDictionary.invalidEmailErrorHint = 'El correo no es válido';
+
+    languageDictionary.wrongEmailPasswordError = 'Correo o contraseña incorrectos.';
+
+    languageDictionary.error = {
+      login: {
+        blocked_user: 'Tu cuenta se encuentra desactivada. Comunícate con el administrador.',
+        unauthorized: 'Tu cuenta se encuentra desactivada. Comunícate con el administrador.',
+        'lock.unauthorized': 'Tu cuenta se encuentra desactivada. Comunícate con el administrador.',
+        too_many_attempts: 'Se detectaron demasiados intentos. Intenta nuevamente más tarde o comunícate con el administrador.',
+        invalid_user_password: 'Correo o contraseña incorrectos.',
+        'lock.invalid_email_password': 'Correo o contraseña incorrectos.',
+        'lock.fallback': 'Ocurrió un error al intentar iniciar sesión.'
+      }
+    };
+
+    var lock = new Auth0Lock(config.clientID, config.auth0Domain, {
+      auth: {
+        redirectUrl: config.callbackURL,
+        responseType: (config.internalOptions || {}).response_type ||
+          (config.callbackOnLocationHash ? 'token' : 'code'),
+        params: config.internalOptions
+      },
+
+      configurationBaseUrl: config.clientConfigurationBaseUrl,
+
+      overrides: {
+        __tenant: config.auth0Tenant,
+        __token_issuer: config.authorizationServer.issuer
+      },
+
+      assetsUrl: config.assetsUrl,
+
+      allowedConnections: [databaseConnection],
+      allowSignUp: false,
+
+      forgotPasswordLink: passwordResetUrl,
+
+      rememberLastLogin: !prompt,
+
+      language: language,
+      languageBaseUrl: config.languageBaseUrl,
+      languageDictionary: languageDictionary,
+
+      theme: {
+        logo: 'https://itecsa.cl/cdn/shop/files/LOGO_ITECSA_2026.png?v=1778597377',
+        primaryColor: colors.primary ? colors.primary : '#ff6817'
+      },
+
+      prefill: loginHint ? { email: loginHint, username: loginHint } : null,
+
+      closable: false,
+      defaultADUsernameFromEmailPrefix: false
+    });
+
+    if (colors.page_background) {
+      var css = '.auth0-lock.auth0-lock .auth0-lock-overlay { background: ' +
+        colors.page_background +
+        ' }';
+
+      var style = document.createElement('style');
+      style.appendChild(document.createTextNode(css));
+      document.body.appendChild(style);
+    }
+
+    lock.show();
+  </script>
+</body>
+</html>

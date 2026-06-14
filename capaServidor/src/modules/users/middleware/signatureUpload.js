@@ -11,11 +11,35 @@ const signaturesDirectory = path.resolve(projectRootDirectory, "data/Firmas");
 const projectDirectoryName = path.basename(projectRootDirectory);
 
 const ALLOWED_SIGNATURE_TYPES = new Map([
-    [".pdf", "application/pdf"],
-    [".png", "image/png"],
-    [".jpg", "image/jpeg"],
-    [".jpeg", "image/jpeg"],
-    [".webp", "image/webp"],
+    [".pdf", new Set(["application/pdf"])],
+    [".xml", new Set(["application/xml", "text/xml"])],
+    [
+        ".cms",
+        new Set([
+            "application/cms",
+            "application/pkcs7-mime",
+            "application/pkcs7-signature",
+            "application/octet-stream",
+        ]),
+    ],
+    [
+        ".p7s",
+        new Set([
+            "application/cms",
+            "application/pkcs7-mime",
+            "application/pkcs7-signature",
+            "application/octet-stream",
+        ]),
+    ],
+    [
+        ".p7m",
+        new Set([
+            "application/cms",
+            "application/pkcs7-mime",
+            "application/pkcs7-signature",
+            "application/octet-stream",
+        ]),
+    ],
 ]);
 
 function getSafeExtension(file) {
@@ -32,12 +56,12 @@ function ensureSignaturesDirectory() {
 
 function signatureFileFilter(req, file, callback) {
     const extension = getSafeExtension(file);
-    const expectedMimeType = ALLOWED_SIGNATURE_TYPES.get(extension);
+    const expectedMimeTypes = ALLOWED_SIGNATURE_TYPES.get(extension);
 
-    if (!expectedMimeType || file.mimetype !== expectedMimeType) {
+    if (!expectedMimeTypes || !expectedMimeTypes.has(file.mimetype)) {
         return callback(
             new Error(
-                "La firma electronica debe ser PDF, PNG, JPG, JPEG o WebP.",
+                "La firma electronica debe ser XML, CMS o PDF.",
             ),
         );
     }

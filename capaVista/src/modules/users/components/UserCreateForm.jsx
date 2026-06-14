@@ -340,7 +340,7 @@ export default function UserCreateForm({ onCreated } = {}) {
 
       <div className="col-md-6">
         <FileInput
-          accept="application/pdf,image/png,image/jpeg,image/webp"
+          accept="application/pdf,application/xml,text/xml,application/cms,application/pkcs7-mime,application/pkcs7-signature,.pdf,.xml,.cms,.p7s,.p7m"
           error={firmaElectronicaErrors.join(' ')}
           file={values.firmaElectronica}
           label="Firma electronica"

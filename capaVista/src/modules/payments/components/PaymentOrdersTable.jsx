@@ -7,6 +7,7 @@ import styles from './PaymentOrdersTable.module.css'
 export default function PaymentOrdersTable({
   canUpdatePaymentStatus,
   editingStatus,
+  isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
   onOpenSalesNote,
@@ -62,6 +63,7 @@ export default function PaymentOrdersTable({
                   <PaymentRowActions
                     canUpdatePaymentStatus={canUpdatePaymentStatus}
                     editingStatus={editingStatus}
+                    isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                     onCloseEditor={onCloseEditor}
                     onSelectStatus={onSelectStatus}
                     onToggleEditor={onToggleEditor}

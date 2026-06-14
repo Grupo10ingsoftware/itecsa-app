@@ -36,7 +36,7 @@ export function getPaymentActionMeta(targetStatus) {
       statusLabel: PAYMENT_STATUS.CONFIRMADO,
       previewTitle: 'Vista previa de Nota de Venta firmada',
       previewDescription:
-        'Se muestra una firma digital demo antes de aplicar el cambio de estado.',
+        'Se muestra el documento firmado si existe una ruta asociada.',
       pdfVariant: PDF_VARIANT.SIGNED,
       holdLabel: 'Mantener para confirmar cambio',
       completedLabel: 'Confirmando cambio...',
@@ -83,10 +83,11 @@ export function getPdfAsset(order, variant = PDF_VARIANT.ORIGINAL, options = {})
   }
 
   const wantsSigned = variant === PDF_VARIANT.SIGNED
-  const signedFilePath =
-    order.signedNvFilePath || options.fallbackSignedFilePath || null
+  const signedFilePath = options.fallbackSignedFilePath || (
+    order.isSigned ? order.nvFilePath : null
+  )
   const signedFileName =
-    order.signedNvFileName || options.fallbackSignedFileName || 'Documento firmado.pdf'
+    options.fallbackSignedFileName || order.nvFileName || 'Documento firmado.pdf'
 
   if (wantsSigned) {
     return {
@@ -158,20 +159,120 @@ function openPdfAsFallback(filePath) {
   }
 }
 
+export function openPdfForDownload(filePath, fileName = 'documento.pdf') {
+  if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
 
-function buildPrintablePdfUrl(filePath) {
-  const separator = filePath.includes('#') ? '&' : '#'
+  const openedWindow = window.open(filePath, '_blank')
 
-  return `${filePath}${separator}toolbar=0&navpanes=0&statusbar=0&messages=0&pagemode=none&scrollbar=1&view=FitH`
+  if (openedWindow) {
+    openedWindow.opener = null
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = filePath
+  link.download = fileName
+  link.target = '_blank'
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+export function openFileForDownload(filePath, fileName = 'archivo') {
+  if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
+
+  const openedWindow = window.open(filePath, '_blank')
+
+  if (openedWindow) {
+    openedWindow.opener = null
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = filePath
+  link.download = fileName
+  link.target = '_blank'
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+
+const PRINT_REQUEST_COOLDOWN_MS = 1500
+
+let activePrintJob = null
+let lastPrintRequest = {
+  filePath: null,
+  timestamp: 0,
+}
+
+async function createPrintablePdfObjectUrl(filePath) {
+  const response = await fetch(filePath)
+
+  if (!response.ok) {
+    throw new Error('No fue posible cargar el PDF para impresión.')
+  }
+
+  const pdfBlob = await response.blob()
+  const printableBlob = pdfBlob.type === 'application/pdf'
+    ? pdfBlob
+    : new Blob([pdfBlob], { type: 'application/pdf' })
+
+  return URL.createObjectURL(printableBlob)
+}
+
+function revokePrintJobObjectUrl(printJob) {
+  if (!printJob?.objectUrl) return
+
+  URL.revokeObjectURL(printJob.objectUrl)
+  printJob.objectUrl = null
+}
+
+function clearActivePrintJob({ removeFrame = true } = {}) {
+  if (!activePrintJob) return
+
+  window.clearTimeout(activePrintJob.printDelayTimer)
+  window.clearTimeout(activePrintJob.cleanupTimer)
+  window.removeEventListener('afterprint', activePrintJob.cleanup)
+
+  if (removeFrame) {
+    activePrintJob.printFrame?.remove()
+  }
+
+  revokePrintJobObjectUrl(activePrintJob)
+  activePrintJob = null
 }
 
 function removePreviousPrintFrame() {
+  clearActivePrintJob()
+
   const previousFrame = document.querySelector('[data-payments-print-frame="true"]')
   previousFrame?.remove()
 }
 
-export function printPdf(filePath) {
+function shouldIgnoreDuplicatePrintRequest(filePath) {
+  const now = Date.now()
+  const isSameFile = lastPrintRequest.filePath === filePath
+  const isTooSoon = now - lastPrintRequest.timestamp < PRINT_REQUEST_COOLDOWN_MS
+
+  if (isSameFile && isTooSoon) {
+    return true
+  }
+
+  lastPrintRequest = {
+    filePath,
+    timestamp: now,
+  }
+
+  return false
+}
+
+export async function printPdf(filePath) {
   if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
+
+  if (shouldIgnoreDuplicatePrintRequest(filePath)) return
 
   if (isMobileDevice()) {
     openPdfForMobilePrint(filePath)
@@ -179,6 +280,16 @@ export function printPdf(filePath) {
   }
 
   removePreviousPrintFrame()
+
+  let objectUrl = null
+
+  try {
+    objectUrl = await createPrintablePdfObjectUrl(filePath)
+  } catch (error) {
+    console.error('Error preparando PDF para impresión:', error)
+    openPdfAsFallback(filePath)
+    return
+  }
 
   const printFrame = document.createElement('iframe')
   let cleanupTimer = null
@@ -188,6 +299,15 @@ export function printPdf(filePath) {
     window.clearTimeout(cleanupTimer)
     window.removeEventListener('afterprint', cleanup)
     printFrame.remove()
+
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl)
+      objectUrl = null
+    }
+
+    if (activePrintJob?.printFrame === printFrame) {
+      activePrintJob = null
+    }
   }
 
   printFrame.dataset.paymentsPrintFrame = 'true'
@@ -202,21 +322,40 @@ export function printPdf(filePath) {
   printFrame.style.right = '0'
   printFrame.style.width = '1px'
 
+  activePrintJob = {
+    cleanup,
+    cleanupTimer,
+    filePath,
+    objectUrl,
+    printDelayTimer: null,
+    printFrame,
+  }
+
   printFrame.onload = () => {
     if (hasRequestedPrint) return
     hasRequestedPrint = true
 
-    window.setTimeout(() => {
+    const printDelayTimer = window.setTimeout(() => {
       try {
         printFrame.contentWindow?.focus()
         printFrame.contentWindow?.print()
         window.addEventListener('afterprint', cleanup, { once: true })
+
         cleanupTimer = window.setTimeout(cleanup, 120000)
-      } catch {
+
+        if (activePrintJob?.printFrame === printFrame) {
+          activePrintJob.cleanupTimer = cleanupTimer
+        }
+      } catch (error) {
+        console.error('Error imprimiendo PDF:', error)
         cleanup()
         openPdfAsFallback(filePath)
       }
     }, 500)
+
+    if (activePrintJob?.printFrame === printFrame) {
+      activePrintJob.printDelayTimer = printDelayTimer
+    }
   }
 
   printFrame.onerror = () => {
@@ -224,6 +363,6 @@ export function printPdf(filePath) {
     openPdfAsFallback(filePath)
   }
 
-  printFrame.src = buildPrintablePdfUrl(filePath)
+  printFrame.src = objectUrl
   document.body.appendChild(printFrame)
 }

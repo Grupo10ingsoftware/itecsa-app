@@ -20,7 +20,7 @@ export const AUTH0_MANAGEMENT_SCOPES = Object.freeze([
 const OFFICIAL_ROLES = new Set([
     "Administrador",
     "Gerencia",
-    "Operario",
+    "Producción",
     "Ventas",
     "Cobranzas",
 ]);

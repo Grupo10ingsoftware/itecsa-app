@@ -1,5 +1,8 @@
 import getPrismaClient from "../../../database/prisma.js";
 
+const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
+const PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX = "/api/orders";
+
 const ORDER_UPDATE_FIELDS = new Set([
   "fecha_estimada_termino",
   "id_usuario",
@@ -17,25 +20,147 @@ function uniqueProductNames(details = []) {
   return [...new Set(names)].join(", ");
 }
 
+function uniqueProductDescriptions(details = []) {
+  const descriptions = details
+    .map((detail) => detail.Tipo_Producto?.descripcion_producto)
+    .filter(Boolean);
+
+  return [...new Set(descriptions)].join(", ");
+}
+
+function totalQuantity(details = []) {
+  const quantities = details
+    .map((detail) => Number(detail.cantidad))
+    .filter((quantity) => Number.isFinite(quantity));
+
+  if (quantities.length === 0) return null;
+
+  return quantities.reduce((sum, quantity) => sum + quantity, 0);
+}
+
+function findSalesNoteDocument(documents = []) {
+  return (
+    documents.find((document) => document.Nota_Venta) ??
+    documents.find((document) => document.ruta_pdf) ??
+    null
+  );
+}
+
+function findPaymentSignature(document) {
+  return (
+    document?.Firma_Documento?.find((signature) => signature.Firma_Pago) ??
+    null
+  );
+}
+
+function getFileNameFromStoredPath(storedPath) {
+  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
+    return null;
+  }
+
+  return storedPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? null;
+}
+
+function buildPaymentSignatureEvidenceUrl(orderId, paymentSignature) {
+  if (!orderId || !paymentSignature?.Firma_Pago) {
+    return null;
+  }
+
+  return `${PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX}/${encodeURIComponent(orderId)}/payment-signature-evidence`;
+}
+
+export function buildSalesNotePdfUrl(storedPath) {
+  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
+    return null;
+  }
+
+  const normalizedPath = storedPath.replace(/\\/g, "/");
+  const pathParts = normalizedPath.split("/").filter(Boolean);
+  const nvsIndex = pathParts.findIndex((part) => part.toLowerCase() === "nvs");
+  const filename = pathParts.at(-1);
+
+  if (!filename?.toLowerCase().endsWith(".pdf")) {
+    return storedPath;
+  }
+
+  if (nvsIndex === -1 || pathParts[nvsIndex + 1] !== filename) {
+    return storedPath;
+  }
+
+  return `${SALES_NOTE_DOCUMENT_URL_PREFIX}${encodeURIComponent(filename)}`;
+}
+
 function mapOrderRow(order, paymentStatusName = null) {
   if (!order) return null;
 
   const {
     Cliente,
+    Documento,
     Detalle_pedido,
     Estado_Pedido,
     ...orderFields
   } = order;
+  const salesNoteDocument = findSalesNoteDocument(Documento);
+  const paymentSignature = findPaymentSignature(salesNoteDocument);
 
   return {
     ...orderFields,
     nombre_cliente: Cliente?.nombre_cliente ?? null,
+    rut_cliente: Cliente?.rut_cliente ?? null,
+    razon_social: Cliente?.razon_social ?? null,
     nombre_producto: Detalle_pedido ? uniqueProductNames(Detalle_pedido) : undefined,
+    descripcion_producto: Detalle_pedido
+      ? uniqueProductDescriptions(Detalle_pedido)
+      : undefined,
+    cantidad: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
     id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
     nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
     estado_pago: paymentStatusName,
+    ruta_pdf: buildSalesNotePdfUrl(salesNoteDocument?.ruta_pdf),
+    numero_nota_venta:
+      salesNoteDocument?.Nota_Venta?.numero_nota_venta ?? null,
+    firmado: salesNoteDocument?.Nota_Venta?.firmado ?? null,
+    firma_pago: paymentSignature
+      ? {
+          id_firma_documento: paymentSignature.id_firma_documento ?? null,
+          fecha_firma: paymentSignature.fecha_firma ?? null,
+          id_usuario: paymentSignature.id_usuario ?? null,
+          evidenceFileName: getFileNameFromStoredPath(
+            paymentSignature.Usuario?.ruta_firma,
+          ),
+          evidenceUrl: buildPaymentSignatureEvidenceUrl(
+            orderFields.id_pedido,
+            paymentSignature,
+          ),
+        }
+      : null,
   };
 }
+
+const orderReadInclude = {
+  Cliente: true,
+  Detalle_pedido: {
+    include: {
+      Tipo_Producto: true,
+    },
+  },
+  Documento: {
+    include: {
+      Nota_Venta: true,
+      Firma_Documento: {
+        include: {
+          Firma_Pago: true,
+          Usuario: {
+            select: {
+              ruta_firma: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  Estado_Pedido: true,
+};
 
 class OrderRepository {
   constructor({ prisma } = {}) {
@@ -71,15 +196,7 @@ class OrderRepository {
 
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
-      include: {
-        Cliente: true,
-        Detalle_pedido: {
-          include: {
-            Tipo_Producto: true,
-          },
-        },
-        Estado_Pedido: true,
-      },
+      include: orderReadInclude,
       orderBy: { id_pedido: "desc" },
     });
     const paymentStatuses = await this.getPaymentStatusNamesByIds(
@@ -94,10 +211,7 @@ class OrderRepository {
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      include: {
-        Cliente: true,
-        Estado_Pedido: true,
-      },
+      include: orderReadInclude,
     });
 
     if (!order) return null;

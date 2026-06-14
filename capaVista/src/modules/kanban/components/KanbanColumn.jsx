@@ -8,6 +8,8 @@ import KanbanOffCanvas from './KanbanOffCanvas'
 import styles from '../styles/Kanban.module.css'
 
 const MOVE_TO_PRODUCTION_PERMISSION_MESSAGE = 'Solo un administrador puede mover pedidos a En produccion.'
+const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
+const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 
 const processTemplates = {
@@ -257,7 +259,19 @@ function KanbanColumn() {
 
     if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
 
-    const isForwardMove = Number(targetColumn.generalStepId) > Number(order.generalStepId)
+    const currentStep = Number(order.generalStepId)
+    const targetStep = Number(targetColumn.generalStepId)
+    const isForwardMove = targetStep > currentStep
+
+    if (targetStep < currentStep) {
+      setMoveError(STAGE_BACKWARD_MESSAGE)
+      return
+    }
+
+    if (targetStep !== currentStep + 1) {
+      setMoveError(STAGE_SKIP_MESSAGE)
+      return
+    }
 
     if (isForwardMove && !isPaymentConfirmed(order)) {
       setMoveError('Debes confirmar el pago antes de mover esta orden.')
@@ -265,7 +279,7 @@ function KanbanColumn() {
     }
 
     const isMoveToProduction =
-      isForwardMove && Number(targetColumn.generalStepId) === KANBAN_EN_PRODUCCION_STEP
+      isForwardMove && targetStep === KANBAN_EN_PRODUCCION_STEP
 
     if (isMoveToProduction && !hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)) {
       setMoveError(MOVE_TO_PRODUCTION_PERMISSION_MESSAGE)

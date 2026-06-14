@@ -1,6 +1,7 @@
 import {
   KANBAN_EN_PRODUCCION_STEP,
   KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+  KANBAN_STAGE_SKIP_MESSAGE,
   MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
@@ -142,6 +143,16 @@ class OrderService {
 
     if (nextStep < currentStep) {
       const error = new Error("No puedes retroceder en las etapas del pedido");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    if (nextStep === currentStep) {
+      return order;
+    }
+
+    if (nextStep !== currentStep + 1) {
+      const error = new Error(KANBAN_STAGE_SKIP_MESSAGE);
       error.statusCode = 409;
       throw error;
     }

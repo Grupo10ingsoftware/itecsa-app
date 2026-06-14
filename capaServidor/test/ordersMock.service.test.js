@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
     KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
+    KANBAN_STAGE_SKIP_MESSAGE,
     MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
     PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
     PAYMENT_STATUS,
@@ -22,6 +23,12 @@ const INITIAL_ORDERS = [
         estado_pago: PAYMENT_STATUS.CONFIRMADO,
         id_estado_pago: 2,
         id_etapa_general: 1,
+    },
+    {
+        id_pedido: 7,
+        estado_pago: PAYMENT_STATUS.CONFIRMADO,
+        id_estado_pago: 2,
+        id_etapa_general: 2,
     },
 ];
 
@@ -352,4 +359,38 @@ test("permite mover a En produccion con el permiso requerido", async () => {
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 2);
+});
+
+test("bloquea saltar desde Confirmacion de pago directo a En produccion", async () => {
+    const service = createService();
+
+    await assert.rejects(
+        () => service.updGeneralStep(1, 2, {
+            permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+        }),
+        {
+            statusCode: 409,
+            message: KANBAN_STAGE_SKIP_MESSAGE,
+        },
+    );
+});
+
+test("bloquea saltar desde Listo para produccion directo a Listo para entrega", async () => {
+    const service = createService();
+
+    await assert.rejects(
+        () => service.updGeneralStep(6, 3),
+        {
+            statusCode: 409,
+            message: KANBAN_STAGE_SKIP_MESSAGE,
+        },
+    );
+});
+
+test("permite mover de En produccion a Listo para entrega", async () => {
+    const service = createService();
+    const order = await service.updGeneralStep(7, 3);
+
+    assert.equal(order.id_estado_pago, 2);
+    assert.equal(order.id_etapa_general, 3);
 });

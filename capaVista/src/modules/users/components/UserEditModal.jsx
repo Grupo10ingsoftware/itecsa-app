@@ -204,17 +204,14 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
               <span>Estado</span>
               <select
                 className={styles.formControl}
+                disabled={isCurrentUser}
                 id="edit-user-status"
                 name="estadoUsuario"
                 onChange={handleChange}
                 value={values.estadoUsuario}
               >
                 {USER_STATUSES.map((status) => (
-                  <option
-                    disabled={isCurrentUser && status === 'Desvinculado'}
-                    key={status}
-                    value={status}
-                  >
+                  <option key={status} value={status}>
                     {status}
                   </option>
                 ))}

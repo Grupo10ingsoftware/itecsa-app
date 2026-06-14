@@ -2,7 +2,7 @@ import UserButton from './UserButton'
 import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
 
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
+const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
 
 export default function UserManagementMobileList({ isLoading, onEditUser, onUnlinkUser, users }) {
   if (isLoading || users.length === 0) {

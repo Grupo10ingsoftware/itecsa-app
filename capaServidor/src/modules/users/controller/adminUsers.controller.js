@@ -26,6 +26,8 @@ const UPDATE_USER_ERROR_MESSAGE = "No fue posible actualizar el usuario.";
 const UPDATE_STATUS_ERROR_MESSAGE = "No fue posible actualizar el estado del usuario.";
 const SELF_UNLINK_ERROR_MESSAGE =
     "No puedes desvincular tu propio usuario administrador.";
+const SELF_ROLE_UPDATE_ERROR_MESSAGE =
+    "No puedes cambiar tu propio rol de administrador.";
 const ACTIVE_USER_STATUS = "Activo";
 const PENDING_ROLE_USER_STATUS = "Pendiente rol";
 
@@ -110,10 +112,20 @@ function getAuthenticatedUserId(req) {
     return typeof subject === "string" ? subject.trim() : "";
 }
 
+function isSelfTargetRequest(req, targetUserId) {
+    return getAuthenticatedUserId(req) === targetUserId;
+}
+
 function isSelfUnlinkRequest(req, targetUserId, estadoUsuario) {
+    return estadoUsuario === "Desvinculado" && isSelfTargetRequest(req, targetUserId);
+}
+
+function isSelfRoleUpdateRequest(req, targetUserId, currentRole, nextRole) {
     return (
-        estadoUsuario === "Desvinculado" &&
-        getAuthenticatedUserId(req) === targetUserId
+        isSelfTargetRequest(req, targetUserId) &&
+        typeof currentRole === "string" &&
+        typeof nextRole === "string" &&
+        currentRole !== nextRole
     );
 }
 
@@ -180,6 +192,19 @@ export function createUpdateAdminUserHandler({
 
             if (!existingUser) {
                 return res.status(404).json({ message: "El usuario no existe." });
+            }
+
+            if (
+                isSelfRoleUpdateRequest(
+                    req,
+                    normalizedUserId,
+                    existingUser.rolUsuario,
+                    user.rolUsuario,
+                )
+            ) {
+                return res.status(409).json({
+                    message: SELF_ROLE_UPDATE_ERROR_MESSAGE,
+                });
             }
 
             await updateUser({

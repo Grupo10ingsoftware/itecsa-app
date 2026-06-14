@@ -25,9 +25,9 @@ const LIST_USERS_ERROR_MESSAGE = "No fue posible consultar los usuarios.";
 const UPDATE_USER_ERROR_MESSAGE = "No fue posible actualizar el usuario.";
 const UPDATE_STATUS_ERROR_MESSAGE = "No fue posible actualizar el estado del usuario.";
 const SELF_UNLINK_ERROR_MESSAGE =
-    "No puedes desvincular tu propio usuario administrador.";
+    "No puedes desvincular tu propia cuenta.";
 const SELF_ROLE_UPDATE_ERROR_MESSAGE =
-    "No puedes editar tu propio rol administrador.";
+    "No puedes cambiar tu propio rol de administrador.";
 const ACTIVE_USER_STATUS = "Activo";
 const PENDING_ROLE_USER_STATUS = "Pendiente rol";
 

@@ -231,6 +231,19 @@ export class UserRepository {
             throw mapRepositoryError(error);
         }
     }
+
+    async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
+        try {
+            const user = await this.client.usuario.update({
+                where: { id_auth0: auth0UserId },
+                data: { rol_usuario: rolUsuario },
+            });
+
+            return toUserResponse(user);
+        } catch (error) {
+            throw mapRepositoryError(error);
+        }
+    }
 }
 
 export default new UserRepository();

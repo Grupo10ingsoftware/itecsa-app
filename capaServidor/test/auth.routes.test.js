@@ -6,8 +6,8 @@ import {
     Auth0ServiceError,
 } from "../src/modules/users/service/auth0Management.service.js";
 import {
+    createVerifyAuthSessionHandler,
     createPasswordResetRequestHandler,
-    verifyAuthSessionHandler,
 } from "../src/modules/auth/controller/auth.controller.js";
 import {
     createAuthRouter,
@@ -35,19 +35,41 @@ function responseRecorder() {
     };
 }
 
-function executeVerify(payload) {
+async function executeVerify(payload) {
     const res = responseRecorder();
+    const handler = createVerifyAuthSessionHandler({
+        users: createUsersRepositoryMock(),
+        logger: {},
+    });
 
-    verifyAuthSessionHandler({ auth: { payload } }, res);
+    await handler({ auth: { payload } }, res);
 
     return res;
 }
 
-function createUsersRepositoryMock({ user = null, onFindByEmail } = {}) {
+function createUsersRepositoryMock({
+    user = null,
+    auth0User = null,
+    onFindByEmail,
+    onFindByAuth0Id,
+    onUpdateRoleByAuth0Id,
+} = {}) {
     return {
         async findByEmail(email) {
             await onFindByEmail?.(email);
             return user;
+        },
+        async findByAuth0Id(auth0UserId) {
+            await onFindByAuth0Id?.(auth0UserId);
+            return auth0User;
+        },
+        async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
+            await onUpdateRoleByAuth0Id?.(auth0UserId, rolUsuario);
+            return {
+                ...(auth0User ?? {}),
+                idAuth0: auth0UserId,
+                rolUsuario,
+            };
         },
     };
 }
@@ -69,8 +91,8 @@ async function executePasswordReset({
     return res;
 }
 
-test("devuelve permisos Auth0 en la verificacion de sesion", () => {
-    const res = executeVerify({
+test("devuelve permisos Auth0 en la verificacion de sesion", async () => {
+    const res = await executeVerify({
         ...VALID_PAYLOAD,
         permissions: [
             "view:orders-module",
@@ -90,15 +112,112 @@ test("devuelve permisos Auth0 en la verificacion de sesion", () => {
     });
 });
 
-test("devuelve permisos vacios si Auth0 no incluye permissions", () => {
-    const res = executeVerify(VALID_PAYLOAD);
+test("devuelve permisos vacios si Auth0 no incluye permissions", async () => {
+    const res = await executeVerify(VALID_PAYLOAD);
 
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.permissions, []);
 });
 
-test("rechaza permissions malformado", () => {
-    const res = executeVerify({
+test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => {
+    let receivedLookup;
+    let receivedUpdate;
+    const handler = createVerifyAuthSessionHandler({
+        users: createUsersRepositoryMock({
+            auth0User: {
+                idAuth0: VALID_PAYLOAD.sub,
+                rolUsuario: "Cobranzas",
+            },
+            onFindByAuth0Id(auth0UserId) {
+                receivedLookup = auth0UserId;
+            },
+            onUpdateRoleByAuth0Id(auth0UserId, rolUsuario) {
+                receivedUpdate = { auth0UserId, rolUsuario };
+            },
+        }),
+        logger: {},
+    });
+    const res = responseRecorder();
+
+    await handler(
+        {
+            auth: {
+                payload: {
+                    ...VALID_PAYLOAD,
+                    "https://itecsa.local/roles": ["Administrador"],
+                },
+            },
+        },
+        res,
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.rolUsuario, "Administrador");
+    assert.equal(res.body.isAdministrador, true);
+    assert.equal(receivedLookup, VALID_PAYLOAD.sub);
+    assert.deepEqual(receivedUpdate, {
+        auth0UserId: VALID_PAYLOAD.sub,
+        rolUsuario: "Administrador",
+    });
+});
+
+test("no actualiza el rol interno si ya coincide con Auth0", async () => {
+    let updateCalls = 0;
+    const handler = createVerifyAuthSessionHandler({
+        users: createUsersRepositoryMock({
+            auth0User: {
+                idAuth0: VALID_PAYLOAD.sub,
+                rolUsuario: "Ventas",
+            },
+            onUpdateRoleByAuth0Id() {
+                updateCalls += 1;
+            },
+        }),
+        logger: {},
+    });
+    const res = responseRecorder();
+
+    await handler({ auth: { payload: VALID_PAYLOAD } }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(updateCalls, 0);
+});
+
+test("responde error controlado si falla la sincronizacion del rol interno", async () => {
+    const handler = createVerifyAuthSessionHandler({
+        users: createUsersRepositoryMock({
+            auth0User: {
+                idAuth0: VALID_PAYLOAD.sub,
+                rolUsuario: "Cobranzas",
+            },
+            onUpdateRoleByAuth0Id() {
+                throw new Error("database failure");
+            },
+        }),
+        logger: {},
+    });
+    const res = responseRecorder();
+
+    await handler(
+        {
+            auth: {
+                payload: {
+                    ...VALID_PAYLOAD,
+                    "https://itecsa.local/roles": ["Administrador"],
+                },
+            },
+        },
+        res,
+    );
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(res.body, {
+        message: "No fue posible verificar la sesion autenticada.",
+    });
+});
+
+test("rechaza permissions malformado", async () => {
+    const res = await executeVerify({
         ...VALID_PAYLOAD,
         permissions: "view:orders-module",
     });

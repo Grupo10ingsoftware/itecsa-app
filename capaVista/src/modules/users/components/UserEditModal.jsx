@@ -4,7 +4,7 @@ import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
 const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
+const SELF_ADMIN_EDIT_MESSAGE = 'No puedes desvincular ni editar el rol de tu propio usuario administrador.'
 
 function createFormState(user) {
   return {
@@ -49,11 +49,13 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
       return false
     }
 
+    const currentRole = user?.rolUsuario ?? ''
+
     return (
       Object.values(values).every((value) => String(value).trim().length > 0) &&
-      !(isCurrentUser && values.estadoUsuario === 'Desvinculado')
+      !(isCurrentUser && (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== currentRole))
     )
-  }, [isCurrentUser, values])
+  }, [isCurrentUser, user?.rolUsuario, values])
 
   if (!isOpen || !user || !values) {
     return null
@@ -76,7 +78,10 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (isCurrentUser && values.estadoUsuario === 'Desvinculado') {
+    if (
+      isCurrentUser &&
+      (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== (user.rolUsuario ?? ''))
+    ) {
       return
     }
 
@@ -178,6 +183,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
               <span>Rol</span>
               <select
                 className={styles.formControl}
+                disabled={isCurrentUser}
                 id="edit-user-role"
                 name="rolUsuario"
                 onChange={handleChange}
@@ -190,6 +196,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
                   </option>
                 ))}
               </select>
+              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_ADMIN_EDIT_MESSAGE}</small>}
             </label>
 
             <label className={styles.editField} htmlFor="edit-user-status">
@@ -211,7 +218,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
                   </option>
                 ))}
               </select>
-              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_UNLINK_MESSAGE}</small>}
+              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_ADMIN_EDIT_MESSAGE}</small>}
             </label>
           </div>
         </div>

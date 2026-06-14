@@ -83,10 +83,11 @@ export function getPdfAsset(order, variant = PDF_VARIANT.ORIGINAL, options = {})
   }
 
   const wantsSigned = variant === PDF_VARIANT.SIGNED
-  const signedFilePath =
-    order.signedNvFilePath || options.fallbackSignedFilePath || null
+  const signedFilePath = options.fallbackSignedFilePath || (
+    order.isSigned ? order.nvFilePath : null
+  )
   const signedFileName =
-    order.signedNvFileName || options.fallbackSignedFileName || 'Documento firmado.pdf'
+    options.fallbackSignedFileName || order.nvFileName || 'Documento firmado.pdf'
 
   if (wantsSigned) {
     return {
@@ -156,6 +157,26 @@ function openPdfAsFallback(filePath) {
     link.click()
     link.remove()
   }
+}
+
+export function openPdfForDownload(filePath, fileName = 'documento.pdf') {
+  if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
+
+  const openedWindow = window.open(filePath, '_blank')
+
+  if (openedWindow) {
+    openedWindow.opener = null
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = filePath
+  link.download = fileName
+  link.target = '_blank'
+  link.rel = 'noreferrer'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
 }
 
 

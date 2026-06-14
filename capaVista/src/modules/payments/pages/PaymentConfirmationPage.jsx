@@ -18,6 +18,7 @@ import {
   PREVIEW_CONTEXT,
   formatPaymentDateTime,
   getPdfAsset,
+  openPdfForDownload,
   printPdf,
 } from '../utils/paymentDocuments'
 import styles from './PaymentConfirmationPage.module.css'
@@ -215,13 +216,10 @@ export default function PaymentConfirmationPage() {
       const pdfAsset = getPdfAsset(order, variant, options)
 
       if (pdfAsset.filePath) {
-        const link = document.createElement('a')
-
-        link.href = pdfAsset.filePath
-        link.download = pdfAsset.fileName || `${order.nvNumber}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
+        openPdfForDownload(
+          pdfAsset.filePath,
+          pdfAsset.fileName || `${order.nvNumber}.pdf`,
+        )
         return
       }
 
@@ -350,6 +348,8 @@ export default function PaymentConfirmationPage() {
   }, [])
 
   const openSignedDetailPreview = useCallback((order) => {
+    if (!order?.isSigned || !order?.nvFilePath) return
+
     setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
   }, [])
 
@@ -438,6 +438,7 @@ export default function PaymentConfirmationPage() {
       <PaymentActionConfirmModal
         isHolding={isHoldingConfirmation}
         isUpdating={isUpdatingPaymentStatus}
+        paymentsApi={paymentsApi}
         onCancel={closePaymentActionConfirmation}
         onHoldEnd={cancelHoldConfirmation}
         onHoldStart={startHoldConfirmation}

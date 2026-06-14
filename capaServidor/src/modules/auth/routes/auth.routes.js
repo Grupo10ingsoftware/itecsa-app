@@ -2,7 +2,7 @@ import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import {
     createPasswordResetRequestHandler,
-    verifyAuthSessionHandler,
+    createVerifyAuthSessionHandler,
 } from "../controller/auth.controller.js";
 
 const PASSWORD_RESET_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
@@ -59,7 +59,11 @@ export function createAuthRouter({
 } = {}) {
     const router = Router();
 
-    router.get("/verify", authenticate, verifyAuthSessionHandler);
+    router.get(
+        "/verify",
+        authenticate,
+        createVerifyAuthSessionHandler({ users, logger }),
+    );
     router.post(
         "/password-reset/request",
         passwordResetRateLimit,

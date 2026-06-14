@@ -4,5 +4,9 @@ export function createPaymentsApi(apiClient) {
     getPaymentStatuses: () => apiClient.get('/payment-status'),
     updatePaymentStatus: (orderId, payload) =>
       apiClient.patch(`/orders/${orderId}/payment-status`, payload),
+    getPaymentSignaturePreview: (orderId) =>
+      apiClient.get(`/orders/${orderId}/payment-signature-preview`, {
+        responseType: 'blob',
+      }),
   }
 }

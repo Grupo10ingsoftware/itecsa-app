@@ -33,6 +33,38 @@ function getSalesNoteFileName(order, nvNumber) {
   return null
 }
 
+export function resolveApiAssetUrl(filePath, baseUrl = import.meta.env.VITE_API_BASE_URL) {
+  if (!hasText(filePath)) return null
+
+  const trimmedPath = filePath.trim()
+
+  if (/^https?:\/\//i.test(trimmedPath)) {
+    return trimmedPath
+  }
+
+  if (!trimmedPath.startsWith('/api/')) {
+    return trimmedPath
+  }
+
+  if (!hasText(baseUrl)) {
+    return trimmedPath
+  }
+
+  try {
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+    const base = new URL(normalizedBaseUrl)
+    const apiBasePath = base.pathname.replace(/\/+$/, '')
+
+    if (apiBasePath && trimmedPath.startsWith(`${apiBasePath}/`)) {
+      return new URL(trimmedPath, base.origin).toString()
+    }
+
+    return new URL(trimmedPath.replace(/^\/+/, ''), normalizedBaseUrl).toString()
+  } catch {
+    return trimmedPath
+  }
+}
+
 export function normalizePaymentOrder(order) {
   const id = order?.id_pedido ?? order?.id
   const nvNumber = hasText(order?.numero_nota_venta)
@@ -46,7 +78,11 @@ export function normalizePaymentOrder(order) {
   const productName = hasText(order?.nombre_producto)
     ? order.nombre_producto.trim()
     : null
-  const signedFilePath = order?.signed_ruta_pdf || null
+  const nvFilePath = resolveApiAssetUrl(order?.ruta_pdf)
+  const isSigned =
+    Number(order?.firmado) === 1 ||
+    order?.firmado === true ||
+    Boolean(order?.firma_pago)
   const signature = order?.firma_pago
     ? {
         timestamp: order.firma_pago.fecha_firma ?? 'Fecha no disponible',
@@ -74,9 +110,8 @@ export function normalizePaymentOrder(order) {
       : '',
     productType: productName || 'Producto',
     nvFileName: getSalesNoteFileName(order ?? {}, nvNumber),
-    nvFilePath: order?.ruta_pdf || null,
-    signedNvFileName: getFileNameFromPath(signedFilePath),
-    signedNvFilePath: signedFilePath,
+    nvFilePath,
+    isSigned,
     orderStatus: order?.nombre_etapa_general ?? null,
     paymentStatus: normalizeStatusName(
       order?.estado_pago ?? order?.nombre_estado_pago,

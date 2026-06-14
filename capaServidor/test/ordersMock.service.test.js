@@ -27,17 +27,19 @@ const INITIAL_ORDERS = [
 
 let orders;
 let paymentRecords;
+let paymentSignatures;
 
 beforeEach(() => {
     orders = INITIAL_ORDERS.map((order) => ({ ...order }));
     paymentRecords = [];
+    paymentSignatures = [];
 });
 
 function findOrder(orderId) {
     return orders.find((order) => Number(order.id_pedido) === Number(orderId));
 }
 
-function createService() {
+function createService(overrides = {}) {
     return new OrderService({
         repo: {
             async get(orderId) {
@@ -91,6 +93,12 @@ function createService() {
                 return paymentRecords.at(-1);
             },
         },
+        paymentSignatureService: overrides.paymentSignatureService ?? {
+            async signPaymentDocument(orderId, userId) {
+                paymentSignatures.push({ orderId, userId });
+                return paymentSignatures.at(-1);
+            },
+        },
         userRepo: {
             async findByAuth0Id(auth0UserId) {
                 if (auth0UserId === "auth0|user-10") {
@@ -117,6 +125,7 @@ test("al confirmar pago mueve la orden a Listo para produccion", async () => {
             observacion: undefined,
         },
     ]);
+    assert.deepEqual(paymentSignatures, [{ orderId: 1, userId: 10 }]);
 });
 
 test("al dejar pago pendiente desde rechazado devuelve la orden a Confirmacion de pago", async () => {
@@ -143,6 +152,7 @@ test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
             observacion: undefined,
         },
     ]);
+    assert.deepEqual(paymentSignatures, []);
 });
 
 test("bloquea devolver un pago confirmado a pendiente sin crear auditoria", async () => {
@@ -157,6 +167,7 @@ test("bloquea devolver un pago confirmado a pendiente sin crear auditoria", asyn
     );
 
     assert.deepEqual(paymentRecords, []);
+    assert.deepEqual(paymentSignatures, []);
 });
 
 test("bloquea rechazar un pago confirmado sin crear auditoria", async () => {
@@ -171,6 +182,16 @@ test("bloquea rechazar un pago confirmado sin crear auditoria", async () => {
     );
 
     assert.deepEqual(paymentRecords, []);
+    assert.deepEqual(paymentSignatures, []);
+});
+
+test("no regenera firma ni auditoria si el pago ya estaba confirmado", async () => {
+    const service = createService();
+    const order = await service.updPaymentState(6, 2, { id_usuario: 10 });
+
+    assert.equal(order.estado_pago, PAYMENT_STATUS.CONFIRMADO);
+    assert.deepEqual(paymentRecords, []);
+    assert.deepEqual(paymentSignatures, []);
 });
 
 test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
@@ -185,6 +206,31 @@ test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
             observacion: undefined,
         },
     ]);
+    assert.deepEqual(paymentSignatures, [{ orderId: 1, userId: 10 }]);
+});
+
+test("si falla la firma no actualiza pago ni auditoria", async () => {
+    const service = createService({
+        paymentSignatureService: {
+            async signPaymentDocument() {
+                const error = new Error("No fue posible firmar la Nota de Venta.");
+                error.statusCode = 409;
+                throw error;
+            },
+        },
+    });
+
+    await assert.rejects(
+        () => service.updPaymentState(1, 2, { id_usuario: 10 }),
+        {
+            statusCode: 409,
+            message: "No fue posible firmar la Nota de Venta.",
+        },
+    );
+
+    assert.equal(findOrder(1).estado_pago, PAYMENT_STATUS.PENDIENTE);
+    assert.deepEqual(paymentRecords, []);
+    assert.deepEqual(paymentSignatures, []);
 });
 
 test("bloquea mover a Listo para produccion con pago pendiente", async () => {

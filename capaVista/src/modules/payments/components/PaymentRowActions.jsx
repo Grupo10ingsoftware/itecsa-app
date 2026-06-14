@@ -191,6 +191,7 @@ export default function PaymentRowActions({
   order,
 }) {
   const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
+  const hasSignedDocument = Boolean(order.isSigned && order.nvFilePath)
   const isManageDisabled =
     !canUpdatePaymentStatus || isUpdatingPaymentStatus || isConfirmed
   const manageDisabledTooltip = isConfirmed
@@ -216,7 +217,7 @@ export default function PaymentRowActions({
         order={order}
       />
 
-      {isConfirmed && (
+      {isConfirmed && hasSignedDocument && (
         <button
           className={`${styles.actionButton} ${styles.actionButtonDetail} ${
             isMobile ? 'w-100' : ''

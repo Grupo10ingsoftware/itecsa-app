@@ -2,7 +2,6 @@ import { ACTION_STATUS, PAYMENT_STATUS } from '@/config/status'
 import {
   MOCK_SALES_NOTE_DOCUMENT,
   MOCK_SIGNATURE_NOTE,
-  MOCK_SIGNED_SALES_NOTE_DOCUMENT,
 } from './paymentDocuments.mock'
 
 export function createMockPaymentOrders() {
@@ -66,8 +65,7 @@ export function createMockPaymentOrders() {
       productType: 'Lanyard',
       nvFileName: MOCK_SALES_NOTE_DOCUMENT.fileName,
       nvFilePath: MOCK_SALES_NOTE_DOCUMENT.filePath,
-      signedNvFileName: MOCK_SIGNED_SALES_NOTE_DOCUMENT.fileName,
-      signedNvFilePath: MOCK_SIGNED_SALES_NOTE_DOCUMENT.filePath,
+      isSigned: true,
       orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
       paymentStatus: PAYMENT_STATUS.CONFIRMADO,
       signature: {

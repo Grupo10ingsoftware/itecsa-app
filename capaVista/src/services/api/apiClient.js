@@ -34,12 +34,16 @@ function buildUrl(baseUrl, path) {
   return new URL(normalizedPath, normalizedBaseUrl).toString()
 }
 
-async function readResponsePayload(response) {
+async function readResponsePayload(response, responseType) {
   if (response.status === 204) {
     return null
   }
 
   const contentType = response.headers.get('content-type') ?? ''
+
+  if (responseType === 'blob' && response.ok) {
+    return response.blob()
+  }
 
   if (contentType.includes('application/json')) {
     return response.json()
@@ -86,7 +90,7 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
     })
   }
 
-  async function request(path, { method = 'GET', headers, body } = {}) {
+  async function request(path, { method = 'GET', headers, body, responseType } = {}) {
     const token = await getBearerToken(getAccessToken)
     const requestHeaders = new Headers(headers)
     requestHeaders.set('Authorization', `Bearer ${token}`)
@@ -112,7 +116,7 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
       })
     }
 
-    const payload = await readResponsePayload(response)
+    const payload = await readResponsePayload(response, responseType)
 
     if (response.status === 401) {
       throw new ApiClientError('La sesion no es valida o no esta autenticada.', {

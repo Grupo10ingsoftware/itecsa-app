@@ -19,12 +19,6 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),
   },
   {
-    label: 'Kanban',
-    path: APP_ROUTES.KANBAN,
-    permission: PERMISSIONS.VIEW_KANBAN_MODULE,
-    requirementIds: Object.freeze(['UR 5.1', 'UR 5.2', 'UR 5.3']),
-  },
-  {
     label: 'Confirmar pago',
     path: APP_ROUTES.PAYMENTS,
     permission: PERMISSIONS.VIEW_PAYMENTS_MODULE,

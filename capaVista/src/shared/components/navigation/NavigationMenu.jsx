@@ -4,7 +4,7 @@ import { useAuth } from '../../../hooks/useAuth'
 import styles from '../layout/Layout.module.css'
 
 const ROUTE_ICONS = Object.freeze({
-  Principal: 'bi-house-door',
+  Principal: 'bi-kanban',
   Kanban: 'bi-kanban',
   'Confirmar pago': 'bi-cash-coin',
   'Crear usuario': 'bi-person-plus',

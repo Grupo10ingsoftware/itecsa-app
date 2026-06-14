@@ -11,7 +11,7 @@ No es una bitacora ni un plan historico. La finalidad es dejar evidencia tecnica
 - Login mediante Auth0 Universal Login desde la SPA React.
 - Logout mediante Auth0 Universal Logout.
 - Verificacion backend de access tokens emitidos por Auth0 con `GET /api/auth/verify`.
-- Uso de Auth0 RBAC para los roles `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
+- Uso de Auth0 RBAC para los roles `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
 - Uso del claim estandar `permissions` para permisos visuales en la SPA.
 - Creacion y gestion administrativa de usuarios con `GET /api/admin/users`, `GET /api/admin/users/summary`, `POST /api/admin/users`, `PATCH /api/admin/users/:userId` y `PATCH /api/admin/users/:userId/status`.
 - Persistencia de la entidad interna `Usuario` con `id_auth0`, `correo_usuario`, `rol_usuario` y `estado_usuario`.

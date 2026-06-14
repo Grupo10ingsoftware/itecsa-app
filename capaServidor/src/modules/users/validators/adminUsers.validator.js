@@ -17,7 +17,7 @@ const USER_STATUS_FIELDS = new Set(["estadoUsuario"]);
 const ROLES = new Set([
     "Administrador",
     "Gerencia",
-    "Operario",
+    "Producción",
     "Ventas",
     "Cobranzas",
 ]);

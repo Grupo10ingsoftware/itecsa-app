@@ -23,7 +23,7 @@ const VERIFY_SESSION_ERROR_MESSAGE =
 const OFFICIAL_ROLES = new Set([
     "Administrador",
     "Gerencia",
-    "Operario",
+    "Producción",
     "Ventas",
     "Cobranzas",
 ]);

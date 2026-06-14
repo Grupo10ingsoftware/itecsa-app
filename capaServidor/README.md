@@ -135,7 +135,7 @@ La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar 
 - M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
-- Roles permitidos: `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
 
 La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC.
 
@@ -242,7 +242,7 @@ rolUsuario=Ventas
 firmaElectronica=<archivo XML, CMS o PDF>
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
 La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 

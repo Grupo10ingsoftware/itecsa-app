@@ -32,7 +32,7 @@ export default function UserManagementFilters({
           <input
             id="user-management-search"
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Buscar por nombre, correo o RUT"
+            placeholder="Buscar por nombre, apellido, correo o RUT"
             type="search"
             value={searchTerm}
           />

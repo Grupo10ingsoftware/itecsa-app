@@ -23,6 +23,9 @@ export function createOrderRouter({
         previewPaymentSignature:
             controller.previewPaymentSignature ??
             fallbackController.previewPaymentSignature,
+        getPaymentSignatureEvidence:
+            controller.getPaymentSignatureEvidence ??
+            fallbackController.getPaymentSignatureEvidence,
         createOrder: controller.createOrder ?? fallbackController.createOrder,
         updatePaymentStatus:
             controller.updatePaymentStatus ?? fallbackController.updatePaymentStatus,
@@ -39,6 +42,11 @@ export function createOrderRouter({
         authenticate,
         authorizePaymentStatusUpdate,
         routeController.previewPaymentSignature,
+    );
+    router.get(
+        "/:orderId/payment-signature-evidence",
+        authenticate,
+        routeController.getPaymentSignatureEvidence,
     );
     router.get("/:orderId", authenticate, routeController.getOrder);
     router.post("/", authenticate, routeController.createOrder);

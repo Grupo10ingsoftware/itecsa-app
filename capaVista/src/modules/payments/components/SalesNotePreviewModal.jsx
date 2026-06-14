@@ -14,6 +14,7 @@ export default function SalesNotePreviewModal({
   context,
   onClose,
   onDownload,
+  onOpenSignatureEvidence,
   onPrint,
   order,
 }) {
@@ -144,6 +145,14 @@ export default function SalesNotePreviewModal({
   const secondaryRows = isSignedDetail ? signatureRows : generalRows
   const secondaryCardTitle = isSignedDetail ? 'Datos de firma' : 'Información general'
   const secondaryCardIcon = isSignedDetail ? 'bi-pen' : 'bi-info-circle'
+  const hasSignatureEvidence =
+    isSignedDetail && Boolean(order.signature?.evidenceUrl)
+  const handleOpenSignatureEvidence = () => {
+    onOpenSignatureEvidence?.(
+      order,
+      order.signature.evidenceFileName,
+    )
+  }
 
   const footer = (
     <>
@@ -174,6 +183,18 @@ export default function SalesNotePreviewModal({
         <i className="bi bi-file-earmark-arrow-down me-1" />
         Descargar PDF
       </button>
+
+      {isSignedDetail && (
+        <button
+          className="btn btn-outline-primary"
+          disabled={!hasSignatureEvidence}
+          onClick={handleOpenSignatureEvidence}
+          type="button"
+        >
+          <i className="bi bi-paperclip me-1" />
+          Ver evidencia
+        </button>
+      )}
     </>
   )
 
@@ -209,6 +230,20 @@ export default function SalesNotePreviewModal({
 
             <div className={styles.cardBody}>
               {secondaryRows.map(renderDetailItem)}
+              {hasSignatureEvidence && (
+                <div className={styles.evidenceAction}>
+                  <span>Evidencia adjunta</span>
+                  <strong>{order.signature.evidenceFileName || 'Archivo de firma'}</strong>
+                  <button
+                    className="btn btn-sm btn-outline-dark"
+                    onClick={handleOpenSignatureEvidence}
+                    type="button"
+                  >
+                    <i className="bi bi-paperclip me-1" />
+                    Ver evidencia
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         )}

@@ -239,7 +239,7 @@ apellidoUsuario=Perez
 rutUsuario=12.345.678-9
 correoUsuario=correo.controlado@example.cl
 rolUsuario=Ventas
-firmaElectronica=<archivo PDF, PNG, JPG, JPEG o WebP>
+firmaElectronica=<archivo XML, CMS o PDF>
 ```
 
 Los roles permitidos son `Administrador`, `Gerencia`, `Operario`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.

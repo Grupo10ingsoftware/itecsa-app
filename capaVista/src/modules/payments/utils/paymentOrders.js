@@ -90,6 +90,8 @@ export function normalizePaymentOrder(order) {
           ? `Usuario #${order.firma_pago.id_usuario}`
           : 'Usuario no disponible',
         note: 'Firma de pago registrada',
+        evidenceFileName: order.firma_pago.evidenceFileName ?? null,
+        evidenceUrl: resolveApiAssetUrl(order.firma_pago.evidenceUrl),
       }
     : null
 

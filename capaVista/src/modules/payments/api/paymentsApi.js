@@ -8,5 +8,9 @@ export function createPaymentsApi(apiClient) {
       apiClient.get(`/orders/${orderId}/payment-signature-preview`, {
         responseType: 'blob',
       }),
+    getPaymentSignatureEvidence: (orderId) =>
+      apiClient.get(`/orders/${orderId}/payment-signature-evidence`, {
+        responseType: 'blob',
+      }),
   }
 }

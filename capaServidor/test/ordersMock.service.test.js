@@ -233,6 +233,86 @@ test("si falla la firma no actualiza pago ni auditoria", async () => {
     assert.deepEqual(paymentSignatures, []);
 });
 
+test("obtiene evidencia de firma de pago desde ruta segura", async () => {
+    const service = createService({
+        paymentSignatureService: {
+            async getOrderSalesNote() {
+                return {
+                    id_documento: 1,
+                    Firma_Documento: [
+                        {
+                            id_usuario: 3,
+                            Firma_Pago: { id_firma_documento: 1 },
+                        },
+                    ],
+                };
+            },
+            async getUserSignature() {
+                return {
+                    ruta_firma:
+                        "itecsa-app\\data\\Firmas\\firma-1780976763211-b5b6a56b-8f24-4bca-ab7b-0518bc2a78a6.pdf",
+                };
+            },
+        },
+    });
+
+    const evidence = await service.getPaymentSignatureEvidence(1);
+
+    assert.match(evidence.filePath, /data[\\/]Firmas[\\/]firma-.*\.pdf$/);
+});
+
+test("rechaza evidencia si el pedido no tiene firma de pago", async () => {
+    const service = createService({
+        paymentSignatureService: {
+            async getOrderSalesNote() {
+                return {
+                    id_documento: 1,
+                    Firma_Documento: [],
+                };
+            },
+        },
+    });
+
+    await assert.rejects(
+        () => service.getPaymentSignatureEvidence(1),
+        {
+            statusCode: 404,
+            message: "El pedido no tiene evidencia de firma de pago.",
+        },
+    );
+});
+
+test("rechaza evidencia si la ruta de firma sale de data/Firmas", async () => {
+    const service = createService({
+        paymentSignatureService: {
+            async getOrderSalesNote() {
+                return {
+                    id_documento: 1,
+                    Firma_Documento: [
+                        {
+                            id_usuario: 3,
+                            Firma_Pago: { id_firma_documento: 1 },
+                        },
+                    ],
+                };
+            },
+            async getUserSignature() {
+                return {
+                    ruta_firma: "itecsa-app\\data\\NVS\\Pedido1.pdf",
+                };
+            },
+        },
+    });
+
+    await assert.rejects(
+        () => service.getPaymentSignatureEvidence(1),
+        {
+            statusCode: 409,
+            message: "La evidencia de firma no tiene una ruta valida.",
+        },
+    );
+});
+
 test("bloquea mover a Listo para produccion con pago pendiente", async () => {
     const service = createService();
 

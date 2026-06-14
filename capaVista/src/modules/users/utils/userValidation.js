@@ -2,8 +2,37 @@ import { OFFICIAL_ROLES } from '../../../config/roles'
 
 const LETTERS_AND_SPACES_PATTERN = /^[A-Za-z\u00c1\u00c9\u00cd\u00d3\u00da\u00e1\u00e9\u00ed\u00f3\u00fa\u00d1\u00f1\u00dc\u00fc\s]+$/
 const RUT_PATTERN = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/
-const SIGNATURE_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp'])
-const SIGNATURE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.webp']
+const SIGNATURE_TYPES_BY_EXTENSION = new Map([
+  ['.pdf', new Set(['application/pdf'])],
+  ['.xml', new Set(['application/xml', 'text/xml'])],
+  [
+    '.cms',
+    new Set([
+      'application/cms',
+      'application/pkcs7-mime',
+      'application/pkcs7-signature',
+      'application/octet-stream',
+    ]),
+  ],
+  [
+    '.p7s',
+    new Set([
+      'application/cms',
+      'application/pkcs7-mime',
+      'application/pkcs7-signature',
+      'application/octet-stream',
+    ]),
+  ],
+  [
+    '.p7m',
+    new Set([
+      'application/cms',
+      'application/pkcs7-mime',
+      'application/pkcs7-signature',
+      'application/octet-stream',
+    ]),
+  ],
+])
 
 function validateRequiredText(value, requiredMessage) {
   return value.trim() ? [] : [requiredMessage]
@@ -71,12 +100,13 @@ export function validateSignatureFile(file) {
   }
 
   const fileName = file.name.toLowerCase()
-  const hasAllowedExtension = SIGNATURE_EXTENSIONS.some((extension) =>
+  const fileExtension = Array.from(SIGNATURE_TYPES_BY_EXTENSION.keys()).find((extension) =>
     fileName.endsWith(extension),
   )
+  const allowedMimeTypes = SIGNATURE_TYPES_BY_EXTENSION.get(fileExtension)
 
-  if (!SIGNATURE_TYPES.has(file.type) || !hasAllowedExtension) {
-    return ['La firma electronica debe ser PDF, PNG, JPG, JPEG o WebP.']
+  if (!allowedMimeTypes || (file.type && !allowedMimeTypes.has(file.type))) {
+    return ['La firma electronica debe ser XML, CMS o PDF.']
   }
 
   if (file.size > 10 * 1024 * 1024) {

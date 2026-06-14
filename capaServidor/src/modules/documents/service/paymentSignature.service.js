@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import getPrismaClient from "../../../database/prisma.js";
 
@@ -10,15 +10,24 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const serverRootDirectory = path.resolve(currentDirectory, "../../../..");
 const projectRootDirectory = path.resolve(serverRootDirectory, "..");
 const projectDirectoryName = path.basename(projectRootDirectory);
-const MAX_SIGNATURE_WIDTH = 150;
-const MAX_SIGNATURE_HEIGHT = 55;
+const signaturesDirectory = path.resolve(projectRootDirectory, "data", "Firmas");
+const SIGNATURE_MARK_MARGIN = 72;
+const SIGNATURE_MARK_FONT_SIZE = 9;
 
 export const PAYMENT_SIGNATURE_ERROR_MESSAGES = {
   MISSING_SALES_NOTE: "El pedido no tiene una Nota de Venta asociada para firmar.",
   MISSING_USER_SIGNATURE: "El usuario autenticado no tiene firma electronica registrada.",
   UNSUPPORTED_SIGNATURE_TYPE:
-    "La firma electronica debe ser PNG, JPG o JPEG para firmar la Nota de Venta.",
+    "La firma electronica debe ser XML, CMS o PDF para firmar la Nota de Venta.",
 };
+
+const SIGNATURE_ATTACHMENT_MIME_TYPES = new Map([
+  [".pdf", "application/pdf"],
+  [".xml", "application/xml"],
+  [".cms", "application/cms"],
+  [".p7s", "application/pkcs7-signature"],
+  [".p7m", "application/pkcs7-mime"],
+]);
 
 function getPathInsideProject(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
@@ -46,40 +55,67 @@ export function resolveStoredProjectPath(storedPath) {
   return getPathInsideProject(storedPath);
 }
 
-async function embedSignatureImage(pdfDoc, signaturePath) {
-  const signatureBytes = await fs.readFile(signaturePath);
-  const extension = path.extname(signaturePath).toLowerCase();
+export function resolveStoredSignaturePath(storedPath) {
+  const resolvedPath = getPathInsideProject(storedPath);
 
-  if (extension === ".png") {
-    return pdfDoc.embedPng(signatureBytes);
+  if (!resolvedPath || !resolvedPath.startsWith(`${signaturesDirectory}${path.sep}`)) {
+    return null;
   }
 
-  if (extension === ".jpg" || extension === ".jpeg") {
-    return pdfDoc.embedJpg(signatureBytes);
-  }
-
-  const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.UNSUPPORTED_SIGNATURE_TYPE);
-  error.statusCode = 400;
-  throw error;
+  return resolvedPath;
 }
 
-function drawSignatureOnLastPage(pdfDoc, signatureImage) {
+function getSignatureAttachmentMimeType(signaturePath) {
+  const extension = path.extname(signaturePath).toLowerCase();
+  const mimeType = SIGNATURE_ATTACHMENT_MIME_TYPES.get(extension);
+
+  if (!mimeType) {
+    const error = new Error(PAYMENT_SIGNATURE_ERROR_MESSAGES.UNSUPPORTED_SIGNATURE_TYPE);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return mimeType;
+}
+
+async function attachSignatureEvidence(pdfDoc, signaturePath) {
+  const signatureBytes = await fs.readFile(signaturePath);
+  const fileName = path.basename(signaturePath);
+  const now = new Date();
+
+  await pdfDoc.attach(signatureBytes, fileName, {
+    mimeType: getSignatureAttachmentMimeType(signaturePath),
+    description: "Evidencia de firma electronica asociada a la Nota de Venta.",
+    creationDate: now,
+    modificationDate: now,
+  });
+
+  return fileName;
+}
+
+function sanitizePdfText(value) {
+  return String(value).replace(/[^\x20-\x7E]/g, "");
+}
+
+async function drawSignatureEvidenceMark(pdfDoc, signatureFileName) {
   const pages = pdfDoc.getPages();
   const page = pages.at(-1);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pageSize = page.getSize();
-  const scale = Math.min(
-    MAX_SIGNATURE_WIDTH / signatureImage.width,
-    MAX_SIGNATURE_HEIGHT / signatureImage.height,
-    1,
-  );
-  const width = signatureImage.width * scale;
-  const height = signatureImage.height * scale;
+  const lines = [
+    "Documento firmado electronicamente",
+    `Evidencia adjunta: ${sanitizePdfText(signatureFileName)}`,
+  ];
 
-  page.drawImage(signatureImage, {
-    x: pageSize.width - width - 72,
-    y: 72,
-    width,
-    height,
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x: SIGNATURE_MARK_MARGIN,
+      y: SIGNATURE_MARK_MARGIN + (lines.length - index - 1) * 12,
+      size: SIGNATURE_MARK_FONT_SIZE,
+      font,
+      color: rgb(0.16, 0.16, 0.16),
+      maxWidth: pageSize.width - SIGNATURE_MARK_MARGIN * 2,
+    });
   });
 }
 
@@ -144,9 +180,9 @@ class PaymentSignatureService {
 
     const originalPdfBytes = await fs.readFile(originalPdfPath);
     const pdfDoc = await PDFDocument.load(originalPdfBytes);
-    const signatureImage = await embedSignatureImage(pdfDoc, signaturePath);
+    const signatureFileName = await attachSignatureEvidence(pdfDoc, signaturePath);
 
-    drawSignatureOnLastPage(pdfDoc, signatureImage);
+    await drawSignatureEvidenceMark(pdfDoc, signatureFileName);
 
     return pdfDoc.save();
   }

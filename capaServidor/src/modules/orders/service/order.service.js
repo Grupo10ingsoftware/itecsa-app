@@ -5,6 +5,7 @@ import {
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
 } from "../../../config/status.js";
+import fs from "node:fs/promises";
 
 import OrderRepository from "../repo/orders.repo.js";
 import ClientRepo from "../../clients/repo/clients.repo.js";
@@ -17,6 +18,7 @@ import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
 import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
+import { resolveStoredSignaturePath } from "../../documents/service/paymentSignature.service.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
@@ -198,6 +200,51 @@ class OrderService {
       orderId,
       resolvedUserId,
     );
+  }
+
+  async getPaymentSignatureEvidence(orderId) {
+    const salesNoteDocument = await this.paymentSignatureService.getOrderSalesNote(
+      orderId,
+    );
+
+    if (!salesNoteDocument?.id_documento) {
+      const error = new Error("El pedido no tiene una Nota de Venta asociada.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const paymentSignature = salesNoteDocument.Firma_Documento?.find(
+      (signature) => signature.Firma_Pago,
+    );
+
+    if (!paymentSignature?.id_usuario) {
+      const error = new Error("El pedido no tiene evidencia de firma de pago.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const user = await this.paymentSignatureService.getUserSignature(
+      paymentSignature.id_usuario,
+    );
+    const signaturePath = resolveStoredSignaturePath(user.ruta_firma);
+
+    if (!signaturePath) {
+      const error = new Error("La evidencia de firma no tiene una ruta valida.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    try {
+      await fs.access(signaturePath);
+    } catch {
+      const error = new Error("El archivo de evidencia de firma no existe.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return {
+      filePath: signaturePath,
+    };
   }
 
   async updPaymentState(orderId, newPaymentStatusId, data = {}) {

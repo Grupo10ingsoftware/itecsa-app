@@ -1,8 +1,8 @@
-# Arquitectura - Integracion Auth0 Inicial
+# Arquitectura - ITECSA
 
 ## Vision General
 
-ITECSA utiliza una SPA React para la experiencia de usuario y una API Express para validar autenticacion, rol y permisos. Auth0 autentica al usuario, administra las contrasenas y emite access tokens destinados a la API ITECSA.
+ITECSA utiliza una SPA React para la experiencia de usuario y una API Express para validar autenticacion, rol y permisos. Auth0 autentica al usuario, administra las contrasenas y emite access tokens destinados a la API ITECSA. La API persiste datos de negocio en MySQL/Aiven mediante Prisma y el adaptador MariaDB.
 
 ```mermaid
 flowchart LR
@@ -21,7 +21,7 @@ flowchart LR
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API con token validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
@@ -97,6 +97,19 @@ La contrasena temporal generada para la creacion Database existe solo en memoria
 
 La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT y ruta de firma siguen siendo datos internos de negocio.
 
+## Persistencia Y Modulos De Negocio
+
+El backend usa Prisma con `@prisma/adapter-mariadb` para conectar a MySQL/Aiven. Los repositorios de usuarios, pedidos, clientes, productos, estados de pedido, estados de pago, detalles, registros de pago y documentos consultan o actualizan la base real cuando el endpoint correspondiente se ejecuta.
+
+Estado funcional actual:
+
+- `/pagos` consume `GET /api/orders`, `GET /api/payment-status`, `PATCH /api/orders/:orderId/payment-status`, `GET /api/orders/:orderId/payment-signature-preview` y `GET /api/orders/:orderId/payment-signature-evidence`.
+- Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria, firma la Nota de Venta vigente y mueve el pedido a `Listo para produccion`.
+- Un pago ya confirmado no puede devolverse a `Pendiente` ni `Rechazado`; el backend responde conflicto y no genera auditoria nueva.
+- Kanban consume `GET /api/orders` y `GET /api/order-status`, mueve etapas con `PATCH /api/orders/:orderId/move`, bloquea saltos o retrocesos y exige `move:kanban-to-production` para mover a `En produccion`.
+- El backend expone `POST /api/orders` para crear pedidos JSON con cliente y productos, pero la pantalla frontend `/ordenes/nuevo` sigue siendo visual/mock y guarda una copia temporal en `sessionStorage`.
+- `data/NVS` y `data/Firmas` son almacenamiento local de desarrollo para PDFs de Nota de Venta y firmas electronicas; no deben contener documentos reales ni datos sensibles.
+
 ## Variables De Entorno
 
 Frontend:
@@ -129,16 +142,15 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 ```
 
 El frontend solo usa variables `VITE_*`, que son visibles en navegador. Ninguna credencial Auth0 Management debe agregarse a `capaVista`.
-Las variables `DB_*` alimentan `mysql2/promise` y el adaptador Prisma MariaDB; `DATABASE_URL` se usa por Prisma CLI para introspeccion y generacion.
+Las variables `DB_*` alimentan el adaptador Prisma MariaDB usado en runtime; `DATABASE_URL` se usa por Prisma CLI para introspeccion, validacion y generacion.
 
 ## Limites Vigentes
 
-- Prisma y MySQL estan integrados en `capaServidor` para persistir la entidad interna `Usuario` durante la creacion administrativa.
+- Prisma y MySQL/Aiven estan integrados en `capaServidor` para la entidad interna `Usuario` y para modulos de pedidos, pagos, clientes, productos, estados, detalles y documentos.
 - No se persisten contrasenas. RUT y ruta de firma se persisten en la entidad interna `Usuario`.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- Pedidos, pagos persistidos, Kanban real y persistencia de negocio con BD quedan fuera de esta integracion inicial. El cierre backend RF32 existe con datos mock/en memoria para consultar ordenes, actualizar estado de pago y mover Kanban; la pantalla de pagos actual conserva datos locales/mock y no consume todavia el endpoint de cambio de estado.
-
-La trazabilidad tecnica del incremento esta documentada en [TRAZABILIDAD_INCREMENTO_1.md](./TRAZABILIDAD_INCREMENTO_1.md).
+- La pantalla `/ordenes/nuevo` no crea pedidos reales todavia; conserva mocks y `sessionStorage` hasta que exista contrato aprobado para Nota de Venta y archivos.
+- No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre la base existente sin una decision explicita de migraciones.
 
 Para ejecutar cada capa, consultar [README raiz](../README.md), [README frontend](../capaVista/README.md) y [README backend](../capaServidor/README.md).

@@ -27,9 +27,13 @@ Comandos disponibles:
 npm start
 npm run dev
 npm test
+npm run repair:payment-demo
+npm run sync:dummy-sales-notes
 npm run prisma:pull
 npm run prisma:generate
 npm run prisma:validate
+npm run prisma:migrate:dev
+npm run prisma:migrate:status
 npm run prisma:studio
 ```
 
@@ -75,7 +79,7 @@ Ningun secret real debe quedar en el repositorio. Las variables Management son c
 
 ## Conexion Aiven MySQL
 
-El backend usa `mysql2/promise` con pool y SSL. Descargar el certificado CA desde Aiven y guardarlo localmente, por ejemplo:
+El backend usa Prisma con `@prisma/adapter-mariadb` y SSL. Descargar el certificado CA desde Aiven y guardarlo localmente, por ejemplo:
 
 ```txt
 capaServidor/certs/aiven-ca.pem
@@ -100,7 +104,7 @@ Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el en
 
 ## Prisma ORM
 
-Prisma esta instalado como infraestructura de acceso a datos. La creacion administrativa de usuarios ya registra la entidad interna `Usuario`; otros modulos siguen funcionando con `mysql2/promise` y mocks en memoria donde corresponde.
+Prisma es la infraestructura de acceso a datos del backend. La creacion administrativa de usuarios, pedidos, clientes, productos, estados de pedido, estados de pago, detalles, registros de pago y documentos usan repositorios basados en Prisma cuando ejecutan contratos reales.
 
 La base indicada en `DB_NAME` debe existir en Aiven. Con esa precondicion, el flujo correcto es introspeccion y generacion de cliente:
 
@@ -115,10 +119,11 @@ Comandos disponibles:
 npm run prisma:pull
 npm run prisma:generate
 npm run prisma:validate
+npm run prisma:migrate:status
 npm run prisma:studio
 ```
 
-No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre la base existente en esta etapa. Esas acciones pueden modificar datos o estructura y deben quedar para una decision de migraciones posterior.
+`npm run prisma:migrate:dev` existe en `package.json`, pero no debe ejecutarse contra la base existente sin una decision explicita de migraciones. Tampoco ejecutar `prisma migrate reset` ni `prisma db push` sobre esa base sin autorizacion del equipo, porque pueden modificar datos o estructura.
 
 El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
@@ -131,7 +136,7 @@ La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar 
 ## Recursos Auth0 Esperados
 
 - SPA: `ITECSA Frontend Local`.
-- API: `ITECSA API`, con audience `https://api.itecsa.local`, firma `RS256` y scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- API: `ITECSA API`, con audience `https://api.itecsa.local`, firma `RS256` y scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
@@ -430,28 +435,80 @@ npm test
 
 Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
 
-## Endpoints RF32 - Pago Y Kanban
+## Endpoints De Pedidos, Pagos Y Kanban
 
-Estos endpoints cubren el cierre backend de `UR 3.1`, `UR 3.3` y `UR 3.7` usando datos mock en memoria.
+Estos endpoints usan datos reales desde MySQL/Aiven mediante Prisma. Todos requieren access token Auth0 valido, salvo las rutas publicas indicadas en autenticacion y documentos.
 
-### `GET /api/orders/kanban`
+### `GET /api/orders` y `GET /api/orders/kanban`
 
-Requiere access token Auth0 valido. Devuelve ordenes mock/en memoria:
+Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago, Nota de Venta y datos de firma de pago cuando existen. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
+
+Campos relevantes de respuesta:
 
 ```json
-[
-  {
-    "id_pedido": 1,
-    "estado_pago": "Pendiente",
-    "id_estado_pago": 0,
-    "id_etapa_general": 0
+{
+  "id_pedido": 1,
+  "nombre_cliente": "Cliente",
+  "rut_cliente": "12.345.678-9",
+  "nombre_producto": "Lanyards",
+  "cantidad": 100,
+  "id_etapa_general": 1,
+  "nombre_etapa_general": "Listo para produccion",
+  "id_estado_pago": 2,
+  "estado_pago": "Confirmado",
+  "ruta_pdf": "/api/documents/nvs/Pedido1.pdf",
+  "numero_nota_venta": "Pedido1",
+  "firmado": 1,
+  "firma_pago": {
+    "id_firma_documento": 1,
+    "id_usuario": 10,
+    "evidenceFileName": "firma-demo.pdf",
+    "evidenceUrl": "/api/orders/1/payment-signature-evidence"
   }
-]
+}
 ```
+
+### `GET /api/orders/:orderId`
+
+Devuelve un pedido real por ID. Responde `404` si no existe.
+
+### `POST /api/orders`
+
+Crea un pedido real con cliente y detalles de producto. La pantalla frontend `/ordenes/nuevo` no consume este contrato todavia.
+
+Payload JSON esperado:
+
+```json
+{
+  "rut_cliente": "12.345.678-9",
+  "nombre_cliente": "Cliente",
+  "razon_social": "Cliente SpA",
+  "estado_cliente": "Activo",
+  "id_usuario": 1,
+  "id_etiqueta": null,
+  "productos": [
+    {
+      "nombre_producto": "Lanyards",
+      "cantidad": 100,
+      "fecha_estimada_termino": "2026-06-30"
+    }
+  ]
+}
+```
+
+`productos[]` debe contener al menos un producto con `nombre_producto` y `cantidad`. El backend crea o reutiliza el cliente por RUT, crea el pedido, resuelve el tipo de producto por nombre y crea los detalles dentro de una transaccion.
+
+### `GET /api/payment-status`
+
+Lista estados reales de pago. IDs usados por la base actual:
+
+- `1`: `Pendiente`
+- `2`: `Confirmado`
+- `3`: `Rechazado`
 
 ### `PATCH /api/orders/:orderId/payment-status`
 
-Requiere access token Auth0 valido con permiso `update:payment-status`.
+Requiere permiso `update:payment-status`.
 
 ```json
 {
@@ -460,15 +517,28 @@ Requiere access token Auth0 valido con permiso `update:payment-status`.
 }
 ```
 
-IDs reales de `Estado_Pago`: `1` para `Pendiente`, `2` para `Confirmado` y `3` para `Rechazado`. El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
+El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
 
-- Si queda `Confirmado`, el backend mueve la orden a `Listo para produccion`.
-- Si queda `Pendiente` o `Rechazado`, el backend devuelve la orden a `Confirmacion de pago`.
+- Si queda `Confirmado`, firma la Nota de Venta vigente, registra auditoria y mueve la orden a `Listo para produccion`.
+- Si queda `Pendiente` o `Rechazado`, registra auditoria y devuelve la orden a `Confirmacion de pago`.
+- Si el pago ya estaba `Confirmado`, no permite devolverlo a `Pendiente` ni `Rechazado`.
 - Sin permiso `update:payment-status`, responde `403`.
+
+### `GET /api/orders/:orderId/payment-signature-preview`
+
+Requiere permiso `update:payment-status`. Genera una vista previa PDF firmada sin sobrescribir el documento vigente ni crear registros de firma.
+
+### `GET /api/orders/:orderId/payment-signature-evidence`
+
+Devuelve el archivo de evidencia de firma de pago desde `data/Firmas` cuando el pedido ya tiene firma registrada. Rechaza rutas inseguras o archivos inexistentes.
+
+### `GET /api/orders/:orderId/payment-records`
+
+Lista registros de auditoria de pago asociados al pedido.
 
 ### `PATCH /api/orders/:orderId/move`
 
-Requiere access token Auth0 valido.
+Mueve un pedido entre etapas Kanban.
 
 ```json
 {
@@ -476,7 +546,14 @@ Requiere access token Auth0 valido.
 }
 ```
 
-Etapas mock aceptadas por el backend: `0` Confirmacion de pago, `1` Listo para produccion, `2` En produccion y `3` Listo para entrega. Si se intenta mover un pedido con pago distinto de `Confirmado`, responde `409`:
+Etapas reales por `orden_kanban`: `0` Confirmacion de pago, `1` Listo para produccion, `2` En produccion y `3` Listo para entrega.
+
+- No permite retroceder etapas.
+- No permite saltar etapas.
+- No permite avanzar si el pago no esta `Confirmado`.
+- Para mover a `En produccion`, exige permiso `move:kanban-to-production`.
+
+Si se intenta mover un pedido con pago distinto de `Confirmado`, responde `409`:
 
 ```json
 {
@@ -485,3 +562,11 @@ Etapas mock aceptadas por el backend: `0` Confirmacion de pago, `1` Listo para p
 ```
 
 Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de permisos, cerrar sesion y volver a iniciar sesion con usuarios controlados para emitir access tokens nuevos.
+
+## Otros Endpoints De Negocio
+
+- `GET /api/order-status` y `POST /api/order-status`: estados Kanban.
+- `GET /api/orders/:orderId/details`, `GET /api/orders/:orderId/details/:detailId` y `POST /api/orders/:orderId/details`: detalles de pedido.
+- `GET /api/clients/:clientId`, `GET /api/clients/rut/:rutCliente` y `POST /api/clients`: clientes.
+- `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
+- `GET /api/documents/nvs/:filename`: PDF de Nota de Venta local, publico para renderizar documentos; rechaza path traversal y archivos no PDF.

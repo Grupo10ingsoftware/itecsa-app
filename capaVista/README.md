@@ -54,7 +54,7 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
@@ -66,8 +66,18 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 - Autenticacion: `useAuthApi` consume `GET /api/auth/verify`.
 - Recuperacion publica de contrasena: `PasswordResetPage` consume `POST /api/auth/password-reset/request` sin token Auth0.
 - Usuarios administrativos: `useAdminUsersApi` consume listado, resumen, edicion, desvinculacion, `POST /api/admin/users` con `FormData` y `POST /api/admin/users/password-setup-email`.
-- Kanban: `useKanbanApi` consume `GET /api/orders` y `PATCH /api/orders/:orderId/move`.
-- Pagos: `usePaymentsApi` consume `GET /api/orders`, `GET /api/payment-status` y `PATCH /api/orders/:orderId/payment-status`; los mocks quedan solo como fixtures de desarrollo.
+- Kanban: `useKanbanApi` consume `GET /api/orders`, `GET /api/order-status` y `PATCH /api/orders/:orderId/move`; el paso a `En produccion` requiere `move:kanban-to-production`.
+- Pagos: `usePaymentsApi` consume `GET /api/orders`, `GET /api/payment-status`, `PATCH /api/orders/:orderId/payment-status`, `GET /api/orders/:orderId/payment-signature-preview` y `GET /api/orders/:orderId/payment-signature-evidence`; los mocks quedan solo como fixtures de desarrollo.
+- Registro de orden: `/ordenes/nuevo` mantiene el flujo visual con mocks y `sessionStorage`; aun no llama al `POST /api/orders` del backend.
+
+## Rutas Frontend Actuales
+
+- `/login`: inicio de sesion.
+- `/recuperar-contrasena`: recuperacion publica de contrasena.
+- `/kanban`: tablero de produccion.
+- `/pagos`: confirmacion de pagos.
+- `/ordenes/nuevo`: registro visual de orden.
+- `/admin/usuarios`: gestion administrativa de usuarios.
 
 ## Conectar Una Nueva Vista A Permisos Auth0
 

@@ -1,20 +1,19 @@
 # ITECSA
 
-Aplicacion web para apoyar procesos internos de ITECSA. Esta rama incorpora autenticacion inicial con Auth0 en una SPA React y validacion de access tokens en una API Express.
+Aplicacion web para apoyar procesos internos de ITECSA. Integra una SPA React con Auth0, una API Express protegida por access tokens y persistencia MySQL/Aiven mediante Prisma.
 
 ## Estructura
 
 - `capaVista/`: SPA React + Vite, con Universal Login/Logout de Auth0.
 - `capaServidor/`: API Express, con validacion JWT y endpoint de verificacion de sesion.
 - `docs/`: documentacion tecnica transversal.
-- `Mockups/`: material de referencia visual del proyecto.
+- `data/`: archivos locales de desarrollo usados por flujos documentales del backend.
 
 Documentacion especifica:
 
 - [Frontend](capaVista/README.md)
 - [Backend](capaServidor/README.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
-- [Trazabilidad Incremento 1](docs/TRAZABILIDAD_INCREMENTO_1.md)
 - [Convenciones UI Frontend](docs/CONVENCIONES_UI_FRONTEND.md)
 
 ## Requisitos
@@ -60,10 +59,15 @@ npm test
 npm run prisma:pull
 npm run prisma:generate
 npm run prisma:validate
+npm run prisma:migrate:dev
+npm run prisma:migrate:status
 npm run prisma:studio
+npm run repair:payment-demo
+npm run sync:dummy-sales-notes
 ```
 
 El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000` con las plantillas actuales.
+`prisma:migrate:dev` esta disponible por `package.json`, pero no debe ejecutarse sobre la base existente sin una decision explicita de migraciones.
 
 ## Configuracion
 
@@ -85,13 +89,16 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
 - La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
-- La entidad interna `Usuario` se persiste en MySQL mediante Prisma. Los endpoints backend de pedidos/Kanban usan datos mock/en memoria; el backend expone reglas RF32 para estado de pago y movimiento Kanban. La vista de pagos conserva datos locales/mock y no consume todavia el endpoint backend de cambio de estado.
+- La entidad interna `Usuario`, pedidos, clientes, detalles, productos, estados de pago, registros de pago y reglas Kanban se resuelven desde MySQL/Aiven mediante Prisma y el adaptador MariaDB.
+- La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado, previsualizar firma y abrir evidencia de firma.
+- Kanban consume pedidos y estados reales desde backend, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
+- La pantalla `/ordenes/nuevo` sigue siendo un flujo visual frontend con datos mock y `sessionStorage`; no llama todavia al `POST /api/orders` del backend.
 
 Recursos Auth0 esperados/configurados para esta rama:
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually` y `update:payment-status`.
+- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - M2M backend: `ITECSA Backend Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
@@ -104,7 +111,8 @@ El tenant usa Classic Universal Login con template personalizado. En desarrollo,
 ## Restricciones Vigentes
 
 - No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
-- No usar Prisma/MySQL todavia para pedidos, pagos ni Kanban real. Pedidos/Kanban se resuelven con datos backend mock/en memoria; pagos tiene regla backend protegida para estado de pago, pero la pantalla actual sigue usando datos locales/mock.
+- No ejecutar migraciones destructivas, `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` contra la base existente sin una decision explicita del equipo.
+- No conectar `/ordenes/nuevo` a la creacion real de pedidos hasta definir el contrato frontend-backend para archivos y Nota de Venta.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

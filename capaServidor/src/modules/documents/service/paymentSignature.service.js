@@ -200,6 +200,7 @@ class PaymentSignatureService {
       throw error;
     }
 
+    // La firma persistida reemplaza el PDF vigente de la Nota de Venta.
     await fs.writeFile(originalPdfPath, signedPdfBytes);
 
     return {
@@ -262,6 +263,7 @@ class PaymentSignatureService {
     );
 
     if (existingPaymentSignature) {
+      // Repara el PDF firmado sin duplicar registros Firma_Documento/Firma_Pago.
       return this.updateExistingSignatureFile({
         salesNoteDocument,
         signature: existingPaymentSignature,

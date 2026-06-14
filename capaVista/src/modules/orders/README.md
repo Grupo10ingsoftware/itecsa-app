@@ -6,7 +6,7 @@ Este módulo implementa la vista de **Registro de Pedido** para el rol de Ventas
 
 En `fix/integrar-disenio-users-bd`, este módulo conserva el flujo visual de diseño como experiencia frontend. Los datos locales y `sessionStorage` son apoyo visual temporal; no reemplazan el backend modular de órdenes, los estados reales ni las reglas de pago/Kanban existentes en `capaServidor/src/modules/orders`.
 
-Actualmente corresponde a la fase de **Frontend visual con datos locales**, por lo que no realiza creación real contra backend ni contiene una carpeta `api/` propia dentro del módulo. La creación definitiva del pedido debe conectarse a backend cuando exista contrato de API para registrar órdenes con archivos.
+Actualmente corresponde a la fase de **Frontend visual con datos locales**, por lo que no realiza creación real contra backend ni contiene una carpeta `api/` propia dentro del módulo. El backend ya expone `POST /api/orders` para crear pedidos JSON con cliente y productos, pero esta pantalla no lo consume todavía porque el flujo visual también requiere definir contrato para Nota de Venta PDF, archivos de diseño y mapeo de datos importados.
 
 La pantalla principal permite:
 
@@ -43,7 +43,7 @@ Esta decisión evita que `OrderCreatePage.jsx` se convierta en una vista monolí
 
 En el estado actual, el frontend implementa la interacción visual y usa datos simulados para el alta de pedidos. En una integración posterior, esos mocks deberán ser reemplazados por respuestas del backend y la creación real del pedido deberá validarse desde servicios backend.
 
-No debe agregarse `api/` dentro de `src/modules/orders/` en esta fase. Cuando existan contratos backend aprobados, la integración debe hacerse desde la capa correspondiente, no desde componentes visuales.
+No debe agregarse `api/` dentro de `src/modules/orders/` hasta cerrar el contrato frontend-backend de este flujo. Cuando se conecte, la integración debe hacerse desde la capa API/hook correspondiente, no desde componentes visuales.
 
 ## Dependencia adicional
 
@@ -120,7 +120,7 @@ src/hooks/
 - Las funciones auxiliares reutilizables viven en `utils/`.
 - La lógica de flujo visual vive en `src/hooks/useOrderCreateFlow.js`.
 - El módulo no contiene `styles/Orders.module.css` porque se eliminó el CSS monolítico.
-- El módulo no contiene `api/` porque la creación real de pedidos todavía no tiene contrato backend conectado.
+- El módulo no contiene `api/` porque la pantalla de registro todavía no está conectada al contrato backend de creación de pedidos.
 - Los archivos de detalle de pedido se eliminaron de este flujo. El detalle deberá consultarse desde Kanban cuando corresponda.
 
 ## Flujo funcional principal
@@ -223,7 +223,8 @@ Funciones relevantes:
 
 Notas de integración futura:
 
-- `handleConfirmRegister()` deberá reemplazar `buildRegisteredOrder()` por una llamada a `orderApi.create` cuando exista contrato backend.
+- `handleConfirmRegister()` deberá reemplazar `buildRegisteredOrder()` por una llamada a una API del módulo cuando el contrato para este flujo quede completo.
+- El backend actual ya tiene `POST /api/orders` para cliente y productos, pero no recibe todavía el `multipart/form-data` con Nota de Venta PDF y archivos de diseño que esta pantalla prepara visualmente.
 - La persistencia en `sessionStorage` es solo apoyo visual temporal.
 - El backend debe validar rol, datos, PDF, duplicidad de Nota de Venta y reglas de estado.
 
@@ -844,46 +845,54 @@ Pendiente posible:
 
 ## Preparación para backend
 
-Cuando exista integración real, se espera:
+Cuando exista integración real desde esta pantalla, se espera:
 
 1. Reemplazar `MOCK_MANAGER_RECORDS` por consulta real de Nota de Venta.
 2. Reemplazar `EXISTING_SALES_NOTES` por validación real de duplicidad.
 3. Reemplazar `buildRegisteredOrder()` por respuesta del backend.
-4. Enviar creación mediante `multipart/form-data`.
-5. Crear `api/` solo cuando el contrato esté definido.
+4. Definir si la creación se mantiene JSON o si pasa a `multipart/form-data` para incluir documentos.
+5. Crear `api/` solo cuando el contrato de esta pantalla esté definido.
 6. Mover validaciones críticas al backend.
 7. Mantener frontend como capa visual y de feedback.
 
-Endpoint esperado según diseño general:
+Contrato backend parcial existente:
 
 ```txt
 POST /api/orders
 ```
 
-Formato esperado:
-
-```txt
-Content-Type: multipart/form-data
-
-Campos:
-- salesNoteNumber
-- salesNotePdf
-- designFiles[]
-- comments
-```
-
-Respuesta esperada de referencia:
+Formato JSON actual del backend:
 
 ```json
 {
-  "id": 100,
-  "salesNoteNumber": "NV-2026-001",
-  "orderStatus": "Confirmación de pago",
-  "paymentStatus": "Pendiente"
+  "rut_cliente": "12.345.678-9",
+  "nombre_cliente": "Cliente",
+  "razon_social": "Cliente SpA",
+  "estado_cliente": "Activo",
+  "id_usuario": 1,
+  "id_etiqueta": null,
+  "productos": [
+    {
+      "nombre_producto": "Lanyards",
+      "cantidad": 100,
+      "fecha_estimada_termino": "2026-06-30"
+    }
+  ]
 }
 ```
 
-Los nombres exactos deben definirse en contrato de integración.
+Respuesta de referencia:
+
+```json
+{
+  "id_pedido": 100,
+  "estado_pago": "Pendiente",
+  "nombre_etapa_general": "Confirmacion de pago",
+  "detalles": []
+}
+```
+
+Pendiente para conectar esta pantalla: definir como se enviarán la Nota de Venta PDF, archivos de diseño, observaciones, duplicidad de Nota de Venta y usuario autenticado desde frontend.
 
 ## Requisitos relacionados
 
@@ -987,9 +996,9 @@ Pendiente antes de integración real:
 
 - Formalizar trazabilidad final en `requirementsMap.js`.
 - Validar QA manual desktop/mobile.
-- Definir contrato backend para `POST /api/orders`.
-- Definir respuesta oficial del backend después de crear pedido.
-- Definir manejo real de archivos en backend.
+- Definir contrato frontend-backend para conectar esta pantalla al `POST /api/orders` existente.
+- Definir respuesta oficial de creación para el flujo con Nota de Venta y archivos.
+- Definir manejo real de archivos de Nota de Venta y diseño en backend.
 - Definir desde dónde se consultará el detalle de pedido en Kanban.
 - Reemplazar mocks por endpoints cuando corresponda.
 - Mantener evidencia visual para defensa de Sprint Review.

@@ -315,6 +315,7 @@ class OrderService {
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
+    // La transicion de pago es atomica: firma, mueve Kanban y registra auditoria.
     return this.runInTransaction(async ({
       repo,
       paymentRecordService,

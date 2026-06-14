@@ -263,6 +263,7 @@ function KanbanColumn() {
     const targetStep = Number(targetColumn.generalStepId)
     const isForwardMove = targetStep > currentStep
 
+    // Prechecks de UX; el backend vuelve a validar etapa, pago y permisos.
     if (targetStep < currentStep) {
       setMoveError(STAGE_BACKWARD_MESSAGE)
       return

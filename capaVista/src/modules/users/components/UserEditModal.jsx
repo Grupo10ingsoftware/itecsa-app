@@ -4,8 +4,8 @@ import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
 const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
-const SELF_ROLE_EDIT_MESSAGE = 'No puedes editar el rol de tu propio usuario administrador.'
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propio usuario administrador.'
+const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol de administrador.'
+const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
 
 function createFormState(user) {
   return {

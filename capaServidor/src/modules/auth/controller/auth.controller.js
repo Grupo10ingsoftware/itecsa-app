@@ -18,6 +18,8 @@ const PASSWORD_RESET_SENT_MESSAGE =
     "Te enviamos un enlace para cambiar tu contraseña.";
 const PASSWORD_RESET_ERROR_MESSAGE =
     "No fue posible solicitar el correo de recuperación de contraseña.";
+const VERIFY_SESSION_ERROR_MESSAGE =
+    "No fue posible verificar la sesion autenticada.";
 const OFFICIAL_ROLES = new Set([
     "Administrador",
     "Gerencia",
@@ -63,44 +65,76 @@ function logPasswordResetAttempt(logger, { email, status }) {
     });
 }
 
-export function verifyAuthSessionHandler(req, res) {
-    const payload = req.auth?.payload;
-    const email = payload?.[EMAIL_CLAIM];
-    const roles = payload?.[ROLES_CLAIM];
-    const permissionsClaim = payload?.[PERMISSIONS_CLAIM];
+async function syncInternalRole({ users, auth0UserId, rolUsuario }) {
+    const internalUser = await users.findByAuth0Id(auth0UserId);
 
-    const hasValidIdentity =
-        typeof payload?.sub === "string" &&
-        typeof email === "string" &&
-        email.trim().length > 0;
-    // Un rol singular evita escoger arbitrariamente entre asignaciones RBAC incompatibles.
-    const hasSingleOfficialRole =
-        Array.isArray(roles) &&
-        roles.length === 1 &&
-        OFFICIAL_ROLES.has(roles[0]);
-    const hasValidPermissions =
-        permissionsClaim === undefined || Array.isArray(permissionsClaim);
-
-    if (!hasValidIdentity || !hasSingleOfficialRole || !hasValidPermissions) {
-        return res.status(403).json({
-            message: "La sesion autenticada no tiene un rol valido para ITECSA.",
-        });
+    if (internalUser && internalUser.rolUsuario !== rolUsuario) {
+        await users.updateRoleByAuth0Id(auth0UserId, rolUsuario);
     }
-
-    // El contrato publico expone rolUsuario como proyeccion del claim RBAC namespaced.
-    const rolUsuario = roles[0];
-    const permissions = (permissionsClaim ?? []).filter(
-        (permission) => typeof permission === "string" && permission.trim().length > 0,
-    );
-
-    return res.status(200).json({
-        sub: payload.sub,
-        email,
-        rolUsuario,
-        isAdministrador: rolUsuario === "Administrador",
-        permissions,
-    });
 }
+
+export function createVerifyAuthSessionHandler({
+    users = userRepository,
+    logger = console,
+} = {}) {
+    return async function verifyAuthSessionHandler(req, res) {
+        const payload = req.auth?.payload;
+        const email = payload?.[EMAIL_CLAIM];
+        const roles = payload?.[ROLES_CLAIM];
+        const permissionsClaim = payload?.[PERMISSIONS_CLAIM];
+
+        const hasValidIdentity =
+            typeof payload?.sub === "string" &&
+            typeof email === "string" &&
+            email.trim().length > 0;
+        // Un rol singular evita escoger arbitrariamente entre asignaciones RBAC incompatibles.
+        const hasSingleOfficialRole =
+            Array.isArray(roles) &&
+            roles.length === 1 &&
+            OFFICIAL_ROLES.has(roles[0]);
+        const hasValidPermissions =
+            permissionsClaim === undefined || Array.isArray(permissionsClaim);
+
+        if (!hasValidIdentity || !hasSingleOfficialRole || !hasValidPermissions) {
+            return res.status(403).json({
+                message: "La sesion autenticada no tiene un rol valido para ITECSA.",
+            });
+        }
+
+        // El contrato publico expone rolUsuario como proyeccion del claim RBAC namespaced.
+        const rolUsuario = roles[0];
+        const permissions = (permissionsClaim ?? []).filter(
+            (permission) =>
+                typeof permission === "string" && permission.trim().length > 0,
+        );
+
+        try {
+            await syncInternalRole({
+                users,
+                auth0UserId: payload.sub,
+                rolUsuario,
+            });
+        } catch (error) {
+            logger.error?.("auth_verify_role_sync_error", {
+                auth0UserId: payload.sub,
+                rolUsuario,
+                code: error?.code,
+            });
+
+            return res.status(500).json({ message: VERIFY_SESSION_ERROR_MESSAGE });
+        }
+
+        return res.status(200).json({
+            sub: payload.sub,
+            email,
+            rolUsuario,
+            isAdministrador: rolUsuario === "Administrador",
+            permissions,
+        });
+    };
+}
+
+export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
 
 export function createPasswordResetRequestHandler({
     users = userRepository,

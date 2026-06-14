@@ -180,18 +180,34 @@ export function openPdfForDownload(filePath, fileName = 'documento.pdf') {
 }
 
 
-function buildPrintablePdfUrl(filePath) {
-  const separator = filePath.includes('#') ? '&' : '#'
-
-  return `${filePath}${separator}toolbar=0&navpanes=0&statusbar=0&messages=0&pagemode=none&scrollbar=1&view=FitH`
-}
-
 const PRINT_REQUEST_COOLDOWN_MS = 1500
 
 let activePrintJob = null
 let lastPrintRequest = {
   filePath: null,
   timestamp: 0,
+}
+
+async function createPrintablePdfObjectUrl(filePath) {
+  const response = await fetch(filePath)
+
+  if (!response.ok) {
+    throw new Error('No fue posible cargar el PDF para impresión.')
+  }
+
+  const pdfBlob = await response.blob()
+  const printableBlob = pdfBlob.type === 'application/pdf'
+    ? pdfBlob
+    : new Blob([pdfBlob], { type: 'application/pdf' })
+
+  return URL.createObjectURL(printableBlob)
+}
+
+function revokePrintJobObjectUrl(printJob) {
+  if (!printJob?.objectUrl) return
+
+  URL.revokeObjectURL(printJob.objectUrl)
+  printJob.objectUrl = null
 }
 
 function clearActivePrintJob({ removeFrame = true } = {}) {
@@ -205,6 +221,7 @@ function clearActivePrintJob({ removeFrame = true } = {}) {
     activePrintJob.printFrame?.remove()
   }
 
+  revokePrintJobObjectUrl(activePrintJob)
   activePrintJob = null
 }
 
@@ -232,7 +249,7 @@ function shouldIgnoreDuplicatePrintRequest(filePath) {
   return false
 }
 
-export function printPdf(filePath) {
+export async function printPdf(filePath) {
   if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
 
   if (shouldIgnoreDuplicatePrintRequest(filePath)) return
@@ -244,6 +261,16 @@ export function printPdf(filePath) {
 
   removePreviousPrintFrame()
 
+  let objectUrl = null
+
+  try {
+    objectUrl = await createPrintablePdfObjectUrl(filePath)
+  } catch (error) {
+    console.error('Error preparando PDF para impresión:', error)
+    openPdfAsFallback(filePath)
+    return
+  }
+
   const printFrame = document.createElement('iframe')
   let cleanupTimer = null
   let hasRequestedPrint = false
@@ -252,6 +279,11 @@ export function printPdf(filePath) {
     window.clearTimeout(cleanupTimer)
     window.removeEventListener('afterprint', cleanup)
     printFrame.remove()
+
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl)
+      objectUrl = null
+    }
 
     if (activePrintJob?.printFrame === printFrame) {
       activePrintJob = null
@@ -270,6 +302,15 @@ export function printPdf(filePath) {
   printFrame.style.right = '0'
   printFrame.style.width = '1px'
 
+  activePrintJob = {
+    cleanup,
+    cleanupTimer,
+    filePath,
+    objectUrl,
+    printDelayTimer: null,
+    printFrame,
+  }
+
   printFrame.onload = () => {
     if (hasRequestedPrint) return
     hasRequestedPrint = true
@@ -285,17 +326,15 @@ export function printPdf(filePath) {
         if (activePrintJob?.printFrame === printFrame) {
           activePrintJob.cleanupTimer = cleanupTimer
         }
-      } catch {
+      } catch (error) {
+        console.error('Error imprimiendo PDF:', error)
         cleanup()
         openPdfAsFallback(filePath)
       }
     }, 500)
 
-    activePrintJob = {
-      printFrame,
-      printDelayTimer,
-      cleanupTimer,
-      cleanup,
+    if (activePrintJob?.printFrame === printFrame) {
+      activePrintJob.printDelayTimer = printDelayTimer
     }
   }
 
@@ -304,6 +343,6 @@ export function printPdf(filePath) {
     openPdfAsFallback(filePath)
   }
 
-  printFrame.src = buildPrintablePdfUrl(filePath)
+  printFrame.src = objectUrl
   document.body.appendChild(printFrame)
 }

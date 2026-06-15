@@ -13,7 +13,7 @@ export const APP_ROUTES = Object.freeze({
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
-    label: 'Principal',
+    label: 'Principal/Kanban',
     path: APP_ROUTES.KANBAN,
     permission: PERMISSIONS.VIEW_KANBAN_MODULE,
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),

@@ -8,15 +8,24 @@ import getPrismaClient, {
   disconnectPrismaClient,
 } from "../src/database/prisma.js";
 
-config();
-
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const serverRootDirectory = path.resolve(currentDirectory, "..");
+config({ path: path.resolve(serverRootDirectory, ".env") });
+
 const projectRootDirectory = path.resolve(serverRootDirectory, "..");
 const projectDirectoryName = path.basename(projectRootDirectory);
 const applyChanges = process.argv.includes("--apply");
-const targetOrderIds = [1, 2, 3, 6, 8];
-const cleanPdfPath = path.resolve(projectRootDirectory, "data", "NVS", "Pedido6.pdf");
+const demoOrderIds = [1, 2, 3, 6, 8];
+const cleanPdfSourceOrderId = 2;
+const targetOrderIds = demoOrderIds.filter(
+  (orderId) => orderId !== cleanPdfSourceOrderId,
+);
+const cleanPdfPath = path.resolve(
+  projectRootDirectory,
+  "data",
+  "NVS",
+  `Pedido${cleanPdfSourceOrderId}.pdf`,
+);
 
 function normalizeStoredPath(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
@@ -185,7 +194,11 @@ function buildPlan({
       const isConfirmed = row.nombre_estado_pago === "Confirmado";
       const isSigned = Number(row.firmado ?? 0) === 1 || Number(row.firmas_pago ?? 0) > 0;
 
-      return orderId !== 6 && row.ruta_pdf && (isConfirmed || isSigned);
+      return (
+        orderId !== cleanPdfSourceOrderId &&
+        row.ruta_pdf &&
+        (isConfirmed || isSigned)
+      );
     })
     .map((row) => ({
       orderId: Number(row.id_pedido),
@@ -362,6 +375,7 @@ async function main() {
     console.log(serializePlan(plan, {
       mode: applyChanges ? "apply" : "dry-run",
       statusIds,
+      cleanPdfSourceOrderId,
       cleanPdfPath,
       cleanPdfHash,
     }));

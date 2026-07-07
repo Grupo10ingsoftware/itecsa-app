@@ -16,15 +16,12 @@ const projectRootDirectory = path.resolve(serverRootDirectory, "..");
 const projectDirectoryName = path.basename(projectRootDirectory);
 const applyChanges = process.argv.includes("--apply");
 const demoOrderIds = [1, 2, 3, 6, 8];
-const cleanPdfSourceOrderId = 2;
-const targetOrderIds = demoOrderIds.filter(
-  (orderId) => orderId !== cleanPdfSourceOrderId,
-);
-const cleanPdfPath = path.resolve(
+const targetOrderIds = demoOrderIds;
+const cleanPdfBackupDirectory = path.resolve(
   projectRootDirectory,
   "data",
-  "NVS",
-  `Pedido${cleanPdfSourceOrderId}.pdf`,
+  "backups",
+  "payment-demo-cleanup-2026-06-13T23-43-25-705Z",
 );
 
 function normalizeStoredPath(storedPath) {
@@ -53,6 +50,13 @@ async function fileHash(filePath) {
   const bytes = await fs.readFile(filePath);
 
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function getCleanPdfBackupPath(orderId) {
+  return path.resolve(
+    cleanPdfBackupDirectory,
+    `Pedido${orderId}-Pedido${orderId}.pdf`,
+  );
 }
 
 async function getRequiredStatusIds(prisma) {
@@ -189,22 +193,13 @@ function buildPlan({
     ),
   ];
   const pdfsToRestore = rows
-    .filter((row) => {
-      const orderId = Number(row.id_pedido);
-      const isConfirmed = row.nombre_estado_pago === "Confirmado";
-      const isSigned = Number(row.firmado ?? 0) === 1 || Number(row.firmas_pago ?? 0) > 0;
-
-      return (
-        orderId !== cleanPdfSourceOrderId &&
-        row.ruta_pdf &&
-        (isConfirmed || isSigned)
-      );
-    })
+    .filter((row) => row.ruta_pdf)
     .map((row) => ({
       orderId: Number(row.id_pedido),
       idDocumento: row.id_documento,
       storedPath: row.ruta_pdf,
       filePath: normalizeStoredPath(row.ruta_pdf),
+      cleanBackupPath: getCleanPdfBackupPath(Number(row.id_pedido)),
     }));
 
   return {
@@ -263,14 +258,13 @@ async function restoreBackups(backups) {
 }
 
 async function restoreCleanPdfs(plan) {
-  await fs.access(cleanPdfPath);
-
   for (const pdf of plan.pdfsToRestore) {
     if (!pdf.filePath) {
       throw new Error(`La ruta PDF del pedido ${pdf.orderId} no es valida.`);
     }
 
-    await fs.copyFile(cleanPdfPath, pdf.filePath);
+    await fs.access(pdf.cleanBackupPath);
+    await fs.copyFile(pdf.cleanBackupPath, pdf.filePath);
   }
 }
 
@@ -339,6 +333,8 @@ function serializePlan(plan, extra = {}) {
         idDocumento: pdf.idDocumento,
         storedPath: pdf.storedPath,
         filePath: pdf.filePath,
+        cleanBackupPath: pdf.cleanBackupPath,
+        cleanBackupHash: pdf.cleanBackupHash,
       })),
       userSignatureRouteUpdates: plan.userSignatureRouteUpdates,
     },
@@ -370,14 +366,17 @@ async function main() {
       paymentSignatures,
       userSignatureRouteUpdates,
     });
-    const cleanPdfHash = await fileHash(cleanPdfPath);
+
+    await fs.access(cleanPdfBackupDirectory);
+    for (const pdf of plan.pdfsToRestore) {
+      await fs.access(pdf.cleanBackupPath);
+      pdf.cleanBackupHash = await fileHash(pdf.cleanBackupPath);
+    }
 
     console.log(serializePlan(plan, {
       mode: applyChanges ? "apply" : "dry-run",
       statusIds,
-      cleanPdfSourceOrderId,
-      cleanPdfPath,
-      cleanPdfHash,
+      cleanPdfBackupDirectory,
     }));
 
     if (!applyChanges) {

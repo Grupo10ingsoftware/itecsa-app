@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITECSA · Mockup de muestras</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head"><strong>ITECSA</strong><button class="icon-button mobile-only" id="close-menu" title="Cerrar menú" aria-label="Cerrar menú">×</button></div>
+      <nav>
+        <a href="#/desarrollos" data-nav="desarrollos"><span>▦</span> Desarrollos</a>
+        <a href="#/nuevo" data-nav="nuevo"><span>＋</span> Nuevo desarrollo</a>
+        <a href="#/pedido" data-nav="pedido"><span>▤</span> Pedido demo</a>
+      </nav>
+      <div class="demo-label">PRUEBA DE CONCEPTO</div>
+      <button class="reset-button" id="reset-demo">↻ Restablecer demo</button>
+    </aside>
+    <div class="content-area">
+      <header class="topbar"><button class="icon-button mobile-only" id="open-menu" title="Abrir menú" aria-label="Abrir menú">☰</button><div></div><div class="profile"><span>CR</span><div><strong>Camila Rojas</strong><small>Ventas · Demo</small></div></div></header>
+      <main id="app" tabindex="-1"></main>
+    </div>
+  </div>
+  <div id="modal-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>

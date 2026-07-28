@@ -15,6 +15,9 @@ const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/Pay
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
 const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordResetPage'))
+const ProductionHistoryPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryPage'))
+const ProductionHistoryDetailPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryDetailPage'))
+const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
 
 function RouteLoadingState() {
   return (
@@ -64,6 +67,30 @@ export default function AppRouter() {
               element={
                 <RoleGuard requiredPermission={PERMISSIONS.VIEW_ORDERS_MODULE}>
                   <OrderCreatePage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="historial-produccion"
+              element={
+                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                  <ProductionHistoryPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="historial-produccion/:pedidoId"
+              element={
+                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                  <ProductionHistoryDetailPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="calendario-produccion"
+              element={
+                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                  <ProductionCalendarPage />
                 </RoleGuard>
               }
             />

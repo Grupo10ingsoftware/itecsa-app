@@ -9,6 +9,8 @@ const ROUTE_ICONS_BY_PATH = Object.freeze({
   [APP_ROUTES.ADMIN_USERS]: 'bi-people',
   [APP_ROUTES.ADMIN_USERS_CREATE]: 'bi-person-plus',
   [APP_ROUTES.ORDERS_CREATE]: 'bi-receipt',
+  [APP_ROUTES.PRODUCTION_HISTORY]: 'bi-clock-history',
+  [APP_ROUTES.PRODUCTION_CALENDAR]: 'bi-calendar3',
 })
 
 export default function NavigationMenu({ onNavigate }) {

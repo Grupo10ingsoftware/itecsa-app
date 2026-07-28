@@ -9,6 +9,7 @@ function KanbanCard({
   dueDate,
   isDelayed,
   isMoveBlocked,
+  isCorrectionRequested,
   isUrgent,
   onOpenDetail,
 }) {
@@ -18,7 +19,16 @@ function KanbanCard({
   })
 
   return (
-    <article className={`${styles.orderCard} ${isMoveBlocked ? styles.orderCardBlocked : ''}`} ref={ref}>
+    <article
+      className={[
+        styles.orderCard,
+        isMoveBlocked ? styles.orderCardBlocked : '',
+        isCorrectionRequested ? styles.orderCardCorrection : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      ref={ref}
+    >
       <div className={styles.orderCardHeader}>
         <span className={styles.orderClient}>{clientName}</span>
         <div className={styles.headerBadgesGroup}>
@@ -35,6 +45,11 @@ function KanbanCard({
           {isUrgent && (
             <span className={styles.urgentBadge} title="Pedido urgente">
               <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+            </span>
+          )}
+          {isCorrectionRequested && (
+            <span className={styles.correctionBadge} title="Pedido en correccion">
+              <i className="bi bi-pencil-fill" aria-hidden="true" />
             </span>
           )}
           <span className={styles.orderNv}>{nv}</span>
@@ -54,6 +69,12 @@ function KanbanCard({
           <div>
             <dt>Entrega</dt>
             <dd>{dueDate}</dd>
+          </div>
+        )}
+        {isCorrectionRequested && (
+          <div>
+            <dt>Correccion</dt>
+            <dd>Solicitada por produccion</dd>
           </div>
         )}
       </dl>

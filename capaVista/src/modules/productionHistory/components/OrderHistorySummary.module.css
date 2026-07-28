@@ -1,0 +1,91 @@
+.summaryGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(18rem, 1.35fr) repeat(3, minmax(0, 1fr));
+}
+
+.samplePreview,
+.infoCard {
+  background: #fff;
+  border: 1px solid var(--history-border);
+  border-radius: 0.9rem;
+  min-width: 0;
+}
+
+.samplePreview {
+  overflow: hidden;
+}
+
+.cardHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--history-border);
+  color: #111827;
+  display: flex;
+  font-weight: 900;
+  justify-content: space-between;
+  min-height: 3.35rem;
+  padding: 0.85rem 1rem;
+}
+
+.cardHeader i {
+  color: var(--history-orange);
+}
+
+.samplePreview img {
+  aspect-ratio: 16 / 10;
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.emptyPreview {
+  align-items: center;
+  aspect-ratio: 16 / 10;
+  background: #f8fafc;
+  color: var(--history-muted);
+  display: flex;
+  font-weight: 800;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.dataList {
+  display: grid;
+  gap: 0.72rem;
+  margin: 0;
+  padding: 1rem;
+}
+
+.dataList div {
+  min-width: 0;
+}
+
+.dataList dt {
+  color: var(--history-muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.18rem;
+  text-transform: uppercase;
+}
+
+.dataList dd {
+  color: #111827;
+  font-size: 0.93rem;
+  font-weight: 760;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1399.98px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}

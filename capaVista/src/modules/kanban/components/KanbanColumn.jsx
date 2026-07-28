@@ -11,25 +11,24 @@ const MOVE_TO_PRODUCTION_PERMISSION_MESSAGE = 'Solo un administrador puede mover
 const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
+const LANYARD_DAILY_CAPACITY = 1200
 
 const processTemplates = {
-  Lanyards: [
-    { id: 'imp', name: 'Impresion', status: 'pending' },
-    { id: 'sub', name: 'Sublimacion', status: 'pending' },
-    { id: 'cor', name: 'Corte', status: 'pending' },
-    { id: 'cos', name: 'Costura', status: 'pending' },
+  lanyard: [
+    { id: 'impresion', name: 'Impresion', status: 'pending' },
+    { id: 'sublimacion', name: 'Sublimacion', status: 'pending' },
+    { id: 'corte', name: 'Corte', status: 'pending' },
+    { id: 'costura', name: 'Costura', status: 'pending' },
+    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
   ],
-  Cordones: [
-    { id: 'imp', name: 'Impresion', status: 'pending' },
-    { id: 'cor', name: 'Corte', status: 'pending' },
-    { id: 'ter', name: 'Terminacion', status: 'pending' },
+  tarjeta: [
+    { id: 'revision-info', name: 'Revision info', status: 'pending' },
+    { id: 'orden-info', name: 'Orden info', status: 'pending' },
+    { id: 'carga-info', name: 'Carga info', status: 'pending' },
+    { id: 'confeccion', name: 'Confeccion', status: 'pending' },
+    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
   ],
-  Tarjeta: [
-    { id: 'rev', name: 'Revision de informacion', status: 'pending' },
-    { id: 'ord', name: 'Orden de datos', status: 'pending' },
-    { id: 'car', name: 'Carga de datos', status: 'pending' },
-  ],
-  default: [{ id: 'gen', name: 'Produccion general', status: 'pending' }],
+  default: [{ id: 'produccion-general', name: 'Produccion general', status: 'pending' }],
 }
 
 const baseColumns = [
@@ -69,7 +68,13 @@ function getColumnTitleByStepId(stepId) {
 }
 
 function getProcessesFor(productName) {
-  const template = processTemplates[productName] ?? processTemplates.default
+  const normalizedProductName = String(productName ?? '').toLowerCase()
+  const key = normalizedProductName.includes('lanyard')
+    ? 'lanyard'
+    : normalizedProductName.includes('tarjeta')
+      ? 'tarjeta'
+      : 'default'
+  const template = processTemplates[key]
   return template.map((step) => ({ ...step }))
 }
 
@@ -122,6 +127,29 @@ function isPaymentConfirmed(order) {
   return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
 }
 
+function isLanyardOrder(order) {
+  return String(order.product ?? '').toLowerCase().includes('lanyard')
+}
+
+function getOrderQuantity(order) {
+  const quantity = Number(order.quantity ?? order.cantidad)
+
+  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0
+}
+
+function calculateOperationalLoad(orders) {
+  const lanyardsInProduction = orders
+    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP && isLanyardOrder(order))
+    .reduce((total, order) => total + getOrderQuantity(order), 0)
+  const percentage = Math.round((lanyardsInProduction / LANYARD_DAILY_CAPACITY) * 100)
+
+  return {
+    capacity: LANYARD_DAILY_CAPACITY,
+    lanyardsInProduction,
+    percentage,
+  }
+}
+
 function normalizeOrder(order) {
   const id = order.id ?? order.id_pedido
   const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
@@ -149,6 +177,7 @@ function normalizeOrder(order) {
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
     isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
+    quantity: order.quantity ?? order.cantidad ?? null,
     subProcesses: Array.isArray(order.subProcesses)
       ? order.subProcesses
       : Array.isArray(order.subprocesos)
@@ -159,6 +188,10 @@ function normalizeOrder(order) {
       : Array.isArray(order.comentarios)
         ? order.comentarios
         : [],
+    correctionRequested: Boolean(order.correctionRequested),
+    correctionComment: order.correctionComment ?? '',
+    correctionRequestedAt: order.correctionRequestedAt ?? null,
+    manufacturingDetails: order.manufacturingDetails ?? null,
   }
 }
 
@@ -194,7 +227,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
   )
 }
 
-function KanbanColumn() {
+function KanbanColumn({ onOperationalLoadChange }) {
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
@@ -247,6 +280,10 @@ function KanbanColumn() {
 
     loadOrders()
   }, [kanbanApi])
+
+  useEffect(() => {
+    onOperationalLoadChange?.(calculateOperationalLoad(orders))
+  }, [onOperationalLoadChange, orders])
 
   function handleDragEnd(event) {
     if (event.canceled) return
@@ -352,6 +389,7 @@ function KanbanColumn() {
                   ? columnOrders.map((order) => (
                       <KanbanCard
                         isMoveBlocked={!isPaymentConfirmed(order)}
+                        isCorrectionRequested={order.correctionRequested}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
                         {...order}

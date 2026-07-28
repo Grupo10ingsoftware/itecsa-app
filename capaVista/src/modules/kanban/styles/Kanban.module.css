@@ -330,7 +330,8 @@
 
 .lockedBadge,
 .delayBadge,
-.urgentBadge {
+.urgentBadge,
+.correctionBadge {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
@@ -353,6 +354,11 @@
 .urgentBadge {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.correctionBadge {
+  background: #fef3c7;
+  color: #a16207;
 }
 
 .orderDetails {
@@ -405,6 +411,17 @@
   outline: none;
 }
 
+.orderCardCorrection {
+  background: #fffbeb;
+  border-color: rgba(202, 138, 4, 0.45);
+  box-shadow: 0 14px 32px rgba(202, 138, 4, 0.14);
+}
+
+.orderCardCorrection:hover {
+  border-color: rgba(202, 138, 4, 0.7);
+  box-shadow: 0 18px 36px rgba(202, 138, 4, 0.2);
+}
+
 .emptyColumn {
   align-items: center;
   border: 1px dashed #cbd5e1;
@@ -427,7 +444,8 @@
 
   .urgentBadge,
   .delayBadge,
-  .lockedBadge {
+  .lockedBadge,
+  .correctionBadge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -454,6 +472,12 @@
     background-color: rgba(202,138,4,0.12);
     color: var(--kanban-yellow);
     border-color: rgba(202,138,4,0.3);
+  }
+
+  .correctionBadge {
+    background-color: rgba(202,138,4,0.16);
+    color: var(--kanban-yellow);
+    border-color: rgba(202,138,4,0.35);
   }
 
   .orderDetails .textDelayed dt{
@@ -484,6 +508,11 @@
 }
 
 .offcanvasLayer {
+  --kanban-border: #e5e7eb;
+  --kanban-orange: #f97316;
+  --kanban-orange-rgb: 249, 115, 22;
+  --kanban-muted: #64748b;
+  --kanban-text: #111827;
   background: rgba(15, 23, 42, 0.38);
   inset: 0;
   position: fixed;
@@ -560,6 +589,7 @@
 .detailList {
   display: grid;
   gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
 }
 
@@ -578,10 +608,115 @@
 
 .detailList dd {
   color: var(--kanban-text);
+  font-weight: 720;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.subProcessList {
+.correctionButton {
+  align-items: center;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 0.55rem;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.55rem;
+  padding: 0.55rem 0.9rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+  width: 100%;
+}
+
+.correctionButton:hover,
+.correctionButton:focus {
+  background: #ca8a04;
+  border-color: #ca8a04;
+  color: #111;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.correctionForm {
+  background: #fffbeb;
+  border: 1px solid rgba(202, 138, 4, 0.28);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+}
+
+.correctionForm label {
+  color: #854d0e;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.correctionForm textarea {
+  border: 1px solid rgba(202, 138, 4, 0.32);
+  border-radius: 0.6rem;
+  color: var(--kanban-text);
+  min-height: 6rem;
+  padding: 0.7rem;
+  resize: vertical;
+}
+
+.correctionForm textarea:focus {
+  border-color: #ca8a04;
+  box-shadow: 0 0 0 0.22rem rgba(202, 138, 4, 0.16);
+  outline: none;
+}
+
+.correctionActions {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.correctionActions .orderCardButton,
+.correctionActions .resetFilterButton {
+  margin: 0;
+  width: 100%;
+}
+
+.correctionNotice,
+.stepperNotice {
+  align-items: center;
+  border-radius: 0.65rem;
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 760;
+  gap: 0.55rem;
+  line-height: 1.35;
+  padding: 0.75rem 0.8rem;
+}
+
+.correctionNotice {
+  background: #fef3c7;
+  border: 1px solid rgba(202, 138, 4, 0.3);
+  color: #854d0e;
+}
+
+.stepperNotice {
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  color: var(--kanban-muted);
+}
+
+.correctionNotice i,
+.stepperNotice i {
+  flex: 0 0 auto;
+}
+
+.subProcessList,
+.subProcessStepper {
   display: grid;
   gap: 0.55rem;
 }
@@ -603,6 +738,217 @@
   background: #ecfdf5;
   border-color: #bbf7d0;
   color: #166534;
+}
+
+.subProcessStepper {
+  counter-reset: subprocess;
+  gap: 0.7rem;
+}
+
+.subProcessStep {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  color: var(--kanban-text);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 2.15rem 1fr;
+  min-height: 3.25rem;
+  padding: 0.65rem 0.75rem;
+  position: relative;
+  text-align: left;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.subProcessStep:not(:last-child)::after {
+  background: #d7dee8;
+  bottom: -0.75rem;
+  content: "";
+  height: 0.78rem;
+  left: 1.79rem;
+  position: absolute;
+  width: 2px;
+}
+
+.subProcessStep:not(:disabled):hover,
+.subProcessStep:not(:disabled):focus {
+  border-color: rgba(var(--kanban-orange-rgb), 0.55);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.subProcessMarker {
+  align-items: center;
+  background: #eef2f7;
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  color: #334155;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 850;
+  height: 2.15rem;
+  justify-content: center;
+  position: relative;
+  width: 2.15rem;
+  z-index: 1;
+}
+
+.subProcessContent {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.subProcessContent > span {
+  color: var(--kanban-text);
+  font-weight: 780;
+  line-height: 1.2;
+}
+
+.subProcessContent strong {
+  color: var(--kanban-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.subProcessCurrent {
+  background: rgba(var(--kanban-orange-rgb), 0.08);
+  border-color: rgba(var(--kanban-orange-rgb), 0.48);
+}
+
+.subProcessCurrent .subProcessMarker {
+  background: var(--kanban-orange);
+  border-color: var(--kanban-orange);
+  color: #111;
+}
+
+.subProcessCurrent .subProcessContent strong {
+  color: #a34f00;
+}
+
+.subProcessDone {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.subProcessDone:not(:last-child)::after {
+  background: #86efac;
+}
+
+.subProcessDone .subProcessMarker {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+.subProcessDone .subProcessContent > span,
+.subProcessDone .subProcessContent strong {
+  color: #166534;
+}
+
+.subProcessLocked {
+  background: #f8fafc;
+  color: var(--kanban-muted);
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.operatorModalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1070;
+}
+
+.operatorModal {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  max-width: min(100%, 28rem);
+  overflow: hidden;
+  width: 28rem;
+}
+
+.operatorModalHeader,
+.operatorModalFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.operatorModalHeader {
+  border-bottom: 1px solid var(--kanban-border);
+}
+
+.operatorModalHeader h3 {
+  color: var(--kanban-text);
+  font-size: 1.08rem;
+  margin: 0.2rem 0 0;
+}
+
+.operatorModalBody {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.operatorModalBody label {
+  color: var(--kanban-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 850;
+  gap: 0.4rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.operatorModalBody input {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--kanban-text);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  text-transform: none;
+}
+
+.operatorModalBody input:focus {
+  border-color: var(--kanban-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--kanban-orange-rgb), 0.18);
+  outline: none;
+}
+
+.operatorModalError {
+  background: #fff1f0;
+  border: 1px solid #f1b5b5;
+  border-radius: 0.55rem;
+  color: #b02a37;
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.operatorModalFooter {
+  border-top: 1px solid var(--kanban-border);
+}
+
+.operatorModalFooter .orderCardButton {
+  margin: 0;
+  width: auto;
 }
 
 .commentForm {

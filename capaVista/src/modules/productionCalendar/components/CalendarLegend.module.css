@@ -1,0 +1,79 @@
+.legendBar {
+  align-items: center;
+  background: #000;
+  border-radius: 0.75rem;
+  color: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+}
+
+.legendItems {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.legendItems span {
+  align-items: center;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 850;
+  gap: 0.55rem;
+}
+
+.legendItems span::before {
+  border-radius: 0.16rem;
+  content: "";
+  height: 0.85rem;
+  width: 1.35rem;
+}
+
+.readyProduction::before {
+  background: #2563eb;
+}
+
+.inProduction::before {
+  background: #f97316;
+}
+
+.readyDelivery::before {
+  background: #248f55;
+}
+
+.deliveryButton {
+  align-items: center;
+  background: rgba(var(--calendar-orange-rgb), 0.12);
+  border: 1px solid rgba(var(--calendar-orange-rgb), 0.42);
+  border-radius: 0.65rem;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: 850;
+  gap: 0.55rem;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.deliveryButton:hover,
+.deliveryButton:focus {
+  background: var(--calendar-orange);
+  border-color: var(--calendar-orange);
+  color: #111827;
+  outline: none;
+}
+
+@media (max-width: 767.98px) {
+  .legendBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .deliveryButton {
+    justify-content: center;
+    width: 100%;
+  }
+}

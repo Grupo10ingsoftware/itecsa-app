@@ -1,0 +1,64 @@
+.filtersCard {
+  align-items: end;
+  background: #fff;
+  border: 1px solid var(--calendar-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  padding: 1rem;
+}
+
+.filtersCard label {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.filtersCard span {
+  color: var(--calendar-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.filtersCard input,
+.filtersCard select {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--calendar-text);
+  min-height: 3rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.filtersCard input:focus,
+.filtersCard select:focus {
+  border-color: var(--calendar-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--calendar-orange-rgb), 0.18);
+  outline: none;
+}
+
+.clearButton {
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  border-radius: 0.55rem;
+  color: #111827;
+  font-weight: 780;
+  min-height: 3rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.clearButton:hover,
+.clearButton:focus {
+  border-color: var(--calendar-orange);
+  color: var(--calendar-orange);
+  outline: none;
+}
+
+@media (max-width: 991.98px) {
+  .filtersCard {
+    grid-template-columns: 1fr;
+  }
+}

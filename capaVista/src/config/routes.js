@@ -1,4 +1,5 @@
 import { PERMISSIONS } from './permissions'
+import { ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
@@ -9,6 +10,9 @@ export const APP_ROUTES = Object.freeze({
   ADMIN_USERS: '/admin/usuarios',
   ADMIN_USERS_CREATE: '/admin/usuarios/nuevo',
   ORDERS_CREATE: '/ordenes/nuevo',
+  PRODUCTION_HISTORY: '/historial-produccion',
+  PRODUCTION_HISTORY_DETAIL: '/historial-produccion/:pedidoId',
+  PRODUCTION_CALENDAR: '/calendario-produccion',
 })
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
@@ -36,5 +40,17 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.ORDERS_CREATE,
     permission: PERMISSIONS.VIEW_ORDERS_MODULE,
     requirementIds: Object.freeze(['UR 19.1', 'UR 19.2', 'UR 19.3', 'UR 19.4', 'UR 19.5']),
+  },
+  {
+    label: 'Historial Produccion',
+    path: APP_ROUTES.PRODUCTION_HISTORY,
+    requiredRoles: Object.freeze([ROLES.ADMINISTRADOR]),
+    requirementIds: Object.freeze(['PROTOTIPO']),
+  },
+  {
+    label: 'Calendario',
+    path: APP_ROUTES.PRODUCTION_CALENDAR,
+    requiredRoles: Object.freeze([ROLES.ADMINISTRADOR]),
+    requirementIds: Object.freeze(['PROTOTIPO']),
   },
 ])

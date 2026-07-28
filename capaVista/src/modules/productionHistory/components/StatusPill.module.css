@@ -1,0 +1,43 @@
+.statusPill {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  justify-content: center;
+  line-height: 1;
+  min-height: 1.8rem;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+}
+
+.final {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.28);
+  color: #c2410c;
+}
+
+.approved {
+  background: rgba(36, 143, 85, 0.12);
+  border-color: rgba(36, 143, 85, 0.24);
+  color: #166534;
+}
+
+.rejected {
+  background: rgba(239, 18, 28, 0.1);
+  border-color: rgba(239, 18, 28, 0.22);
+  color: #b91c1c;
+}
+
+.review {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.22);
+  color: #1d4ed8;
+}
+
+.neutral {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}

@@ -1,0 +1,143 @@
+.tableWrap {
+  overflow-x: auto;
+}
+
+.historyTable {
+  border-collapse: collapse;
+  min-width: 920px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.historyTable > :not(caption) > * > * {
+  background-color: transparent;
+  border-bottom: 1px solid var(--history-border);
+  padding: 0.95rem 0.75rem;
+  vertical-align: middle;
+}
+
+.historyTable thead th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.historyTable tbody tr:hover td:not(.actionsCell) {
+  background: rgba(var(--history-orange-rgb), 0.035);
+}
+
+.colOrder {
+  width: 15%;
+}
+
+.colProduct {
+  width: 17%;
+}
+
+.colClient {
+  width: 18%;
+}
+
+.colSeller {
+  width: 14%;
+}
+
+.colStatus {
+  width: 14%;
+}
+
+.colSamples {
+  width: 9%;
+}
+
+.colActions {
+  width: 13%;
+}
+
+.orderCell strong,
+.orderCell span {
+  display: block;
+}
+
+.orderCell strong {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.orderCell span {
+  color: var(--history-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  margin-top: 0.2rem;
+}
+
+.productCell,
+.clientCell {
+  color: #111827;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sampleCount {
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 999px;
+  color: #334155;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 0.35rem;
+  justify-content: center;
+  min-height: 2rem;
+  min-width: 3.2rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.sampleCount i {
+  color: var(--history-green);
+}
+
+.actionsColumn,
+.actionsCell {
+  background: #f6f7f9 !important;
+  text-align: center !important;
+}
+
+.historyButton {
+  align-items: center;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 0.75rem;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 850;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.historyButton:hover,
+.historyButton:focus {
+  background: var(--history-orange);
+  border-color: var(--history-orange);
+  color: #111827;
+}
+
+.emptyState {
+  color: var(--history-muted);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 2rem !important;
+  text-align: center !important;
+}

@@ -1,0 +1,143 @@
+.calendarShell {
+  border: 1px solid var(--calendar-border);
+  border-radius: 0.85rem;
+  overflow: auto;
+}
+
+.weekHeader {
+  background: #000;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(10rem, 1fr));
+  min-width: 70rem;
+}
+
+.weekHeader span {
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.65rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.monthGrid {
+  background: #fff;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(10rem, 1fr));
+  min-width: 70rem;
+}
+
+.dayCell {
+  border-bottom: 1px solid var(--calendar-border);
+  border-right: 1px solid var(--calendar-border);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 7.1rem;
+  padding: 0.55rem 0.6rem;
+}
+
+.dayCell:nth-child(7n) {
+  border-right: 0;
+}
+
+.outsideMonth {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.dayNumber {
+  color: #111827;
+  font-size: 0.85rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.outsideMonth .dayNumber {
+  color: #94a3b8;
+}
+
+.eventsList {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.45rem;
+}
+
+.calendarEvent {
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  border-radius: 0.45rem;
+  display: grid;
+  gap: 0.08rem;
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+}
+
+.calendarEvent:hover,
+.calendarEvent:focus {
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.calendarEvent strong {
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.calendarEvent span,
+.calendarEvent em {
+  color: #111827;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.calendarEvent small {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.64rem;
+  font-weight: 850;
+  justify-self: start;
+  margin-top: 0.18rem;
+  padding: 0.15rem 0.38rem;
+}
+
+.readyProduction {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.readyProduction strong {
+  color: #2563eb;
+}
+
+.readyProduction small {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.inProduction {
+  border-color: rgba(249, 115, 22, 0.32);
+}
+
+.inProduction strong {
+  color: #ea580c;
+}
+
+.inProduction small {
+  background: rgba(249, 115, 22, 0.14);
+  color: #c2410c;
+}
+
+.readyDelivery {
+  border-color: rgba(36, 143, 85, 0.3);
+}
+
+.readyDelivery strong {
+  color: #15803d;
+}
+
+.readyDelivery small {
+  background: rgba(36, 143, 85, 0.12);
+  color: #166534;
+}

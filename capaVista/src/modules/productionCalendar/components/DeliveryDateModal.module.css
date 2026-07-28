@@ -1,0 +1,128 @@
+.modalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1070;
+}
+
+.modalCard {
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  max-width: min(100%, 30rem);
+  overflow: hidden;
+  width: 30rem;
+}
+
+.modalHeader,
+.modalFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.modalHeader {
+  border-bottom: 1px solid var(--calendar-border);
+}
+
+.modalHeader span {
+  color: var(--calendar-orange);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modalHeader h2 {
+  color: var(--calendar-text);
+  font-size: 1.15rem;
+  margin: 0.2rem 0 0;
+}
+
+.modalHeader button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  border-radius: 0.55rem;
+  color: #111;
+  display: inline-flex;
+  height: 2.4rem;
+  justify-content: center;
+  width: 2.4rem;
+}
+
+.modalBody {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.modalBody label {
+  color: var(--calendar-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 850;
+  gap: 0.4rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.modalBody select,
+.modalBody input {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--calendar-text);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.modalBody p {
+  background: #f8fafc;
+  border: 1px solid var(--calendar-border);
+  border-radius: 0.6rem;
+  color: var(--calendar-muted);
+  font-size: 0.86rem;
+  font-weight: 720;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0.75rem;
+}
+
+.modalFooter {
+  border-top: 1px solid var(--calendar-border);
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 0.55rem;
+  font-weight: 800;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.primaryButton {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+}
+
+.primaryButton:hover,
+.primaryButton:focus {
+  background: var(--calendar-orange);
+  border-color: var(--calendar-orange);
+  color: #111827;
+  outline: none;
+}
+
+.secondaryButton {
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  color: #111827;
+}

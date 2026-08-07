@@ -6,6 +6,7 @@ export const APP_ROUTES = Object.freeze({
   PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
+  PROFILE: '/perfil',
   PAYMENTS: '/pagos',
   ADMIN_USERS: '/admin/usuarios',
   ADMIN_USERS_CREATE: '/admin/usuarios/nuevo',
@@ -21,6 +22,11 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.KANBAN,
     permission: PERMISSIONS.VIEW_KANBAN_MODULE,
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),
+  },
+  {
+    label: 'Mi perfil',
+    path: APP_ROUTES.PROFILE,
+    requirementIds: Object.freeze(['UR 1.7']),
   },
   {
     label: 'Confirmar pago',

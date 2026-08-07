@@ -1,0 +1,195 @@
+.page {
+  color: #17202a;
+}
+
+.shell {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem 0 2rem;
+}
+
+.header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sectionLabel {
+  color: #6c757d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  font-size: clamp(1.65rem, 2vw, 2.2rem);
+  font-weight: 800;
+  margin: 0;
+}
+
+.profileGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.6fr);
+}
+
+.photoPanel,
+.infoPanel,
+.movementsPanel {
+  background: #fff;
+  border: 1px solid #e3e7ed;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgb(16 24 40 / 7%);
+}
+
+.photoPanel {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 27rem;
+  padding: 1.25rem;
+}
+
+.profilePhoto,
+.profilePhotoFallback {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  width: min(100%, 20rem);
+}
+
+.profilePhoto {
+  object-fit: cover;
+}
+
+.profilePhotoFallback {
+  align-items: center;
+  background: #17202a;
+  color: #fff;
+  display: flex;
+  font-size: 4rem;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.infoPanel {
+  display: grid;
+  gap: 1.15rem;
+  padding: 1.25rem;
+}
+
+.infoHeader,
+.movementsHeader {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.infoHeader h2,
+.movementsHeader h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0.15rem 0 0;
+}
+
+.statusBadge {
+  background: #e9f7ef;
+  border-radius: 999px;
+  color: #146c43;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+}
+
+.infoList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.infoList div {
+  border-top: 1px solid #edf0f3;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: minmax(9rem, 0.45fr) minmax(0, 1fr);
+  padding: 0.9rem 0;
+}
+
+.infoList dt {
+  color: #5f6b76;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.infoList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.movementsPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.movementsTable {
+  border: 1px solid #edf0f3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.movementsHead,
+.movementRow {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.35fr);
+}
+
+.movementsHead {
+  background: #f8fafc;
+  color: #4f5f6f;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.movementsHead span,
+.movementRow span,
+.movementRow time {
+  padding: 0.85rem 1rem;
+}
+
+.movementRow {
+  border-top: 1px solid #edf0f3;
+}
+
+.movementRow time {
+  color: #5f6b76;
+}
+
+@media (max-width: 900px) {
+  .profileGrid,
+  .infoList div,
+  .movementsHead,
+  .movementRow {
+    grid-template-columns: 1fr;
+  }
+
+  .photoPanel {
+    min-height: auto;
+  }
+
+  .infoHeader,
+  .movementsHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .statusBadge {
+    width: fit-content;
+  }
+
+  .movementRow time {
+    padding-top: 0;
+  }
+}

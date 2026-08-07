@@ -199,7 +199,6 @@ export class UserRepository {
         nombreUsuario,
         apellidoUsuario,
         rolUsuario,
-        estadoUsuario,
     }) {
         try {
             const user = await this.client.usuario.update({
@@ -209,7 +208,6 @@ export class UserRepository {
                     nombre_usuario: nombreUsuario,
                     apellido_usuario: apellidoUsuario,
                     rol_usuario: rolUsuario,
-                    estado_usuario: estadoUsuario,
                 },
             });
 

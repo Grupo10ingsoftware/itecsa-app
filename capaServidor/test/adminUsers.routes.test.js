@@ -177,7 +177,6 @@ async function executeUpdateHandler({
         apellidoUsuario: "Perez",
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Gerencia",
-        estadoUsuario: "Vinculado",
     },
     params = { userId: "auth0|created-user" },
     updateUser,
@@ -298,7 +297,6 @@ test("actualiza usuario en Auth0 y tabla interna con contrato final", async () =
         userId: "auth0|created-user",
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Gerencia",
-        estadoUsuario: "Activo",
     });
     assert.deepEqual(internalPayload, {
         userId: "auth0|created-user",
@@ -307,7 +305,6 @@ test("actualiza usuario en Auth0 y tabla interna con contrato final", async () =
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
             rolUsuario: "Gerencia",
-            estadoUsuario: "Activo",
         },
     });
     assert.equal(res.body.nombreUsuario, "Ana Maria");
@@ -322,7 +319,6 @@ test("rechaza actualizacion con campos legacy", async () => {
             apellidoPaterno: "Perez",
             correoUsuario: "ana@itecsa.cl",
             rolUsuario: "Ventas",
-            estadoUsuario: "Vinculado",
         },
         updateUser: async () => {
             calls += 1;
@@ -390,7 +386,7 @@ test("rechaza autodesvinculacion por endpoint de estado", async () => {
     assert.equal(internalCalls, 0);
 });
 
-test("rechaza autodesvinculacion desde edicion completa", async () => {
+test("rechaza cambio de estado desde edicion completa", async () => {
     let externalCalls = 0;
     let internalCalls = 0;
     const handler = createUpdateAdminUserHandler({
@@ -419,10 +415,7 @@ test("rechaza autodesvinculacion desde edicion completa", async () => {
         selfRes,
     );
 
-    assert.equal(selfRes.statusCode, 409);
-    assert.deepEqual(selfRes.body, {
-        message: "No puedes desvincular tu propio usuario administrador.",
-    });
+    assert.equal(selfRes.statusCode, 400);
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
 });
@@ -449,7 +442,6 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
         rutUsuario: VALID_BODY.rutUsuario,
         correoUsuario: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
-        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
         passwordSetupEmailRequested: true,
     });
     assert.deepEqual(createUserPayload, {
@@ -491,21 +483,30 @@ test("persiste el usuario interno activo antes de solicitar correo", async () =>
     });
 });
 
-test("responde 400 si falta la firma electronica", async () => {
+test("crea usuario aunque no se adjunte firma electronica", async () => {
     let auth0Called = false;
+    let persistedPayload;
 
     const res = await executeHandler({
         signatureFile: null,
         createUser: async () => {
             auth0Called = true;
+            return {
+                userId: "auth0|created-user",
+                roleAssignmentCompleted: true,
+            };
         },
+        requestPasswordEmail: async () => {},
+        users: createUsersRepositoryMock({
+            onCreate: (payload) => {
+                persistedPayload = payload;
+            },
+        }),
     });
 
-    assert.equal(res.statusCode, 400);
-    assert.deepEqual(res.body, {
-        message: "El campo firmaElectronica es obligatorio.",
-    });
-    assert.equal(auth0Called, false);
+    assert.equal(res.statusCode, 201);
+    assert.equal(auth0Called, true);
+    assert.equal(persistedPayload.rutaFirma, null);
 });
 
 test("responde 409 si el correo ya existe internamente sin llamar Auth0", async () => {
@@ -881,6 +882,7 @@ test("acepta firma electronica XML, CMS y PDF al crear usuario", async (t) => {
                     return null;
                 },
                 async create(payload) {
+                    storedPaths.push(payload.rutaFirma);
                     return {
                         ...DEFAULT_INTERNAL_USER,
                         idAuth0: payload.auth0UserId,
@@ -934,8 +936,7 @@ test("acepta firma electronica XML, CMS y PDF al crear usuario", async (t) => {
         const responseBody = await response.json();
 
         assert.equal(response.status, 201);
-        assert.match(responseBody.rutaFirma, /data[\\/]Firmas[\\/]firma-/);
-        storedPaths.push(responseBody.rutaFirma);
+        assert.equal(responseBody.rutaFirma, undefined);
     }
 });
 

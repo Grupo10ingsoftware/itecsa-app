@@ -4,7 +4,6 @@ import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import { hasValidationErrors, validateUserCreateForm } from '../utils/userValidation'
-import FileInput from '../../../shared/components/forms/FileInput'
 
 const INITIAL_VALUES = Object.freeze({
   nombreUsuario: '',
@@ -12,7 +11,6 @@ const INITIAL_VALUES = Object.freeze({
   rutUsuario: '',
   correoUsuario: '',
   rolUsuario: '',
-  firmaElectronica: null,
 })
 
 const INITIAL_ERRORS = Object.freeze({
@@ -21,7 +19,6 @@ const INITIAL_ERRORS = Object.freeze({
   rutUsuario: [],
   correoUsuario: [],
   rolUsuario: [],
-  firmaElectronica: [],
 })
 
 const MESSAGE_TYPES = Object.freeze({
@@ -129,14 +126,6 @@ export default function UserCreateForm({ onCreated } = {}) {
     clearResultState()
   }
 
-  function handleSignatureFileChange(file) {
-    setValues((currentValues) => ({
-      ...currentValues,
-      firmaElectronica: file,
-    }))
-    clearResultState()
-  }
-
   async function handleSubmit(event) {
     event.preventDefault()
 
@@ -154,7 +143,6 @@ export default function UserCreateForm({ onCreated } = {}) {
       rutUsuario: values.rutUsuario.trim().toUpperCase(),
       correoUsuario: values.correoUsuario.trim().toLowerCase(),
       rolUsuario: values.rolUsuario,
-      firmaElectronica: values.firmaElectronica,
     }
 
     setIsSubmitting(true)
@@ -219,7 +207,6 @@ export default function UserCreateForm({ onCreated } = {}) {
   const rutUsuarioErrors = fieldErrors.rutUsuario ?? []
   const correoUsuarioErrors = fieldErrors.correoUsuario ?? []
   const rolUsuarioErrors = fieldErrors.rolUsuario ?? []
-  const firmaElectronicaErrors = fieldErrors.firmaElectronica ?? []
 
   return (
     <form className="row g-3" noValidate onSubmit={handleSubmit}>
@@ -242,7 +229,7 @@ export default function UserCreateForm({ onCreated } = {}) {
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="user-first-name">
-          Primer nombre
+          Nombres
         </label>
         <input
           aria-describedby="user-first-name-errors"
@@ -261,7 +248,7 @@ export default function UserCreateForm({ onCreated } = {}) {
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="user-last-name">
-          Apellido paterno
+          Apellidos
         </label>
         <input
           aria-describedby="user-last-name-errors"
@@ -336,17 +323,6 @@ export default function UserCreateForm({ onCreated } = {}) {
           ))}
         </select>
         <FieldErrors errors={rolUsuarioErrors} id="user-role-errors" />
-      </div>
-
-      <div className="col-md-6">
-        <FileInput
-          accept="application/pdf,application/xml,text/xml,application/cms,application/pkcs7-mime,application/pkcs7-signature,.pdf,.xml,.cms,.p7s,.p7m"
-          error={firmaElectronicaErrors.join(' ')}
-          file={values.firmaElectronica}
-          label="Firma electronica"
-          maxSizeMB={10}
-          onFileChange={handleSignatureFileChange}
-        />
       </div>
 
       <div className="col-12">

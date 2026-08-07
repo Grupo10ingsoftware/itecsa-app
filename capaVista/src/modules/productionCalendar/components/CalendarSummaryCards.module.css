@@ -1,7 +1,7 @@
 .summaryGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: 1.2fr repeat(3, 1fr);
+  grid-template-columns: 1.2fr repeat(4, 1fr);
 }
 
 .operationalCard,
@@ -25,7 +25,7 @@
 }
 
 .operationalCard.warning {
-  --capacity-accent: #f97316;
+  --capacity-accent: #eab308;
 }
 
 .operationalCard.overloaded {

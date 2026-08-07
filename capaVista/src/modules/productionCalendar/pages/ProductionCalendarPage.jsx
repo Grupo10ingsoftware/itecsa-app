@@ -1,43 +1,29 @@
 import { useMemo, useState } from 'react'
 import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
-import CalendarLegend from '../components/CalendarLegend'
 import CalendarSummaryCards from '../components/CalendarSummaryCards'
 import CalendarToolbar from '../components/CalendarToolbar'
-import DeliveryDateModal from '../components/DeliveryDateModal'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_CALENDAR_ITEMS, PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
-import { isLanyardItem, isSameMonth } from '../utils/calendarUtils'
+import { PRODUCTION_CALENDAR_ITEMS } from '../mocks/productionCalendar.mock'
+import { buildMonthGrid, isSameMonth, toDateKey } from '../utils/calendarUtils'
+import { LANYARD_DAILY_CAPACITY, calculateOperationalLoadByDate } from '../utils/operationalLoadUtils'
 import styles from './ProductionCalendarPage.module.css'
 
-const LANYARD_DAILY_CAPACITY = 1200
 const DEFAULT_FILTERS = Object.freeze({
   search: '',
   status: '',
   productType: '',
 })
 
-function calculateOperationalLoad(items) {
-  const lanyardsInProduction = items
-    .filter((item) => item.status === PRODUCTION_STATUSES.IN_PRODUCTION && isLanyardItem(item))
-    .reduce((total, item) => total + Number(item.quantity ?? 0), 0)
-
-  return {
-    capacity: LANYARD_DAILY_CAPACITY,
-    lanyardsInProduction,
-    percentage: Math.round((lanyardsInProduction / LANYARD_DAILY_CAPACITY) * 100),
-  }
-}
-
 export default function ProductionCalendarPage() {
+  const [calendarItems, setCalendarItems] = useState(() => [...PRODUCTION_CALENDAR_ITEMS])
   const [monthDate, setMonthDate] = useState(() => new Date(2026, 5, 1))
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
-  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false)
 
   const visibleMonthItems = useMemo(
-    () => PRODUCTION_CALENDAR_ITEMS.filter((item) => isSameMonth(item.dueDate, monthDate)),
-    [monthDate],
+    () => calendarItems.filter((item) => isSameMonth(item.dueDate, monthDate)),
+    [calendarItems, monthDate],
   )
 
   const filteredItems = useMemo(() => {
@@ -54,7 +40,35 @@ export default function ProductionCalendarPage() {
     })
   }, [filters, visibleMonthItems])
 
-  const operationalLoad = useMemo(() => calculateOperationalLoad(filteredItems), [filteredItems])
+  const visibleDays = useMemo(() => buildMonthGrid(monthDate), [monthDate])
+  const visibleDateRange = useMemo(
+    () => ({
+      from: visibleDays[0]?.dateKey,
+      to: visibleDays.at(-1)?.dateKey,
+    }),
+    [visibleDays],
+  )
+
+  const operationalLoadByDate = useMemo(
+    () =>
+      calculateOperationalLoadByDate({
+        from: visibleDateRange.from,
+        items: calendarItems,
+        to: visibleDateRange.to,
+      }),
+    [calendarItems, visibleDateRange],
+  )
+
+  const operationalLoad = useMemo(() => {
+    const todayKey = toDateKey(new Date())
+    const todayLoad = operationalLoadByDate.get(todayKey)
+
+    return {
+      capacity: LANYARD_DAILY_CAPACITY,
+      lanyardsInProduction: todayLoad?.lanyardsLoad ?? 0,
+      percentage: todayLoad?.percentage ?? 0,
+    }
+  }, [operationalLoadByDate])
 
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
@@ -70,6 +84,12 @@ export default function ProductionCalendarPage() {
       ...currentFilters,
       ...nextFilters,
     }))
+  }
+
+  function updateItemDeliveryDate(itemId, nextDate) {
+    setCalendarItems((currentItems) =>
+      currentItems.map((item) => (item.id === itemId ? { ...item, dueDate: nextDate } : item)),
+    )
   }
 
   return (
@@ -98,18 +118,15 @@ export default function ProductionCalendarPage() {
               onNextMonth={() => changeMonth(1)}
               onPreviousMonth={() => changeMonth(-1)}
             />
-            <ProductionCalendarGrid items={filteredItems} monthDate={monthDate} />
+            <ProductionCalendarGrid
+              items={filteredItems}
+              loadByDate={operationalLoadByDate}
+              monthDate={monthDate}
+              onChangeDeliveryDate={updateItemDeliveryDate}
+            />
           </section>
-
-          <CalendarLegend onOpenDeliveryModal={() => setIsDeliveryModalOpen(true)} />
         </div>
       </section>
-
-      <DeliveryDateModal
-        isOpen={isDeliveryModalOpen}
-        items={filteredItems}
-        onClose={() => setIsDeliveryModalOpen(false)}
-      />
     </main>
   )
 }

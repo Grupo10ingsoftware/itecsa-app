@@ -38,6 +38,18 @@ function totalQuantity(details = []) {
   return quantities.reduce((sum, quantity) => sum + quantity, 0);
 }
 
+function mapOrderDetail(detail) {
+  return {
+    id_detalle_pedido: detail.id_detalle_pedido ?? null,
+    id_tipo_producto: detail.id_tipo_producto ?? null,
+    nombre_producto: detail.Tipo_Producto?.nombre_producto ?? null,
+    descripcion_producto: detail.Tipo_Producto?.descripcion_producto ?? null,
+    cantidad: detail.cantidad ?? null,
+    fecha_estimada_termino: detail.fecha_estimada_termino ?? null,
+    fecha_real_termino: detail.fecha_real_termino ?? null,
+  };
+}
+
 function findSalesNoteDocument(documents = []) {
   return (
     documents.find((document) => document.Nota_Venta) ??
@@ -113,6 +125,9 @@ function mapOrderRow(order, paymentStatusName = null) {
       ? uniqueProductDescriptions(Detalle_pedido)
       : undefined,
     cantidad: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
+    detalles: Array.isArray(Detalle_pedido)
+      ? Detalle_pedido.map(mapOrderDetail)
+      : [],
     id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
     nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
     estado_pago: paymentStatusName,

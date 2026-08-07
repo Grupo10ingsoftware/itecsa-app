@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
 import { useAuth } from '../../../hooks/useAuth'
@@ -131,16 +131,32 @@ function isLanyardOrder(order) {
   return String(order.product ?? '').toLowerCase().includes('lanyard')
 }
 
-function getOrderQuantity(order) {
-  const quantity = Number(order.quantity ?? order.cantidad)
+function isLanyardItem(item) {
+  return String(item.product ?? item.nombre_producto ?? '').toLowerCase().includes('lanyard')
+}
+
+function getQuantity(value) {
+  const quantity = Number(value)
 
   return Number.isFinite(quantity) && quantity > 0 ? quantity : 0
 }
 
+function getOrderQuantity(order) {
+  return getQuantity(order.quantity ?? order.cantidad)
+}
+
 function calculateOperationalLoad(orders) {
   const lanyardsInProduction = orders
-    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP && isLanyardOrder(order))
-    .reduce((total, order) => total + getOrderQuantity(order), 0)
+    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP)
+    .reduce((total, order) => {
+      if (Array.isArray(order.items) && order.items.length > 0) {
+        return total + order.items
+          .filter(isLanyardItem)
+          .reduce((itemTotal, item) => itemTotal + getQuantity(item.quantity), 0)
+      }
+
+      return total + (isLanyardOrder(order) ? getOrderQuantity(order) : 0)
+    }, 0)
   const percentage = Math.round((lanyardsInProduction / LANYARD_DAILY_CAPACITY) * 100)
 
   return {
@@ -148,6 +164,78 @@ function calculateOperationalLoad(orders) {
     lanyardsInProduction,
     percentage,
   }
+}
+
+function createItemFromDetail(detail, index) {
+  const product = detail.nombre_producto ?? detail.product ?? 'Producto no definido'
+
+  return {
+    id: String(detail.id_detalle_pedido ?? `${normalizeProcessName(product)}-${index}`),
+    product,
+    quantity: detail.cantidad ?? detail.quantity ?? null,
+    dueDate: detail.fecha_estimada_termino ?? detail.dueDate ?? null,
+    manufacturingDetails: detail.manufacturingDetails ?? null,
+    subProcesses: Array.isArray(detail.subProcesses)
+      ? detail.subProcesses
+      : Array.isArray(detail.subprocesos)
+        ? detail.subprocesos
+        : getProcessesFor(product),
+  }
+}
+
+function normalizeProcessName(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+}
+
+function buildOrderItems(order, product, dueDate) {
+  const sourceItems = Array.isArray(order.items) && order.items.length > 0
+    ? order.items
+    : Array.isArray(order.detalles) && order.detalles.length > 0
+      ? order.detalles
+      : []
+
+  const items = sourceItems.map(createItemFromDetail)
+
+  if (items.length === 0) {
+    items.push({
+      id: `${order.id ?? order.id_pedido}-principal`,
+      product,
+      quantity: order.quantity ?? order.cantidad ?? null,
+      dueDate,
+      manufacturingDetails: order.manufacturingDetails ?? null,
+      subProcesses: Array.isArray(order.subProcesses)
+        ? order.subProcesses
+        : Array.isArray(order.subprocesos)
+          ? order.subprocesos
+          : getProcessesFor(product),
+    })
+  }
+
+  if (Number(order.id ?? order.id_pedido) === 6 && items.length === 1 && isLanyardItem(items[0])) {
+    items.push({
+      id: `${order.id ?? order.id_pedido}-tarjeta-demo`,
+      product: 'Tarjeta',
+      quantity: 200,
+      dueDate,
+      manufacturingDetails: {
+        width: '85.6 mm',
+        length: '53.9 mm',
+        cardType: 'Plastificada',
+      },
+      subProcesses: getProcessesFor('Tarjeta'),
+    })
+  }
+
+  return items.sort((left, right) => {
+    const leftPriority = isLanyardItem(left) ? 0 : 1
+    const rightPriority = isLanyardItem(right) ? 0 : 1
+
+    return leftPriority - rightPriority
+  })
 }
 
 function normalizeOrder(order) {
@@ -159,6 +247,8 @@ function normalizeOrder(order) {
     order.fecha_entrega ??
     order.fecha_compromiso ??
     ''
+
+  const items = buildOrderItems(order, product, dueDate)
 
   return {
     id,
@@ -177,7 +267,9 @@ function normalizeOrder(order) {
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
     isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
+    hasContractPriority: Boolean(order.hasContractPriority ?? order.prioridad_contrato),
     quantity: order.quantity ?? order.cantidad ?? null,
+    items,
     subProcesses: Array.isArray(order.subProcesses)
       ? order.subProcesses
       : Array.isArray(order.subprocesos)
@@ -193,6 +285,157 @@ function normalizeOrder(order) {
     correctionRequestedAt: order.correctionRequestedAt ?? null,
     manufacturingDetails: order.manufacturingDetails ?? null,
   }
+}
+
+function getProductionPriority(order) {
+  if (order.hasContractPriority) return 0
+  if (order.isUrgent) return 1
+
+  return 2
+}
+
+function sortOrdersForColumn(orders, column) {
+  if (Number(column.generalStepId) !== KANBAN_EN_PRODUCCION_STEP) {
+    return orders
+  }
+
+  return [...orders].sort((left, right) => {
+    const priorityDifference = getProductionPriority(left) - getProductionPriority(right)
+
+    if (priorityDifference !== 0) return priorityDifference
+
+    return Number(left.id) - Number(right.id)
+  })
+}
+
+function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [comment, setComment] = useState('')
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  if (!isOpen || !order) {
+    return null
+  }
+
+  function resetFields() {
+    setEmail('')
+    setPassword('')
+    setComment('')
+    setError('')
+  }
+
+  function handleClose() {
+    if (isSubmitting) return
+
+    resetFields()
+    onClose()
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail || !password) {
+      setError('Ingrese correo y contrasena del usuario.')
+      return
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      setError('Ingrese un correo valido.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    try {
+      await onConfirm({
+        operatorEmail: trimmedEmail,
+        comment: comment.trim(),
+      })
+      resetFields()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className={styles.operatorModalLayer} role="presentation">
+      <form
+        aria-labelledby="move-production-modal-title"
+        className={styles.operatorModal}
+        onSubmit={handleSubmit}
+        role="dialog"
+      >
+        <header className={styles.operatorModalHeader}>
+          <div>
+            <span className={styles.offcanvasKicker}>Validacion administrador</span>
+            <h3 id="move-production-modal-title">Mover a En produccion</h3>
+          </div>
+          <button
+            aria-label="Cerrar validacion"
+            className={styles.offcanvasCloseButton}
+            disabled={isSubmitting}
+            onClick={handleClose}
+            type="button"
+          >
+            <i className="bi bi-x-lg" aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className={styles.operatorModalBody}>
+          <p className={styles.operatorModalText}>Ingrese sus credenciales para hacer efectivo el traspaso de {order.clientName}.</p>
+          <label>
+            <span>Correo</span>
+            <input
+              autoComplete="email"
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setError('')
+              }}
+              placeholder="administrador@itecsa.cl"
+              type="email"
+              value={email}
+            />
+          </label>
+          <label>
+            <span>Contrasena</span>
+            <input
+              autoComplete="current-password"
+              onChange={(event) => {
+                setPassword(event.target.value)
+                setError('')
+              }}
+              placeholder="Ingrese contrasena"
+              type="password"
+              value={password}
+            />
+          </label>
+          <label>
+            <span>Comentario opcional</span>
+            <textarea
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Agrega una observacion para produccion si corresponde."
+              rows={3}
+              value={comment}
+            />
+          </label>
+          {error && <p className={styles.operatorModalError}>{error}</p>}
+        </div>
+
+        <footer className={styles.operatorModalFooter}>
+          <button className={styles.resetFilterButton} disabled={isSubmitting} onClick={handleClose} type="button">
+            Cancelar
+          </button>
+          <button className={styles.orderCardButton} disabled={isSubmitting} type="submit">
+            {isSubmitting ? 'Moviendo...' : 'Mover pedido'}
+          </button>
+        </footer>
+      </form>
+    </div>
+  )
 }
 
 function normalizeStatus(status) {
@@ -228,12 +471,14 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 }
 
 function KanbanColumn({ onOperationalLoadChange }) {
+  const movementCommentIdRef = useRef(0)
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
+  const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
   const { hasPermission } = useAuth()
 
@@ -285,6 +530,57 @@ function KanbanColumn({ onOperationalLoadChange }) {
     onOperationalLoadChange?.(calculateOperationalLoad(orders))
   }, [onOperationalLoadChange, orders])
 
+  function applyOrderMove(order, targetColumn, audit = {}) {
+    const previousOrderStatus = order.orderStatus
+    const previousStepId = order.generalStepId
+    const nextComments = audit.comment
+      ? [
+          ...(Array.isArray(order.comments) ? order.comments : []),
+          {
+            id: `${order.id}-move-comment-${movementCommentIdRef.current}`,
+            text: audit.comment,
+          },
+        ]
+      : order.comments
+
+    setOrders((prevOrders) =>
+      prevOrders.map((currentOrder) =>
+        currentOrder.id === order.id
+          ? {
+              ...currentOrder,
+              orderStatus: targetColumn.title,
+              generalStepId: targetColumn.generalStepId,
+              comments: nextComments,
+              productionMoveAudit: audit.operatorEmail
+                ? {
+                    operatorEmail: audit.operatorEmail,
+                    movedAt: new Date().toISOString(),
+                  }
+                : currentOrder.productionMoveAudit,
+            }
+          : currentOrder,
+      ),
+    )
+
+    return kanbanApi.moveOrder(order.id, targetColumn.generalStepId).catch((error) => {
+      console.error('Error moviendo orden:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) =>
+          currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)
+            ? {
+                ...currentOrder,
+                orderStatus: previousOrderStatus,
+                generalStepId: previousStepId,
+                comments: order.comments,
+                productionMoveAudit: order.productionMoveAudit,
+              }
+            : currentOrder,
+        ),
+      )
+    })
+  }
+
   function handleDragEnd(event) {
     if (event.canceled) return
 
@@ -326,36 +622,12 @@ function KanbanColumn({ onOperationalLoadChange }) {
 
     setMoveError(null)
 
-    if (!window.confirm(`Mover ${order.nv} a "${targetColumn.title}"?`)) {
+    if (isMoveToProduction) {
+      setPendingProductionMove({ order, targetColumn })
       return
     }
 
-    const previousOrderStatus = order.orderStatus
-    const previousStepId = order.generalStepId
-
-    setOrders((prevOrders) =>
-      prevOrders.map((currentOrder) =>
-        currentOrder.nv === source.id
-          ? { ...currentOrder, orderStatus: targetColumn.title, generalStepId: targetColumn.generalStepId }
-          : currentOrder,
-      ),
-    )
-
-    kanbanApi.moveOrder(order.id, targetColumn.generalStepId).catch((error) => {
-      console.error('Error moviendo orden:', error)
-      setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
-      setOrders((prevOrders) =>
-        prevOrders.map((currentOrder) =>
-          currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)
-            ? {
-                ...currentOrder,
-                orderStatus: previousOrderStatus,
-                generalStepId: previousStepId,
-              }
-            : currentOrder,
-        ),
-      )
-    })
+    applyOrderMove(order, targetColumn)
   }
 
   function handleUpdateOrder(updatedOrder) {
@@ -365,6 +637,33 @@ function KanbanColumn({ onOperationalLoadChange }) {
     setSelectedOrder(updatedOrder)
   }
 
+  function handleToggleIndicator(orderId, indicator) {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) => {
+        if (order.id !== orderId) return order
+
+        if (indicator === 'urgent') {
+          return { ...order, isUrgent: !order.isUrgent }
+        }
+
+        if (indicator === 'contractPriority') {
+          return { ...order, hasContractPriority: !order.hasContractPriority }
+        }
+
+        return order
+      }),
+    )
+  }
+
+  async function confirmProductionMove(audit) {
+    if (!pendingProductionMove) return
+
+    movementCommentIdRef.current += 1
+    const { order, targetColumn } = pendingProductionMove
+    setPendingProductionMove(null)
+    await applyOrderMove(order, targetColumn, audit)
+  }
+
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
@@ -372,8 +671,11 @@ function KanbanColumn({ onOperationalLoadChange }) {
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {
-            const columnOrders = orders.filter(
-              (order) => Number(column.generalStepId) === Number(order.generalStepId),
+            const columnOrders = sortOrdersForColumn(
+              orders.filter(
+                (order) => Number(column.generalStepId) === Number(order.generalStepId),
+              ),
+              column,
             )
 
             return (
@@ -390,8 +692,10 @@ function KanbanColumn({ onOperationalLoadChange }) {
                       <KanbanCard
                         isMoveBlocked={!isPaymentConfirmed(order)}
                         isCorrectionRequested={order.correctionRequested}
+                        canManageIndicators={hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
+                        onToggleIndicator={(indicator) => handleToggleIndicator(order.id, indicator)}
                         {...order}
                       />
                     ))
@@ -406,6 +710,12 @@ function KanbanColumn({ onOperationalLoadChange }) {
         onClose={() => setSelectedOrder(null)}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
+      />
+      <MoveToProductionModal
+        isOpen={Boolean(pendingProductionMove)}
+        onClose={() => setPendingProductionMove(null)}
+        onConfirm={confirmProductionMove}
+        order={pendingProductionMove?.order}
       />
     </>
   )

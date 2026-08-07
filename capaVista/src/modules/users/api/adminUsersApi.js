@@ -24,32 +24,26 @@ export function createAdminUsersApi(apiClient) {
         })}`,
       ),
     getSummary: () => apiClient.get('/admin/users/summary'),
-    createUser: (user) => {
-      const formData = new FormData()
-
-      formData.append('nombreUsuario', user.nombreUsuario)
-      formData.append('apellidoUsuario', user.apellidoUsuario)
-      formData.append('rutUsuario', user.rutUsuario)
-      formData.append('correoUsuario', user.correoUsuario)
-      formData.append('rolUsuario', user.rolUsuario)
-      formData.append('firmaElectronica', user.firmaElectronica)
-
-      return apiClient.post('/admin/users', formData)
-    },
+    createUser: ({ nombreUsuario, apellidoUsuario, rutUsuario, correoUsuario, rolUsuario }) =>
+      apiClient.post('/admin/users', {
+        nombreUsuario,
+        apellidoUsuario,
+        rutUsuario,
+        correoUsuario,
+        rolUsuario,
+      }),
     updateUser: ({
       idUsuarioAutenticacionExterna,
       nombreUsuario,
       apellidoUsuario,
       correoUsuario,
       rolUsuario,
-      estadoUsuario,
     }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}`, {
         nombreUsuario,
         apellidoUsuario,
         correoUsuario,
         rolUsuario,
-        estadoUsuario,
       }),
     unlinkUser: ({ idUsuarioAutenticacionExterna }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}/status`, {

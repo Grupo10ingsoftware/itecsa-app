@@ -8,6 +8,7 @@ import UserEditModal from '../components/UserEditModal'
 import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
 import UserSummaryCards from '../components/UserSummaryCards'
+import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
 import styles from './UserManagementPage.module.css'
 
 const EMPTY_SUMMARY = Object.freeze({
@@ -23,11 +24,17 @@ function normalizeStatus(status) {
   return status === 'Activo' ? 'Vinculado' : status
 }
 
+function firstWord(value) {
+  return String(value ?? '').trim().split(/\s+/).filter(Boolean)[0] ?? ''
+}
+
 function mapApiUser(user) {
   const nombreUsuario = user.nombreUsuario ?? ''
   const apellidoUsuario = user.apellidoUsuario ?? ''
   const nombreCompleto =
     user.nombreCompleto ?? (`${nombreUsuario} ${apellidoUsuario}`.trim() || 'Usuario sin nombre')
+  const nombreListado =
+    `${firstWord(nombreUsuario)} ${firstWord(apellidoUsuario)}`.trim() || nombreCompleto
 
   return {
     id: user.idUsuarioAutenticacionExterna ?? user.idAuth0 ?? user.idUsuario,
@@ -36,6 +43,7 @@ function mapApiUser(user) {
     nombreUsuario,
     apellidoUsuario,
     nombreCompleto,
+    nombreListado,
     rutUsuario: user.rutUsuario ?? 'No disponible',
     correoUsuario: user.correoUsuario ?? '',
     rolUsuario: user.rolUsuario ?? 'Sin rol asignado',
@@ -96,6 +104,7 @@ export default function UserManagementPage() {
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
+  const [unlinkingUser, setUnlinkingUser] = useState(null)
   const currentAuth0UserId = auth0User?.sub ?? null
 
   useEffect(() => {
@@ -228,16 +237,11 @@ export default function UserManagementPage() {
   }
 
   async function handleUnlinkUser(user) {
-    const confirmed = window.confirm(`Desvincular a ${user.nombreCompleto}?`)
-
-    if (!confirmed) {
-      return
-    }
-
     try {
       await adminUsersApi.unlinkUser({
         idUsuarioAutenticacionExterna: user.idUsuarioAutenticacionExterna,
       })
+      setUnlinkingUser(null)
       await refreshAfterMutation({ type: 'success', text: 'Usuario desvinculado correctamente.' })
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
@@ -294,7 +298,7 @@ export default function UserManagementPage() {
             isLoading={isLoading}
             onEditUser={setEditingUser}
             onPageChange={setPage}
-            onUnlinkUser={handleUnlinkUser}
+            onUnlinkUser={setUnlinkingUser}
             totalPages={totalPages}
             users={users}
           />
@@ -313,6 +317,12 @@ export default function UserManagementPage() {
         onSave={handleSaveUser}
         isCurrentUser={Boolean(editingUser?.isCurrentUser)}
         user={editingUser}
+      />
+      <UserUnlinkConfirmModal
+        isOpen={Boolean(unlinkingUser)}
+        onClose={() => setUnlinkingUser(null)}
+        onConfirm={handleUnlinkUser}
+        user={unlinkingUser}
       />
     </main>
   )

@@ -410,13 +410,11 @@ export async function updateAuth0User({
     userId,
     correoUsuario,
     rolUsuario,
-    estadoUsuario,
 }) {
     const normalizedUser = {
         userId: assertNonEmptyString(userId, "userId"),
         email: assertNonEmptyString(correoUsuario, "correoUsuario"),
         role: assertNonEmptyString(rolUsuario, "rolUsuario"),
-        status: assertNonEmptyString(estadoUsuario, "estadoUsuario"),
     };
     const { domain, accessToken } = await requestManagementToken();
 
@@ -427,10 +425,8 @@ export async function updateAuth0User({
         method: "PATCH",
         body: {
             email: normalizedUser.email,
-            blocked: normalizedUser.status === "Desvinculado",
             app_metadata: {
                 rolUsuario: normalizedUser.role,
-                estadoUsuario: normalizedUser.status,
             },
         },
         errorCode: "AUTH0_UPDATE_USER_FAILED",
@@ -448,7 +444,6 @@ export async function updateAuth0User({
         idUsuarioAutenticacionExterna: normalizedUser.userId,
         correoUsuario: normalizedUser.email,
         rolUsuario: normalizedUser.role,
-        estadoUsuario: normalizedUser.status,
     };
 }
 

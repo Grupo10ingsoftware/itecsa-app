@@ -35,6 +35,9 @@
   grid-template-rows: auto 1fr;
   min-height: 7.1rem;
   padding: 0.55rem 0.6rem;
+  transition:
+    background 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .dayCell:nth-child(7n) {
@@ -44,6 +47,23 @@
 .outsideMonth {
   background: #f8fafc;
   color: #94a3b8;
+}
+
+.loadnormal {
+  background: #bbf7d0;
+}
+
+.loadwarning {
+  background: #fde047;
+}
+
+.loadoverloaded {
+  background: #fca5a5;
+}
+
+.dropTarget {
+  background: #fff7ed;
+  box-shadow: inset 0 0 0 2px var(--calendar-orange);
 }
 
 .dayNumber {
@@ -58,19 +78,51 @@
 }
 
 .eventsList {
+  align-content: start;
   display: grid;
   gap: 0.38rem;
   margin-top: 0.45rem;
 }
 
 .calendarEvent {
+  align-self: start;
   background: #f8fafc;
   border: 1px solid #d7dee8;
   border-radius: 0.45rem;
+  cursor: grab;
   display: grid;
   gap: 0.08rem;
   padding: 0.45rem 0.5rem;
   text-align: left;
+  touch-action: none;
+}
+
+.draggingEvent {
+  cursor: grabbing;
+  opacity: 0.62;
+  transform: scale(0.98);
+}
+
+.moreEventsButton {
+  align-items: center;
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 0.45rem;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.moreEventsButton:hover,
+.moreEventsButton:focus {
+  background: var(--calendar-orange);
+  border-color: var(--calendar-orange);
+  color: #111827;
+  outline: none;
 }
 
 .calendarEvent:hover,
@@ -107,6 +159,19 @@
   border-color: rgba(37, 99, 235, 0.28);
 }
 
+.paymentConfirmation {
+  border-color: rgba(249, 115, 22, 0.32);
+}
+
+.paymentConfirmation strong {
+  color: #ea580c;
+}
+
+.paymentConfirmation small {
+  background: rgba(249, 115, 22, 0.14);
+  color: #c2410c;
+}
+
 .readyProduction strong {
   color: #2563eb;
 }
@@ -140,4 +205,220 @@
 .readyDelivery small {
   background: rgba(36, 143, 85, 0.12);
   color: #166534;
+}
+
+.modalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1070;
+}
+
+.modalCard {
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(42rem, calc(100vh - 2rem));
+  max-width: min(100%, 42rem);
+  overflow: hidden;
+  width: 42rem;
+}
+
+.modalHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--calendar-border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.modalHeader span {
+  color: var(--calendar-orange);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modalHeader h2 {
+  color: var(--calendar-text);
+  font-size: 1.15rem;
+  margin: 0.2rem 0 0;
+}
+
+.modalHeader button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  border-radius: 0.55rem;
+  color: #111;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.4rem;
+  justify-content: center;
+  width: 2.4rem;
+}
+
+.modalBody {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.confirmModal {
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  max-width: min(100%, 34rem);
+  overflow: hidden;
+  width: 34rem;
+}
+
+.confirmText {
+  color: var(--calendar-text);
+  font-size: 0.95rem;
+  font-weight: 760;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.credentialsLabel {
+  color: var(--calendar-muted);
+  display: grid;
+  font-size: 0.74rem;
+  font-weight: 850;
+  gap: 0.38rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.credentialsLabel input {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--calendar-text);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.modalError {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.55rem;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.modalFooter {
+  align-items: center;
+  border-top: 1px solid var(--calendar-border);
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 0.55rem;
+  font-weight: 850;
+  min-height: 2.45rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.primaryButton {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+}
+
+.primaryButton:hover,
+.primaryButton:focus {
+  background: var(--calendar-orange);
+  border-color: var(--calendar-orange);
+  color: #111827;
+  outline: none;
+}
+
+.secondaryButton {
+  background: #fff;
+  border: 1px solid #d3d9e2;
+  color: #111827;
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus {
+  border-color: #111827;
+  outline: none;
+}
+
+.dayOrderRow {
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.85rem;
+}
+
+.dayOrderRow > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.dayOrderRow strong {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.dayOrderRow span {
+  color: var(--calendar-muted);
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+
+.dayOrderRow dl {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.dayOrderRow dl div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.dayOrderRow dt {
+  color: var(--calendar-muted);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dayOrderRow dd {
+  color: var(--calendar-text);
+  font-size: 0.8rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .dayOrderRow dl {
+    grid-template-columns: 1fr;
+  }
 }

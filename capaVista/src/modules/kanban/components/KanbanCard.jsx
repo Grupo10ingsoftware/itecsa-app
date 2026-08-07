@@ -11,6 +11,9 @@ function KanbanCard({
   isMoveBlocked,
   isCorrectionRequested,
   isUrgent,
+  hasContractPriority,
+  canManageIndicators,
+  onToggleIndicator,
   onOpenDetail,
 }) {
   const { ref } = useDraggable({
@@ -24,6 +27,8 @@ function KanbanCard({
         styles.orderCard,
         isMoveBlocked ? styles.orderCardBlocked : '',
         isCorrectionRequested ? styles.orderCardCorrection : '',
+        isUrgent ? styles.orderCardUrgent : '',
+        hasContractPriority ? styles.orderCardContractPriority : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -37,22 +42,40 @@ function KanbanCard({
               <i className="bi bi-lock-fill" aria-hidden="true" />
             </span>
           )}
-          {isDelayed && (
-            <span className={styles.delayBadge} title="Pedido atrasado">
-              <i className="bi bi-clock-fill" aria-hidden="true" />
-            </span>
-          )}
-          {isUrgent && (
-            <span className={styles.urgentBadge} title="Pedido urgente">
-              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-            </span>
-          )}
+          <span className={`${styles.delayBadge} ${isDelayed ? styles.delayBadgeActive : ''}`} title={isDelayed ? 'Pedido atrasado' : 'Indicador de tiempo'}>
+            <i className="bi bi-clock-fill" aria-hidden="true" />
+          </span>
+          <button
+            aria-pressed={isUrgent}
+            className={`${styles.cardIndicatorButton} ${styles.urgentIndicator} ${isUrgent ? styles.urgentIndicatorActive : ''}`}
+            disabled={!canManageIndicators}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleIndicator?.('urgent')
+            }}
+            title={isUrgent ? 'Urgencia activa' : 'Marcar urgencia'}
+            type="button"
+          >
+            <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+          </button>
+          <button
+            aria-pressed={hasContractPriority}
+            className={`${styles.cardIndicatorButton} ${styles.contractIndicator} ${hasContractPriority ? styles.contractIndicatorActive : ''}`}
+            disabled={!canManageIndicators}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleIndicator?.('contractPriority')
+            }}
+            title={hasContractPriority ? 'Prioridad por contrato activa' : 'Marcar prioridad por contrato'}
+            type="button"
+          >
+            <span aria-hidden="true" />
+          </button>
           {isCorrectionRequested && (
             <span className={styles.correctionBadge} title="Pedido en correccion">
               <i className="bi bi-pencil-fill" aria-hidden="true" />
             </span>
           )}
-          <span className={styles.orderNv}>{nv}</span>
         </div>
       </div>
 

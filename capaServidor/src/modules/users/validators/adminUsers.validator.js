@@ -11,7 +11,6 @@ const USER_UPDATE_FIELDS = new Set([
     "apellidoUsuario",
     "correoUsuario",
     "rolUsuario",
-    "estadoUsuario",
 ]);
 const USER_STATUS_FIELDS = new Set(["estadoUsuario"]);
 const ROLES = new Set([
@@ -187,12 +186,7 @@ export function validateAdminUserUpdateRequest(body) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
-    if (!USER_STATUSES.has(user.estadoUsuario)) {
-        return invalidRequest("El estadoUsuario no es valido.");
-    }
-
     user.correoUsuario = user.correoUsuario.toLowerCase();
-    user.estadoUsuario = normalizeUserStatus(user.estadoUsuario);
 
     return { valid: true, user };
 }

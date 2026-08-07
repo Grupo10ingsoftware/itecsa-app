@@ -60,7 +60,6 @@ function createdResponse(user, createdUser, passwordSetupEmailRequested) {
         rutUsuario: user.rutUsuario,
         correoUsuario: user.correoUsuario,
         rolUsuario: user.rolUsuario,
-        rutaFirma: createdUser.internalUser?.rutaFirma,
         passwordSetupEmailRequested,
     };
 }
@@ -181,12 +180,6 @@ export function createUpdateAdminUserHandler({
         const normalizedUserId = userId.trim();
         const user = validatedRequest.user;
 
-        if (isSelfUnlinkRequest(req, normalizedUserId, user.estadoUsuario)) {
-            return res.status(409).json({
-                message: SELF_UNLINK_ERROR_MESSAGE,
-            });
-        }
-
         try {
             const existingUser = await users.findByAuth0Id(normalizedUserId);
 
@@ -211,7 +204,6 @@ export function createUpdateAdminUserHandler({
                 userId: normalizedUserId,
                 correoUsuario: user.correoUsuario,
                 rolUsuario: user.rolUsuario,
-                estadoUsuario: user.estadoUsuario,
             });
 
             const updatedUser = await users.updateByAuth0Id(normalizedUserId, user);
@@ -352,12 +344,6 @@ export function createAdminUserHandler({
             return res.status(400).json({ message: validatedRequest.message });
         }
 
-        if (!req.signatureFile) {
-            return res.status(400).json({
-                message: "El campo firmaElectronica es obligatorio.",
-            });
-        }
-
         const user = validatedRequest.user;
         let createdUser;
         let existingInternalUser;
@@ -407,10 +393,10 @@ export function createAdminUserHandler({
                 estadoUsuario: createdUser.roleAssignmentCompleted
                     ? ACTIVE_USER_STATUS
                     : PENDING_ROLE_USER_STATUS,
-                rutaFirma: req.signatureFile.storedPath,
+                rutaFirma: req.signatureFile?.storedPath ?? null,
             });
         } catch (error) {
-            deleteSignatureFile(req.signatureFile.path);
+            deleteSignatureFile(req.signatureFile?.path);
 
             if (
                 error instanceof UserRepositoryError &&

@@ -73,7 +73,7 @@ export default function UserManagementTable({
             {!isLoading &&
               users.map((user) => (
                 <tr key={user.id}>
-                  <td className={styles.nameCell}>{user.nombreCompleto}</td>
+                  <td className={styles.nameCell}>{user.nombreListado}</td>
                   <td>{user.rutUsuario}</td>
                   <td className={styles.emailCell}>{user.correoUsuario}</td>
                   <td>{user.rolUsuario}</td>

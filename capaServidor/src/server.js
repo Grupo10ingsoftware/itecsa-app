@@ -5,6 +5,7 @@ import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 import documentRoutes from './modules/documents/routes/document.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
+import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
 
 import orderRoutes from './modules/orders/routes/order.routes.js';
 import orderDetailRoutes from './modules/orders/routes/orderDetail.routes.js';
@@ -31,6 +32,7 @@ class Server {
         admin: '/api/admin',
         documents: '/api/documents',
         health: '/api/health',
+        productionCalendar: '/api/production-calendar',
 
         //* Estados
         orderStatus: '/api/order-status',
@@ -83,6 +85,7 @@ class Server {
     this.app.use( this.paths.admin, adminUsersRoutes)
     this.app.use( this.paths.documents, documentRoutes)
     this.app.use( this.paths.health, healthRoutes)
+    this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);
     this.app.use(this.paths.orderStatus, orderStatusRoutes);
     this.app.use(this.paths.orderDetail, orderDetailRoutes );

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import styles from '../styles/Kanban.module.css'
 
 const KANBAN_LISTO_PRODUCCION_STEP = 1
@@ -42,9 +42,9 @@ function normalizeProcessName(value) {
     .replace(/\s+/g, '-')
 }
 
-function getSubProcessesForOrder(order) {
-  const existingProcesses = Array.isArray(order.subProcesses) ? order.subProcesses : []
-  const productKey = getProductKey(order.product)
+function getSubProcessesForItem(item) {
+  const existingProcesses = Array.isArray(item.subProcesses) ? item.subProcesses : []
+  const productKey = getProductKey(item.product)
   const template = productKey ? processTemplates[productKey] : existingProcesses
 
   return template.map((templateProcess) => {
@@ -64,25 +64,208 @@ function getSubProcessesForOrder(order) {
   })
 }
 
-function getManufacturingDetails(order) {
-  const productName = String(order.product ?? '').toLowerCase()
+function isLanyardItem(item) {
+  return String(item.product ?? '').toLowerCase().includes('lanyard')
+}
+
+function getOrderItems(order) {
+  const items = Array.isArray(order.items) && order.items.length > 0
+    ? order.items
+    : [
+        {
+          id: `${order.id}-principal`,
+          product: order.product,
+          quantity: order.quantity,
+          dueDate: order.dueDate,
+          manufacturingDetails: order.manufacturingDetails,
+          subProcesses: order.subProcesses,
+        },
+      ]
+
+  return items
+    .map((item, index) => ({
+      ...item,
+      id: item.id ?? `${order.id}-${index}`,
+      product: item.product ?? order.product ?? 'Producto no definido',
+      quantity: item.quantity ?? order.quantity ?? null,
+      dueDate: item.dueDate ?? order.dueDate ?? null,
+      subProcesses: getSubProcessesForItem(item),
+    }))
+    .sort((left, right) => {
+      const leftPriority = isLanyardItem(left) ? 0 : 1
+      const rightPriority = isLanyardItem(right) ? 0 : 1
+
+      return leftPriority - rightPriority
+    })
+}
+
+function getManufacturingDetails(item, order) {
+  const productName = String(item.product ?? '').toLowerCase()
   const isTarjeta = productName.includes('tarjeta')
   const isLanyard = productName.includes('lanyard')
+  const details = item.manufacturingDetails ?? {}
 
   return {
-    width: order.manufacturingDetails?.width ?? (isTarjeta ? '85.6 mm' : isLanyard ? '20 mm' : 'No definido'),
-    length: order.manufacturingDetails?.length ?? (isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
-    legend: order.manufacturingDetails?.legend ?? `${order.clientName ?? 'Cliente'} - ${order.product ?? 'Producto'}`,
-    seller: order.manufacturingDetails?.seller ?? 'Ventas ITECSA',
-    dueDate: order.manufacturingDetails?.dueDate ?? order.dueDate ?? 'Sin fecha definida',
+    width: details.width ?? (isTarjeta ? '85.6 mm' : isLanyard ? '20 mm' : 'No definido'),
+    length: details.length ?? (isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
+    tapeTexture: details.tapeTexture ?? 'Poliester',
+    backgroundColor: details.backgroundColor ?? 'No definido',
+    reverseLegend: details.reverseLegend ?? details.legend ?? 'No definido',
+    frontLegend: details.frontLegend ?? details.legend ?? `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`,
+    endings: details.endings ?? 'No definido',
+    cardType: details.cardType ?? 'Plastificada',
+    seller: details.seller ?? order.seller ?? 'Ventas ITECSA',
+    dueDate: details.dueDate ?? item.dueDate ?? order.dueDate ?? 'Sin fecha definida',
   }
 }
 
+function getInitialDocumentLookup(order) {
+  return {
+    clientSheetCode: order.productionDocuments?.clientSheetCode ?? order.clientSheetCode ?? '',
+    clientSheetError: '',
+    clientSheetSearched: Boolean(order.productionDocuments?.clientSheetCode ?? order.clientSheetCode),
+    opCode: order.productionDocuments?.opCode ?? order.opCode ?? '',
+    opError: '',
+    opSearched: Boolean(order.productionDocuments?.opCode ?? order.opCode),
+  }
+}
+
+function ProductionDocumentLookup({ onUpdateOrder, order }) {
+  const [documentLookup, setDocumentLookup] = useState(() => getInitialDocumentLookup(order))
+
+  function updateDocumentLookup(field, value) {
+    setDocumentLookup((currentLookup) => ({
+      ...currentLookup,
+      [field]: value,
+      [`${field.replace('Code', '')}Error`]: '',
+      [`${field.replace('Code', '')}Searched`]: false,
+    }))
+  }
+
+  function searchProductionDocument(kind) {
+    const codeField = kind === 'op' ? 'opCode' : 'clientSheetCode'
+    const errorField = kind === 'op' ? 'opError' : 'clientSheetError'
+    const searchedField = kind === 'op' ? 'opSearched' : 'clientSheetSearched'
+    const trimmedCode = documentLookup[codeField].trim()
+
+    if (!trimmedCode) {
+      setDocumentLookup((currentLookup) => ({
+        ...currentLookup,
+        [errorField]: kind === 'op' ? 'Debe ingresar el codigo de OP.' : 'Debe ingresar el codigo de ficha de cliente.',
+        [searchedField]: false,
+      }))
+      return
+    }
+
+    const nextProductionDocuments = {
+      ...(order.productionDocuments ?? {}),
+      [codeField]: trimmedCode,
+      [`${kind}ExportedAt`]: new Date().toISOString(),
+    }
+
+    setDocumentLookup((currentLookup) => ({
+      ...currentLookup,
+      [codeField]: trimmedCode,
+      [errorField]: '',
+      [searchedField]: true,
+    }))
+
+    onUpdateOrder({
+      ...order,
+      productionDocuments: nextProductionDocuments,
+    })
+  }
+
+  return (
+    <section className={styles.documentLookupSection} aria-labelledby="production-documents-title">
+      <h3 className={styles.documentLookupHeader} id="production-documents-title">
+        <i className="bi bi-file-earmark-text" aria-hidden="true" />
+        Documentos para produccion
+      </h3>
+
+      <div className={styles.documentLookupGrid}>
+        <div className={styles.documentLookupBlock}>
+          <label className={styles.documentLookupLabel} htmlFor="op-code">
+            Codigo de OP <span className={styles.documentRequiredMark}>*</span>
+          </label>
+          <div className={styles.documentLookupRow}>
+            <span className={styles.documentInputWrapper}>
+              <input
+                className={[
+                  styles.documentLookupInput,
+                  documentLookup.opSearched && !documentLookup.opError ? styles.documentLookupInputValid : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                id="op-code"
+                onChange={(event) => updateDocumentLookup('opCode', event.target.value)}
+                placeholder="Ingrese el codigo de OP"
+                type="text"
+                value={documentLookup.opCode}
+              />
+              {documentLookup.opSearched && !documentLookup.opError && (
+                <span className={styles.documentInlineCheck} aria-label="OP encontrada">
+                  <i className="bi bi-check-lg" aria-hidden="true" />
+                </span>
+              )}
+            </span>
+            <button className={styles.documentSearchButton} onClick={() => searchProductionDocument('op')} type="button">
+              <i className="bi bi-search" aria-hidden="true" />
+              Buscar / Exportar informacion
+            </button>
+          </div>
+          {documentLookup.opError && <p className={styles.documentErrorText}>{documentLookup.opError}</p>}
+        </div>
+
+        <div className={styles.documentLookupBlock}>
+          <label className={styles.documentLookupLabel} htmlFor="client-sheet-code">
+            Codigo de ficha de cliente <span className={styles.documentRequiredMark}>*</span>
+          </label>
+          <div className={styles.documentLookupRow}>
+            <span className={styles.documentInputWrapper}>
+              <input
+                className={[
+                  styles.documentLookupInput,
+                  documentLookup.clientSheetSearched && !documentLookup.clientSheetError
+                    ? styles.documentLookupInputValid
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                id="client-sheet-code"
+                onChange={(event) => updateDocumentLookup('clientSheetCode', event.target.value)}
+                placeholder="Ingrese el codigo de ficha de cliente"
+                type="text"
+                value={documentLookup.clientSheetCode}
+              />
+              {documentLookup.clientSheetSearched && !documentLookup.clientSheetError && (
+                <span className={styles.documentInlineCheck} aria-label="Ficha de cliente encontrada">
+                  <i className="bi bi-check-lg" aria-hidden="true" />
+                </span>
+              )}
+            </span>
+            <button
+              className={styles.documentSearchButton}
+              onClick={() => searchProductionDocument('clientSheet')}
+              type="button"
+            >
+              <i className="bi bi-search" aria-hidden="true" />
+              Buscar / Exportar informacion
+            </button>
+          </div>
+          {documentLookup.clientSheetError && <p className={styles.documentErrorText}>{documentLookup.clientSheetError}</p>}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order }) {
-  const [comment, setComment] = useState('')
+  const commentIdRef = useRef(0)
   const [authModal, setAuthModal] = useState(null)
   const [operatorEmail, setOperatorEmail] = useState('')
   const [operatorPassword, setOperatorPassword] = useState('')
+  const [operatorComment, setOperatorComment] = useState('')
   const [authError, setAuthError] = useState('')
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false)
   const [correctionText, setCorrectionText] = useState('')
@@ -92,22 +275,21 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
     return null
   }
 
-  const subProcesses = getSubProcessesForOrder(order)
+  const orderItems = getOrderItems(order)
   const comments = Array.isArray(order.comments) ? order.comments : []
-  const currentProcessIndex = subProcesses.findIndex((process) => process.status !== 'done')
-  const manufacturingDetails = getManufacturingDetails(order)
   const isInProduction = Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP
   const canRequestCorrection = Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
   const hasCorrectionRequest = Boolean(order.correctionRequested)
 
-  function openAuthModal(process, processIndex) {
+  function openAuthModal(item, process, processIndex, currentProcessIndex) {
     if (!isInProduction || process.status === 'done' || processIndex !== currentProcessIndex) {
       return
     }
 
-    setAuthModal(process)
+    setAuthModal({ item, process })
     setOperatorEmail('')
     setOperatorPassword('')
+    setOperatorComment('')
     setAuthError('')
   }
 
@@ -115,6 +297,7 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
     setAuthModal(null)
     setOperatorEmail('')
     setOperatorPassword('')
+    setOperatorComment('')
     setAuthError('')
   }
 
@@ -132,43 +315,43 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
       return
     }
 
+    const trimmedComment = operatorComment.trim()
+    commentIdRef.current += 1
+    const nextItems = orderItems.map((item) =>
+      item.id === authModal.item.id
+        ? {
+            ...item,
+            subProcesses: item.subProcesses.map((process) =>
+              process.id === authModal.process.id
+                ? {
+                    ...process,
+                    status: 'done',
+                    operatorEmail: trimmedEmail,
+                    completedAt: new Date().toISOString(),
+                  }
+                : process,
+            ),
+          }
+        : item,
+    )
+    const nextComments = trimmedComment
+      ? [
+          ...comments,
+          {
+            id: `${order.id}-comment-${commentIdRef.current}`,
+            text: trimmedComment,
+          },
+        ]
+      : comments
+
     const nextOrder = {
       ...order,
-      subProcesses: subProcesses.map((process) =>
-        process.id === authModal.id
-          ? {
-              ...process,
-              status: 'done',
-              operatorEmail: trimmedEmail,
-              completedAt: new Date().toISOString(),
-            }
-          : process,
-      ),
+      items: nextItems,
+      comments: nextComments,
     }
 
     onUpdateOrder(nextOrder)
     closeAuthModal()
-  }
-
-  function addComment(event) {
-    event.preventDefault()
-    const trimmedComment = comment.trim()
-
-    if (!trimmedComment) {
-      return
-    }
-
-    onUpdateOrder({
-      ...order,
-      comments: [
-        ...comments,
-        {
-          id: `${order.id}-${Date.now()}`,
-          text: trimmedComment,
-        },
-      ],
-    })
-    setComment('')
   }
 
   function submitCorrection(event) {
@@ -207,44 +390,77 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
         <div className={styles.offcanvasBody}>
           <section className={styles.detailSection}>
             <h3>Resumen</h3>
-            <dl className={styles.detailList}>
-              <div>
-                <dt>Cliente</dt>
-                <dd>{order.clientName}</dd>
-              </div>
-              <div>
-                <dt>Producto</dt>
-                <dd>{order.product}</dd>
-              </div>
-              <div>
-                <dt>Estado</dt>
-                <dd>{order.orderStatus}</dd>
-              </div>
-              <div>
-                <dt>Pago</dt>
-                <dd>{order.paymentStatus || 'Sin informacion'}</dd>
-              </div>
-              <div>
-                <dt>Ancho</dt>
-                <dd>{manufacturingDetails.width}</dd>
-              </div>
-              <div>
-                <dt>Largo</dt>
-                <dd>{manufacturingDetails.length}</dd>
-              </div>
-              <div>
-                <dt>Leyenda</dt>
-                <dd>{manufacturingDetails.legend}</dd>
-              </div>
-              <div>
-                <dt>Vendedor responsable</dt>
-                <dd>{manufacturingDetails.seller}</dd>
-              </div>
-              <div>
-                <dt>Fecha de termino</dt>
-                <dd>{manufacturingDetails.dueDate}</dd>
-              </div>
-            </dl>
+            <div className={styles.summaryStack}>
+              {orderItems.map((item) => {
+                const manufacturingDetails = getManufacturingDetails(item, order)
+                const isLanyard = isLanyardItem(item)
+
+                return (
+                  <article className={styles.summaryCard} key={item.id}>
+                    <h4>{item.product}</h4>
+                    <dl className={styles.detailList}>
+                      <div>
+                        <dt>Fecha</dt>
+                        <dd>{manufacturingDetails.dueDate}</dd>
+                      </div>
+                      <div>
+                        <dt>Tipo de producto</dt>
+                        <dd>{item.product}</dd>
+                      </div>
+                      <div>
+                        <dt>Cantidad</dt>
+                        <dd>{item.quantity ?? 'No definida'}</dd>
+                      </div>
+                      <div>
+                        <dt>Ancho {isLanyard ? 'Cinta' : ''}</dt>
+                        <dd>{manufacturingDetails.width}</dd>
+                      </div>
+                      <div>
+                        <dt>Largo {isLanyard ? 'Cinta' : ''}</dt>
+                        <dd>{manufacturingDetails.length}</dd>
+                      </div>
+                      {isLanyard ? (
+                        <>
+                          <div>
+                            <dt>Textura cinta</dt>
+                            <dd>{manufacturingDetails.tapeTexture}</dd>
+                          </div>
+                          <div>
+                            <dt>Color de Fondo</dt>
+                            <dd>{manufacturingDetails.backgroundColor}</dd>
+                          </div>
+                          <div>
+                            <dt>Leyenda Reversa</dt>
+                            <dd>{manufacturingDetails.reverseLegend}</dd>
+                          </div>
+                          <div>
+                            <dt>Leyenda Anverso</dt>
+                            <dd>{manufacturingDetails.frontLegend}</dd>
+                          </div>
+                          <div>
+                            <dt>Terminaciones</dt>
+                            <dd>{manufacturingDetails.endings}</dd>
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <dt>Tipo de tarjeta</dt>
+                          <dd>{manufacturingDetails.cardType}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Cliente</dt>
+                        <dd>{order.clientName}</dd>
+                      </div>
+                      <div>
+                        <dt>Vendedor responsable</dt>
+                        <dd>{manufacturingDetails.seller}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                )
+              })}
+            </div>
           </section>
 
           {canRequestCorrection && (
@@ -303,6 +519,10 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
             </section>
           )}
 
+          {canRequestCorrection && (
+            <ProductionDocumentLookup key={order.id} onUpdateOrder={onUpdateOrder} order={order} />
+          )}
+
           <section className={styles.detailSection}>
             <h3>Subprocesos</h3>
             {!isInProduction && (
@@ -311,42 +531,53 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
                 <span>Los subprocesos se habilitan cuando el pedido llega a En produccion.</span>
               </div>
             )}
-            <div className={styles.subProcessStepper}>
-              {subProcesses.map((process, index) => {
-                const isDone = process.status === 'done'
-                const isCurrent = isInProduction && index === currentProcessIndex
-                const isLocked = !isInProduction || (!isDone && !isCurrent)
+            <div className={styles.stepperStack}>
+              {orderItems.map((item) => {
+                const currentProcessIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
 
                 return (
-                  <button
-                    aria-current={isCurrent ? 'step' : undefined}
-                    className={[
-                      styles.subProcessStep,
-                      isDone ? styles.subProcessDone : '',
-                      isCurrent ? styles.subProcessCurrent : '',
-                      isLocked ? styles.subProcessLocked : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    disabled={isLocked || isDone}
-                    key={process.id}
-                    onClick={() => openAuthModal(process, index)}
-                    type="button"
-                  >
-                    <span className={styles.subProcessMarker}>
-                      {isDone ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}
-                    </span>
-                    <span className={styles.subProcessContent}>
-                      <span>{process.name}</span>
-                      <strong>
-                        {isDone
-                          ? process.operatorEmail || formatStatus(process.status)
-                          : isCurrent && isInProduction
-                            ? 'En curso'
-                            : 'Bloqueado'}
-                      </strong>
-                    </span>
-                  </button>
+                  <article className={styles.stepperGroup} key={item.id}>
+                    <h4>{item.product}</h4>
+                    <div className={styles.subProcessStepper}>
+                      {item.subProcesses.map((process, index) => {
+                        const isDone = process.status === 'done'
+                        const isCurrent = isInProduction && index === currentProcessIndex
+                        const isLocked = !isInProduction || (!isDone && !isCurrent)
+
+                        return (
+                          <button
+                            aria-current={isCurrent ? 'step' : undefined}
+                            className={[
+                              styles.subProcessStep,
+                              isDone ? styles.subProcessDone : '',
+                              isCurrent ? styles.subProcessCurrent : '',
+                              isLocked ? styles.subProcessLocked : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                            disabled={isLocked || isDone}
+                            key={process.id}
+                            onClick={() => openAuthModal(item, process, index, currentProcessIndex)}
+                            type="button"
+                          >
+                            <span className={styles.subProcessMarker}>
+                              {isDone ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}
+                            </span>
+                            <span className={styles.subProcessContent}>
+                              <span>{process.name}</span>
+                              <strong>
+                                {isDone
+                                  ? process.operatorEmail || formatStatus(process.status)
+                                  : isCurrent && isInProduction
+                                    ? 'En curso'
+                                    : 'Bloqueado'}
+                              </strong>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </article>
                 )
               })}
             </div>
@@ -354,17 +585,6 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
 
           <section className={styles.detailSection}>
             <h3>Comentarios</h3>
-            <form className={styles.commentForm} onSubmit={addComment}>
-              <textarea
-                onChange={(event) => setComment(event.target.value)}
-                placeholder="Agregar comentario"
-                rows={3}
-                value={comment}
-              />
-              <button className={styles.orderCardButton} type="submit">
-                Agregar comentario
-              </button>
-            </form>
             <ul className={styles.commentList}>
               {comments.map((item) => (
                 <li key={item.id}>{item.text}</li>
@@ -386,7 +606,7 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
             <header className={styles.operatorModalHeader}>
               <div>
                 <span className={styles.offcanvasKicker}>Validacion operario</span>
-                <h3 id="operator-modal-title">{authModal.name}</h3>
+                <h3 id="operator-modal-title">{authModal.process.name}</h3>
               </div>
               <button
                 aria-label="Cerrar validacion"
@@ -417,6 +637,15 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
                   placeholder="Ingrese contrasena"
                   type="password"
                   value={operatorPassword}
+                />
+              </label>
+              <label>
+                <span>Comentario opcional</span>
+                <textarea
+                  onChange={(event) => setOperatorComment(event.target.value)}
+                  placeholder="Describe una observacion del traspaso si corresponde."
+                  rows={3}
+                  value={operatorComment}
                 />
               </label>
               {authError && <p className={styles.operatorModalError}>{authError}</p>}

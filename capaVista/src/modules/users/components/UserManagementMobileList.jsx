@@ -14,7 +14,7 @@ export default function UserManagementMobileList({ isLoading, onEditUser, onUnli
       {users.map((user) => (
         <article className={styles.mobileUserCard} key={user.id}>
           <header>
-            <strong>{user.nombreCompleto}</strong>
+            <strong>{user.nombreListado}</strong>
             <UserStatusBadge status={user.estadoUsuario} />
           </header>
           <dl>

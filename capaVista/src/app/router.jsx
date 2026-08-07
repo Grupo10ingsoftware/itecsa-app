@@ -11,6 +11,7 @@ import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
 import RoleGuard from '../shared/components/navigation/RoleGuard'
 
 const KanbanBoardPage = lazy(() => import('../modules/kanban/pages/KanbanBoardPage'))
+const ProfilePage = lazy(() => import('../modules/profile/pages/ProfilePage'))
 const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/PaymentConfirmationPage'))
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
@@ -54,6 +55,7 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
+            <Route path="perfil" element={<ProfilePage />} />
             <Route
               path="pagos"
               element={

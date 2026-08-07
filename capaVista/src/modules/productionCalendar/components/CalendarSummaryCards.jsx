@@ -2,9 +2,14 @@ import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import styles from './CalendarSummaryCards.module.css'
 
 function OperationalLoadCard({ load }) {
-  const level = load.percentage > 100 ? 'overloaded' : load.percentage >= 71 ? 'warning' : 'normal'
+  const level = load.percentage > 75 ? 'overloaded' : load.percentage > 50 ? 'warning' : 'normal'
   const progressWidth = `${Math.min(load.percentage, 100)}%`
-  const loadText = load.percentage >= 71 ? 'Carga Media-Alta' : 'Carga Controlada'
+  const loadText =
+    load.percentage > 75
+      ? 'Carga Alta'
+      : load.percentage > 50
+        ? 'Carga Media'
+        : 'Carga Controlada'
 
   return (
     <article className={`${styles.operationalCard} ${styles[level]}`}>
@@ -12,9 +17,9 @@ function OperationalLoadCard({ load }) {
         <span>{load.percentage}%</span>
       </div>
       <div className={styles.operationalInfo}>
-        <span>Nivel de carga operativa</span>
+        <span>Carga Operativa</span>
         <strong>{loadText}</strong>
-        <p>{load.percentage}% de capacidad utilizada</p>
+        <p>Carga operativa del dia de hoy</p>
         <div className={styles.capacityTrack} aria-hidden="true">
           <i style={{ width: progressWidth }} />
         </div>
@@ -39,6 +44,7 @@ function StatusCard({ accent, count, icon, label, subtitle }) {
 }
 
 export default function CalendarSummaryCards({ items, load }) {
+  const paymentConfirmation = items.filter((item) => item.status === PRODUCTION_STATUSES.PAYMENT_CONFIRMATION).length
   const readyProduction = items.filter((item) => item.status === PRODUCTION_STATUSES.READY_PRODUCTION).length
   const inProduction = items.filter((item) => item.status === PRODUCTION_STATUSES.IN_PRODUCTION).length
   const readyDelivery = items.filter((item) => item.status === PRODUCTION_STATUSES.READY_DELIVERY).length
@@ -46,6 +52,13 @@ export default function CalendarSummaryCards({ items, load }) {
   return (
     <section className={styles.summaryGrid} aria-label="Resumen de calendario">
       <OperationalLoadCard load={load} />
+      <StatusCard
+        accent="#f97316"
+        count={paymentConfirmation}
+        icon="bi-cash-coin"
+        label="Confirmacion de pago"
+        subtitle="Pedidos pendientes de pago"
+      />
       <StatusCard
         accent="#2563eb"
         count={readyProduction}

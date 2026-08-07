@@ -73,7 +73,6 @@ test("rechaza que un administrador edite su propio rol", async () => {
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.perez@itecsa.cl",
                 rolUsuario: "Ventas",
-                estadoUsuario: "Vinculado",
             },
         },
         res,
@@ -111,7 +110,6 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
                 rolUsuario: "Administrador",
-                estadoUsuario: "Vinculado",
             },
         },
         res,
@@ -122,7 +120,6 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
         userId: CURRENT_ADMIN_ID,
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Administrador",
-        estadoUsuario: "Activo",
     });
     assert.deepEqual(internalPayload, {
         userId: CURRENT_ADMIN_ID,
@@ -131,7 +128,6 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
             rolUsuario: "Administrador",
-            estadoUsuario: "Activo",
         },
     });
 });

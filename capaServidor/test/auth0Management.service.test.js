@@ -227,21 +227,17 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
         userId: "auth0|user-1",
         correoUsuario: "editado@example.cl",
         rolUsuario: "Ventas",
-        estadoUsuario: "Desvinculado",
     });
 
     assert.deepEqual(result, {
         idUsuarioAutenticacionExterna: "auth0|user-1",
         correoUsuario: "editado@example.cl",
         rolUsuario: "Ventas",
-        estadoUsuario: "Desvinculado",
     });
     assert.deepEqual(requests[1].body, {
         email: "editado@example.cl",
-        blocked: true,
         app_metadata: {
             rolUsuario: "Ventas",
-            estadoUsuario: "Desvinculado",
         },
     });
     assert.equal(requests.some((request) => request.options.method === "DELETE"), true);

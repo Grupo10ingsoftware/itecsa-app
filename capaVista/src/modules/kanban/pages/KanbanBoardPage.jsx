@@ -31,9 +31,9 @@ export default function KanbanBoardPage() {
               Vista principal de seguimiento de produccion con arrastre de ordenes entre estados.
             </p>
           </div>
-          <aside className={`${styles.capacityMeter} ${styles[loadLevel]}`} aria-label="Sobrecarga operativa">
+          <aside className={`${styles.capacityMeter} ${styles[loadLevel]}`} aria-label="Carga Operativa">
             <div className={styles.capacityHeader}>
-              <span>Sobrecarga operativa</span>
+              <span>Carga Operativa</span>
               <strong>{operationalLoad.percentage}%</strong>
             </div>
             <div className={styles.capacityNumbers}>

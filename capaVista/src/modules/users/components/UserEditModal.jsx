@@ -3,9 +3,7 @@ import { OFFICIAL_ROLES } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
-const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
 const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol de administrador.'
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
 
 function createFormState(user) {
   return {
@@ -13,7 +11,6 @@ function createFormState(user) {
     apellidoUsuario: user.apellidoUsuario ?? '',
     correoUsuario: user.correoUsuario ?? '',
     rolUsuario: user.rolUsuario ?? '',
-    estadoUsuario: user.estadoUsuario === 'Activo' ? 'Vinculado' : user.estadoUsuario,
   }
 }
 
@@ -54,7 +51,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
 
     return (
       Object.values(values).every((value) => String(value).trim().length > 0) &&
-      !(isCurrentUser && (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== currentRole))
+      !(isCurrentUser && values.rolUsuario !== currentRole)
     )
   }, [isCurrentUser, user?.rolUsuario, values])
 
@@ -79,10 +76,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (
-      isCurrentUser &&
-      (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== (user.rolUsuario ?? ''))
-    ) {
+    if (isCurrentUser && values.rolUsuario !== (user.rolUsuario ?? '')) {
       return
     }
 
@@ -95,7 +89,6 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
         apellidoUsuario: values.apellidoUsuario.trim(),
         correoUsuario: values.correoUsuario.trim().toLowerCase(),
         rolUsuario: values.rolUsuario,
-        estadoUsuario: values.estadoUsuario,
       })
     } finally {
       setIsSubmitting(false)
@@ -198,25 +191,6 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
                 ))}
               </select>
               {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_ROLE_EDIT_MESSAGE}</small>}
-            </label>
-
-            <label className={styles.editField} htmlFor="edit-user-status">
-              <span>Estado</span>
-              <select
-                className={styles.formControl}
-                disabled={isCurrentUser}
-                id="edit-user-status"
-                name="estadoUsuario"
-                onChange={handleChange}
-                value={values.estadoUsuario}
-              >
-                {USER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_UNLINK_MESSAGE}</small>}
             </label>
           </div>
         </div>

@@ -15,17 +15,12 @@
 }
 
 .navigationGroup,
-.viewGroup {
+.toolbarSpacer {
   display: flex;
   gap: 0.35rem;
 }
 
-.viewGroup {
-  justify-content: flex-end;
-}
-
-.navigationGroup button,
-.viewGroup button {
+.navigationGroup button {
   align-items: center;
   background: #fff;
   border: 1px solid #d7dee8;
@@ -40,23 +35,14 @@
 }
 
 .navigationGroup button:hover,
-.navigationGroup button:focus,
-.viewGroup button:hover,
-.viewGroup button:focus {
+.navigationGroup button:focus {
   border-color: var(--calendar-orange);
   color: var(--calendar-orange);
   outline: none;
 }
 
-.todayButton,
-.activeView {
+.todayButton {
   min-width: 3.8rem !important;
-}
-
-.viewGroup .activeView {
-  background: var(--calendar-orange);
-  border-color: var(--calendar-orange);
-  color: #111827;
 }
 
 @media (max-width: 767.98px) {
@@ -69,7 +55,11 @@
   }
 
   .navigationGroup,
-  .viewGroup {
+  .toolbarSpacer {
     justify-content: center;
+  }
+
+  .toolbarSpacer {
+    display: none;
   }
 }

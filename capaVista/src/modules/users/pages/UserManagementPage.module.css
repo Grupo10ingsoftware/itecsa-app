@@ -42,7 +42,8 @@
 .filtersShell,
 .tableCard,
 .createModal,
-.editModal {
+.editModal,
+.confirmModal {
   background: #fff;
   border: 1px solid #e3e7ed;
   border-radius: 8px;
@@ -441,14 +442,16 @@
 }
 
 .createModal,
-.editModal {
+.editModal,
+.confirmModal {
   max-height: min(92vh, 860px);
   max-width: 840px;
   overflow: auto;
   width: min(100%, 840px);
 }
 
-.editModal {
+.editModal,
+.confirmModal {
   max-width: 680px;
 }
 
@@ -538,6 +541,23 @@
   min-height: 2.65rem;
   padding: 0.45rem 0.7rem;
   width: 100%;
+}
+
+.confirmText {
+  color: #4f5f6f;
+  margin: 0 0 1rem;
+}
+
+.confirmFields {
+  display: grid;
+  gap: 1rem;
+}
+
+.confirmError {
+  color: #b02a37;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0;
 }
 
 @media (max-width: 900px) {

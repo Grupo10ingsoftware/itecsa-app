@@ -18,13 +18,7 @@ export default function CalendarToolbar({ monthDate, onGoToday, onNextMonth, onP
 
       <h2>{formatMonthTitle(monthDate)}</h2>
 
-      <div className={styles.viewGroup} aria-label="Vista de calendario">
-        <button className={styles.activeView} type="button">
-          Mes
-        </button>
-        <button type="button">Semana</button>
-        <button type="button">Dia</button>
-      </div>
+      <div aria-hidden="true" className={styles.toolbarSpacer} />
     </section>
   )
 }

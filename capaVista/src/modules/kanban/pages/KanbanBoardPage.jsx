@@ -4,6 +4,7 @@ import KanbanFilters from '../components/KanbanFilters'
 import styles from './KanbanBoardPage.module.css'
 
 export default function KanbanBoardPage() {
+  const [appliedFilters, setAppliedFilters] = useState({})
   const [operationalLoad, setOperationalLoad] = useState({
     capacity: 1200,
     lanyardsInProduction: 0,
@@ -48,8 +49,11 @@ export default function KanbanBoardPage() {
         </header>
 
         <div className={styles.content}>
-          <KanbanFilters />
-          <KanbanColumn onOperationalLoadChange={handleOperationalLoadChange} />
+          <KanbanFilters
+            onApplyFilters={(nextFilters) => setAppliedFilters(nextFilters)}
+            onClearFilters={() => setAppliedFilters({})}
+          />
+          <KanbanColumn filters={appliedFilters} onOperationalLoadChange={handleOperationalLoadChange} />
         </div>
       </section>
     </main>

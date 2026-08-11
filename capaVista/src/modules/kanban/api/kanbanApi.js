@@ -1,9 +1,9 @@
 export function createKanbanApi(apiClient) {
   return {
-    getOrders: () => apiClient.get('/orders'),
+    getOrders: () => apiClient.get('/demo-orders'),
     getOrderStatuses: () => apiClient.get('/order-status'),
     moveOrder: (orderId, generalStepId) =>
-      apiClient.request(`/orders/${orderId}/move`, {
+      apiClient.request(`/demo-orders/${orderId}/move`, {
         method: 'PATCH',
         body: {
           generalStepId,

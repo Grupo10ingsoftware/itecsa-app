@@ -85,10 +85,11 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!change) return null
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const trimmedEmail = email.trim()
 
@@ -102,7 +103,16 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
       return
     }
 
-    onConfirm({ operatorEmail: trimmedEmail })
+    setIsSubmitting(true)
+
+    try {
+      await onConfirm({ operatorEmail: trimmedEmail })
+    } catch (submitError) {
+      console.error('Error actualizando fecha de entrega:', submitError)
+      setError('No fue posible cambiar la fecha de entrega.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -158,11 +168,11 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
         </div>
 
         <footer className={styles.modalFooter}>
-          <button className={styles.secondaryButton} onClick={onCancel} type="button">
+          <button className={styles.secondaryButton} disabled={isSubmitting} onClick={onCancel} type="button">
             Cancelar
           </button>
-          <button className={styles.primaryButton} type="submit">
-            Confirmar
+          <button className={styles.primaryButton} disabled={isSubmitting} type="submit">
+            {isSubmitting ? 'Confirmando...' : 'Confirmar'}
           </button>
         </footer>
       </form>
@@ -170,8 +180,15 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
   )
 }
 
-function DayOrdersModal({ dateKey, items, onClose }) {
+function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onDragStart }) {
   if (!dateKey) return null
+
+  function handleModalItemDragStart(event, itemId) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', itemId)
+    onDragStart(itemId)
+    setTimeout(onClose, 0)
+  }
 
   return (
     <div className={styles.modalLayer} onMouseDown={onClose} role="presentation">
@@ -194,7 +211,21 @@ function DayOrdersModal({ dateKey, items, onClose }) {
 
         <div className={styles.modalBody}>
           {items.map((item) => (
-            <article className={`${styles.dayOrderRow} ${STATUS_CLASS[item.status]}`} key={item.id}>
+            <article
+              className={[
+                styles.dayOrderRow,
+                styles.draggableDayOrderRow,
+                STATUS_CLASS[item.status],
+                draggedItemId === item.id ? styles.draggingEvent : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              draggable
+              key={item.id}
+              onDragEnd={onDragEnd}
+              onDragStart={(event) => handleModalItemDragStart(event, item.id)}
+              title="Arrastrar para cambiar fecha de entrega"
+            >
               <div>
                 <strong>{item.orderNumber}</strong>
                 <span>{item.clientName}</span>
@@ -236,27 +267,32 @@ function CalendarDayCell({
   const visibleItems = items.slice(0, MAX_VISIBLE_EVENTS)
   const hiddenItemsCount = items.length - visibleItems.length
   const isDropTarget = dropTargetDate === day.dateKey
+  const canScheduleProduction = day.isCurrentMonth && day.isBusinessDay
 
   return (
     <article
       className={[
         styles.dayCell,
         day.isCurrentMonth ? '' : styles.outsideMonth,
-        day.isCurrentMonth && load?.level ? styles[`load${load.level}`] : '',
+        !day.isBusinessDay ? styles.nonBusinessDay : '',
+        canScheduleProduction && load?.level ? styles[`load${load.level}`] : '',
         isDropTarget ? styles.dropTarget : '',
       ]
         .filter(Boolean)
         .join(' ')}
       onDragEnter={(event) => {
+        if (!canScheduleProduction) return
         event.preventDefault()
         onSetDropTarget(day.dateKey)
       }}
       onDragOver={(event) => {
+        if (!canScheduleProduction) return
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'
         onSetDropTarget(day.dateKey)
       }}
       onDrop={(event) => {
+        if (!canScheduleProduction) return
         event.preventDefault()
         const itemId = event.dataTransfer.getData('text/plain')
         onDropItem(itemId, day.dateKey)
@@ -318,10 +354,10 @@ export default function ProductionCalendarGrid({ items, loadByDate, monthDate, o
     setIsCredentialStepOpen(false)
   }
 
-  function confirmCredentials() {
+  async function confirmCredentials() {
     if (!pendingChange) return
 
-    onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate)
+    await onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate)
     closeDeliveryChangeFlow()
   }
 
@@ -352,7 +388,14 @@ export default function ProductionCalendarGrid({ items, loadByDate, monthDate, o
           ))}
         </div>
 
-        <DayOrdersModal dateKey={selectedDayKey} items={selectedDayItems} onClose={() => setSelectedDayKey(null)} />
+        <DayOrdersModal
+          dateKey={selectedDayKey}
+          draggedItemId={draggedItemId}
+          items={selectedDayItems}
+          onClose={() => setSelectedDayKey(null)}
+          onDragEnd={handleDragEnd}
+          onDragStart={setDraggedItemId}
+        />
       </section>
       <DeliveryChangeConfirmModal
         change={!isCredentialStepOpen ? pendingChange : null}

@@ -98,7 +98,7 @@
 .filterGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .filterGrid label {
@@ -422,6 +422,26 @@
   margin: 0;
 }
 
+.orderDetailsStack,
+.orderDetailsGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.orderDetailsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orderDetailsGrid .orderDetails {
+  border-left: 1px solid rgba(100, 116, 139, 0.26);
+  padding-left: 0.65rem;
+}
+
+.orderDetailsGrid .orderDetails:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
 .orderDetails div {
   display: grid;
   gap: 0.1rem;
@@ -440,6 +460,7 @@
   color: var(--kanban-text);
   font-weight: 720;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .orderCardButton {

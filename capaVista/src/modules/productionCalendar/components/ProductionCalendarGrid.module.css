@@ -49,6 +49,18 @@
   color: #94a3b8;
 }
 
+.nonBusinessDay {
+  background: #fff;
+}
+
+.nonBusinessDay .dayNumber {
+  color: #64748b;
+}
+
+.nonBusinessDay .eventsList {
+  opacity: 0.78;
+}
+
 .loadnormal {
   background: #bbf7d0;
 }
@@ -371,6 +383,20 @@
   display: grid;
   gap: 0.8rem;
   padding: 0.85rem;
+}
+
+.draggableDayOrderRow {
+  cursor: grab;
+  transition:
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.draggableDayOrderRow:hover,
+.draggableDayOrderRow:focus {
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .dayOrderRow > div:first-child {

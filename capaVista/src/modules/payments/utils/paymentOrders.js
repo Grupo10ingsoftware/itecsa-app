@@ -121,6 +121,7 @@ export function normalizePaymentOrder(order) {
     paymentStatusId: order?.id_estado_pago ?? null,
     createdAt: order?.fecha_creacion ?? null,
     updatedAt: order?.fecha_registro ?? null,
+    paymentConfirmedAt: order?.paymentConfirmedAt ?? null,
     signature,
   }
 }

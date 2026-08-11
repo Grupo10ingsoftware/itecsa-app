@@ -252,10 +252,10 @@
 
 .holdConfirmButton {
   align-items: center;
-  background: #fff;
+  background: #000;
   border: 1px solid #111;
   border-radius: 0.45rem;
-  color: #111;
+  color: #fff;
   display: inline-flex;
   font-size: 0.92rem;
   font-weight: 800;
@@ -273,16 +273,6 @@
   user-select: none;
 }
 
-.holdConfirmButton::before {
-  background: #000;
-  content: '';
-  inset: 0;
-  position: absolute;
-  transform: scaleX(0);
-  transform-origin: left;
-  z-index: 0;
-}
-
 .holdConfirmButton span {
   pointer-events: none;
   position: relative;
@@ -293,26 +283,121 @@
 }
 
 .holdConfirmButton:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+.credentialsModalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.58);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 2100;
+}
+
+.credentialsModal {
   background: #fff;
-  border-color: #000;
+  border-radius: 0.75rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  max-width: min(100%, 28rem);
+  overflow: hidden;
+  width: 28rem;
 }
 
-.holdConfirmButtonHolding {
-  color: #fff;
+.credentialsModalHeader,
+.credentialsModalFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
 }
 
-.holdConfirmButtonHolding::before {
-  animation: holdConfirmFill 2s linear forwards;
+.credentialsModalHeader {
+  border-bottom: 1px solid var(--payment-border);
 }
 
-@keyframes holdConfirmFill {
-  from {
-    transform: scaleX(0);
-  }
+.credentialsModalHeader span {
+  color: var(--payment-orange);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
-  to {
-    transform: scaleX(1);
-  }
+.credentialsModalHeader h3 {
+  color: var(--payment-text);
+  font-size: 1.08rem;
+  margin: 0.18rem 0 0;
+}
+
+.credentialsCloseButton {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--payment-text);
+  display: inline-flex;
+  height: 2.5rem;
+  justify-content: center;
+  width: 2.5rem;
+}
+
+.credentialsModalBody {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.credentialsModalBody p {
+  color: var(--payment-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.credentialsModalBody label {
+  color: var(--payment-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 850;
+  gap: 0.4rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.credentialsModalBody input {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--payment-text);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  text-transform: none;
+}
+
+.credentialsModalBody input:focus {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.18);
+  outline: none;
+}
+
+.credentialsError {
+  background: #fff1f0;
+  border: 1px solid #f1b5b5;
+  border-radius: 0.55rem;
+  color: #b02a37 !important;
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.credentialsModalFooter {
+  border-top: 1px solid var(--payment-border);
 }
 
 @media (max-width: 1199.98px) {

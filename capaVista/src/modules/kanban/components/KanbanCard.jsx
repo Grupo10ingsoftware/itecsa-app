@@ -1,12 +1,33 @@
 import styles from '../styles/Kanban.module.css'
 import { useDraggable } from '@dnd-kit/react'
 
+function buildSummaryItems({ dueDate, items, product, quantity }) {
+  if (Array.isArray(items) && items.length > 0) {
+    return items.map((item, index) => ({
+      id: item.id ?? `${product}-${index}`,
+      dueDate: item.dueDate ?? dueDate,
+      product: item.product ?? product ?? 'Producto no definido',
+      quantity: item.quantity ?? quantity ?? 'No definida',
+    }))
+  }
+
+  return [
+    {
+      id: `${product}-principal`,
+      dueDate,
+      product: product ?? 'Producto no definido',
+      quantity: quantity ?? 'No definida',
+    },
+  ]
+}
+
 function KanbanCard({
   clientName,
   nv,
   product,
-  date,
   dueDate,
+  items,
+  quantity,
   isDelayed,
   isMoveBlocked,
   isCorrectionRequested,
@@ -20,6 +41,7 @@ function KanbanCard({
     id: nv,
     disabled: isMoveBlocked,
   })
+  const summaryItems = buildSummaryItems({ dueDate, items, product, quantity })
 
   return (
     <article
@@ -79,28 +101,34 @@ function KanbanCard({
         </div>
       </div>
 
-      <dl className={styles.orderDetails}>
-        <div>
-          <dt>Producto</dt>
-          <dd>{product}</dd>
-        </div>
-        <div>
-          <dt>Fecha</dt>
-          <dd>{date}</dd>
-        </div>
-        {dueDate && (
-          <div>
-            <dt>Entrega</dt>
-            <dd>{dueDate}</dd>
-          </div>
-        )}
+      <div className={summaryItems.length > 1 ? styles.orderDetailsGrid : styles.orderDetailsStack}>
+        {summaryItems.map((item) => (
+          <dl className={styles.orderDetails} key={item.id}>
+            <div>
+              <dt>Producto</dt>
+              <dd>{item.product}</dd>
+            </div>
+            <div>
+              <dt>Cantidad</dt>
+              <dd>{item.quantity}</dd>
+            </div>
+            {item.dueDate && (
+              <div>
+                <dt>Entrega</dt>
+                <dd>{item.dueDate}</dd>
+              </div>
+            )}
+          </dl>
+        ))}
         {isCorrectionRequested && (
-          <div>
+          <dl className={styles.orderDetails}>
+            <div>
             <dt>Correccion</dt>
             <dd>Solicitada por produccion</dd>
-          </div>
+            </div>
+          </dl>
         )}
-      </dl>
+      </div>
 
       <button
         className={styles.orderCardButton}

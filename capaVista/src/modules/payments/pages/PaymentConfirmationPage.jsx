@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
 import { useAuth } from '@/hooks/useAuth'
 import PaymentActionConfirmModal from '../components/PaymentActionConfirmModal'
+import PaymentCredentialsModal from '../components/PaymentCredentialsModal'
 import PaymentFilters from '../components/PaymentFilters'
 import PaymentOrderMobileList from '../components/PaymentOrderMobileList'
 import PaymentOrdersTable from '../components/PaymentOrdersTable'
@@ -18,13 +19,11 @@ import {
   PREVIEW_CONTEXT,
   formatPaymentDateTime,
   getPdfAsset,
-  openFileForDownload,
   openPdfForDownload,
   printPdf,
 } from '../utils/paymentDocuments'
 import styles from './PaymentConfirmationPage.module.css'
 
-const HOLD_CONFIRM_MS = 2000
 const FILTERS = [
   { key: 'TODOS', label: 'Todos' },
   { key: PAYMENT_STATUS.PENDIENTE, label: 'Pendientes' },
@@ -35,7 +34,6 @@ const FILTERS = [
 export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
   const paymentsApi = usePaymentsApi()
-  const holdTimerRef = useRef(null)
   // Mock historico/fallback dev: createMockPaymentOrders() documenta el shape
   // esperado por esta vista. No usar como fuente productiva.
   const [orders, setOrders] = useState([])
@@ -43,38 +41,26 @@ export default function PaymentConfirmationPage() {
   const [activeFilter, setActiveFilter] = useState('TODOS')
   const [editingStatus, setEditingStatus] = useState({})
   const [pendingTransition, setPendingTransition] = useState(null)
+  const [credentialsTransition, setCredentialsTransition] = useState(null)
   const [previewState, setPreviewState] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [updateError, setUpdateError] = useState(null)
   const [isUpdatingPaymentStatus, setIsUpdatingPaymentStatus] = useState(false)
-  const [isHoldingConfirmation, setIsHoldingConfirmation] = useState(false)
   const canUpdatePaymentStatus = hasPermission(PERMISSIONS.UPDATE_PAYMENT_STATUS)
-
-  const clearHoldTimer = useCallback(() => {
-    if (!holdTimerRef.current) return
-
-    window.clearTimeout(holdTimerRef.current)
-    holdTimerRef.current = null
-  }, [])
-
-  useEffect(() => {
-    return () => clearHoldTimer()
-  }, [clearHoldTimer])
 
   useEffect(() => {
     if (canUpdatePaymentStatus) return
 
     const resetTimer = window.setTimeout(() => {
-      clearHoldTimer()
       setEditingStatus({})
-      setIsHoldingConfirmation(false)
       setPendingTransition(null)
+      setCredentialsTransition(null)
     }, 0)
 
     return () => window.clearTimeout(resetTimer)
-  }, [canUpdatePaymentStatus, clearHoldTimer])
+  }, [canUpdatePaymentStatus])
 
   const loadPaymentData = useCallback(async () => {
     setIsLoading(true)
@@ -161,7 +147,7 @@ export default function PaymentConfirmationPage() {
     [counters],
   )
 
-  const handleUpdatePaymentStatus = useCallback(async (orderId, newStatus) => {
+  const handleUpdatePaymentStatus = useCallback(async (orderId, newStatus, credentials) => {
     if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) return false
 
     const paymentStatusId = getPaymentStatusIdByName(paymentStatuses, newStatus)
@@ -176,7 +162,9 @@ export default function PaymentConfirmationPage() {
 
     try {
       const updatedOrder = await paymentsApi.updatePaymentStatus(orderId, {
+        email: credentials.email,
         paymentStatusId,
+        password: credentials.password,
         observacion: `Cambio de estado a ${newStatus} desde modulo de pagos.`,
       })
 
@@ -234,24 +222,6 @@ export default function PaymentConfirmationPage() {
     printPdf(filePath)
   }, [])
 
-  const handleOpenSignatureEvidence = useCallback(async (order, fileName) => {
-    if (!order?.id) return
-
-    try {
-      const evidenceBlob = await paymentsApi.getPaymentSignatureEvidence(order.id)
-      const objectUrl = URL.createObjectURL(evidenceBlob)
-
-      openFileForDownload(objectUrl, fileName || 'evidencia-firma')
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-    } catch (error) {
-      console.error('Error abriendo evidencia de firma:', error)
-      setUpdateError(
-        error?.payload?.message ??
-          'No fue posible abrir la evidencia de firma.',
-      )
-    }
-  }, [paymentsApi])
-
   const handleFilterChange = useCallback((filterKey) => {
     setActiveFilter(filterKey)
     setEditingStatus({})
@@ -281,6 +251,7 @@ export default function PaymentConfirmationPage() {
     if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) {
       setEditingStatus({})
       setPendingTransition(null)
+      setCredentialsTransition(null)
       return
     }
 
@@ -290,6 +261,7 @@ export default function PaymentConfirmationPage() {
     ) {
       setEditingStatus({})
       setPendingTransition(null)
+      setCredentialsTransition(null)
       setUpdateError('El pago confirmado no puede modificarse.')
       return
     }
@@ -306,71 +278,66 @@ export default function PaymentConfirmationPage() {
   const closePaymentActionConfirmation = useCallback(() => {
     if (isUpdatingPaymentStatus) return
 
-    clearHoldTimer()
-    setIsHoldingConfirmation(false)
     setPendingTransition(null)
-  }, [clearHoldTimer, isUpdatingPaymentStatus])
+  }, [isUpdatingPaymentStatus])
 
-  const completePendingTransition = useCallback(async () => {
-    if (!canUpdatePaymentStatus) {
-      clearHoldTimer()
-      setIsHoldingConfirmation(false)
-      setPendingTransition(null)
+  const openCredentialsValidation = useCallback(() => {
+    if (!pendingTransition) return
+
+    setCredentialsTransition(pendingTransition)
+    setPendingTransition(null)
+  }, [pendingTransition])
+
+  const closeCredentialsValidation = useCallback(() => {
+    if (isUpdatingPaymentStatus) return
+
+    setCredentialsTransition(null)
+  }, [isUpdatingPaymentStatus])
+
+  const completeCredentialsValidation = useCallback(async (credentials) => {
+    if (!canUpdatePaymentStatus || !credentialsTransition) {
+      setCredentialsTransition(null)
       return
     }
 
-    if (!pendingTransition) return
-
     const wasUpdated = await handleUpdatePaymentStatus(
-      pendingTransition.order.id,
-      pendingTransition.targetStatus,
+      credentialsTransition.order.id,
+      credentialsTransition.targetStatus,
+      credentials,
     )
 
-    clearHoldTimer()
-    setIsHoldingConfirmation(false)
-
     if (wasUpdated) {
-      setPendingTransition(null)
+      setCredentialsTransition(null)
+      setPreviewState((currentPreview) =>
+        currentPreview?.order?.id === credentialsTransition.order.id
+          ? null
+          : currentPreview,
+      )
     }
   }, [
     canUpdatePaymentStatus,
-    clearHoldTimer,
+    credentialsTransition,
     handleUpdatePaymentStatus,
-    pendingTransition,
   ])
-
-  const startHoldConfirmation = useCallback(() => {
-    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) return
-    if (!pendingTransition || holdTimerRef.current) return
-
-    setIsHoldingConfirmation(true)
-    holdTimerRef.current = window.setTimeout(
-      completePendingTransition,
-      HOLD_CONFIRM_MS,
-    )
-  }, [
-    canUpdatePaymentStatus,
-    completePendingTransition,
-    isUpdatingPaymentStatus,
-    pendingTransition,
-  ])
-
-  const cancelHoldConfirmation = useCallback(() => {
-    if (isUpdatingPaymentStatus) return
-
-    clearHoldTimer()
-    setIsHoldingConfirmation(false)
-  }, [clearHoldTimer, isUpdatingPaymentStatus])
 
   const openOriginalPreview = useCallback((order) => {
     setPreviewState({ context: PREVIEW_CONTEXT.ORIGINAL, order })
   }, [])
 
   const openSignedDetailPreview = useCallback((order) => {
-    if (!order?.isSigned || !order?.nvFilePath) return
+    if (!order) return
 
     setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
   }, [])
+
+  const openDeconfirmValidation = useCallback((order) => {
+    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus || !order) return
+
+    setCredentialsTransition({
+      order,
+      targetStatus: PAYMENT_STATUS.PENDIENTE,
+    })
+  }, [canUpdatePaymentStatus, isUpdatingPaymentStatus])
 
   return (
     <main className={`container-fluid ${styles.page}`}>
@@ -449,21 +416,26 @@ export default function PaymentConfirmationPage() {
         context={previewState?.context}
         key={`${previewState?.context || 'closed'}-${previewState?.order?.id || 'none'}`}
         onClose={() => setPreviewState(null)}
+        onDeconfirm={openDeconfirmValidation}
         onDownload={handleDownloadNV}
-        onOpenSignatureEvidence={handleOpenSignatureEvidence}
         onPrint={handlePrintNV}
         order={previewState?.order}
       />
 
       <PaymentActionConfirmModal
-        isHolding={isHoldingConfirmation}
         isUpdating={isUpdatingPaymentStatus}
-        paymentsApi={paymentsApi}
         onCancel={closePaymentActionConfirmation}
-        onHoldEnd={cancelHoldConfirmation}
-        onHoldStart={startHoldConfirmation}
+        onValidate={openCredentialsValidation}
         order={pendingTransition?.order}
         targetStatus={pendingTransition?.targetStatus}
+      />
+
+      <PaymentCredentialsModal
+        isSubmitting={isUpdatingPaymentStatus}
+        onCancel={closeCredentialsValidation}
+        onConfirm={completeCredentialsValidation}
+        order={credentialsTransition?.order}
+        targetStatus={credentialsTransition?.targetStatus}
       />
     </main>
   )

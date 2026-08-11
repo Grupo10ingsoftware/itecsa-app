@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 import documentRoutes from './modules/documents/routes/document.routes.js';
+import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
 import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
 
@@ -31,6 +32,7 @@ class Server {
         orderDetail: '/api/order-details',
         admin: '/api/admin',
         documents: '/api/documents',
+        demoOrders: '/api/demo-orders',
         health: '/api/health',
         productionCalendar: '/api/production-calendar',
 
@@ -84,6 +86,7 @@ class Server {
     this.app.use( this.paths.auth, authRoutes)
     this.app.use( this.paths.admin, adminUsersRoutes)
     this.app.use( this.paths.documents, documentRoutes)
+    this.app.use( this.paths.demoOrders, demoOrdersRoutes)
     this.app.use( this.paths.health, healthRoutes)
     this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);

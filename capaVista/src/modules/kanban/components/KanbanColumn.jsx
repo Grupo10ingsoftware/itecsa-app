@@ -253,6 +253,7 @@ function normalizeOrder(order) {
   return {
     id,
     clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
+    seller: order.seller ?? order.vendedorResponsable ?? order.vendedor_responsable ?? '',
     nv: order.nv ?? order.codigo_nota_venta ?? order.codigo_nv ?? `PED-${id}`,
     product,
     date: order.date ?? order.fecha ?? order.fecha_pedido ?? '',
@@ -294,18 +295,107 @@ function getProductionPriority(order) {
   return 2
 }
 
-function sortOrdersForColumn(orders, column) {
-  if (Number(column.generalStepId) !== KANBAN_EN_PRODUCCION_STEP) {
-    return orders
+function compareOrderIds(leftId, rightId) {
+  const leftNumber = Number(leftId)
+  const rightNumber = Number(rightId)
+
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber
   }
 
-  return [...orders].sort((left, right) => {
-    const priorityDifference = getProductionPriority(left) - getProductionPriority(right)
+  return String(leftId).localeCompare(String(rightId))
+}
 
-    if (priorityDifference !== 0) return priorityDifference
+function normalizeText(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
 
-    return Number(left.id) - Number(right.id)
-  })
+function hasActiveFilters(filters = {}) {
+  return Object.values(filters).some((value) => normalizeText(value).length > 0)
+}
+
+function orderMatchesFilters(order, filters = {}) {
+  const normalizedFilters = {
+    clientName: normalizeText(filters.clientName),
+    nv: normalizeText(filters.nv),
+    op: normalizeText(filters.op),
+    productType: normalizeText(filters.productType),
+    seller: normalizeText(filters.seller),
+  }
+
+  if (!Object.values(normalizedFilters).some(Boolean)) return false
+
+  const productValues = [
+    order.product,
+    ...(Array.isArray(order.items) ? order.items.map((item) => item.product) : []),
+  ].map(normalizeText)
+  const sellerValues = [
+    order.seller,
+    order.vendedorResponsable,
+    order.vendedor_responsable,
+    ...(Array.isArray(order.items)
+      ? order.items.map((item) => item.seller ?? item.vendedorResponsable ?? item.vendedor_responsable)
+      : []),
+  ].map(normalizeText)
+  const opValues = [order.opCode, order.productionDocuments?.opCode].map(normalizeText)
+
+  if (normalizedFilters.clientName && !normalizeText(order.clientName).includes(normalizedFilters.clientName)) {
+    return false
+  }
+
+  if (normalizedFilters.nv && !normalizeText(order.nv).includes(normalizedFilters.nv)) {
+    return false
+  }
+
+  if (normalizedFilters.op && !opValues.some((value) => value.includes(normalizedFilters.op))) {
+    return false
+  }
+
+  if (normalizedFilters.seller && !sellerValues.some((value) => value.includes(normalizedFilters.seller))) {
+    return false
+  }
+
+  if (normalizedFilters.productType && !productValues.some((value) => value.includes(normalizedFilters.productType))) {
+    return false
+  }
+
+  return true
+}
+
+function sortOrdersForColumn(orders, column, filters) {
+  const activeFilters = hasActiveFilters(filters)
+  const baseSortedOrders = Number(column.generalStepId) === KANBAN_EN_PRODUCCION_STEP
+    ? [...orders].sort((left, right) => {
+        const priorityDifference = getProductionPriority(left) - getProductionPriority(right)
+
+        if (priorityDifference !== 0) return priorityDifference
+
+        return compareOrderIds(left.id, right.id)
+      })
+    : orders
+
+  if (!activeFilters) {
+    return baseSortedOrders
+  }
+
+  return baseSortedOrders
+    .map((order, index) => ({
+      index,
+      matchesFilters: orderMatchesFilters(order, filters),
+      order,
+    }))
+    .sort((left, right) => {
+      if (left.matchesFilters !== right.matchesFilters) {
+        return left.matchesFilters ? -1 : 1
+      }
+
+      return left.index - right.index
+    })
+    .map(({ order }) => order)
 }
 
 function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
@@ -470,7 +560,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
   )
 }
 
-function KanbanColumn({ onOperationalLoadChange }) {
+function KanbanColumn({ filters, onOperationalLoadChange }) {
   const movementCommentIdRef = useRef(0)
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
@@ -676,6 +766,7 @@ function KanbanColumn({ onOperationalLoadChange }) {
                 (order) => Number(column.generalStepId) === Number(order.generalStepId),
               ),
               column,
+              filters,
             )
 
             return (

@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
 import CalendarSummaryCards from '../components/CalendarSummaryCards'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_CALENDAR_ITEMS } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { useDemoOrdersApi } from '../hooks/useDemoOrdersApi'
 import { buildMonthGrid, isSameMonth, toDateKey } from '../utils/calendarUtils'
 import { LANYARD_DAILY_CAPACITY, calculateOperationalLoadByDate } from '../utils/operationalLoadUtils'
 import styles from './ProductionCalendarPage.module.css'
@@ -15,11 +16,63 @@ const DEFAULT_FILTERS = Object.freeze({
   productType: '',
 })
 
+function getStatusByStep(stepId) {
+  const statuses = [
+    PRODUCTION_STATUSES.PAYMENT_CONFIRMATION,
+    PRODUCTION_STATUSES.READY_PRODUCTION,
+    PRODUCTION_STATUSES.IN_PRODUCTION,
+    PRODUCTION_STATUSES.READY_DELIVERY,
+  ]
+
+  return statuses[Number(stepId)] ?? PRODUCTION_STATUSES.PAYMENT_CONFIRMATION
+}
+
+function normalizeCalendarOrder(order) {
+  return {
+    ...order,
+    id: order.id ?? order.id_pedido,
+    orderNumber: order.orderNumber ?? order.nv ?? order.codigo_nota_venta,
+    clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
+    productType: order.productType ?? order.product ?? order.producto ?? 'Producto no definido',
+    quantity: order.quantity ?? order.cantidad ?? 0,
+    status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
+    dueDate: order.dueDate ?? order.fecha_estimada_termino,
+  }
+}
+
 export default function ProductionCalendarPage() {
-  const [calendarItems, setCalendarItems] = useState(() => [...PRODUCTION_CALENDAR_ITEMS])
+  const demoOrdersApi = useDemoOrdersApi()
+  const [calendarItems, setCalendarItems] = useState([])
   const [monthDate, setMonthDate] = useState(() => new Date(2026, 5, 1))
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadOrders() {
+      try {
+        setLoadError(null)
+        const orders = await demoOrdersApi.getOrders()
+
+        if (isMounted) {
+          setCalendarItems(Array.isArray(orders) ? orders.map(normalizeCalendarOrder) : [])
+        }
+      } catch (error) {
+        console.error('Error cargando pedidos del calendario:', error)
+        if (isMounted) {
+          setLoadError('No fue posible cargar los pedidos compartidos del calendario.')
+        }
+      }
+    }
+
+    loadOrders()
+
+    return () => {
+      isMounted = false
+    }
+  }, [demoOrdersApi])
 
   const visibleMonthItems = useMemo(
     () => calendarItems.filter((item) => isSameMonth(item.dueDate, monthDate)),
@@ -86,9 +139,12 @@ export default function ProductionCalendarPage() {
     }))
   }
 
-  function updateItemDeliveryDate(itemId, nextDate) {
+  async function updateItemDeliveryDate(itemId, nextDate) {
+    const updatedOrder = await demoOrdersApi.updateDeliveryDate(itemId, nextDate)
+    const normalizedOrder = normalizeCalendarOrder(updatedOrder)
+
     setCalendarItems((currentItems) =>
-      currentItems.map((item) => (item.id === itemId ? { ...item, dueDate: nextDate } : item)),
+      currentItems.map((item) => (item.id === itemId ? normalizedOrder : item)),
     )
   }
 
@@ -108,6 +164,8 @@ export default function ProductionCalendarPage() {
               onClear={() => setFilters(DEFAULT_FILTERS)}
             />
           )}
+
+          {loadError && <div className="alert alert-warning mb-0">{loadError}</div>}
 
           <CalendarSummaryCards items={filteredItems} load={operationalLoad} />
 

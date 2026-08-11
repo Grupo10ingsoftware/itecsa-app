@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './SalesNotePreviewModal.module.css'
 import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
@@ -10,43 +10,68 @@ import {
   getPdfAsset,
 } from '../utils/paymentDocuments'
 
+const DECONFIRM_WINDOW_MS = 20 * 60 * 1000
+
+function formatCountdown(milliseconds) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0')
+  const seconds = String(totalSeconds % 60).padStart(2, '0')
+
+  return `${minutes}:${seconds}`
+}
+
 export default function SalesNotePreviewModal({
   context,
   onClose,
+  onDeconfirm,
   onDownload,
-  onOpenSignatureEvidence,
   onPrint,
   order,
 }) {
   const [previewZoom, setPreviewZoom] = useState(100)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+
+  const isPaymentDetail = context === PREVIEW_CONTEXT.SIGNED_DETAIL
+  const confirmedAtTime = new Date(order?.paymentConfirmedAt).getTime()
+  const deconfirmRemainingMs =
+    isPaymentDetail &&
+    order?.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+    Number.isFinite(confirmedAtTime)
+      ? Math.max(0, DECONFIRM_WINDOW_MS - (now - confirmedAtTime))
+      : 0
+  const canDeconfirm = deconfirmRemainingMs > 0
+
+  useEffect(() => {
+    if (!canDeconfirm) return undefined
+
+    const interval = window.setInterval(() => setNow(Date.now()), 1000)
+
+    return () => window.clearInterval(interval)
+  }, [canDeconfirm])
 
   if (!order) return null
 
-  const isSignedDetail = context === PREVIEW_CONTEXT.SIGNED_DETAIL
-  const pdfVariant = isSignedDetail ? PDF_VARIANT.SIGNED : PDF_VARIANT.ORIGINAL
+  const pdfVariant = PDF_VARIANT.ORIGINAL
   const pdfAsset = getPdfAsset(order, pdfVariant)
-  const modalTitle = isSignedDetail ? 'Documento firmado' : 'Vista previa'
-  const documentPanelTitle = isSignedDetail
-    ? 'Documento firmado'
+  const modalTitle = isPaymentDetail ? 'Detalle de pago' : 'Vista previa'
+  const documentPanelTitle = isPaymentDetail
+    ? 'Nota de Venta'
     : 'Vista previa del documento'
-  const closeAriaLabel = isSignedDetail
-    ? 'Cerrar documento firmado'
+  const closeAriaLabel = isPaymentDetail
+    ? 'Cerrar detalle de pago'
     : 'Cerrar vista previa'
   const expandAriaLabel = isExpanded
-    ? 'Restaurar tamaño'
-    : isSignedDetail
+    ? 'Restaurar tamano'
+    : isPaymentDetail
       ? 'Agrandar documento'
       : 'Agrandar vista previa'
-  const pdfTitle = isSignedDetail
-    ? `Documento firmado PDF de ${order.nvNumber}`
+  const pdfTitle = isPaymentDetail
+    ? `Detalle PDF de ${order.nvNumber}`
     : `Vista previa PDF de ${order.nvNumber}`
-  const previewDescription = isSignedDetail
-    ? 'PDF firmado disponible para revisión, impresión y descarga.'
-    : 'PDF original asociado a la Nota de Venta antes de la firma digital.'
-  const modalHeaderDescription = isSignedDetail
-    ? previewDescription
-    : 'Revisa el documento asociado a la Nota de Venta antes de la firma digital.'
+  const modalHeaderDescription = isPaymentDetail
+    ? 'Detalle de la Nota de Venta asociada al pago confirmado.'
+    : 'Revisa el documento asociado a la Nota de Venta.'
   const previewStatusClassByValue = {
     [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
     [PAYMENT_STATUS.RECHAZADO]: styles.detailStatusRejected,
@@ -78,7 +103,7 @@ export default function SalesNotePreviewModal({
   const detailRows = [
     {
       icon: 'bi-hash',
-      label: 'N° Nota de Venta',
+      label: 'Nro Nota de Venta',
       value: order.nvNumber,
     },
     {
@@ -107,7 +132,7 @@ export default function SalesNotePreviewModal({
   const generalRows = [
     {
       icon: 'bi-calendar3',
-      label: 'Fecha de emisión',
+      label: 'Fecha de emision',
       value: formatPaymentDateTime(order.createdAt),
     },
     {
@@ -122,38 +147,6 @@ export default function SalesNotePreviewModal({
     },
   ]
 
-  const signatureRows = order.signature
-    ? [
-        {
-          icon: 'bi-shield-check',
-          label: 'Firma digital',
-          value: order.signature.note,
-        },
-        {
-          icon: 'bi-calendar3',
-          label: 'Fecha de firma',
-          value: order.signature.timestamp,
-        },
-        {
-          icon: 'bi-person',
-          label: 'Usuario firmante',
-          value: order.signature.userId,
-        },
-      ]
-    : []
-
-  const secondaryRows = isSignedDetail ? signatureRows : generalRows
-  const secondaryCardTitle = isSignedDetail ? 'Datos de firma' : 'Información general'
-  const secondaryCardIcon = isSignedDetail ? 'bi-pen' : 'bi-info-circle'
-  const hasSignatureEvidence =
-    isSignedDetail && Boolean(order.signature?.evidenceUrl)
-  const handleOpenSignatureEvidence = () => {
-    onOpenSignatureEvidence?.(
-      order,
-      order.signature.evidenceFileName,
-    )
-  }
-
   const footer = (
     <>
       <button
@@ -163,6 +156,17 @@ export default function SalesNotePreviewModal({
       >
         Cerrar
       </button>
+
+      {canDeconfirm && (
+        <button
+          className="btn btn-outline-danger"
+          onClick={() => onDeconfirm?.(order)}
+          type="button"
+        >
+          <i className="bi bi-arrow-counterclockwise me-1" />
+          Desconfirmar {formatCountdown(deconfirmRemainingMs)}
+        </button>
+      )}
 
       <button
         className="btn btn-outline-dark"
@@ -183,18 +187,6 @@ export default function SalesNotePreviewModal({
         <i className="bi bi-file-earmark-arrow-down me-1" />
         Descargar PDF
       </button>
-
-      {isSignedDetail && (
-        <button
-          className="btn btn-outline-primary"
-          disabled={!hasSignatureEvidence}
-          onClick={handleOpenSignatureEvidence}
-          type="button"
-        >
-          <i className="bi bi-paperclip me-1" />
-          Ver evidencia
-        </button>
-      )}
     </>
   )
 
@@ -204,7 +196,7 @@ export default function SalesNotePreviewModal({
       closeAriaLabel={closeAriaLabel}
       description={modalHeaderDescription}
       footer={footer}
-      kicker={isSignedDetail ? 'Detalle de pago' : 'Nota de Venta'}
+      kicker={isPaymentDetail ? 'Pago confirmado' : 'Nota de Venta'}
       onClose={onClose}
       title={modalTitle}
       titleId="sales-note-preview-title"
@@ -221,32 +213,16 @@ export default function SalesNotePreviewModal({
           </div>
         </section>
 
-        {secondaryRows.length > 0 && (
-          <section className={styles.card}>
-            <header className={styles.cardHeader}>
-              <i className={`bi ${secondaryCardIcon}`} aria-hidden="true" />
-              <span>{secondaryCardTitle}</span>
-            </header>
+        <section className={styles.card}>
+          <header className={styles.cardHeader}>
+            <i className="bi bi-info-circle" aria-hidden="true" />
+            <span>Informacion general</span>
+          </header>
 
-            <div className={styles.cardBody}>
-              {secondaryRows.map(renderDetailItem)}
-              {hasSignatureEvidence && (
-                <div className={styles.evidenceAction}>
-                  <span>Evidencia adjunta</span>
-                  <strong>{order.signature.evidenceFileName || 'Archivo de firma'}</strong>
-                  <button
-                    className="btn btn-sm btn-outline-dark"
-                    onClick={handleOpenSignatureEvidence}
-                    type="button"
-                  >
-                    <i className="bi bi-paperclip me-1" />
-                    Ver evidencia
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+          <div className={styles.cardBody}>
+            {generalRows.map(renderDetailItem)}
+          </div>
+        </section>
       </aside>
 
       <section

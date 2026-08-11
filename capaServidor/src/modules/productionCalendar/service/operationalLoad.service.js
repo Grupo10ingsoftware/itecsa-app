@@ -83,6 +83,29 @@ function getPreviousBusinessDays(dueDate, amount) {
   return days;
 }
 
+function getProductionItems(item) {
+  const children =
+    Array.isArray(item.items) && item.items.length > 0
+      ? item.items
+      : Array.isArray(item.detalles) && item.detalles.length > 0
+        ? item.detalles
+        : null;
+
+  if (!children) {
+    return [item];
+  }
+
+  return children.map((child) => ({
+    ...child,
+    dueDate:
+      child.dueDate ??
+      child.fecha_estimada_termino ??
+      item.dueDate ??
+      item.fecha_estimada_termino,
+    orderNumber: item.orderNumber ?? item.nv ?? item.codigo_nota_venta,
+  }));
+}
+
 export function calculateOperationalLoadByDate({
   capacityPerDay = LANYARD_DAILY_CAPACITY,
   from,
@@ -100,29 +123,31 @@ export function calculateOperationalLoadByDate({
 
   const days = createEmptyDays(fromDate, toDate);
 
-  for (const item of Array.isArray(items) ? items : []) {
-    if (!isLanyardItem(item)) continue;
+  for (const sourceItem of Array.isArray(items) ? items : []) {
+    for (const item of getProductionItems(sourceItem)) {
+      if (!isLanyardItem(item)) continue;
 
-    const quantity = Number(item.quantity ?? item.cantidad ?? 0);
-    const dueDate = parseDateKey(item.dueDate ?? item.fecha_estimada_termino);
-    const estimatedDays = getLanyardEstimatedBusinessDays(quantity);
+      const quantity = Number(item.quantity ?? item.cantidad ?? 0);
+      const dueDate = parseDateKey(item.dueDate ?? item.fecha_estimada_termino);
+      const estimatedDays = getLanyardEstimatedBusinessDays(quantity);
 
-    if (!dueDate || !estimatedDays) continue;
+      if (!dueDate || !estimatedDays) continue;
 
-    const dailyLoad = quantity / estimatedDays;
-    const businessDays = getPreviousBusinessDays(dueDate, estimatedDays);
+      const dailyLoad = quantity / estimatedDays;
+      const businessDays = getPreviousBusinessDays(dueDate, estimatedDays);
 
-    for (const dateKey of businessDays) {
-      const day = days.get(dateKey);
-      if (!day) continue;
+      for (const dateKey of businessDays) {
+        const day = days.get(dateKey);
+        if (!day) continue;
 
-      day.lanyardsLoad += dailyLoad;
-      day.sources.push({
-        dailyLoad,
-        orderId: item.id ?? item.id_pedido ?? item.id_detalle_pedido ?? null,
-        orderNumber: item.orderNumber ?? item.codigo_nota_venta ?? null,
-        quantity,
-      });
+        day.lanyardsLoad += dailyLoad;
+        day.sources.push({
+          dailyLoad,
+          orderId: item.id ?? item.id_pedido ?? item.id_detalle_pedido ?? null,
+          orderNumber: item.orderNumber ?? item.codigo_nota_venta ?? null,
+          quantity,
+        });
+      }
     }
   }
 

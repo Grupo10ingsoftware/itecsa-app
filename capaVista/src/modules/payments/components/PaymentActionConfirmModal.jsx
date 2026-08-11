@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
@@ -10,79 +10,19 @@ import {
 } from '../utils/paymentDocuments'
 
 export default function PaymentActionConfirmModal({
-  isHolding,
   isUpdating = false,
   onCancel,
-  onHoldEnd,
-  onHoldStart,
-  paymentsApi,
+  onValidate,
   order,
   targetStatus,
 }) {
   const [confirmPreviewZoom, setConfirmPreviewZoom] = useState(100)
   const [isConfirmPreviewExpanded, setIsConfirmPreviewExpanded] = useState(false)
-  const [signedPreviewState, setSignedPreviewState] = useState({
-    error: null,
-    orderId: null,
-    url: null,
-  })
-
-  const isConfirmingPayment = targetStatus === PAYMENT_STATUS.CONFIRMADO
-  const currentSignedPreview =
-    signedPreviewState.orderId === order?.id
-      ? signedPreviewState
-      : { error: null, url: null }
-  const isWaitingForSignedPreview = Boolean(
-    isConfirmingPayment &&
-      order?.id &&
-      !currentSignedPreview.url &&
-      !currentSignedPreview.error,
-  )
-
-  useEffect(() => {
-    let isCancelled = false
-    let objectUrl = null
-
-    if (!isConfirmingPayment || !order?.id || !paymentsApi) {
-      return undefined
-    }
-
-    paymentsApi.getPaymentSignaturePreview(order.id)
-      .then((pdfBlob) => {
-        if (isCancelled) return
-
-        objectUrl = URL.createObjectURL(pdfBlob)
-        setSignedPreviewState({
-          error: null,
-          orderId: order.id,
-          url: objectUrl,
-        })
-      })
-      .catch((error) => {
-        if (isCancelled) return
-
-        setSignedPreviewState({
-          error:
-            error?.payload?.message ??
-            'No fue posible generar la vista previa firmada.',
-          orderId: order.id,
-          url: null,
-        })
-      })
-
-    return () => {
-      isCancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [isConfirmingPayment, order?.id, paymentsApi])
 
   if (!order || !targetStatus) return null
 
   const actionMeta = getPaymentActionMeta(targetStatus)
-  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant, {
-    fallbackSignedFilePath: currentSignedPreview.url,
-    fallbackSignedFileName: `${order.nvNumber}-firmado-preview.pdf`,
-  })
+  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant)
 
   const statusClassByValue = {
     [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
@@ -102,36 +42,6 @@ export default function PaymentActionConfirmModal({
   const handleZoomIn = () => {
     setConfirmPreviewZoom((currentZoom) => Math.min(150, currentZoom + 25))
   }
-
-  const shouldUseTouchFallback =
-    typeof window !== 'undefined' && !('PointerEvent' in window)
-
-  const preventHoldSelection = (event) => {
-    event.preventDefault()
-  }
-
-  const shouldPreventNativeTouchAction = (event) =>
-    !('pointerType' in event) || event.pointerType === 'touch'
-
-  const handleHoldPointerStart = (event) => {
-    if (shouldPreventNativeTouchAction(event)) event.preventDefault()
-    if (isUpdating) return
-    onHoldStart()
-  }
-
-  const handleHoldPointerEnd = (event) => {
-    if (shouldPreventNativeTouchAction(event)) event.preventDefault()
-    onHoldEnd()
-  }
-
-  const touchHoldHandlers = shouldUseTouchFallback
-    ? {
-        onTouchCancel: handleHoldPointerEnd,
-        onTouchEnd: handleHoldPointerEnd,
-        onTouchMove: preventHoldSelection,
-        onTouchStart: handleHoldPointerStart,
-      }
-    : {}
 
   const renderActionDetailItem = ({ icon, label, value, content }) => (
     <div className={styles.detailItem} key={label}>
@@ -206,38 +116,13 @@ export default function PaymentActionConfirmModal({
       </button>
 
       <button
-        className={`${styles.holdConfirmButton} ${
-          isHolding || isUpdating ? styles.holdConfirmButtonHolding : ''
-        }`}
-        disabled={isUpdating || isWaitingForSignedPreview}
-        onKeyDown={(event) => {
-          if (isUpdating || isWaitingForSignedPreview) return
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            onHoldStart()
-          }
-        }}
-        onKeyUp={(event) => {
-          if (isUpdating || isWaitingForSignedPreview) return
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            onHoldEnd()
-          }
-        }}
-        draggable="false"
-        onBlur={onHoldEnd}
-        onContextMenu={preventHoldSelection}
-        onDragStart={preventHoldSelection}
-        onPointerCancel={handleHoldPointerEnd}
-        onPointerDown={handleHoldPointerStart}
-        onPointerLeave={onHoldEnd}
-        onPointerUp={handleHoldPointerEnd}
-        onSelect={preventHoldSelection}
+        className={styles.holdConfirmButton}
+        disabled={isUpdating}
+        onClick={onValidate}
         type="button"
-        {...touchHoldHandlers}
       >
         <span>
-          {isHolding || isUpdating
+          {isUpdating
             ? actionMeta.completedLabel
             : actionMeta.holdLabel}
         </span>
@@ -335,29 +220,13 @@ export default function PaymentActionConfirmModal({
           </div>
         </div>
 
-        {isWaitingForSignedPreview ? (
-          <div className={styles.pdfPreviewFrame}>
-            <div className="d-flex h-100 flex-column align-items-center justify-content-center gap-2 text-center">
-              <span
-                className={`spinner-border ${styles.previewSpinner}`}
-                aria-hidden="true"
-              />
-              <strong>Generando vista previa firmada</strong>
-              <span>Preparando el PDF antes de confirmar el cambio.</span>
-            </div>
-          </div>
-        ) : (
-          <PdfPreviewFrame
-            className={styles.pdfPreviewFrame}
-            emptyMessage={
-              currentSignedPreview.error ||
-              'No existe un PDF asociado para mostrar la vista previa de esta acción.'
-            }
-            filePath={pdfAsset.filePath}
-            title={`${actionMeta.previewTitle} ${order.nvNumber}`}
-            zoom={confirmPreviewZoom}
-          />
-        )}
+        <PdfPreviewFrame
+          className={styles.pdfPreviewFrame}
+          emptyMessage="No existe un PDF asociado para mostrar la vista previa de esta accion."
+          filePath={pdfAsset.filePath}
+          title={`${actionMeta.previewTitle} ${order.nvNumber}`}
+          zoom={confirmPreviewZoom}
+        />
       </section>
     </DocumentPreviewModalLayout>
   )

@@ -17,6 +17,12 @@ export function toDateKey(date) {
   return `${year}-${month}-${day}`
 }
 
+export function isBusinessDay(date) {
+  const day = date.getDay()
+
+  return day !== 0 && day !== 6
+}
+
 function getMondayBasedDayIndex(date) {
   return (date.getDay() + 6) % 7
 }
@@ -36,6 +42,7 @@ export function buildMonthGrid(monthDate) {
       date,
       dateKey: toDateKey(date),
       dayNumber: date.getDate(),
+      isBusinessDay: isBusinessDay(date),
       isCurrentMonth: date.getMonth() === month,
     }
   })

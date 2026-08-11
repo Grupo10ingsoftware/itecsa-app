@@ -34,12 +34,12 @@ export function getPaymentActionMeta(targetStatus) {
       modalTitle: 'Confirmar pago',
       question: '¿Quieres confirmar el pago de esta nota de venta?',
       statusLabel: PAYMENT_STATUS.CONFIRMADO,
-      previewTitle: 'Vista previa de Nota de Venta firmada',
+      previewTitle: 'Vista previa de Nota de Venta',
       previewDescription:
-        'Se muestra el documento firmado si existe una ruta asociada.',
-      pdfVariant: PDF_VARIANT.SIGNED,
-      holdLabel: 'Mantener para confirmar cambio',
-      completedLabel: 'Confirmando cambio...',
+        'Se muestra el documento asociado si existe una ruta disponible.',
+      pdfVariant: PDF_VARIANT.ORIGINAL,
+      holdLabel: 'Validar cambio',
+      completedLabel: 'Validando cambio...',
     }
   }
 
@@ -53,7 +53,7 @@ export function getPaymentActionMeta(targetStatus) {
       previewDescription:
         'Se muestra el documento original asociado al pago que será rechazado.',
       pdfVariant: PDF_VARIANT.ORIGINAL,
-      holdLabel: 'Mantener para confirmar cambio',
+      holdLabel: 'Validar cambio',
       completedLabel: 'Confirmando cambio...',
     }
   }
@@ -67,7 +67,7 @@ export function getPaymentActionMeta(targetStatus) {
     previewDescription:
       'Se muestra el documento original asociado al pago que volverá a quedar pendiente.',
     pdfVariant: PDF_VARIANT.ORIGINAL,
-    holdLabel: 'Mantener para confirmar cambio',
+    holdLabel: 'Validar cambio',
     completedLabel: 'Confirmando cambio...',
   }
 }

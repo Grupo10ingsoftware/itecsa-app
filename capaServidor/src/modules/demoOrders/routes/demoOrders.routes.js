@@ -14,9 +14,12 @@ export function createDemoOrdersRouter({
   router.get("/", authenticate, controller.getOrders);
   router.get("/payment-orders", authenticate, controller.getPaymentOrders);
   router.get("/payment-status", authenticate, controller.getPaymentStatuses);
+  router.get("/announcements", authenticate, controller.getAnnouncements);
   router.get("/sales-notes/available", authenticate, controller.getAvailableSalesNotes);
   router.patch("/:orderId/delivery-date", authenticate, controller.updateDeliveryDate);
   router.patch("/:orderId/payment-status", authenticate, controller.updatePaymentStatus);
+  router.patch("/:orderId/request-payment-deconfirmation", authenticate, controller.requestPaymentDeconfirmation);
+  router.patch("/:orderId/approve-payment-deconfirmation", authenticate, controller.approvePaymentDeconfirmation);
   router.patch("/:orderId/move", authenticate, controller.updateGeneralStep);
 
   return router;

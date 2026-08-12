@@ -11,6 +11,7 @@ const MOVE_TO_PRODUCTION_PERMISSION_MESSAGE = 'Solo un administrador puede mover
 const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
+const KANBAN_LISTO_PRODUCCION_STEP = 1
 const LANYARD_DAILY_CAPACITY = 1200
 
 const processTemplates = {
@@ -284,6 +285,9 @@ function normalizeOrder(order) {
     correctionRequested: Boolean(order.correctionRequested),
     correctionComment: order.correctionComment ?? '',
     correctionRequestedAt: order.correctionRequestedAt ?? null,
+    paymentDeconfirmationRequested: Boolean(order.paymentDeconfirmationRequested),
+    paymentDeconfirmationRequestedAt: order.paymentDeconfirmationRequestedAt ?? null,
+    paymentDeconfirmationRequestedBy: order.paymentDeconfirmationRequestedBy ?? null,
     manufacturingDetails: order.manufacturingDetails ?? null,
   }
 }
@@ -368,8 +372,14 @@ function orderMatchesFilters(order, filters = {}) {
 
 function sortOrdersForColumn(orders, column, filters) {
   const activeFilters = hasActiveFilters(filters)
-  const baseSortedOrders = Number(column.generalStepId) === KANBAN_EN_PRODUCCION_STEP
+  const baseSortedOrders = [KANBAN_LISTO_PRODUCCION_STEP, KANBAN_EN_PRODUCCION_STEP].includes(Number(column.generalStepId))
     ? [...orders].sort((left, right) => {
+        if (Number(column.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP) {
+          if (left.paymentDeconfirmationRequested !== right.paymentDeconfirmationRequested) {
+            return left.paymentDeconfirmationRequested ? -1 : 1
+          }
+        }
+
         const priorityDifference = getProductionPriority(left) - getProductionPriority(right)
 
         if (priorityDifference !== 0) return priorityDifference
@@ -652,7 +662,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
       ),
     )
 
-    return kanbanApi.moveOrder(order.id, targetColumn.generalStepId).catch((error) => {
+    return kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit).catch((error) => {
       console.error('Error moviendo orden:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
       setOrders((prevOrders) =>
@@ -702,6 +712,11 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
       return
     }
 
+    if (isForwardMove && order.paymentDeconfirmationRequested) {
+      setMoveError('Este pedido tiene una solicitud de desconfirmacion pendiente.')
+      return
+    }
+
     const isMoveToProduction =
       isForwardMove && targetStep === KANBAN_EN_PRODUCCION_STEP
 
@@ -745,6 +760,25 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     )
   }
 
+  async function approvePaymentDeconfirmation(order, credentials) {
+    try {
+      const updatedOrder = await kanbanApi.approvePaymentDeconfirmation(order.id, credentials)
+      const normalizedOrder = normalizeOrder(updatedOrder)
+
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) =>
+          currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder,
+        ),
+      )
+      setSelectedOrder(normalizedOrder)
+      return true
+    } catch (error) {
+      console.error('Error aprobando desconfirmacion:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible aprobar la desconfirmacion.')
+      return false
+    }
+  }
+
   async function confirmProductionMove(audit) {
     if (!pendingProductionMove) return
 
@@ -783,6 +817,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
                       <KanbanCard
                         isMoveBlocked={!isPaymentConfirmed(order)}
                         isCorrectionRequested={order.correctionRequested}
+                        isPaymentDeconfirmationRequested={order.paymentDeconfirmationRequested}
                         canManageIndicators={hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
@@ -798,6 +833,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
       </DragDropProvider>
       <KanbanOffCanvas
         isOpen={selectedOrder !== null}
+        onApprovePaymentDeconfirmation={approvePaymentDeconfirmation}
         onClose={() => setSelectedOrder(null)}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}

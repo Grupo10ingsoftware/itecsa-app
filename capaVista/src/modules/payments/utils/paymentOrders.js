@@ -122,6 +122,9 @@ export function normalizePaymentOrder(order) {
     createdAt: order?.fecha_creacion ?? null,
     updatedAt: order?.fecha_registro ?? null,
     paymentConfirmedAt: order?.paymentConfirmedAt ?? null,
+    paymentDeconfirmationRequested: Boolean(order?.paymentDeconfirmationRequested),
+    paymentDeconfirmationRequestedAt: order?.paymentDeconfirmationRequestedAt ?? null,
+    paymentDeconfirmationRequestedBy: order?.paymentDeconfirmationRequestedBy ?? null,
     signature,
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './SalesNotePreviewModal.module.css'
 import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
@@ -10,16 +10,6 @@ import {
   getPdfAsset,
 } from '../utils/paymentDocuments'
 
-const DECONFIRM_WINDOW_MS = 20 * 60 * 1000
-
-function formatCountdown(milliseconds) {
-  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
-  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0')
-  const seconds = String(totalSeconds % 60).padStart(2, '0')
-
-  return `${minutes}:${seconds}`
-}
-
 export default function SalesNotePreviewModal({
   context,
   onClose,
@@ -30,25 +20,16 @@ export default function SalesNotePreviewModal({
 }) {
   const [previewZoom, setPreviewZoom] = useState(100)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [now, setNow] = useState(() => Date.now())
 
   const isPaymentDetail = context === PREVIEW_CONTEXT.SIGNED_DETAIL
-  const confirmedAtTime = new Date(order?.paymentConfirmedAt).getTime()
-  const deconfirmRemainingMs =
+  const canRequestDeconfirmation =
     isPaymentDetail &&
     order?.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
-    Number.isFinite(confirmedAtTime)
-      ? Math.max(0, DECONFIRM_WINDOW_MS - (now - confirmedAtTime))
-      : 0
-  const canDeconfirm = deconfirmRemainingMs > 0
-
-  useEffect(() => {
-    if (!canDeconfirm) return undefined
-
-    const interval = window.setInterval(() => setNow(Date.now()), 1000)
-
-    return () => window.clearInterval(interval)
-  }, [canDeconfirm])
+    !order?.paymentDeconfirmationRequested
+  const hasDeconfirmationRequest =
+    isPaymentDetail &&
+    order?.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+    Boolean(order?.paymentDeconfirmationRequested)
 
   if (!order) return null
 
@@ -127,6 +108,15 @@ export default function SalesNotePreviewModal({
       label: 'Tipo de vista',
       value: pdfAsset.label,
     },
+    ...(hasDeconfirmationRequest
+      ? [
+          {
+            icon: 'bi-arrow-counterclockwise',
+            label: 'Desconfirmacion',
+            value: 'Solicitud enviada a produccion',
+          },
+        ]
+      : []),
   ]
 
   const generalRows = [
@@ -157,14 +147,14 @@ export default function SalesNotePreviewModal({
         Cerrar
       </button>
 
-      {canDeconfirm && (
+      {canRequestDeconfirmation && (
         <button
           className="btn btn-outline-danger"
           onClick={() => onDeconfirm?.(order)}
           type="button"
         >
           <i className="bi bi-arrow-counterclockwise me-1" />
-          Desconfirmar {formatCountdown(deconfirmRemainingMs)}
+          Desconfirmar
         </button>
       )}
 

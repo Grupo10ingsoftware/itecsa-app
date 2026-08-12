@@ -31,6 +31,7 @@ function KanbanCard({
   isDelayed,
   isMoveBlocked,
   isCorrectionRequested,
+  isPaymentDeconfirmationRequested,
   isUrgent,
   hasContractPriority,
   canManageIndicators,
@@ -49,6 +50,7 @@ function KanbanCard({
         styles.orderCard,
         isMoveBlocked ? styles.orderCardBlocked : '',
         isCorrectionRequested ? styles.orderCardCorrection : '',
+        isPaymentDeconfirmationRequested ? styles.orderCardPaymentDeconfirmation : '',
         isUrgent ? styles.orderCardUrgent : '',
         hasContractPriority ? styles.orderCardContractPriority : '',
       ]
@@ -98,6 +100,11 @@ function KanbanCard({
               <i className="bi bi-pencil-fill" aria-hidden="true" />
             </span>
           )}
+          {isPaymentDeconfirmationRequested && (
+            <span className={styles.deconfirmationBadge} title="Solicitud de desconfirmacion">
+              <i className="bi bi-arrow-counterclockwise" aria-hidden="true" />
+            </span>
+          )}
         </div>
       </div>
 
@@ -125,6 +132,14 @@ function KanbanCard({
             <div>
             <dt>Correccion</dt>
             <dd>Solicitada por produccion</dd>
+            </div>
+          </dl>
+        )}
+        {isPaymentDeconfirmationRequested && (
+          <dl className={styles.orderDetails}>
+            <div>
+              <dt>Pago</dt>
+              <dd>Desconfirmacion solicitada</dd>
             </div>
           </dl>
         )}

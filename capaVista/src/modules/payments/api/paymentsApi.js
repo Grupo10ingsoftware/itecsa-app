@@ -6,5 +6,7 @@ export function createPaymentsApi(apiClient) {
     getPaymentStatuses: () => apiClient.get('/demo-orders/payment-status'),
     updatePaymentStatus: (orderId, payload) =>
       apiClient.patch(`/demo-orders/${orderId}/payment-status`, payload),
+    requestPaymentDeconfirmation: (orderId, payload = {}) =>
+      apiClient.patch(`/demo-orders/${orderId}/request-payment-deconfirmation`, payload),
   }
 }

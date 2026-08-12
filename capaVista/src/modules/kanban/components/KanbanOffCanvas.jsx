@@ -260,7 +260,7 @@ function ProductionDocumentLookup({ onUpdateOrder, order }) {
   )
 }
 
-export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order }) {
+export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation, onClose, onUpdateOrder, order }) {
   const commentIdRef = useRef(0)
   const [authModal, setAuthModal] = useState(null)
   const [operatorEmail, setOperatorEmail] = useState('')
@@ -270,6 +270,11 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false)
   const [correctionText, setCorrectionText] = useState('')
   const [correctionError, setCorrectionError] = useState('')
+  const [deconfirmationAuthOpen, setDeconfirmationAuthOpen] = useState(false)
+  const [deconfirmationEmail, setDeconfirmationEmail] = useState('')
+  const [deconfirmationPassword, setDeconfirmationPassword] = useState('')
+  const [deconfirmationError, setDeconfirmationError] = useState('')
+  const [isApprovingDeconfirmation, setIsApprovingDeconfirmation] = useState(false)
 
   if (!isOpen || !order) {
     return null
@@ -280,6 +285,9 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
   const isInProduction = Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP
   const canRequestCorrection = Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
   const hasCorrectionRequest = Boolean(order.correctionRequested)
+  const canApprovePaymentDeconfirmation =
+    Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP &&
+    Boolean(order.paymentDeconfirmationRequested)
 
   function openAuthModal(item, process, processIndex, currentProcessIndex) {
     if (!isInProduction || process.status === 'done' || processIndex !== currentProcessIndex) {
@@ -374,6 +382,49 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
     setIsCorrectionFormOpen(false)
   }
 
+  function closeDeconfirmationAuthModal() {
+    if (isApprovingDeconfirmation) return
+
+    setDeconfirmationAuthOpen(false)
+    setDeconfirmationEmail('')
+    setDeconfirmationPassword('')
+    setDeconfirmationError('')
+  }
+
+  async function approvePaymentDeconfirmation(event) {
+    event.preventDefault()
+    const trimmedEmail = deconfirmationEmail.trim()
+
+    if (!trimmedEmail || !deconfirmationPassword) {
+      setDeconfirmationError('Ingrese correo y contrasena del administrador.')
+      return
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      setDeconfirmationError('Ingrese un correo valido.')
+      return
+    }
+
+    setIsApprovingDeconfirmation(true)
+    setDeconfirmationError('')
+
+    try {
+      const wasApproved = await onApprovePaymentDeconfirmation?.(order, {
+        email: trimmedEmail,
+        password: deconfirmationPassword,
+      })
+      if (wasApproved === false) {
+        setDeconfirmationError('No fue posible aprobar la desconfirmacion.')
+        return
+      }
+      setDeconfirmationAuthOpen(false)
+      setDeconfirmationEmail('')
+      setDeconfirmationPassword('')
+    } finally {
+      setIsApprovingDeconfirmation(false)
+    }
+  }
+
   return (
     <div className={styles.offcanvasLayer} role="presentation">
       <aside aria-labelledby="kanban-detail-title" className={styles.offcanvasPanel} role="dialog">
@@ -462,6 +513,27 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
               })}
             </div>
           </section>
+
+          {canApprovePaymentDeconfirmation && (
+            <section className={styles.detailSection}>
+              <div className={styles.deconfirmationApprovalPanel}>
+                <div>
+                  <span>Solicitud de desconfirmacion</span>
+                  <strong>
+                    {order.paymentDeconfirmationRequestedBy || 'Cobranza'} solicita devolver este pedido a Confirmacion de pago.
+                  </strong>
+                </div>
+                <button
+                  className={styles.orderCardButton}
+                  onClick={() => setDeconfirmationAuthOpen(true)}
+                  type="button"
+                >
+                  <i className="bi bi-check2-circle" aria-hidden="true" />
+                  Aprobar Desconfirmacion
+                </button>
+              </div>
+            </section>
+          )}
 
           {canRequestCorrection && (
             <section className={styles.detailSection}>
@@ -657,6 +729,75 @@ export default function KanbanOffCanvas({ isOpen, onClose, onUpdateOrder, order 
               </button>
               <button className={styles.orderCardButton} type="submit">
                 Completar subproceso
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {deconfirmationAuthOpen && (
+        <div className={styles.operatorModalLayer} role="presentation">
+          <form
+            aria-labelledby="deconfirmation-approval-modal-title"
+            className={styles.operatorModal}
+            onSubmit={approvePaymentDeconfirmation}
+            role="dialog"
+          >
+            <header className={styles.operatorModalHeader}>
+              <div>
+                <span className={styles.offcanvasKicker}>Validacion administrador</span>
+                <h3 id="deconfirmation-approval-modal-title">Aprobar desconfirmacion</h3>
+              </div>
+              <button
+                aria-label="Cerrar validacion"
+                className={styles.offcanvasCloseButton}
+                disabled={isApprovingDeconfirmation}
+                onClick={closeDeconfirmationAuthModal}
+                type="button"
+              >
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className={styles.operatorModalBody}>
+              <p className={styles.operatorModalText}>Ingrese sus credenciales para devolver {order.nv} a Confirmacion de pago.</p>
+              <label>
+                <span>Correo</span>
+                <input
+                  autoComplete="email"
+                  disabled={isApprovingDeconfirmation}
+                  onChange={(event) => {
+                    setDeconfirmationEmail(event.target.value)
+                    setDeconfirmationError('')
+                  }}
+                  placeholder="administrador@itecsa.cl"
+                  type="email"
+                  value={deconfirmationEmail}
+                />
+              </label>
+              <label>
+                <span>Contrasena</span>
+                <input
+                  autoComplete="current-password"
+                  disabled={isApprovingDeconfirmation}
+                  onChange={(event) => {
+                    setDeconfirmationPassword(event.target.value)
+                    setDeconfirmationError('')
+                  }}
+                  placeholder="Ingrese contrasena"
+                  type="password"
+                  value={deconfirmationPassword}
+                />
+              </label>
+              {deconfirmationError && <p className={styles.operatorModalError}>{deconfirmationError}</p>}
+            </div>
+
+            <footer className={styles.operatorModalFooter}>
+              <button className={styles.resetFilterButton} disabled={isApprovingDeconfirmation} onClick={closeDeconfirmationAuthModal} type="button">
+                Cancelar
+              </button>
+              <button className={styles.orderCardButton} disabled={isApprovingDeconfirmation} type="submit">
+                {isApprovingDeconfirmation ? 'Aprobando...' : 'Confirmar'}
               </button>
             </footer>
           </form>

@@ -27,6 +27,78 @@ export const ORDER_PAYMENT_STATUS = Object.freeze({
 export const EXISTING_SALES_NOTES = Object.freeze(['NV-2024-0008', 'NV-2024-0030'])
 
 export const MOCK_MANAGER_RECORDS = Object.freeze({
+  'NV-2026-3001': Object.freeze({
+    client: 'Mall Plaza',
+    rut: '76.812.440-5',
+    productType: 'Lanyard',
+    quantity: 250,
+    issueDate: '01/07/2026',
+    createdAtLabel: '01/07/2026 09:20',
+    seller: 'Mariana Soto',
+    dueDate: '10/07/2026',
+    productionData: Object.freeze([
+      Object.freeze({
+        product: 'Lanyard',
+        quantity: 250,
+        width: '20 mm',
+        length: '90 cm',
+        texture: 'Satinada',
+        backgroundColor: 'Naranjo corporativo',
+        frontLegend: 'Mall Plaza',
+        backLegend: 'Staff Verano',
+        endings: 'Mosqueton metalico',
+      }),
+    ]),
+  }),
+  'NV-2026-3002': Object.freeze({
+    client: 'Universidad de Valparaiso',
+    rut: '70.800.600-2',
+    productType: 'Tarjeta',
+    quantity: 800,
+    issueDate: '02/07/2026',
+    createdAtLabel: '02/07/2026 10:05',
+    seller: 'Felipe Araya',
+    dueDate: '13/07/2026',
+    productionData: Object.freeze([
+      Object.freeze({
+        product: 'Tarjeta',
+        quantity: 800,
+        width: '85 mm',
+        length: '54 mm',
+        cardType: 'Plastificada',
+      }),
+    ]),
+  }),
+  'NV-2026-3003': Object.freeze({
+    client: 'Clinica Santa Maria',
+    rut: '96.768.970-K',
+    productType: 'Mixto',
+    quantity: 1050,
+    issueDate: '03/07/2026',
+    createdAtLabel: '03/07/2026 11:40',
+    seller: 'Camila Rojas',
+    dueDate: '17/07/2026',
+    productionData: Object.freeze([
+      Object.freeze({
+        product: 'Lanyard',
+        quantity: 600,
+        width: '25 mm',
+        length: '92 cm',
+        texture: 'Tubular',
+        backgroundColor: 'Azul clinico',
+        frontLegend: 'Clinica Santa Maria',
+        backLegend: 'Identificacion Pacientes',
+        endings: 'Broche de seguridad y porta credencial',
+      }),
+      Object.freeze({
+        product: 'Tarjeta',
+        quantity: 450,
+        width: '85 mm',
+        length: '54 mm',
+        cardType: 'Plastificada',
+      }),
+    ]),
+  }),
   'NV-2024-0014': Object.freeze({
     client: 'Constructora Horizonte SpA',
     rut: '76.123.456-7',

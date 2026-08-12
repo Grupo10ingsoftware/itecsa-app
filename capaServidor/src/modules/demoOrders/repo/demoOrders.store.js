@@ -11,7 +11,11 @@ const DEMO_PAYMENT_STATUS = Object.freeze({
   RECHAZADO: { id_estado_Pago: 3, nombre_estado_pago: 'Rechazado', descripcion_estado_pago: 'Pago rechazado por cobranza' },
 })
 
-const PAYMENT_DECONFIRM_WINDOW_MS = 20 * 60 * 1000
+const ANNOUNCEMENT_TYPES = Object.freeze({
+  PAYMENT_DECONFIRMATION_REQUESTED: 'payment_deconfirmation_requested',
+  PAYMENT_DECONFIRMATION_APPROVED: 'payment_deconfirmation_approved',
+  KANBAN_MOVE_TO_PRODUCTION: 'kanban_move_to_production',
+})
 
 const availableSalesNotes = [
   {
@@ -22,7 +26,19 @@ const availableSalesNotes = [
     date: '2026-07-01',
     dueDate: '2026-07-10',
     items: [
-      { product: 'Lanyard', quantity: 250 },
+      {
+        product: 'Lanyard',
+        quantity: 250,
+        manufacturingDetails: {
+          width: '20 mm',
+          length: '90 cm',
+          texture: 'Satinada',
+          backgroundColor: 'Naranjo corporativo',
+          frontLegend: 'Mall Plaza',
+          backLegend: 'Staff Verano',
+          endings: 'Mosqueton metalico',
+        },
+      },
     ],
   },
   {
@@ -33,7 +49,15 @@ const availableSalesNotes = [
     date: '2026-07-02',
     dueDate: '2026-07-13',
     items: [
-      { product: 'Tarjeta', quantity: 800 },
+      {
+        product: 'Tarjeta',
+        quantity: 800,
+        manufacturingDetails: {
+          width: '85 mm',
+          length: '54 mm',
+          cardType: 'Plastificada',
+        },
+      },
     ],
   },
   {
@@ -44,8 +68,28 @@ const availableSalesNotes = [
     date: '2026-07-03',
     dueDate: '2026-07-17',
     items: [
-      { product: 'Lanyard', quantity: 600 },
-      { product: 'Tarjeta', quantity: 450 },
+      {
+        product: 'Lanyard',
+        quantity: 600,
+        manufacturingDetails: {
+          width: '25 mm',
+          length: '92 cm',
+          texture: 'Tubular',
+          backgroundColor: 'Azul clinico',
+          frontLegend: 'Clinica Santa Maria',
+          backLegend: 'Identificacion Pacientes',
+          endings: 'Broche de seguridad y porta credencial',
+        },
+      },
+      {
+        product: 'Tarjeta',
+        quantity: 450,
+        manufacturingDetails: {
+          width: '85 mm',
+          length: '54 mm',
+          cardType: 'Plastificada',
+        },
+      },
     ],
   },
 ]
@@ -103,6 +147,9 @@ const initialOrders = [
     paymentStatus: 'Confirmado',
     paymentStatusId: 2,
     generalStepId: KANBAN_STEPS.READY_PRODUCTION,
+    paymentDeconfirmationRequested: true,
+    paymentDeconfirmationRequestedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+    paymentDeconfirmationRequestedBy: 'Mariana',
     isUrgent: false,
     hasContractPriority: true,
     items: buildItems('demo-002', '2026-06-18', [
@@ -333,6 +380,28 @@ let demoOrders = initialOrders.map((order) => ({
       : order.lastPaymentValidation,
 }))
 
+let announcementSequence = 3
+let demoAnnouncements = [
+  {
+    id: 'ann-001',
+    type: ANNOUNCEMENT_TYPES.PAYMENT_DECONFIRMATION_REQUESTED,
+    orderId: 'demo-002',
+    nv: 'NV-2026-2002',
+    responsible: 'Mariana',
+    summary: 'Mariana solicita la desconfirmacion del pedido NV-2026-2002',
+    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ann-002',
+    type: ANNOUNCEMENT_TYPES.PAYMENT_DECONFIRMATION_APPROVED,
+    orderId: 'demo-006',
+    nv: 'NV-2026-2006',
+    responsible: 'Felipe',
+    summary: 'Felipe ha hecho efectiva la desconfirmacion del pedido NV-2026-2006',
+    createdAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
+  },
+]
+
 function cloneOrder(order) {
   return {
     ...order,
@@ -346,6 +415,37 @@ function getPaymentConfirmedAt(order) {
   }
 
   return order.lastPaymentValidation?.validatedAt ?? null
+}
+
+function getFirstName(value) {
+  const rawValue = String(value ?? '').trim()
+
+  if (!rawValue) return 'Usuario'
+
+  const localPart = rawValue.includes('@') ? rawValue.split('@')[0] : rawValue
+  const firstToken = localPart.split(/[.\s_-]+/).find(Boolean)
+
+  if (!firstToken) return 'Usuario'
+
+  return firstToken.charAt(0).toUpperCase() + firstToken.slice(1).toLowerCase()
+}
+
+function addAnnouncement({ order, responsible, summary, type }) {
+  announcementSequence += 1
+
+  const announcement = {
+    id: `ann-${String(announcementSequence).padStart(3, '0')}`,
+    type,
+    orderId: order.id,
+    nv: order.nv,
+    responsible,
+    summary,
+    createdAt: new Date().toISOString(),
+  }
+
+  demoAnnouncements = [announcement, ...demoAnnouncements]
+
+  return { ...announcement }
 }
 
 export function listDemoOrders() {
@@ -365,6 +465,13 @@ export function listAvailableDemoSalesNotes() {
       ...salesNote,
       items: salesNote.items.map((item) => ({ ...item })),
     }))
+}
+
+export function listDemoAnnouncements() {
+  return demoAnnouncements
+    .slice()
+    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
+    .map((announcement) => ({ ...announcement }))
 }
 
 export function listDemoPaymentOrders() {
@@ -400,6 +507,9 @@ export function listDemoPaymentOrders() {
     firma_pago: null,
     fecha_registro: order.lastPaymentValidation?.validatedAt ?? null,
     paymentConfirmedAt: getPaymentConfirmedAt(order),
+    paymentDeconfirmationRequested: Boolean(order.paymentDeconfirmationRequested),
+    paymentDeconfirmationRequestedAt: order.paymentDeconfirmationRequestedAt ?? null,
+    paymentDeconfirmationRequestedBy: order.paymentDeconfirmationRequestedBy ?? null,
   }))
 }
 
@@ -421,15 +531,38 @@ export function updateDemoOrderDeliveryDate(orderId, dueDate) {
   return updatedOrder ? cloneOrder(updatedOrder) : null
 }
 
-export function updateDemoOrderStep(orderId, generalStepId) {
+export function updateDemoOrderStep(orderId, generalStepId, audit = {}) {
   let updatedOrder = null
 
   demoOrders = demoOrders.map((order) => {
     if (order.id !== orderId) return order
 
+    const previousStepId = Number(order.generalStepId)
+    const nextStepId = Number(generalStepId)
+
     updatedOrder = {
       ...order,
-      generalStepId: Number(generalStepId),
+      generalStepId: nextStepId,
+      productionMoveAudit: audit.operatorEmail
+        ? {
+            operatorEmail: audit.operatorEmail,
+            movedAt: new Date().toISOString(),
+          }
+        : order.productionMoveAudit,
+    }
+
+    if (
+      previousStepId === KANBAN_STEPS.READY_PRODUCTION &&
+      nextStepId === KANBAN_STEPS.IN_PRODUCTION
+    ) {
+      const responsible = getFirstName(audit.operatorEmail)
+
+      addAnnouncement({
+        order: updatedOrder,
+        responsible,
+        type: ANNOUNCEMENT_TYPES.KANBAN_MOVE_TO_PRODUCTION,
+        summary: `${responsible} hizo efectivo el cambio de estado del pedido ${order.nv}`,
+      })
     }
 
     return updatedOrder
@@ -461,15 +594,7 @@ export function updateDemoOrderPaymentStatus(orderId, paymentStatusId, credentia
       nextStatus.nombre_estado_pago === DEMO_PAYMENT_STATUS.CONFIRMADO.nombre_estado_pago
 
     if (isCurrentlyConfirmed && !isNextConfirmed) {
-      const confirmedAt = order.lastPaymentValidation?.validatedAt
-      const confirmedAtTime = confirmedAt ? new Date(confirmedAt).getTime() : NaN
-      const canDeconfirm =
-        Number.isFinite(confirmedAtTime) &&
-        Date.now() - confirmedAtTime <= PAYMENT_DECONFIRM_WINDOW_MS
-
-      if (!canDeconfirm) {
-        return order
-      }
+      return order
     }
 
     const nextGeneralStepId =
@@ -489,6 +614,15 @@ export function updateDemoOrderPaymentStatus(orderId, paymentStatusId, credentia
             validatedAt: new Date().toISOString(),
           }
         : order.lastPaymentValidation,
+      paymentDeconfirmationRequested: isNextConfirmed
+        ? false
+        : order.paymentDeconfirmationRequested,
+      paymentDeconfirmationRequestedAt: isNextConfirmed
+        ? null
+        : order.paymentDeconfirmationRequestedAt,
+      paymentDeconfirmationRequestedBy: isNextConfirmed
+        ? null
+        : order.paymentDeconfirmationRequestedBy,
     }
 
     return updatedOrder
@@ -497,10 +631,97 @@ export function updateDemoOrderPaymentStatus(orderId, paymentStatusId, credentia
   if (!updatedOrder) {
     const orderExists = demoOrders.some((order) => order.id === orderId)
 
-    return { error: orderExists ? 'DECONFIRM_WINDOW_EXPIRED' : 'ORDER_NOT_FOUND' }
+    return { error: orderExists ? 'DIRECT_DECONFIRMATION_NOT_ALLOWED' : 'ORDER_NOT_FOUND' }
   }
 
   return { order: cloneOrder(updatedOrder) }
 }
 
-export { DEMO_PAYMENT_STATUS, KANBAN_STEPS, PAYMENT_DECONFIRM_WINDOW_MS }
+export function requestDemoPaymentDeconfirmation(orderId, data = {}) {
+  let updatedOrder = null
+
+  demoOrders = demoOrders.map((order) => {
+    if (order.id !== orderId) return order
+
+    if (
+      order.paymentStatus !== DEMO_PAYMENT_STATUS.CONFIRMADO.nombre_estado_pago ||
+      Number(order.generalStepId) !== KANBAN_STEPS.READY_PRODUCTION
+    ) {
+      return order
+    }
+
+    const responsible = getFirstName(data.responsible ?? data.email)
+    const requestedAt = new Date().toISOString()
+
+    updatedOrder = {
+      ...order,
+      paymentDeconfirmationRequested: true,
+      paymentDeconfirmationRequestedAt: requestedAt,
+      paymentDeconfirmationRequestedBy: responsible,
+    }
+
+    addAnnouncement({
+      order: updatedOrder,
+      responsible,
+      type: ANNOUNCEMENT_TYPES.PAYMENT_DECONFIRMATION_REQUESTED,
+      summary: `${responsible} solicita la desconfirmacion del pedido ${order.nv}`,
+    })
+
+    return updatedOrder
+  })
+
+  if (!updatedOrder) {
+    const orderExists = demoOrders.some((order) => order.id === orderId)
+
+    return { error: orderExists ? 'REQUEST_NOT_ALLOWED' : 'ORDER_NOT_FOUND' }
+  }
+
+  return { order: cloneOrder(updatedOrder) }
+}
+
+export function approveDemoPaymentDeconfirmation(orderId, credentials = {}) {
+  if (!credentials.email || !credentials.password) {
+    return { error: 'MISSING_CREDENTIALS' }
+  }
+
+  let updatedOrder = null
+
+  demoOrders = demoOrders.map((order) => {
+    if (order.id !== orderId) return order
+
+    if (!order.paymentDeconfirmationRequested) {
+      return order
+    }
+
+    const responsible = getFirstName(credentials.email)
+
+    updatedOrder = {
+      ...order,
+      paymentStatus: DEMO_PAYMENT_STATUS.PENDIENTE.nombre_estado_pago,
+      paymentStatusId: DEMO_PAYMENT_STATUS.PENDIENTE.id_estado_Pago,
+      generalStepId: KANBAN_STEPS.PAYMENT_CONFIRMATION,
+      paymentDeconfirmationRequested: false,
+      paymentDeconfirmationRequestedAt: null,
+      paymentDeconfirmationRequestedBy: null,
+    }
+
+    addAnnouncement({
+      order: updatedOrder,
+      responsible,
+      type: ANNOUNCEMENT_TYPES.PAYMENT_DECONFIRMATION_APPROVED,
+      summary: `${responsible} ha hecho efectiva la desconfirmacion del pedido ${order.nv}`,
+    })
+
+    return updatedOrder
+  })
+
+  if (!updatedOrder) {
+    const orderExists = demoOrders.some((order) => order.id === orderId)
+
+    return { error: orderExists ? 'REQUEST_NOT_FOUND' : 'ORDER_NOT_FOUND' }
+  }
+
+  return { order: cloneOrder(updatedOrder) }
+}
+
+export { ANNOUNCEMENT_TYPES, DEMO_PAYMENT_STATUS, KANBAN_STEPS }

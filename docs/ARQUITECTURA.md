@@ -82,7 +82,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
+Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador`. La creacion acepta JSON con nombre, apellido, RUT, correo y rol. No recibe contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -90,12 +90,12 @@ El backend usa `ITECSA Backend Management` para:
 - Resolver el rol Auth0 RBAC existente.
 - Crear el usuario en `Username-Password-Authentication`.
 - Asignar el rol RBAC al usuario.
-- Registrar la entidad interna `Usuario` con datos personales de negocio y ruta de firma.
+- Registrar la entidad interna `Usuario` con datos personales de negocio.
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
 
-La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT y ruta de firma siguen siendo datos internos de negocio.
+La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido y RUT siguen siendo datos internos de negocio.
 
 ## Persistencia Y Modulos De Negocio
 
@@ -103,12 +103,12 @@ El backend usa Prisma con `@prisma/adapter-mariadb` para conectar a MySQL/Aiven.
 
 Estado funcional actual:
 
-- `/pagos` consume `GET /api/orders`, `GET /api/payment-status`, `PATCH /api/orders/:orderId/payment-status`, `GET /api/orders/:orderId/payment-signature-preview` y `GET /api/orders/:orderId/payment-signature-evidence`.
-- Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria, firma la Nota de Venta vigente y mueve el pedido a `Listo para produccion`.
+- `/pagos` consume `GET /api/orders`, `GET /api/payment-status` y `PATCH /api/orders/:orderId/payment-status`.
+- Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria y mueve el pedido a `Listo para produccion`.
 - Un pago ya confirmado no puede devolverse a `Pendiente` ni `Rechazado`; el backend responde conflicto y no genera auditoria nueva.
 - Kanban consume `GET /api/orders` y `GET /api/order-status`, mueve etapas con `PATCH /api/orders/:orderId/move`, bloquea saltos o retrocesos y exige `move:kanban-to-production` para mover a `En produccion`.
 - El backend expone `POST /api/orders` para crear pedidos JSON con cliente y productos, pero la pantalla frontend `/ordenes/nuevo` sigue siendo visual/mock y guarda una copia temporal en `sessionStorage`.
-- `data/NVS` y `data/Firmas` son almacenamiento local de desarrollo para PDFs de Nota de Venta y firmas electronicas; no deben contener documentos reales ni datos sensibles.
+- `data/NVS` es almacenamiento local de desarrollo para PDFs de Nota de Venta; no debe contener documentos reales ni datos sensibles.
 
 ## Variables De Entorno
 

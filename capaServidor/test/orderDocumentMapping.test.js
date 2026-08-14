@@ -31,9 +31,7 @@ test("lista pedidos con ruta_pdf de Nota de Venta expuesta como URL API", async 
                   ruta_pdf: "itecsa-app\\data\\NVS\\Pedido1.pdf",
                   Nota_Venta: {
                     numero_nota_venta: "Pedido1",
-                    firmado: 0,
                   },
-                  Firma_Documento: [],
                 },
               ],
             },
@@ -60,7 +58,7 @@ test("lista pedidos con ruta_pdf de Nota de Venta expuesta como URL API", async 
   assert.equal(orders[0].numero_nota_venta, "Pedido1");
 });
 
-test("lista pedidos firmados usando ruta_pdf como documento vigente", async () => {
+test("lista pedidos confirmados usando la ruta original de la Nota de Venta", async () => {
   const repo = new OrderRepository({
     prisma: {
       pedidos: {
@@ -79,19 +77,7 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
                   ruta_pdf: "itecsa-app\\data\\NVS\\Pedido2.pdf",
                   Nota_Venta: {
                     numero_nota_venta: "Pedido2",
-                    firmado: 1,
                   },
-                  Firma_Documento: [
-                    {
-                      id_firma_documento: 1,
-                      fecha_firma: new Date("2026-06-11T00:00:00.000Z"),
-                      id_usuario: 10,
-                      Usuario: {
-                        ruta_firma: "itecsa-app\\data\\Firmas\\firma-test.pdf",
-                      },
-                      Firma_Pago: { id_firma_documento: 1 },
-                    },
-                  ],
                 },
               ],
             },
@@ -115,12 +101,4 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
 
   assert.equal(orders[0].ruta_pdf, "/api/documents/nvs/Pedido2.pdf");
   assert.equal(orders[0].signed_ruta_pdf, undefined);
-  assert.equal(orders[0].firmado, 1);
-  assert.equal(orders[0].firma_pago.id_firma_documento, 1);
-  assert.equal(orders[0].firma_pago.id_usuario, 10);
-  assert.equal(orders[0].firma_pago.evidenceFileName, "firma-test.pdf");
-  assert.equal(
-    orders[0].firma_pago.evidenceUrl,
-    "/api/orders/2/payment-signature-evidence",
-  );
 });

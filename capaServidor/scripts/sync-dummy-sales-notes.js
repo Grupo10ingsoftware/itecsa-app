@@ -76,11 +76,9 @@ async function upsertSalesNoteDocument(prisma, filename) {
     where: { id_documento: document.id_documento },
     create: {
       id_documento: document.id_documento,
-      firmado: 0,
       numero_nota_venta: getSalesNoteNumber(filename),
     },
     update: {
-      firmado: 0,
       numero_nota_venta: getSalesNoteNumber(filename),
     },
   });

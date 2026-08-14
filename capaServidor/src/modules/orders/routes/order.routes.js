@@ -20,12 +20,6 @@ export function createOrderRouter({
     const routeController = {
         getOrders: controller.getOrders ?? fallbackController.getOrders,
         getOrder: controller.getOrder ?? fallbackController.getOrder,
-        previewPaymentSignature:
-            controller.previewPaymentSignature ??
-            fallbackController.previewPaymentSignature,
-        getPaymentSignatureEvidence:
-            controller.getPaymentSignatureEvidence ??
-            fallbackController.getPaymentSignatureEvidence,
         createOrder: controller.createOrder ?? fallbackController.createOrder,
         updatePaymentStatus:
             controller.updatePaymentStatus ?? fallbackController.updatePaymentStatus,
@@ -37,17 +31,6 @@ export function createOrderRouter({
     router.get("/kanban", authenticate, routeController.getOrders);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);
-    router.get(
-        "/:orderId/payment-signature-preview",
-        authenticate,
-        authorizePaymentStatusUpdate,
-        routeController.previewPaymentSignature,
-    );
-    router.get(
-        "/:orderId/payment-signature-evidence",
-        authenticate,
-        routeController.getPaymentSignatureEvidence,
-    );
     router.get("/:orderId", authenticate, routeController.getOrder);
     router.post("/", authenticate, routeController.createOrder);
     router.patch(

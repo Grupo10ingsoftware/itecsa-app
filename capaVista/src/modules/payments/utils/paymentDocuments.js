@@ -3,12 +3,10 @@ import { PAYMENT_STATUS } from '@/config/status'
 
 export const PDF_VARIANT = {
   ORIGINAL: 'original',
-  SIGNED: 'signed',
 }
 
 export const PREVIEW_CONTEXT = {
   ORIGINAL: 'original',
-  SIGNED_DETAIL: 'signed-detail',
 }
 
 export function formatPaymentDateTime(value) {
@@ -34,10 +32,9 @@ export function getPaymentActionMeta(targetStatus) {
       modalTitle: 'Confirmar pago',
       question: '¿Quieres confirmar el pago de esta nota de venta?',
       statusLabel: PAYMENT_STATUS.CONFIRMADO,
-      previewTitle: 'Vista previa de Nota de Venta firmada',
-      previewDescription:
-        'Se muestra el documento firmado si existe una ruta asociada.',
-      pdfVariant: PDF_VARIANT.SIGNED,
+      previewTitle: 'Vista previa de Nota de Venta',
+      previewDescription: 'Se muestra el documento original asociado al pago.',
+      pdfVariant: PDF_VARIANT.ORIGINAL,
       holdLabel: 'Mantener para confirmar cambio',
       completedLabel: 'Confirmando cambio...',
     }
@@ -72,29 +69,13 @@ export function getPaymentActionMeta(targetStatus) {
   }
 }
 
-export function getPdfAsset(order, variant = PDF_VARIANT.ORIGINAL, options = {}) {
+export function getPdfAsset(order) {
   if (!order) {
     return {
       filePath: null,
       fileName: 'Sin archivo',
       label: 'Sin archivo',
-      isSigned: false,
-    }
-  }
-
-  const wantsSigned = variant === PDF_VARIANT.SIGNED
-  const signedFilePath = options.fallbackSignedFilePath || (
-    order.isSigned ? order.nvFilePath : null
-  )
-  const signedFileName =
-    options.fallbackSignedFileName || order.nvFileName || 'Documento firmado.pdf'
-
-  if (wantsSigned) {
-    return {
-      filePath: signedFilePath,
-      fileName: signedFilePath ? signedFileName : 'Sin PDF firmado',
-      label: signedFilePath ? 'Documento firmado' : 'Sin PDF firmado',
-      isSigned: true,
+      isAvailable: false,
     }
   }
 
@@ -102,7 +83,7 @@ export function getPdfAsset(order, variant = PDF_VARIANT.ORIGINAL, options = {})
     filePath: order.nvFilePath || null,
     fileName: order.nvFileName || 'Sin archivo',
     label: order.nvFilePath ? 'Documento original' : 'Sin archivo',
-    isSigned: false,
+    isAvailable: Boolean(order.nvFilePath),
   }
 }
 
@@ -178,27 +159,6 @@ export function openPdfForDownload(filePath, fileName = 'documento.pdf') {
   link.click()
   link.remove()
 }
-
-export function openFileForDownload(filePath, fileName = 'archivo') {
-  if (!filePath || typeof window === 'undefined' || typeof document === 'undefined') return
-
-  const openedWindow = window.open(filePath, '_blank')
-
-  if (openedWindow) {
-    openedWindow.opener = null
-    return
-  }
-
-  const link = document.createElement('a')
-  link.href = filePath
-  link.download = fileName
-  link.target = '_blank'
-  link.rel = 'noreferrer'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-}
-
 
 const PRINT_REQUEST_COOLDOWN_MS = 1500
 

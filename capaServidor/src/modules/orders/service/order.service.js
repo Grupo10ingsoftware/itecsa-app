@@ -6,8 +6,6 @@ import {
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
 } from "../../../config/status.js";
-import fs from "node:fs/promises";
-
 import OrderRepository from "../repo/orders.repo.js";
 import ClientRepo from "../../clients/repo/clients.repo.js";
 import ClientService from "../../clients/service/clients.service.js";
@@ -18,8 +16,6 @@ import ProductTypeService from "../../products/service/product.service.js";
 import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
-import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
-import { resolveStoredSignaturePath } from "../../documents/service/paymentSignature.service.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 
@@ -40,7 +36,6 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
-    paymentSignatureService,
     userRepo,
     prisma,
   } = {}) {
@@ -50,8 +45,6 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
-    this.paymentSignatureService =
-      paymentSignatureService ?? new PaymentSignatureService();
     this.userRepo = userRepo ?? defaultUserRepository;
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
@@ -60,8 +53,7 @@ class OrderService {
         orderDetailService ||
         productTypeService ||
         paymentRecordService ||
-        paymentRepo ||
-        paymentSignatureService,
+        paymentRepo,
     );
   }
 
@@ -82,7 +74,6 @@ class OrderService {
         productTypeService: this.productTypeService,
         paymentRecordService: this.paymentRecordService,
         paymentRepo: this.paymentRepo,
-        paymentSignatureService: this.paymentSignatureService,
       });
     }
 
@@ -102,7 +93,6 @@ class OrderService {
           repo: new PaymentRecordRepo({ prisma: tx }),
         }),
         paymentRepo: new PaymentStatusRepo({ prisma: tx }),
-        paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
       }),
       {
         timeout: 20000,
@@ -204,60 +194,6 @@ class OrderService {
     throw error;
   }
 
-  async previewPaymentSignature(orderId, data = {}) {
-    const resolvedUserId = await this.resolveInternalUserId(data);
-
-    return this.paymentSignatureService.previewSignedPaymentDocument(
-      orderId,
-      resolvedUserId,
-    );
-  }
-
-  async getPaymentSignatureEvidence(orderId) {
-    const salesNoteDocument = await this.paymentSignatureService.getOrderSalesNote(
-      orderId,
-    );
-
-    if (!salesNoteDocument?.id_documento) {
-      const error = new Error("El pedido no tiene una Nota de Venta asociada.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const paymentSignature = salesNoteDocument.Firma_Documento?.find(
-      (signature) => signature.Firma_Pago,
-    );
-
-    if (!paymentSignature?.id_usuario) {
-      const error = new Error("El pedido no tiene evidencia de firma de pago.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const user = await this.paymentSignatureService.getUserSignature(
-      paymentSignature.id_usuario,
-    );
-    const signaturePath = resolveStoredSignaturePath(user.ruta_firma);
-
-    if (!signaturePath) {
-      const error = new Error("La evidencia de firma no tiene una ruta valida.");
-      error.statusCode = 409;
-      throw error;
-    }
-
-    try {
-      await fs.access(signaturePath);
-    } catch {
-      const error = new Error("El archivo de evidencia de firma no existe.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return {
-      filePath: signaturePath,
-    };
-  }
-
   async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
       auth0UserId,
@@ -315,22 +251,11 @@ class OrderService {
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
-    // La transicion de pago es atomica: firma, mueve Kanban y registra auditoria.
+    // La transicion de pago es atomica: mueve Kanban y registra auditoria.
     return this.runInTransaction(async ({
       repo,
       paymentRecordService,
-      paymentSignatureService,
     }) => {
-      const shouldSignPaymentDocument =
-        paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
-
-      if (shouldSignPaymentDocument) {
-        await paymentSignatureService.signPaymentDocument(
-          orderId,
-          resolvedUserId,
-        );
-      }
-
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,

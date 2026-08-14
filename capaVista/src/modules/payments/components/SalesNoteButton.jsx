@@ -2,8 +2,7 @@ import styles from './SalesNoteButton.module.css'
 
 export default function SalesNoteButton({ order, isMobile = false, onOpen }) {
   const hasSalesNoteFile = Boolean(order?.nvFilePath)
-  const isAvailableInSignedDetail = Boolean(order?.isSigned && order?.nvFilePath)
-  const isDisabled = !hasSalesNoteFile || isAvailableInSignedDetail
+  const isDisabled = !hasSalesNoteFile
 
   return (
     <button
@@ -14,9 +13,7 @@ export default function SalesNoteButton({ order, isMobile = false, onOpen }) {
         onOpen(order)
       }}
       title={
-        isAvailableInSignedDetail
-          ? 'Documento disponible en Ver detalle'
-          : hasSalesNoteFile
+        hasSalesNoteFile
           ? 'Visualizar Nota de Venta'
           : 'Sin archivo de Nota de Venta asociado'
       }

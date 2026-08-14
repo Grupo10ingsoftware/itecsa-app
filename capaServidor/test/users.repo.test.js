@@ -14,7 +14,6 @@ const DATABASE_USER = {
     apellido_usuario: "Gadansky",
     rol_usuario: "Administrador",
     estado_usuario: "Activo",
-    ruta_firma: "data/Firmas/firma.png",
 };
 
 test("updateRoleByAuth0Id actualiza solo el rol del usuario interno", async () => {

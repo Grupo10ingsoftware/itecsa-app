@@ -236,18 +236,19 @@ Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite
 
 ### `POST /api/admin/users`
 
-Requiere un access token cuyo unico rol sea `Administrador`. Acepta `multipart/form-data` con:
+Requiere un access token cuyo unico rol sea `Administrador`. Acepta JSON con:
 
-```txt
-nombreUsuario=Ana
-apellidoUsuario=Perez
-rutUsuario=12.345.678-9
-correoUsuario=correo.controlado@example.cl
-rolUsuario=Ventas
-firmaElectronica=<archivo XML, CMS o PDF>
+```json
+{
+  "nombreUsuario": "Ana",
+  "apellidoUsuario": "Perez",
+  "rutUsuario": "12.345.678-9",
+  "correoUsuario": "correo.controlado@example.cl",
+  "rolUsuario": "Ventas"
+}
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
 La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 
@@ -377,12 +378,8 @@ Creacion administrativa con token Administrador y un correo controlado nuevo:
 ```bash
 curl -i -X POST http://localhost:3000/api/admin/users \
   -H "Authorization: Bearer <access_token>" \
-  -F "nombreUsuario=Ana" \
-  -F "apellidoUsuario=Perez" \
-  -F "rutUsuario=12.345.678-9" \
-  -F "correoUsuario=correo.controlado@example.cl" \
-  -F "rolUsuario=Ventas" \
-  -F "firmaElectronica=@./data/Firmas/firma-demo.pdf"
+  -H "Content-Type: application/json" \
+  -d '{"nombreUsuario":"Ana","apellidoUsuario":"Perez","rutUsuario":"12.345.678-9","correoUsuario":"correo.controlado@example.cl","rolUsuario":"Ventas"}'
 ```
 
 Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.
@@ -441,7 +438,7 @@ Estos endpoints usan datos reales desde MySQL/Aiven mediante Prisma. Todos requi
 
 ### `GET /api/orders` y `GET /api/orders/kanban`
 
-Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago, Nota de Venta y datos de firma de pago cuando existen. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
+Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago y Nota de Venta. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
 
 Campos relevantes de respuesta:
 
@@ -457,14 +454,7 @@ Campos relevantes de respuesta:
   "id_estado_pago": 2,
   "estado_pago": "Confirmado",
   "ruta_pdf": "/api/documents/nvs/Pedido1.pdf",
-  "numero_nota_venta": "Pedido1",
-  "firmado": 1,
-  "firma_pago": {
-    "id_firma_documento": 1,
-    "id_usuario": 10,
-    "evidenceFileName": "firma-demo.pdf",
-    "evidenceUrl": "/api/orders/1/payment-signature-evidence"
-  }
+  "numero_nota_venta": "Pedido1"
 }
 ```
 
@@ -519,18 +509,10 @@ Requiere permiso `update:payment-status`.
 
 El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
 
-- Si queda `Confirmado`, firma la Nota de Venta vigente, registra auditoria y mueve la orden a `Listo para produccion`.
+- Si queda `Confirmado`, registra auditoria y mueve la orden a `Listo para produccion`.
 - Si queda `Pendiente` o `Rechazado`, registra auditoria y devuelve la orden a `Confirmacion de pago`.
 - Si el pago ya estaba `Confirmado`, no permite devolverlo a `Pendiente` ni `Rechazado`.
 - Sin permiso `update:payment-status`, responde `403`.
-
-### `GET /api/orders/:orderId/payment-signature-preview`
-
-Requiere permiso `update:payment-status`. Genera una vista previa PDF firmada sin sobrescribir el documento vigente ni crear registros de firma.
-
-### `GET /api/orders/:orderId/payment-signature-evidence`
-
-Devuelve el archivo de evidencia de firma de pago desde `data/Firmas` cuando el pedido ya tiene firma registrada. Rechaza rutas inseguras o archivos inexistentes.
 
 ### `GET /api/orders/:orderId/payment-records`
 

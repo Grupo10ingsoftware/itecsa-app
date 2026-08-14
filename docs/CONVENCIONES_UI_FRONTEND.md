@@ -59,7 +59,7 @@ Los formularios nuevos deben seguir estas reglas:
 - Mantener botones de accion alineados y con jerarquia visual clara.
 - Evitar agregar campos que la integracion actual no persiste, salvo que esten deshabilitados y explicados.
 
-No se deben solicitar ni persistir contrasenas desde frontend. RUT y firma electronica solo deben enviarse en flujos con contrato backend aprobado, como la creacion administrativa de usuarios.
+No se deben solicitar ni persistir contrasenas desde frontend. El RUT solo debe enviarse en flujos con contrato backend aprobado, como la creacion administrativa de usuarios.
 
 ## Modulos Y Paginas
 

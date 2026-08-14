@@ -5,16 +5,13 @@ import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
 import PdfPreviewFrame from './PdfPreviewFrame'
 import {
   PDF_VARIANT,
-  PREVIEW_CONTEXT,
   formatPaymentDateTime,
   getPdfAsset,
 } from '../utils/paymentDocuments'
 
 export default function SalesNotePreviewModal({
-  context,
   onClose,
   onDownload,
-  onOpenSignatureEvidence,
   onPrint,
   order,
 }) {
@@ -23,30 +20,16 @@ export default function SalesNotePreviewModal({
 
   if (!order) return null
 
-  const isSignedDetail = context === PREVIEW_CONTEXT.SIGNED_DETAIL
-  const pdfVariant = isSignedDetail ? PDF_VARIANT.SIGNED : PDF_VARIANT.ORIGINAL
-  const pdfAsset = getPdfAsset(order, pdfVariant)
-  const modalTitle = isSignedDetail ? 'Documento firmado' : 'Vista previa'
-  const documentPanelTitle = isSignedDetail
-    ? 'Documento firmado'
-    : 'Vista previa del documento'
-  const closeAriaLabel = isSignedDetail
-    ? 'Cerrar documento firmado'
-    : 'Cerrar vista previa'
+  const pdfVariant = PDF_VARIANT.ORIGINAL
+  const pdfAsset = getPdfAsset(order)
+  const modalTitle = 'Vista previa'
+  const documentPanelTitle = 'Vista previa del documento'
+  const closeAriaLabel = 'Cerrar vista previa'
   const expandAriaLabel = isExpanded
     ? 'Restaurar tamaño'
-    : isSignedDetail
-      ? 'Agrandar documento'
-      : 'Agrandar vista previa'
-  const pdfTitle = isSignedDetail
-    ? `Documento firmado PDF de ${order.nvNumber}`
-    : `Vista previa PDF de ${order.nvNumber}`
-  const previewDescription = isSignedDetail
-    ? 'PDF firmado disponible para revisión, impresión y descarga.'
-    : 'PDF original asociado a la Nota de Venta antes de la firma digital.'
-  const modalHeaderDescription = isSignedDetail
-    ? previewDescription
-    : 'Revisa el documento asociado a la Nota de Venta antes de la firma digital.'
+    : 'Agrandar vista previa'
+  const pdfTitle = `Vista previa PDF de ${order.nvNumber}`
+  const modalHeaderDescription = 'Revisa el documento asociado a la Nota de Venta.'
   const previewStatusClassByValue = {
     [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
     [PAYMENT_STATUS.RECHAZADO]: styles.detailStatusRejected,
@@ -122,38 +105,6 @@ export default function SalesNotePreviewModal({
     },
   ]
 
-  const signatureRows = order.signature
-    ? [
-        {
-          icon: 'bi-shield-check',
-          label: 'Firma digital',
-          value: order.signature.note,
-        },
-        {
-          icon: 'bi-calendar3',
-          label: 'Fecha de firma',
-          value: order.signature.timestamp,
-        },
-        {
-          icon: 'bi-person',
-          label: 'Usuario firmante',
-          value: order.signature.userId,
-        },
-      ]
-    : []
-
-  const secondaryRows = isSignedDetail ? signatureRows : generalRows
-  const secondaryCardTitle = isSignedDetail ? 'Datos de firma' : 'Información general'
-  const secondaryCardIcon = isSignedDetail ? 'bi-pen' : 'bi-info-circle'
-  const hasSignatureEvidence =
-    isSignedDetail && Boolean(order.signature?.evidenceUrl)
-  const handleOpenSignatureEvidence = () => {
-    onOpenSignatureEvidence?.(
-      order,
-      order.signature.evidenceFileName,
-    )
-  }
-
   const footer = (
     <>
       <button
@@ -184,17 +135,6 @@ export default function SalesNotePreviewModal({
         Descargar PDF
       </button>
 
-      {isSignedDetail && (
-        <button
-          className="btn btn-outline-primary"
-          disabled={!hasSignatureEvidence}
-          onClick={handleOpenSignatureEvidence}
-          type="button"
-        >
-          <i className="bi bi-paperclip me-1" />
-          Ver evidencia
-        </button>
-      )}
     </>
   )
 
@@ -204,7 +144,7 @@ export default function SalesNotePreviewModal({
       closeAriaLabel={closeAriaLabel}
       description={modalHeaderDescription}
       footer={footer}
-      kicker={isSignedDetail ? 'Detalle de pago' : 'Nota de Venta'}
+      kicker="Nota de Venta"
       onClose={onClose}
       title={modalTitle}
       titleId="sales-note-preview-title"
@@ -221,29 +161,15 @@ export default function SalesNotePreviewModal({
           </div>
         </section>
 
-        {secondaryRows.length > 0 && (
+        {generalRows.length > 0 && (
           <section className={styles.card}>
             <header className={styles.cardHeader}>
-              <i className={`bi ${secondaryCardIcon}`} aria-hidden="true" />
-              <span>{secondaryCardTitle}</span>
+              <i className="bi bi-info-circle" aria-hidden="true" />
+              <span>Información general</span>
             </header>
 
             <div className={styles.cardBody}>
-              {secondaryRows.map(renderDetailItem)}
-              {hasSignatureEvidence && (
-                <div className={styles.evidenceAction}>
-                  <span>Evidencia adjunta</span>
-                  <strong>{order.signature.evidenceFileName || 'Archivo de firma'}</strong>
-                  <button
-                    className="btn btn-sm btn-outline-dark"
-                    onClick={handleOpenSignatureEvidence}
-                    type="button"
-                  >
-                    <i className="bi bi-paperclip me-1" />
-                    Ver evidencia
-                  </button>
-                </div>
-              )}
+              {generalRows.map(renderDetailItem)}
             </div>
           </section>
         )}

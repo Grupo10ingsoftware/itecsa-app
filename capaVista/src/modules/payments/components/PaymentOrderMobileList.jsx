@@ -20,7 +20,6 @@ export default function PaymentOrderMobileList({
   onOpenSalesNote,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
 }) {
   return (
     <section
@@ -72,7 +71,6 @@ export default function PaymentOrderMobileList({
                 onCloseEditor={onCloseEditor}
                 onSelectStatus={onSelectStatus}
                 onToggleEditor={onToggleEditor}
-                onViewSignedDetail={onViewSignedDetail}
                 order={order}
               />
             </div>

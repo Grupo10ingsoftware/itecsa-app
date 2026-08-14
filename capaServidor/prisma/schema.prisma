@@ -95,7 +95,6 @@ model Documento {
   id_pedido        Int?
   Pedidos          Pedidos?          @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_documento_pedido")
   Ficha_Cliente    Ficha_Cliente?
-  Firma_Documento  Firma_Documento[]
   Nota_Venta       Nota_Venta?
   Orden_Produccion Orden_Produccion?
 
@@ -127,33 +126,7 @@ model Estado_Subprocesos {
 
 model Ficha_Cliente {
   id_documento Int       @id
-  firmado      Int?      @db.TinyInt
   Documento    Documento @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_fc_documento")
-}
-
-model Firma_Documento {
-  id_firma_documento Int               @id
-  hash_firma         String?           @db.VarChar(255)
-  fecha_firma        DateTime?         @db.DateTime(0)
-  id_usuario         Int?
-  id_documento       Int?
-  Documento          Documento?        @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_firma_documento")
-  Usuario            Usuario?          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_firma_usuario")
-  Firma_Pago         Firma_Pago?
-  Firma_Subproceso   Firma_Subproceso?
-
-  @@index([id_documento], map: "id_documento_idx")
-  @@index([id_usuario], map: "id_usuario_idx")
-}
-
-model Firma_Pago {
-  id_firma_documento Int             @id
-  Firma_Documento    Firma_Documento @relation(fields: [id_firma_documento], references: [id_firma_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_firmapago_documento")
-}
-
-model Firma_Subproceso {
-  id_firma_documento Int             @id
-  Firma_Documento    Firma_Documento @relation(fields: [id_firma_documento], references: [id_firma_documento], onDelete: NoAction, onUpdate: NoAction, map: "id_firma_documento")
 }
 
 model Historial_Usuario {
@@ -168,7 +141,6 @@ model Historial_Usuario {
 
 model Nota_Venta {
   id_documento      Int       @id
-  firmado           Int?      @db.TinyInt
   numero_nota_venta String?   @db.VarChar(50)
   Documento         Documento @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "id_documento")
 }
@@ -263,10 +235,8 @@ model Usuario {
   apellido_usuario      String?                 @db.VarChar(100)
   rol_usuario           String?                 @db.VarChar(50)
   estado_usuario        String?                 @db.VarChar(30)
-  ruta_firma            String?                 @db.VarChar(255)
   Anuncio               Anuncio[]
   Comentario_Produccion Comentario_Produccion[]
-  Firma_Documento       Firma_Documento[]
   Historial_Usuario     Historial_Usuario[]
   Pedidos               Pedidos[]
   Registro_Etapas       Registro_Etapas[]

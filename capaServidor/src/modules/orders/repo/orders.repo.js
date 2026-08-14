@@ -1,7 +1,6 @@
 import getPrismaClient from "../../../database/prisma.js";
 
 const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
-const PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX = "/api/orders";
 
 const ORDER_UPDATE_FIELDS = new Set([
   "fecha_estimada_termino",
@@ -46,29 +45,6 @@ function findSalesNoteDocument(documents = []) {
   );
 }
 
-function findPaymentSignature(document) {
-  return (
-    document?.Firma_Documento?.find((signature) => signature.Firma_Pago) ??
-    null
-  );
-}
-
-function getFileNameFromStoredPath(storedPath) {
-  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
-    return null;
-  }
-
-  return storedPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? null;
-}
-
-function buildPaymentSignatureEvidenceUrl(orderId, paymentSignature) {
-  if (!orderId || !paymentSignature?.Firma_Pago) {
-    return null;
-  }
-
-  return `${PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX}/${encodeURIComponent(orderId)}/payment-signature-evidence`;
-}
-
 export function buildSalesNotePdfUrl(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
     return null;
@@ -101,7 +77,6 @@ function mapOrderRow(order, paymentStatusName = null) {
     ...orderFields
   } = order;
   const salesNoteDocument = findSalesNoteDocument(Documento);
-  const paymentSignature = findPaymentSignature(salesNoteDocument);
 
   return {
     ...orderFields,
@@ -119,21 +94,6 @@ function mapOrderRow(order, paymentStatusName = null) {
     ruta_pdf: buildSalesNotePdfUrl(salesNoteDocument?.ruta_pdf),
     numero_nota_venta:
       salesNoteDocument?.Nota_Venta?.numero_nota_venta ?? null,
-    firmado: salesNoteDocument?.Nota_Venta?.firmado ?? null,
-    firma_pago: paymentSignature
-      ? {
-          id_firma_documento: paymentSignature.id_firma_documento ?? null,
-          fecha_firma: paymentSignature.fecha_firma ?? null,
-          id_usuario: paymentSignature.id_usuario ?? null,
-          evidenceFileName: getFileNameFromStoredPath(
-            paymentSignature.Usuario?.ruta_firma,
-          ),
-          evidenceUrl: buildPaymentSignatureEvidenceUrl(
-            orderFields.id_pedido,
-            paymentSignature,
-          ),
-        }
-      : null,
   };
 }
 
@@ -147,16 +107,6 @@ const orderReadInclude = {
   Documento: {
     include: {
       Nota_Venta: true,
-      Firma_Documento: {
-        include: {
-          Firma_Pago: true,
-          Usuario: {
-            select: {
-              ruta_firma: true,
-            },
-          },
-        },
-      },
     },
   },
   Estado_Pedido: true,

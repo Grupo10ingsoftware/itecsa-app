@@ -1,8 +1,5 @@
 import { ACTION_STATUS, PAYMENT_STATUS } from '@/config/status'
-import {
-  MOCK_SALES_NOTE_DOCUMENT,
-  MOCK_SIGNATURE_NOTE,
-} from './paymentDocuments.mock'
+import { MOCK_SALES_NOTE_DOCUMENT } from './paymentDocuments.mock'
 
 export function createMockPaymentOrders() {
   return [
@@ -65,14 +62,8 @@ export function createMockPaymentOrders() {
       productType: 'Lanyard',
       nvFileName: MOCK_SALES_NOTE_DOCUMENT.fileName,
       nvFilePath: MOCK_SALES_NOTE_DOCUMENT.filePath,
-      isSigned: true,
       orderStatus: ACTION_STATUS.LISTO_PRODUCCION,
       paymentStatus: PAYMENT_STATUS.CONFIRMADO,
-      signature: {
-        timestamp: '13-04-2026, 10:30 a. m.',
-        userId: 'USR-0004',
-        note: MOCK_SIGNATURE_NOTE,
-      },
       createdAt: new Date('2024-04-25T07:55:00'),
       updatedAt: new Date('2024-05-12T14:30:00'),
     },

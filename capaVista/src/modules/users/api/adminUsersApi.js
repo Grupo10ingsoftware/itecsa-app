@@ -24,18 +24,7 @@ export function createAdminUsersApi(apiClient) {
         })}`,
       ),
     getSummary: () => apiClient.get('/admin/users/summary'),
-    createUser: (user) => {
-      const formData = new FormData()
-
-      formData.append('nombreUsuario', user.nombreUsuario)
-      formData.append('apellidoUsuario', user.apellidoUsuario)
-      formData.append('rutUsuario', user.rutUsuario)
-      formData.append('correoUsuario', user.correoUsuario)
-      formData.append('rolUsuario', user.rolUsuario)
-      formData.append('firmaElectronica', user.firmaElectronica)
-
-      return apiClient.post('/admin/users', formData)
-    },
+    createUser: (user) => apiClient.post('/admin/users', user),
     updateUser: ({
       idUsuarioAutenticacionExterna,
       nombreUsuario,

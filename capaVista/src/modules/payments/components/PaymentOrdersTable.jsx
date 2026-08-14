@@ -13,7 +13,6 @@ export default function PaymentOrdersTable({
   onOpenSalesNote,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
 }) {
   return (
     <section
@@ -67,7 +66,6 @@ export default function PaymentOrdersTable({
                     onCloseEditor={onCloseEditor}
                     onSelectStatus={onSelectStatus}
                     onToggleEditor={onToggleEditor}
-                    onViewSignedDetail={onViewSignedDetail}
                     order={order}
                   />
                 </td>

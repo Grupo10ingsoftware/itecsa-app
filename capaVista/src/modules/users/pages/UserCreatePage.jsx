@@ -11,7 +11,7 @@ export default function UserCreatePage() {
             Crear usuario
           </h1>
           <p className={styles.pageSubtitle}>
-            Completa los datos del usuario, su rol y la firma electronica para registrarlo en el sistema.
+            Completa los datos del usuario y su rol para registrarlo en el sistema.
           </p>
         </header>
 

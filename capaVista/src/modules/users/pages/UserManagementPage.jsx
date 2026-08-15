@@ -57,7 +57,7 @@ function getErrorText(error) {
   }
 
   if (error?.status === 403) {
-    return 'Acceso denegado. Solo un administrador puede gestionar usuarios.'
+    return 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
   }
 
   if (error?.code === API_ERROR_CODES.NETWORK_ERROR) {

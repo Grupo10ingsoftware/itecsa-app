@@ -80,10 +80,41 @@ test("rechaza que un administrador edite su propio rol", async () => {
 
     assert.equal(res.statusCode, 409);
     assert.deepEqual(res.body, {
-        message: "No puedes cambiar tu propio rol de administrador.",
+        message: "No puedes cambiar tu propio rol.",
     });
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
+});
+
+test("rechaza que un usuario de Soporte edite su propio rol", async () => {
+    const supportUser = {
+        ...CURRENT_ADMIN_USER,
+        rolUsuario: "Soporte",
+    };
+    const handler = createUpdateAdminUserHandler({
+        updateUser: async () => assert.fail("No debe actualizar Auth0"),
+        users: createUsersRepositoryMock({ existingUserByAuth0Id: supportUser }),
+    });
+    const res = responseRecorder();
+
+    await handler(
+        {
+            auth: { payload: { sub: CURRENT_ADMIN_ID } },
+            params: { userId: CURRENT_ADMIN_ID },
+            body: {
+                nombreUsuario: "Ana",
+                apellidoUsuario: "Perez",
+                correoUsuario: "ana.perez@itecsa.cl",
+                rolUsuario: "Ventas",
+            },
+        },
+        res,
+    );
+
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.body, {
+        message: "No puedes cambiar tu propio rol.",
+    });
 });
 
 test("permite que un administrador edite sus datos si conserva su rol", async () => {

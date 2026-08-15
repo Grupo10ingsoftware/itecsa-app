@@ -1,5 +1,5 @@
 import { PERMISSIONS } from './permissions'
-import { ROLES } from './roles'
+import { ADMINISTRATIVE_ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
@@ -38,7 +38,7 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     label: 'Gestion de usuarios',
     path: APP_ROUTES.ADMIN_USERS,
     permission: PERMISSIONS.MANAGE_USERS_VISUALLY,
-    requiredRoles: Object.freeze(['Administrador']),
+    requiredRoles: ADMINISTRATIVE_ROLES,
     requirementIds: Object.freeze(['UR 1.4', 'UR 1.12', 'UR 1.13']),
   },
   {
@@ -50,13 +50,13 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
     label: 'Historial Produccion',
     path: APP_ROUTES.PRODUCTION_HISTORY,
-    requiredRoles: Object.freeze([ROLES.ADMINISTRADOR]),
+    requiredRoles: ADMINISTRATIVE_ROLES,
     requirementIds: Object.freeze(['PROTOTIPO']),
   },
   {
     label: 'Calendario',
     path: APP_ROUTES.PRODUCTION_CALENDAR,
-    requiredRoles: Object.freeze([ROLES.ADMINISTRADOR]),
+    requiredRoles: ADMINISTRATIVE_ROLES,
     requirementIds: Object.freeze(['PROTOTIPO']),
   },
 ])

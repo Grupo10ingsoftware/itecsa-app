@@ -1,6 +1,6 @@
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
-import requireAdministrador from "../../../middlewares/requireAdministrador.js";
+import requireAdministrativeRole from "../../../middlewares/requireAdministrativeRole.js";
 import {
     createAdminUserHandler,
     createAdminUsersSummaryHandler,
@@ -13,7 +13,7 @@ import { uploadSignatureFile } from "../middleware/signatureUpload.js";
 
 export function createAdminUsersRouter({
     authenticate = checkJwt,
-    authorize = requireAdministrador,
+    authorize = requireAdministrativeRole,
     createUser,
     requestPasswordEmail,
     updateUser,

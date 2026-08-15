@@ -4,6 +4,7 @@ import {
     requestPasswordSetupEmail,
 } from "../../users/service/auth0Management.service.js";
 import userRepository from "../../users/repo/users.repo.js";
+import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
@@ -20,13 +21,6 @@ const PASSWORD_RESET_ERROR_MESSAGE =
     "No fue posible solicitar el correo de recuperación de contraseña.";
 const VERIFY_SESSION_ERROR_MESSAGE =
     "No fue posible verificar la sesion autenticada.";
-const OFFICIAL_ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Producción",
-    "Ventas",
-    "Cobranzas",
-]);
 
 function invalidPasswordResetRequest(message) {
     return { valid: false, message };
@@ -128,7 +122,7 @@ export function createVerifyAuthSessionHandler({
             sub: payload.sub,
             email,
             rolUsuario,
-            isAdministrador: rolUsuario === "Administrador",
+            isAdministrador: rolUsuario === ROLES.ADMINISTRADOR,
             permissions,
         });
     };

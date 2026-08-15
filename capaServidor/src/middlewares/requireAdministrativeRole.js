@@ -1,14 +1,15 @@
-const ROLES_CLAIM = "https://itecsa.local/roles";
-const ADMINISTRADOR_ROLE = "Administrador";
+import { ADMINISTRATIVE_ROLES } from "../config/roles.js";
 
-export default function requireAdministrador(req, res, next) {
+const ROLES_CLAIM = "https://itecsa.local/roles";
+
+export default function requireAdministrativeRole(req, res, next) {
     const roles = req.auth?.payload?.[ROLES_CLAIM];
-    const isAdministrador =
+    const hasAdministrativeRole =
         Array.isArray(roles) &&
         roles.length === 1 &&
-        roles[0] === ADMINISTRADOR_ROLE;
+        ADMINISTRATIVE_ROLES.has(roles[0]);
 
-    if (!isAdministrador) {
+    if (!hasAdministrativeRole) {
         return res.status(403).json({
             message: "El usuario autenticado no tiene autorizacion administrativa.",
         });

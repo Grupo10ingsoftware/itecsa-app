@@ -1,3 +1,5 @@
+import { OFFICIAL_ROLES } from "../../../config/roles.js";
+
 const USER_FIELDS = new Set([
     "nombreUsuario",
     "apellidoUsuario",
@@ -13,13 +15,6 @@ const USER_UPDATE_FIELDS = new Set([
     "rolUsuario",
 ]);
 const USER_STATUS_FIELDS = new Set(["estadoUsuario"]);
-const ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Producción",
-    "Ventas",
-    "Cobranzas",
-]);
 const USER_STATUSES = new Set(["Activo", "Vinculado", "Desvinculado"]);
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RUT_FORMAT = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/;
@@ -80,7 +75,7 @@ export function validateAdminUserRequest(body) {
         return invalidRequest("El rutUsuario no tiene un formato valido.");
     }
 
-    if (!ROLES.has(user.rolUsuario)) {
+    if (!OFFICIAL_ROLES.has(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -134,7 +129,7 @@ export function validateListUsersQuery(query = {}) {
         return invalidRequest("El estadoUsuario no es valido.");
     }
 
-    if (rolUsuario && !ROLES.has(rolUsuario)) {
+    if (rolUsuario && !OFFICIAL_ROLES.has(rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -182,7 +177,7 @@ export function validateAdminUserUpdateRequest(body) {
         );
     }
 
-    if (!ROLES.has(user.rolUsuario)) {
+    if (!OFFICIAL_ROLES.has(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 

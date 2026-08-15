@@ -380,7 +380,7 @@ test("rechaza autodesvinculacion por endpoint de estado", async () => {
 
     assert.equal(selfRes.statusCode, 409);
     assert.deepEqual(selfRes.body, {
-        message: "No puedes desvincular tu propio usuario administrador.",
+        message: "No puedes desvincular tu propio usuario.",
     });
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
@@ -745,7 +745,7 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
                 next();
             },
             authorize(req, res, next) {
-                calls.push("requireAdministrador");
+                calls.push("requireAdministrativeRole");
                 next();
             },
             createUser: async () => {
@@ -785,7 +785,7 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
     assert.equal(response.status, 201);
     assert.deepEqual(calls, [
         "checkJwt",
-        "requireAdministrador",
+        "requireAdministrativeRole",
         "createUser",
         "createInternalUser",
         "requestPasswordEmail",
@@ -804,7 +804,7 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
                 next();
             },
             authorize(req, res, next) {
-                calls.push("requireAdministrador");
+                calls.push("requireAdministrativeRole");
                 next();
             },
             requestPasswordEmail: async () => {
@@ -828,7 +828,7 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
     assert.equal(response.status, 200);
     assert.deepEqual(calls, [
         "checkJwt",
-        "requireAdministrador",
+        "requireAdministrativeRole",
         "requestPasswordEmail",
     ]);
 });

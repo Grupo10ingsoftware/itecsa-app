@@ -212,6 +212,7 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
         if (url.includes("/api/v2/roles?")) {
             return jsonResponse(200, [
                 { id: "rol_admin", name: "Administrador" },
+                { id: "rol_soporte", name: "Soporte" },
                 { id: "rol_ventas", name: "Ventas" },
             ]);
         }
@@ -241,6 +242,10 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
         },
     });
     assert.equal(requests.some((request) => request.options.method === "DELETE"), true);
+    const deleteRequest = requests.find(
+        (request) => request.options.method === "DELETE",
+    );
+    assert.equal(deleteRequest.body.roles.includes("rol_soporte"), true);
     assert.equal(requests.some((request) => request.body?.roles?.includes("rol_ventas")), true);
 });
 

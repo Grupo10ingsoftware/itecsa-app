@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { OFFICIAL_ROLES } from "../../../config/roles.js";
 
 const MANAGEMENT_VARIABLES = [
     "AUTH0_DOMAIN",
@@ -17,14 +18,6 @@ export const AUTH0_MANAGEMENT_SCOPES = Object.freeze([
     "update:users",
     "read:roles",
 ]);
-const OFFICIAL_ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Producción",
-    "Ventas",
-    "Cobranzas",
-]);
-
 export class Auth0ServiceError extends Error {
     constructor(code, message, { status, details } = {}) {
         super(message);

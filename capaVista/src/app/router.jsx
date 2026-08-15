@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { APP_ROUTES } from '../config/routes'
 import { PERMISSIONS } from '../config/permissions'
-import { ROLES } from '../config/roles'
+import { ADMINISTRATIVE_ROLES } from '../config/roles'
 import { useAuth } from '../hooks/useAuth'
 import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
@@ -75,7 +75,7 @@ export default function AppRouter() {
             <Route
               path="historial-produccion"
               element={
-                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
                   <ProductionHistoryPage />
                 </RoleGuard>
               }
@@ -83,7 +83,7 @@ export default function AppRouter() {
             <Route
               path="historial-produccion/:pedidoId"
               element={
-                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
                   <ProductionHistoryDetailPage />
                 </RoleGuard>
               }
@@ -91,7 +91,7 @@ export default function AppRouter() {
             <Route
               path="calendario-produccion"
               element={
-                <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
+                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
                   <ProductionCalendarPage />
                 </RoleGuard>
               }
@@ -102,7 +102,7 @@ export default function AppRouter() {
               element={
                 <RoleGuard
                   requiredPermission={PERMISSIONS.MANAGE_USERS_VISUALLY}
-                  requiredRole={ROLES.ADMINISTRADOR}
+                  requiredRoles={ADMINISTRATIVE_ROLES}
                 >
                   <UserManagementPage />
                 </RoleGuard>

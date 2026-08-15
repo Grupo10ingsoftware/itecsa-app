@@ -140,7 +140,7 @@ La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar 
 - M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
-- Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
 
 La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC.
 
@@ -236,7 +236,7 @@ Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite
 
 ### `POST /api/admin/users`
 
-Requiere un access token cuyo unico rol sea `Administrador`. Acepta `multipart/form-data` con:
+Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Acepta `multipart/form-data` con:
 
 ```txt
 nombreUsuario=Ana
@@ -247,7 +247,7 @@ rolUsuario=Ventas
 firmaElectronica=<archivo XML, CMS o PDF>
 ```
 
-Los roles permitidos son `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+Los roles permitidos son `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
 
 La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 
@@ -273,13 +273,13 @@ Respuestas:
 - `201` recuperable: cuenta Auth0 creada pero fallo la asignacion de rol, el registro interno o la solicitud de correo; no debe repetirse la creacion.
 - `400`: cuerpo invalido, firma ausente, tipo de firma no permitido, rol no permitido o campos adicionales.
 - `401`: access token ausente o invalido.
-- `403`: usuario autenticado sin rol `Administrador`.
+- `403`: usuario autenticado sin rol `Administrador` o `Soporte`.
 - `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
 - `500`: error controlado anterior a la creacion, sin detalles Auth0.
 
 ### `GET /api/admin/users`
 
-Requiere un access token cuyo unico rol sea `Administrador`. Lista usuarios desde la tabla interna `Usuario`, con filtros opcionales `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`.
+Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Lista usuarios desde la tabla interna `Usuario`, con filtros opcionales `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`.
 
 Respuesta exitosa:
 
@@ -306,19 +306,19 @@ Respuesta exitosa:
 
 ### `GET /api/admin/users/summary`
 
-Requiere rol `Administrador`. Devuelve contadores internos de usuarios totales, vinculados y desvinculados.
+Requiere rol `Administrador` o `Soporte`. Devuelve contadores internos de usuarios totales, vinculados y desvinculados.
 
 ### `PATCH /api/admin/users/:userId`
 
-Requiere rol `Administrador`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario`, `rolUsuario` y `estadoUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`.
+Requiere rol `Administrador` o `Soporte`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario` y `rolUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`.
 
 ### `PATCH /api/admin/users/:userId/status`
 
-Requiere rol `Administrador`. Actualiza solo `estadoUsuario`, usado por la SPA para desvincular usuarios.
+Requiere rol `Administrador` o `Soporte`. Actualiza solo `estadoUsuario`, usado por la SPA para desvincular usuarios.
 
 ### `POST /api/admin/users/password-setup-email`
 
-Requiere un access token cuyo unico rol sea `Administrador`. Acepta solo:
+Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Acepta solo:
 
 ```json
 {

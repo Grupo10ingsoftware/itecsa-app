@@ -119,6 +119,22 @@ test("devuelve permisos vacios si Auth0 no incluye permissions", async () => {
     assert.deepEqual(res.body.permissions, []);
 });
 
+test("acepta Soporte como rol oficial sin identificarlo como Administrador", async () => {
+    const res = await executeVerify({
+        ...VALID_PAYLOAD,
+        "https://itecsa.local/roles": ["Soporte"],
+        permissions: ["manage:users-visually", "view:kanban-module"],
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.rolUsuario, "Soporte");
+    assert.equal(res.body.isAdministrador, false);
+    assert.deepEqual(res.body.permissions, [
+        "manage:users-visually",
+        "view:kanban-module",
+    ]);
+});
+
 test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => {
     let receivedLookup;
     let receivedUpdate;

@@ -3,7 +3,7 @@ import { OFFICIAL_ROLES } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
-const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol de administrador.'
+const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol.'
 
 function createFormState(user) {
   return {

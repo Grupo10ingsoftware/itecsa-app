@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import requireAdministrador from "../src/middlewares/requireAdministrador.js";
+import requireAdministrativeRole from "../src/middlewares/requireAdministrativeRole.js";
 
 const ROLES_CLAIM = "https://itecsa.local/roles";
 
@@ -20,7 +20,7 @@ function executeMiddleware(payload) {
         },
     };
 
-    requireAdministrador(req, res, () => {
+    requireAdministrativeRole(req, res, () => {
         nextCalled = true;
     });
 
@@ -29,6 +29,13 @@ function executeMiddleware(payload) {
 
 test("permite un usuario con solo el rol Administrador", () => {
     const result = executeMiddleware({ [ROLES_CLAIM]: ["Administrador"] });
+
+    assert.equal(result.nextCalled, true);
+    assert.equal(result.statusCode, undefined);
+});
+
+test("permite un usuario con solo el rol Soporte", () => {
+    const result = executeMiddleware({ [ROLES_CLAIM]: ["Soporte"] });
 
     assert.equal(result.nextCalled, true);
     assert.equal(result.statusCode, undefined);

@@ -12,6 +12,11 @@ export function createOrderDetailRouter({
   router.get("/", authenticate, controller.getDetailsByOrderId);
   router.get("/:detailId", authenticate, controller.getOrderDetail);
   router.post("/", authenticate, controller.postOrderDetail);
+  router.post(
+    "/:detailId/subprocesses/:subprocessId/complete",
+    authenticate,
+    controller.completeSubprocess,
+  );
 
   return router;
 }

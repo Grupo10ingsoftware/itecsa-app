@@ -38,6 +38,96 @@ function totalQuantity(details = []) {
   return quantities.reduce((sum, quantity) => sum + quantity, 0);
 }
 
+function mapUserSummary(user) {
+  if (!user) return null;
+
+  return {
+    id_usuario: user.id_usuario ?? null,
+    correo_usuario: user.correo_usuario ?? null,
+    nombre_usuario: user.nombre_usuario ?? null,
+    apellido_usuario: user.apellido_usuario ?? null,
+  };
+}
+
+function mapProductionComment(comment) {
+  return {
+    id_comentario_produccion: comment.id_comentario_produccion ?? null,
+    comentario: comment.comentario ?? null,
+    fecha_comentario: comment.fecha_comentario ?? null,
+    id_usuario: comment.id_usuario ?? null,
+    usuario: mapUserSummary(comment.Usuario),
+  };
+}
+
+function getCompletedSubprocessById(records = []) {
+  return new Map(
+    records
+      .filter((record) => record.id_estado_subproceso !== null)
+      .map((record) => [Number(record.id_estado_subproceso), record]),
+  );
+}
+
+function mapSubprocesses(detail) {
+  const productSubprocesses =
+    detail.Tipo_Producto?.Producto_Subproceso ?? [];
+  const completedBySubprocess = getCompletedSubprocessById(
+    detail.registro_subprocesos ?? [],
+  );
+  let hasCurrent = false;
+
+  return productSubprocesses
+    .slice()
+    .sort((left, right) => Number(left.orden_flujo ?? 0) - Number(right.orden_flujo ?? 0))
+    .map((productSubprocess) => {
+      const subprocess = productSubprocess.Estado_Subprocesos;
+      const subprocessId = productSubprocess.id_estado_subproceso;
+      const record = completedBySubprocess.get(Number(subprocessId));
+      const isDone = Boolean(record);
+      const status = isDone ? "done" : hasCurrent ? "locked" : "current";
+
+      if (!isDone && !hasCurrent) {
+        hasCurrent = true;
+      }
+
+      return {
+        id_estado_subproceso: subprocessId ?? null,
+        nombre_estado: subprocess?.nombre_estado ?? null,
+        descripcion_estado: subprocess?.descripcion_estado ?? null,
+        orden_flujo: productSubprocess.orden_flujo ?? null,
+        status,
+        id_registro_subproceso: record?.id_registro_subproceso ?? null,
+        fecha_hora_entrada: record?.fecha_hora_entrada ?? null,
+        fecha_hora_salida: record?.fecha_hora_salida ?? null,
+        id_usuario: record?.id_usuario ?? null,
+        usuario: mapUserSummary(record?.Usuario),
+      };
+    });
+}
+
+function mapOrderDetail(detail) {
+  const mappedDetail = {
+    id_detalle_pedido: detail.id_detalle_pedido ?? null,
+    id_tipo_producto: detail.id_tipo_producto ?? null,
+    nombre_producto: detail.Tipo_Producto?.nombre_producto ?? null,
+    descripcion_producto: detail.Tipo_Producto?.descripcion_producto ?? null,
+    cantidad: detail.cantidad ?? null,
+    fecha_estimada_termino: detail.fecha_estimada_termino ?? null,
+    fecha_real_termino: detail.fecha_real_termino ?? null,
+  };
+
+  if (detail.Tipo_Producto?.Producto_Subproceso) {
+    mappedDetail.subprocesos = mapSubprocesses(detail);
+  }
+
+  if (detail.Comentario_Produccion) {
+    mappedDetail.comentarios = detail.Comentario_Produccion.map(
+      mapProductionComment,
+    );
+  }
+
+  return mappedDetail;
+}
+
 function findSalesNoteDocument(documents = []) {
   return (
     documents.find((document) => document.Nota_Venta) ??
@@ -113,6 +203,9 @@ function mapOrderRow(order, paymentStatusName = null) {
       ? uniqueProductDescriptions(Detalle_pedido)
       : undefined,
     cantidad: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
+    detalles: Array.isArray(Detalle_pedido)
+      ? Detalle_pedido.map(mapOrderDetail)
+      : [],
     id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
     nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
     estado_pago: paymentStatusName,
@@ -137,7 +230,7 @@ function mapOrderRow(order, paymentStatusName = null) {
   };
 }
 
-const orderReadInclude = {
+const orderListReadInclude = {
   Cliente: true,
   Detalle_pedido: {
     include: {
@@ -160,6 +253,57 @@ const orderReadInclude = {
     },
   },
   Estado_Pedido: true,
+};
+
+const orderDetailReadInclude = {
+  ...orderListReadInclude,
+  Detalle_pedido: {
+    include: {
+      Tipo_Producto: {
+        include: {
+          Producto_Subproceso: {
+            include: {
+              Estado_Subprocesos: true,
+            },
+            orderBy: { orden_flujo: "asc" },
+          },
+        },
+      },
+      registro_subprocesos: {
+        include: {
+          Usuario: {
+            select: {
+              id_usuario: true,
+              correo_usuario: true,
+              nombre_usuario: true,
+              apellido_usuario: true,
+            },
+          },
+        },
+        orderBy: [
+          { fecha_hora_salida: "asc" },
+          { id_registro_subproceso: "asc" },
+        ],
+      },
+      Comentario_Produccion: {
+        include: {
+          Usuario: {
+            select: {
+              id_usuario: true,
+              correo_usuario: true,
+              nombre_usuario: true,
+              apellido_usuario: true,
+            },
+          },
+        },
+        orderBy: [
+          { fecha_comentario: "asc" },
+          { id_comentario_produccion: "asc" },
+        ],
+      },
+    },
+    orderBy: { id_detalle_pedido: "asc" },
+  },
 };
 
 class OrderRepository {
@@ -196,7 +340,7 @@ class OrderRepository {
 
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
-      include: orderReadInclude,
+      include: orderListReadInclude,
       orderBy: { id_pedido: "desc" },
     });
     const paymentStatuses = await this.getPaymentStatusNamesByIds(
@@ -211,7 +355,7 @@ class OrderRepository {
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      include: orderReadInclude,
+      include: orderDetailReadInclude,
     });
 
     if (!order) return null;

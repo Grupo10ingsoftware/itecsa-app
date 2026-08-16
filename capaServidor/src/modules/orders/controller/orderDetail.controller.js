@@ -2,8 +2,8 @@ import { request, response } from "express";
 import OrderDetailService from "../service/orderDetail.service.js";
 
 class OrderDetailController {
-  constructor() {
-    this.service = new OrderDetailService();
+  constructor({ service } = {}) {
+    this.service = service ?? new OrderDetailService();
   }
 
   postOrderDetail = async (req = request, res = response) => {
@@ -50,6 +50,28 @@ class OrderDetailController {
 
       res.status(statusCode).json({
         message: error.message || "Error al obtener detalles del pedido",
+      });
+    }
+  };
+
+  completeSubprocess = async (req = request, res = response) => {
+    try {
+      const { detailId, subprocessId } = req.params;
+      const result = await this.service.completeSubprocess(
+        detailId,
+        subprocessId,
+        {
+          auth0UserId: req.auth?.payload?.sub,
+          comment: req.body?.comment,
+        },
+      );
+
+      res.status(201).json(result);
+    } catch (error) {
+      const statusCode = error.statusCode ?? 500;
+
+      res.status(statusCode).json({
+        message: error.message || "Error al completar subproceso",
       });
     }
   };

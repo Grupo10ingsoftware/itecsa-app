@@ -12,26 +12,6 @@ const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 
-const processTemplates = {
-  Lanyards: [
-    { id: 'imp', name: 'Impresion', status: 'pending' },
-    { id: 'sub', name: 'Sublimacion', status: 'pending' },
-    { id: 'cor', name: 'Corte', status: 'pending' },
-    { id: 'cos', name: 'Costura', status: 'pending' },
-  ],
-  Cordones: [
-    { id: 'imp', name: 'Impresion', status: 'pending' },
-    { id: 'cor', name: 'Corte', status: 'pending' },
-    { id: 'ter', name: 'Terminacion', status: 'pending' },
-  ],
-  Tarjeta: [
-    { id: 'rev', name: 'Revision de informacion', status: 'pending' },
-    { id: 'ord', name: 'Orden de datos', status: 'pending' },
-    { id: 'car', name: 'Carga de datos', status: 'pending' },
-  ],
-  default: [{ id: 'gen', name: 'Produccion general', status: 'pending' }],
-}
-
 const baseColumns = [
   {
     id: 'confirmacion-pago',
@@ -66,11 +46,6 @@ const baseColumns = [
 function getColumnTitleByStepId(stepId) {
   const column = baseColumns.find((item) => Number(item.generalStepId) === Number(stepId))
   return column?.title ?? 'Confirmacion de pago'
-}
-
-function getProcessesFor(productName) {
-  const template = processTemplates[productName] ?? processTemplates.default
-  return template.map((step) => ({ ...step }))
 }
 
 function parseDate(value) {
@@ -122,6 +97,61 @@ function isPaymentConfirmed(order) {
   return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
 }
 
+function normalizeSubprocess(subprocess) {
+  const id = subprocess.id_estado_subproceso ?? subprocess.id
+
+  return {
+    id,
+    name: subprocess.nombre_estado ?? subprocess.name ?? 'Subproceso',
+    description: subprocess.descripcion_estado ?? subprocess.description ?? '',
+    order: subprocess.orden_flujo ?? subprocess.order ?? null,
+    status: subprocess.status ?? 'locked',
+    completedAt: subprocess.fecha_hora_salida ?? subprocess.completedAt ?? null,
+    operatorEmail:
+      subprocess.usuario?.correo_usuario ??
+      subprocess.operatorEmail ??
+      '',
+    operatorName:
+      [
+        subprocess.usuario?.nombre_usuario,
+        subprocess.usuario?.apellido_usuario,
+      ]
+        .filter(Boolean)
+        .join(' ') || '',
+  }
+}
+
+function normalizeComment(comment, fallbackIdPrefix) {
+  return {
+    id: comment.id_comentario_produccion ?? comment.id ?? `${fallbackIdPrefix}-${Date.now()}`,
+    text: comment.comentario ?? comment.text ?? '',
+    createdAt: comment.fecha_comentario ?? comment.createdAt ?? null,
+    operatorEmail: comment.usuario?.correo_usuario ?? comment.operatorEmail ?? '',
+  }
+}
+
+function createItemFromDetail(detail, index) {
+  const product = detail.nombre_producto ?? detail.product ?? 'Producto no definido'
+
+  return {
+    id: String(detail.id_detalle_pedido ?? detail.id ?? index),
+    detailId: detail.id_detalle_pedido ?? detail.detailId ?? detail.id,
+    product,
+    description: detail.descripcion_producto ?? detail.description ?? '',
+    quantity: detail.cantidad ?? detail.quantity ?? null,
+    dueDate: detail.fecha_estimada_termino ?? detail.dueDate ?? null,
+    completedAt: detail.fecha_real_termino ?? detail.completedAt ?? null,
+    subProcesses: Array.isArray(detail.subprocesos)
+      ? detail.subprocesos.map(normalizeSubprocess)
+      : Array.isArray(detail.subProcesses)
+        ? detail.subProcesses.map(normalizeSubprocess)
+        : [],
+    comments: Array.isArray(detail.comentarios)
+      ? detail.comentarios.map((comment) => normalizeComment(comment, detail.id_detalle_pedido ?? index))
+      : [],
+  }
+}
+
 function normalizeOrder(order) {
   const id = order.id ?? order.id_pedido
   const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
@@ -131,6 +161,17 @@ function normalizeOrder(order) {
     order.fecha_entrega ??
     order.fecha_compromiso ??
     ''
+  const items = Array.isArray(order.detalles)
+    ? order.detalles.map(createItemFromDetail)
+    : Array.isArray(order.items)
+      ? order.items.map(createItemFromDetail)
+      : []
+  const comments = [
+    ...(Array.isArray(order.comments)
+      ? order.comments.map((comment) => normalizeComment(comment, id))
+      : []),
+    ...items.flatMap((item) => item.comments),
+  ]
 
   return {
     id,
@@ -149,16 +190,9 @@ function normalizeOrder(order) {
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
     isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
-    subProcesses: Array.isArray(order.subProcesses)
-      ? order.subProcesses
-      : Array.isArray(order.subprocesos)
-        ? order.subprocesos
-        : getProcessesFor(product),
-    comments: Array.isArray(order.comments)
-      ? order.comments
-      : Array.isArray(order.comentarios)
-        ? order.comentarios
-        : [],
+    items,
+    subProcesses: items[0]?.subProcesses ?? [],
+    comments,
   }
 }
 
@@ -199,6 +233,8 @@ function KanbanColumn() {
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
   const kanbanApi = useKanbanApi()
@@ -321,11 +357,45 @@ function KanbanColumn() {
     })
   }
 
-  function handleUpdateOrder(updatedOrder) {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
-    )
-    setSelectedOrder(updatedOrder)
+  async function loadOrderDetail(order) {
+    if (!order?.id) return
+
+    setSelectedOrder(order)
+    setDetailLoading(true)
+    setDetailError(null)
+
+    try {
+      const orderDetail = await kanbanApi.getOrder(order.id)
+      const normalizedOrder = normalizeOrder(orderDetail)
+
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) =>
+          currentOrder.id === normalizedOrder.id
+            ? { ...currentOrder, ...normalizedOrder }
+            : currentOrder,
+        ),
+      )
+      setSelectedOrder(normalizedOrder)
+    } catch (error) {
+      console.error('Error cargando detalle de orden:', error)
+      setDetailError(error?.payload?.message ?? 'No fue posible cargar el detalle del pedido.')
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  async function handleCompleteSubprocess({ detailId, subprocessId, comment }) {
+    if (!selectedOrder?.id) return false
+
+    try {
+      await kanbanApi.completeSubprocess(detailId, subprocessId, { comment })
+      await loadOrderDetail(selectedOrder)
+      return true
+    } catch (error) {
+      console.error('Error completando subproceso:', error)
+      setDetailError(error?.payload?.message ?? 'No fue posible completar el subproceso.')
+      return false
+    }
   }
 
   return (
@@ -353,7 +423,7 @@ function KanbanColumn() {
                       <KanbanCard
                         isMoveBlocked={!isPaymentConfirmed(order)}
                         key={order.id}
-                        onOpenDetail={() => setSelectedOrder(order)}
+                        onOpenDetail={() => loadOrderDetail(order)}
                         {...order}
                       />
                     ))
@@ -364,9 +434,11 @@ function KanbanColumn() {
         </div>
       </DragDropProvider>
       <KanbanOffCanvas
+        error={detailError}
         isOpen={selectedOrder !== null}
+        isLoading={detailLoading}
         onClose={() => setSelectedOrder(null)}
-        onUpdateOrder={handleUpdateOrder}
+        onCompleteSubprocess={handleCompleteSubprocess}
         order={selectedOrder}
       />
     </>

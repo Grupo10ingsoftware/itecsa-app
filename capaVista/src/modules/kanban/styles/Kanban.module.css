@@ -484,6 +484,11 @@
 }
 
 .offcanvasLayer {
+  --kanban-border: #e5e7eb;
+  --kanban-orange: #f97316;
+  --kanban-orange-rgb: 249, 115, 22;
+  --kanban-muted: #64748b;
+  --kanban-text: #111827;
   background: rgba(15, 23, 42, 0.38);
   inset: 0;
   position: fixed;
@@ -557,9 +562,19 @@
   margin: 0;
 }
 
+.detailLoading {
+  background: #f8fafc;
+  border: 1px dashed #d7dee8;
+  border-radius: 0.75rem;
+  color: var(--kanban-muted);
+  font-weight: 760;
+  padding: 0.85rem 1rem;
+}
+
 .detailList {
   display: grid;
   gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
 }
 
@@ -578,10 +593,52 @@
 
 .detailList dd {
   color: var(--kanban-text);
+  font-weight: 720;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.stepperStack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.stepperGroup {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.stepperGroup h4 {
+  color: var(--kanban-text);
+  font-size: 0.95rem;
+  font-weight: 850;
   margin: 0;
 }
 
-.subProcessList {
+.stepperNotice {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  color: var(--kanban-muted);
+  display: flex;
+  font-size: 0.86rem;
+  font-weight: 760;
+  gap: 0.55rem;
+  line-height: 1.35;
+  padding: 0.75rem 0.8rem;
+}
+
+.stepperNotice i {
+  flex: 0 0 auto;
+}
+
+.subProcessList,
+.subProcessStepper {
   display: grid;
   gap: 0.55rem;
 }
@@ -603,6 +660,219 @@
   background: #ecfdf5;
   border-color: #bbf7d0;
   color: #166534;
+}
+
+.subProcessStepper {
+  counter-reset: subprocess;
+  gap: 0.7rem;
+}
+
+.subProcessStep {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  color: var(--kanban-text);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 2.15rem 1fr;
+  min-height: 3.25rem;
+  padding: 0.65rem 0.75rem;
+  position: relative;
+  text-align: left;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.subProcessStep:not(:last-child)::after {
+  background: #d7dee8;
+  bottom: -0.75rem;
+  content: "";
+  height: 0.78rem;
+  left: 1.79rem;
+  position: absolute;
+  width: 2px;
+}
+
+.subProcessStep:not(:disabled):hover,
+.subProcessStep:not(:disabled):focus {
+  border-color: rgba(var(--kanban-orange-rgb), 0.55);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.subProcessMarker {
+  align-items: center;
+  background: #eef2f7;
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  color: #334155;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 850;
+  height: 2.15rem;
+  justify-content: center;
+  position: relative;
+  width: 2.15rem;
+  z-index: 1;
+}
+
+.subProcessContent {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.subProcessContent > span {
+  color: var(--kanban-text);
+  font-weight: 780;
+  line-height: 1.2;
+}
+
+.subProcessContent strong {
+  color: var(--kanban-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.subProcessCurrent {
+  background: rgba(var(--kanban-orange-rgb), 0.08);
+  border-color: rgba(var(--kanban-orange-rgb), 0.48);
+}
+
+.subProcessCurrent .subProcessMarker {
+  background: var(--kanban-orange);
+  border-color: var(--kanban-orange);
+  color: #111;
+}
+
+.subProcessCurrent .subProcessContent strong {
+  color: #a34f00;
+}
+
+.subProcessDone:not(:last-child)::after {
+  background: #86efac;
+}
+
+.subProcessDone .subProcessMarker {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+.subProcessDone .subProcessContent > span,
+.subProcessDone .subProcessContent strong {
+  color: #166534;
+}
+
+.subProcessLocked {
+  background: #f8fafc;
+  color: var(--kanban-muted);
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.operatorModalLayer {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1070;
+}
+
+.operatorModal {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  max-width: min(100%, 28rem);
+  overflow: hidden;
+  width: 28rem;
+}
+
+.operatorModalHeader,
+.operatorModalFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.operatorModalHeader {
+  border-bottom: 1px solid var(--kanban-border);
+}
+
+.operatorModalHeader h3 {
+  color: var(--kanban-text);
+  font-size: 1.08rem;
+  margin: 0.2rem 0 0;
+}
+
+.operatorModalBody {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.operatorModalText {
+  color: var(--kanban-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.operatorModalBody label {
+  color: var(--kanban-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 850;
+  gap: 0.4rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.operatorModalBody textarea {
+  border: 1px solid #d7dee8;
+  border-radius: 0.55rem;
+  color: var(--kanban-text);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  resize: vertical;
+  text-transform: none;
+}
+
+.operatorModalBody textarea:focus {
+  border-color: var(--kanban-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--kanban-orange-rgb), 0.18);
+  outline: none;
+}
+
+.operatorModalError {
+  background: #fff1f0;
+  border: 1px solid #f1b5b5;
+  border-radius: 0.55rem;
+  color: #b02a37;
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.operatorModalFooter {
+  border-top: 1px solid var(--kanban-border);
+}
+
+.operatorModalFooter .orderCardButton {
+  margin: 0;
+  width: auto;
 }
 
 .commentForm {
@@ -630,7 +900,15 @@
   background: #f8fafc;
   border-radius: 0.55rem;
   color: var(--kanban-text);
+  display: grid;
+  gap: 0.25rem;
   padding: 0.55rem 0.65rem;
+}
+
+.commentList small {
+  color: var(--kanban-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .emptyComment {

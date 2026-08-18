@@ -20,6 +20,7 @@ export default function OrderCreatePage() {
     return (
       <main className={styles.page}>
         <OrderCreateSuccess
+          registeredOrder={flow.registeredOrder}
           onCreateAnother={actions.resetFlow}
           onGoKanban={actions.goToKanban}
         />
@@ -80,6 +81,7 @@ export default function OrderCreatePage() {
       {flow.showConfirmModal && (
         <OrderCreateConfirmModal
           draft={flow.draft}
+          isSubmitting={flow.isSubmitting}
           onCancel={() => actions.setShowConfirmModal(false)}
           onConfirm={actions.handleConfirmRegister}
         />

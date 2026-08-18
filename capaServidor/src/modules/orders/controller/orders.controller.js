@@ -87,7 +87,9 @@ class OrderController {
 
     createOrder = async (req = request, res = response) => {
         try {
-            const order = await this.service.createOrder(req.body ?? {});
+            const order = await this.service.createOrder(req.body ?? {}, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
 
             res.status(201).json(order);
         } catch (error) {

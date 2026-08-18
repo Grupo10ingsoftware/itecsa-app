@@ -1,6 +1,6 @@
 import styles from './OrderCreateConfirmModal.module.css'
 
-export default function OrderCreateConfirmModal({ draft, onCancel, onConfirm }) {
+export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel, onConfirm }) {
   const designFilesCount = draft.designFiles.length
 
   return (
@@ -52,9 +52,14 @@ export default function OrderCreateConfirmModal({ draft, onCancel, onConfirm }) 
               Cancelar
             </button>
 
-            <button className={styles.primaryButton} onClick={onConfirm} type="button">
+            <button 
+              className={styles.primaryButton} 
+              onClick={onConfirm} 
+              type="button"
+              disabled={isSubmitting}
+            >
               <i className="bi bi-check-circle" aria-hidden="true" />
-              Confirmar registro
+              {isSubmitting ? 'Registrando...' : 'Confirmar registro'}
             </button>
           </footer>
         </div>

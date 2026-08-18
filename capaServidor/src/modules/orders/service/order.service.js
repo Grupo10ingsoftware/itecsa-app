@@ -349,19 +349,19 @@ class OrderService {
     });
   }
 
-  async createOrder(data) {
+  async createOrder(data, options = {}) {
     const {
       rut_cliente,
       nombre_cliente,
       razon_social,
       estado_cliente,
-      id_usuario,
       id_etiqueta,
       productos,
     } = data;
+    const { auth0UserId } = options;
 
     if (
-      !id_usuario ||
+      !auth0UserId ||
       !rut_cliente ||
       !Array.isArray(productos) ||
       productos.length === 0
@@ -370,6 +370,8 @@ class OrderService {
       error.statusCode = 400;
       throw error;
     }
+
+    const resolvedUserId = await this.resolveInternalUserId({ auth0UserId });
 
     return this.runInTransaction(async ({
       repo,
@@ -404,7 +406,7 @@ class OrderService {
 
       const order = await repo.create({
         id_cliente: client.id_cliente,
-        id_usuario,
+        id_usuario: resolvedUserId,
         id_estado_pedido,
         id_estado_pago,
         id_etiqueta,

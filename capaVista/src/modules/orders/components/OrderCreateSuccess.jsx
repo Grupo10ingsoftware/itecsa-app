@@ -1,6 +1,6 @@
 import styles from './OrderCreateSuccess.module.css'
 
-export default function OrderCreateSuccess({ onGoKanban, onCreateAnother }) {
+export default function OrderCreateSuccess({ registeredOrder, onGoKanban, onCreateAnother }) {
   return (
     <section className={styles.successViewport} aria-labelledby="order-success-title">
       <div className={styles.successShell}>
@@ -12,6 +12,9 @@ export default function OrderCreateSuccess({ onGoKanban, onCreateAnother }) {
 
         <p className={styles.successText}>
           Tu pedido ha sido registrado exitosamente y se encuentra en proceso de confirmación de pago.
+          {registeredOrder?.id_pedido && (
+            <> Número de pedido: <strong>{registeredOrder.id_pedido}</strong></>
+          )}
         </p>
 
         <div className={styles.successActions}>

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { buildRegisteredOrder, DEFAULT_ORDER_DRAFT, MOCK_MANAGER_RECORDS } from '../modules/orders/mocks/orderCreate.mock'
+import { DEFAULT_ORDER_DRAFT, MOCK_MANAGER_RECORDS } from '../modules/orders/mocks/orderCreate.mock'
 import { canContinueFromSalesNote, validateDesignFiles, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
 import { normalizeSalesNoteCode } from '../modules/orders/utils/orderCreateFormatters'
+import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
 
 export const ORDER_CREATE_VIEW_MODE = Object.freeze({
   CREATE: 'CREATE',
@@ -16,6 +17,7 @@ function createInitialDraft() {
 }
 
 export function useOrderCreateFlow({ navigate }) {
+  const ordersApi = useOrdersApi()
   const [viewMode, setViewMode] = useState(ORDER_CREATE_VIEW_MODE.CREATE)
   const [currentStep, setCurrentStep] = useState(1)
   const [draft, setDraft] = useState(createInitialDraft)
@@ -24,6 +26,7 @@ export function useOrderCreateFlow({ navigate }) {
   const [notice, setNotice] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [registeredOrder, setRegisteredOrder] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const salesNoteIsValid = useMemo(() => canContinueFromSalesNote(draft), [draft])
 
@@ -161,18 +164,40 @@ export function useOrderCreateFlow({ navigate }) {
   }
 
   function handleConfirmRegister() {
-    const order = buildRegisteredOrder(draft)
-
-    try {
-      const currentOrders = JSON.parse(sessionStorage.getItem('ordersMock') || '[]')
-      sessionStorage.setItem('ordersMock', JSON.stringify([...currentOrders, order]))
-    } catch {
-      // Persistencia local solo para continuidad visual del flujo frontend.
+    if (!draft.managerRecord) {
+      setNotice({ type: 'error', message: 'Falta la informacion de la Nota de Venta.' })
+      return
     }
 
-    setRegisteredOrder(order)
-    setShowConfirmModal(false)
-    setViewMode(ORDER_CREATE_VIEW_MODE.SUCCESS)
+    const payload = {
+      rut_cliente: draft.managerRecord.rut,
+      nombre_cliente: draft.managerRecord.client,
+      razon_social: undefined,
+      estado_cliente: undefined,
+      id_etiqueta: null,
+      productos: [
+        {
+          nombre_producto: draft.managerRecord.productType,
+          cantidad: Number(draft.managerRecord.quantity),
+          fecha_estimada_termino: null,
+        },
+      ],
+    }
+
+    setIsSubmitting(true)
+    ordersApi.createOrder(payload)
+      .then((order) => {
+        setRegisteredOrder(order)
+        setShowConfirmModal(false)
+        setViewMode(ORDER_CREATE_VIEW_MODE.SUCCESS)
+      })
+      .catch((error) => {
+        const message = error?.payload?.message || error?.message || 'Error al registrar el pedido.'
+        setNotice({ type: 'error', message })
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
   function resetFlow() {
@@ -182,6 +207,8 @@ export function useOrderCreateFlow({ navigate }) {
     setDesignFileError(null)
     setNotice(null)
     setRegisteredOrder(null)
+    setShowConfirmModal(false)
+    setIsSubmitting(false)
     setViewMode(ORDER_CREATE_VIEW_MODE.CREATE)
   }
 
@@ -200,6 +227,7 @@ export function useOrderCreateFlow({ navigate }) {
     designFileError,
     draft,
     errors,
+    isSubmitting,
     notice,
     registeredOrder,
     salesNoteIsValid,

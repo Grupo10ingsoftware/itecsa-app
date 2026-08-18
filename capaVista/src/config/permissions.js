@@ -8,4 +8,5 @@ export const PERMISSIONS = Object.freeze({
   VIEW_ORDERS_MODULE: 'view:orders-module',
   UPDATE_PAYMENT_STATUS: 'update:payment-status',
   MOVE_KANBAN_TO_PRODUCTION: 'move:kanban-to-production',
+  MANAGE_ORDER_TAGS: 'manage:order-tags',
 })

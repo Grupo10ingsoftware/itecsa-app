@@ -11,6 +11,10 @@ const MOVE_TO_PRODUCTION_PERMISSION_MESSAGE = 'Solo un administrador puede mover
 const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
+const ORDER_TAG_IDS = Object.freeze({
+  urgency: 1,
+  contractPriority: 2,
+})
 
 const baseColumns = [
   {
@@ -97,6 +101,44 @@ function isPaymentConfirmed(order) {
   return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
 }
 
+function normalizeTagName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function normalizeTag(tag) {
+  return {
+    id: tag.id ?? tag.id_etiqueta,
+    name: tag.name ?? tag.nombre_etiqueta ?? '',
+    description: tag.description ?? tag.descripcion ?? '',
+    assignedAt: tag.assignedAt ?? tag.fecha_asignacion ?? null,
+    assignedByUserId: tag.assignedByUserId ?? tag.id_usuario_asigna ?? null,
+  }
+}
+
+function hasTag(tags, tagId, nameMatch) {
+  return tags.some((tag) => {
+    if (Number(tag.id) === Number(tagId)) return true
+
+    return nameMatch(normalizeTagName(tag.name))
+  })
+}
+
+function hasUrgencyTag(tags) {
+  return hasTag(tags, ORDER_TAG_IDS.urgency, (name) => name.includes('urgencia'))
+}
+
+function hasContractPriorityTag(tags) {
+  return hasTag(
+    tags,
+    ORDER_TAG_IDS.contractPriority,
+    (name) => name.includes('prioridad') && name.includes('contrato'),
+  )
+}
+
 function normalizeSubprocess(subprocess) {
   const id = subprocess.id_estado_subproceso ?? subprocess.id
 
@@ -172,6 +214,11 @@ function normalizeOrder(order) {
       : []),
     ...items.flatMap((item) => item.comments),
   ]
+  const tags = Array.isArray(order.etiquetas)
+    ? order.etiquetas.map(normalizeTag)
+    : Array.isArray(order.tags)
+      ? order.tags.map(normalizeTag)
+      : []
 
   return {
     id,
@@ -190,10 +237,41 @@ function normalizeOrder(order) {
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
     isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
+    etiquetas: tags,
+    hasUrgencyTag: Boolean(order.hasUrgencyTag ?? hasUrgencyTag(tags)),
+    hasContractPriority: Boolean(order.hasContractPriority ?? hasContractPriorityTag(tags)),
     items,
     subProcesses: items[0]?.subProcesses ?? [],
     comments,
   }
+}
+
+function getProductionPriority(order) {
+  if (order.hasContractPriority) return 0
+  if (order.hasUrgencyTag) return 1
+
+  return 2
+}
+
+function compareOrderIds(leftId, rightId) {
+  const leftNumber = Number(leftId)
+  const rightNumber = Number(rightId)
+
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber
+  }
+
+  return String(leftId).localeCompare(String(rightId))
+}
+
+function sortOrdersForColumn(orders) {
+  return [...orders].sort((left, right) => {
+    const priorityDifference = getProductionPriority(left) - getProductionPriority(right)
+
+    if (priorityDifference !== 0) return priorityDifference
+
+    return compareOrderIds(left.id, right.id)
+  })
 }
 
 function normalizeStatus(status) {
@@ -237,6 +315,7 @@ function KanbanColumn() {
   const [detailError, setDetailError] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
+  const [updatingTagOrderId, setUpdatingTagOrderId] = useState(null)
   const kanbanApi = useKanbanApi()
   const { hasPermission } = useAuth()
 
@@ -398,6 +477,65 @@ function KanbanColumn() {
     }
   }
 
+  function applyNormalizedOrder(normalizedOrder) {
+    setOrders((prevOrders) =>
+      prevOrders.map((currentOrder) =>
+        currentOrder.id === normalizedOrder.id
+          ? { ...currentOrder, ...normalizedOrder }
+          : currentOrder,
+      ),
+    )
+    setSelectedOrder((currentOrder) =>
+      currentOrder?.id === normalizedOrder.id
+        ? { ...currentOrder, ...normalizedOrder }
+        : currentOrder,
+    )
+  }
+
+  async function handleToggleTag(order, tagType) {
+    const tagId = ORDER_TAG_IDS[tagType]
+
+    if (!order?.id || !tagId) return
+
+    const isActive = tagType === 'urgency'
+      ? order.hasUrgencyTag
+      : order.hasContractPriority
+    const previousOrder = order
+
+    setMoveError(null)
+    setUpdatingTagOrderId(order.id)
+    setOrders((prevOrders) =>
+      prevOrders.map((currentOrder) =>
+        currentOrder.id === order.id
+          ? {
+              ...currentOrder,
+              hasUrgencyTag: tagType === 'urgency' ? !isActive : currentOrder.hasUrgencyTag,
+              hasContractPriority:
+                tagType === 'contractPriority' ? !isActive : currentOrder.hasContractPriority,
+            }
+          : currentOrder,
+      ),
+    )
+
+    try {
+      const updatedOrder = isActive
+        ? await kanbanApi.removeOrderTag(order.id, tagId)
+        : await kanbanApi.assignOrderTag(order.id, tagId)
+
+      applyNormalizedOrder(normalizeOrder(updatedOrder))
+    } catch (error) {
+      console.error('Error actualizando etiqueta de pedido:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible actualizar la etiqueta del pedido.')
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) =>
+          currentOrder.id === previousOrder.id ? previousOrder : currentOrder,
+        ),
+      )
+    } finally {
+      setUpdatingTagOrderId(null)
+    }
+  }
+
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
@@ -405,8 +543,10 @@ function KanbanColumn() {
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {
-            const columnOrders = orders.filter(
-              (order) => Number(column.generalStepId) === Number(order.generalStepId),
+            const columnOrders = sortOrdersForColumn(
+              orders.filter(
+                (order) => Number(column.generalStepId) === Number(order.generalStepId),
+              ),
             )
 
             return (
@@ -422,8 +562,11 @@ function KanbanColumn() {
                   ? columnOrders.map((order) => (
                       <KanbanCard
                         isMoveBlocked={!isPaymentConfirmed(order)}
+                        canManageTags={hasPermission(PERMISSIONS.MANAGE_ORDER_TAGS)}
+                        isUpdatingTags={updatingTagOrderId === order.id}
                         key={order.id}
                         onOpenDetail={() => loadOrderDetail(order)}
+                        onToggleTag={(tagType) => handleToggleTag(order, tagType)}
                         {...order}
                       />
                     ))

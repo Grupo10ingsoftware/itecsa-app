@@ -10,6 +10,15 @@ export function createKanbanApi(apiClient) {
           generalStepId,
         },
       }),
+    assignOrderTag: (orderId, tagId) =>
+      apiClient.post(
+        `/orders/${encodeURIComponent(orderId)}/tags/${encodeURIComponent(tagId)}`,
+      ),
+    removeOrderTag: (orderId, tagId) =>
+      apiClient.request(
+        `/orders/${encodeURIComponent(orderId)}/tags/${encodeURIComponent(tagId)}`,
+        { method: 'DELETE' },
+      ),
     completeSubprocess: (detailId, subprocessId, payload) =>
       apiClient.post(
         `/order-details/${encodeURIComponent(detailId)}/subprocesses/${encodeURIComponent(subprocessId)}/complete`,

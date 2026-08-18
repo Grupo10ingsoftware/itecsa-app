@@ -32,6 +32,18 @@ function toPrismaDate(value) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+function toPositiveInteger(value, fieldName) {
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    const error = new Error(`${fieldName} no valido`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsedValue;
+}
+
 class OrderService {
   constructor({
     repo,
@@ -180,6 +192,79 @@ class OrderService {
 
   async getAllOrders() {
     return this.repo.getAllOrders();
+  }
+
+  async resolveOptionalInternalUserId(auth0UserId) {
+    if (!auth0UserId) return null;
+
+    try {
+      const user = await this.userRepo.findByAuth0Id(auth0UserId);
+
+      return user?.idUsuario ?? null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async validateTagAssignment(orderId, tagId, { requireActiveTag = true } = {}) {
+    const resolvedOrderId = toPositiveInteger(orderId, "ID del pedido");
+    const resolvedTagId = toPositiveInteger(tagId, "ID de etiqueta");
+
+    const order = await this.repo.get(resolvedOrderId);
+
+    if (!order) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const tag = await this.repo.getTag(resolvedTagId);
+
+    if (!tag) {
+      const error = new Error("Etiqueta no encontrada");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (requireActiveTag && Number(tag.esta_activa) === 0) {
+      const error = new Error("La etiqueta no esta activa");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    return { orderId: resolvedOrderId, tagId: resolvedTagId };
+  }
+
+  async assignTag(orderId, tagId, options = {}) {
+    const {
+      orderId: resolvedOrderId,
+      tagId: resolvedTagId,
+    } = await this.validateTagAssignment(orderId, tagId);
+    const userId = await this.resolveOptionalInternalUserId(options.auth0UserId);
+    const updatedOrder = await this.repo.assignTag(
+      resolvedOrderId,
+      resolvedTagId,
+      userId,
+    );
+
+    if (!updatedOrder) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return updatedOrder;
+  }
+
+  async removeTag(orderId, tagId) {
+    const {
+      orderId: resolvedOrderId,
+      tagId: resolvedTagId,
+    } = await this.validateTagAssignment(orderId, tagId, {
+      requireActiveTag: false,
+    });
+
+    return this.repo.removeTag(resolvedOrderId, resolvedTagId);
   }
 
   async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {

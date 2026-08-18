@@ -59,6 +59,20 @@ function mapProductionComment(comment) {
   };
 }
 
+function mapOrderTag(orderTag) {
+  const tag = orderTag.etiqueta;
+
+  return {
+    id_etiqueta: tag?.id_etiqueta ?? orderTag.id_etiqueta ?? null,
+    nombre_etiqueta: tag?.nombre_etiqueta ?? null,
+    descripcion: tag?.descripcion ?? null,
+    esta_activa: tag?.esta_activa ?? null,
+    fecha_asignacion: orderTag.fecha_asignacion ?? null,
+    id_usuario_asigna: orderTag.id_usuario_asigna ?? null,
+    usuario_asigna: mapUserSummary(orderTag.Usuario),
+  };
+}
+
 function getCompletedSubprocessById(records = []) {
   return new Map(
     records
@@ -188,6 +202,7 @@ function mapOrderRow(order, paymentStatusName = null) {
     Documento,
     Detalle_pedido,
     Estado_Pedido,
+    Pedido_Etiqueta,
     ...orderFields
   } = order;
   const salesNoteDocument = findSalesNoteDocument(Documento);
@@ -209,6 +224,9 @@ function mapOrderRow(order, paymentStatusName = null) {
     id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
     nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
     estado_pago: paymentStatusName,
+    etiquetas: Array.isArray(Pedido_Etiqueta)
+      ? Pedido_Etiqueta.map(mapOrderTag)
+      : [],
     ruta_pdf: buildSalesNotePdfUrl(salesNoteDocument?.ruta_pdf),
     numero_nota_venta:
       salesNoteDocument?.Nota_Venta?.numero_nota_venta ?? null,
@@ -253,6 +271,20 @@ const orderListReadInclude = {
     },
   },
   Estado_Pedido: true,
+  Pedido_Etiqueta: {
+    include: {
+      etiqueta: true,
+      Usuario: {
+        select: {
+          id_usuario: true,
+          correo_usuario: true,
+          nombre_usuario: true,
+          apellido_usuario: true,
+        },
+      },
+    },
+    orderBy: { fecha_asignacion: "asc" },
+  },
 };
 
 const orderDetailReadInclude = {
@@ -457,6 +489,45 @@ class OrderRepository {
     }
 
     return this.get(id);
+  }
+
+  async getTag(id) {
+    return this.client.etiqueta.findUnique({
+      where: { id_etiqueta: Number(id) },
+    });
+  }
+
+  async assignTag(orderId, tagId, userId = null) {
+    try {
+      await this.client.pedido_Etiqueta.createMany({
+        data: [
+          {
+            id_pedido: Number(orderId),
+            id_etiqueta: Number(tagId),
+            id_usuario_asigna: userId === null || userId === undefined
+              ? null
+              : Number(userId),
+          },
+        ],
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      if (error?.code === "P2003") return null;
+      throw error;
+    }
+
+    return this.get(orderId);
+  }
+
+  async removeTag(orderId, tagId) {
+    await this.client.pedido_Etiqueta.deleteMany({
+      where: {
+        id_pedido: Number(orderId),
+        id_etiqueta: Number(tagId),
+      },
+    });
+
+    return this.get(orderId);
   }
 }
 

@@ -4,6 +4,7 @@ import { test } from "node:test";
 import express from "express";
 import {
     KANBAN_STAGE_SKIP_MESSAGE,
+    MANAGE_ORDER_TAGS_PERMISSION,
     PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
 } from "../src/config/status.js";
 import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
@@ -45,6 +46,16 @@ function authenticate(req, res, next) {
     next();
 }
 
+function authenticateWithOrderTags(req, res, next) {
+    req.auth = {
+        payload: {
+            sub: "auth0|test-user",
+            permissions: [MANAGE_ORDER_TAGS_PERMISSION],
+        },
+    };
+    next();
+}
+
 function createController(overrides = {}) {
     return {
         getOrders(req, res) {
@@ -63,6 +74,18 @@ function createController(overrides = {}) {
             return res.status(200).json({
                 id_pedido: Number(req.params.orderId),
                 id_etapa_general: Number(req.body.generalStepId),
+            });
+        },
+        assignTag(req, res) {
+            return res.status(200).json({
+                id_pedido: Number(req.params.orderId),
+                etiquetas: [{ id_etiqueta: Number(req.params.tagId) }],
+            });
+        },
+        removeTag(req, res) {
+            return res.status(200).json({
+                id_pedido: Number(req.params.orderId),
+                etiquetas: [],
             });
         },
         ...overrides,
@@ -167,4 +190,63 @@ test("PATCH move devuelve el mensaje si se intenta saltar etapas", async (t) => 
 
     assert.equal(response.status, 409);
     assert.deepEqual(body, { message: KANBAN_STAGE_SKIP_MESSAGE });
+});
+
+test("POST tag exige permiso manage:order-tags", async (t) => {
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate,
+            controller: createController(),
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/6/tags/1`,
+        { method: "POST" },
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 403);
+    assert.equal(body.message, "El usuario autenticado no tiene el permiso requerido.");
+});
+
+test("POST tag asigna etiqueta cuando el token trae manage:order-tags", async (t) => {
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate: authenticateWithOrderTags,
+            controller: createController(),
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/6/tags/1`,
+        { method: "POST" },
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.id_pedido, 6);
+    assert.deepEqual(body.etiquetas, [{ id_etiqueta: 1 }]);
+});
+
+test("DELETE tag quita etiqueta cuando el token trae manage:order-tags", async (t) => {
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate: authenticateWithOrderTags,
+            controller: createController(),
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/6/tags/1`,
+        { method: "DELETE" },
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.id_pedido, 6);
+    assert.deepEqual(body.etiquetas, []);
 });

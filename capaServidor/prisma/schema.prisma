@@ -103,9 +103,10 @@ model Documento {
 }
 
 model Estado_Pago {
-  id_estado_Pago          Int     @id @default(autoincrement())
-  nombre_estado_pago      String? @db.VarChar(45)
-  descripcion_estado_pago String? @db.VarChar(105)
+  id_estado_Pago          Int       @id @default(autoincrement()) @map("id_estado_pago")
+  nombre_estado_pago      String?   @db.VarChar(45)
+  descripcion_estado_pago String?   @db.VarChar(105)
+  Pedidos                 Pedidos[]
 }
 
 model Estado_Pedido {
@@ -190,7 +191,9 @@ model Pedidos {
   id_etiqueta            Int?
   Detalle_pedido         Detalle_pedido[]
   Documento              Documento[]
+  Pedido_Etiqueta        Pedido_Etiqueta[]
   Cliente                Cliente?          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "id_cliente")
+  Estado_Pago            Estado_Pago?      @relation(fields: [id_estado_pago], references: [id_estado_Pago], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pago_FK")
   Estado_Pedido          Estado_Pedido?    @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
   etiqueta               etiqueta?         @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: NoAction, onUpdate: NoAction, map: "id_etiqueta")
   Usuario                Usuario?          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "id_usuario")
@@ -268,6 +271,7 @@ model Usuario {
   Comentario_Produccion Comentario_Produccion[]
   Firma_Documento       Firma_Documento[]
   Historial_Usuario     Historial_Usuario[]
+  Pedido_Etiqueta       Pedido_Etiqueta[]
   Pedidos               Pedidos[]
   Registro_Etapas       Registro_Etapas[]
   Registro_Pago         Registro_Pago[]
@@ -275,10 +279,11 @@ model Usuario {
 }
 
 model etiqueta {
-  id_etiqueta     Int       @id
-  nombre_etiqueta String?   @db.VarChar(100)
-  descripcion     String?   @db.Text
-  esta_activa     Int?      @db.TinyInt
+  id_etiqueta     Int               @id
+  nombre_etiqueta String?           @db.VarChar(100)
+  descripcion     String?           @db.Text
+  esta_activa     Int?              @db.TinyInt
+  Pedido_Etiqueta Pedido_Etiqueta[]
   Pedidos         Pedidos[]
 }
 
@@ -296,6 +301,20 @@ model registro_subprocesos {
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")
   @@index([id_estado_subproceso], map: "id_estado_subproceso_idx")
   @@index([id_usuario], map: "id_usuario_idx")
+}
+
+model Pedido_Etiqueta {
+  id_pedido         Int
+  id_etiqueta       Int
+  fecha_asignacion  DateTime @default(now()) @db.DateTime(0)
+  id_usuario_asigna Int?
+  etiqueta          etiqueta @relation(fields: [id_etiqueta], references: [id_etiqueta], map: "Pedido_Etiqueta_Etiqueta_FK")
+  Pedidos           Pedidos  @relation(fields: [id_pedido], references: [id_pedido], onDelete: Cascade, map: "Pedido_Etiqueta_Pedidos_FK")
+  Usuario           Usuario? @relation(fields: [id_usuario_asigna], references: [id_usuario], map: "Pedido_Etiqueta_Usuario_FK")
+
+  @@id([id_pedido, id_etiqueta])
+  @@index([id_etiqueta], map: "Pedido_Etiqueta_Etiqueta_FK")
+  @@index([id_usuario_asigna], map: "Pedido_Etiqueta_Usuario_FK")
 }
 
 enum Dise_o_Tarjeta_tipo_tarjeta {

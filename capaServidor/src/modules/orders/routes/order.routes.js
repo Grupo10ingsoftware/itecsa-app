@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    MANAGE_ORDER_TAGS_PERMISSION,
     UPDATE_PAYMENT_STATUS_PERMISSION,
 } from "../../../config/status.js";
 import checkJwt from "../../../middlewares/checkJwt.js";
@@ -13,6 +14,7 @@ export function createOrderRouter({
     authorizePaymentStatusUpdate = requirePermission(
         UPDATE_PAYMENT_STATUS_PERMISSION,
     ),
+    authorizeOrderTags = requirePermission(MANAGE_ORDER_TAGS_PERMISSION),
     controller = new OrderController(),
 } = {}) {
     const router = Router();
@@ -31,6 +33,8 @@ export function createOrderRouter({
             controller.updatePaymentStatus ?? fallbackController.updatePaymentStatus,
         updateGeneralStep:
             controller.updateGeneralStep ?? fallbackController.updateGeneralStep,
+        assignTag: controller.assignTag ?? fallbackController.assignTag,
+        removeTag: controller.removeTag ?? fallbackController.removeTag,
     };
 
     router.get("/", authenticate, routeController.getOrders);
@@ -57,6 +61,18 @@ export function createOrderRouter({
         routeController.updatePaymentStatus,
     );
     router.patch("/:orderId/move", authenticate, routeController.updateGeneralStep);
+    router.post(
+        "/:orderId/tags/:tagId",
+        authenticate,
+        authorizeOrderTags,
+        routeController.assignTag,
+    );
+    router.delete(
+        "/:orderId/tags/:tagId",
+        authenticate,
+        authorizeOrderTags,
+        routeController.removeTag,
+    );
 
     return router;
 }

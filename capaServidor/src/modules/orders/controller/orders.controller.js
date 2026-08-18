@@ -166,6 +166,38 @@ class OrderController {
         }
     }
 
+    assignTag = async (req = request, res = response) => {
+        try {
+            const { orderId, tagId } = req.params;
+            const result = await this.service.assignTag(orderId, tagId, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
+
+            res.status(200).json(result);
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            res.status(statusCode).json({
+                message: error.message || "Error al asignar etiqueta al pedido",
+            });
+        }
+    }
+
+    removeTag = async (req = request, res = response) => {
+        try {
+            const { orderId, tagId } = req.params;
+            const result = await this.service.removeTag(orderId, tagId);
+
+            res.status(200).json(result);
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            res.status(statusCode).json({
+                message: error.message || "Error al quitar etiqueta del pedido",
+            });
+        }
+    }
+
 
 
 }

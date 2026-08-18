@@ -87,8 +87,17 @@ class OrderController {
 
     createOrder = async (req = request, res = response) => {
         try {
+            if (!req.auth?.payload?.sub) {
+                return res.status(401).json({
+                    message: 'No autenticado. Debe iniciar sesión para registrar un pedido.',
+                });
+            }
+
+            console.log('createOrder body:', req.body);
+            console.log('createOrder auth0UserId:', req.auth.payload.sub);
+
             const order = await this.service.createOrder(req.body ?? {}, {
-                auth0UserId: req.auth?.payload?.sub,
+                auth0UserId: req.auth.payload.sub,
             });
 
             res.status(201).json(order);

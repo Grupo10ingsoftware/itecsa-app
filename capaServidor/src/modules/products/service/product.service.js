@@ -49,13 +49,11 @@ class ProductTypeService {
     const productType = await this.repo.getByName(nombreProducto);
 
     if (!productType) {
-      const error = new Error("Tipo de producto no encontrado");
-      error.statusCode = 404;
-      throw error;
+      return this.repo.create({ nombre_producto: nombreProducto });
     }
 
     return productType;
-}
+  }
 
 }
 

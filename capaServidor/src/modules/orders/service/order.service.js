@@ -360,13 +360,23 @@ class OrderService {
     } = data;
     const { auth0UserId } = options;
 
-    if (
-      !auth0UserId ||
-      !rut_cliente ||
-      !Array.isArray(productos) ||
-      productos.length === 0
-    ) {
-      const error = new Error("Faltan datos obligatorios para crear el pedido.");
+    console.log('createOrder data:', { rut_cliente, nombre_cliente, razon_social, estado_cliente, id_etiqueta, productos });
+    console.log('createOrder auth0UserId:', auth0UserId);
+
+    if (!auth0UserId) {
+      const error = new Error("No se pudo determinar el usuario autenticado.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    if (!rut_cliente) {
+      const error = new Error("El RUT del cliente es obligatorio para crear el pedido.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!Array.isArray(productos) || productos.length === 0) {
+      const error = new Error("Debe incluir al menos un producto en el pedido.");
       error.statusCode = 400;
       throw error;
     }

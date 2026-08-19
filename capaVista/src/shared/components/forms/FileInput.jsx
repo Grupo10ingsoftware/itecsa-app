@@ -3,7 +3,7 @@ import styles from './FileInput.module.css'
 
 /**
  * FileInput — componente reutilizable de carga de archivos con validación visual.
- * Diseñado principalmente para archivos PDF (Nota de Venta y archivos de diseño).
+ * Diseñado principalmente para archivos PDF.
  *
  * @param {string}              label           — etiqueta visible del campo
  * @param {File|null}           file            — archivo seleccionado actualmente

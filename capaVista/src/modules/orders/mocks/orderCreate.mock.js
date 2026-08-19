@@ -6,11 +6,6 @@ export const ORDER_FLOW_STEPS = Object.freeze([
   },
   {
     id: 2,
-    title: 'Archivos de Diseño',
-    subtitle: 'Adjunte archivos opcionales',
-  },
-  {
-    id: 3,
     title: 'Revisión y Registro',
     subtitle: 'Revise y registre el pedido',
   },
@@ -56,7 +51,6 @@ export const MOCK_MANAGER_RECORDS = Object.freeze({
 export const DEFAULT_ORDER_DRAFT = Object.freeze({
   salesNoteCode: '',
   salesNotePdf: null,
-  designFiles: Object.freeze([]),
   comments: '',
   managerRecord: null,
 })
@@ -85,13 +79,6 @@ export function buildRegisteredOrder(draft) {
           uploadedAt: now.toLocaleString('es-CL'),
         }
       : null,
-    designFiles: draft.designFiles.map((file, index) => ({
-      id: `${file.name}-${index}`,
-      name: file.name,
-      type: file.name.split('.').pop()?.toUpperCase() || 'Archivo',
-      sizeLabel: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      uploadedAt: now.toLocaleString('es-CL'),
-    })),
     comments: draft.comments,
     createdBy: 'Usuario Auditoría',
     createdAt: now.toLocaleString('es-CL'),

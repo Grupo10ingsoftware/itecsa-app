@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { DEFAULT_ORDER_DRAFT, MOCK_MANAGER_RECORDS } from '../modules/orders/mocks/orderCreate.mock'
-import { canContinueFromSalesNote, validateDesignFiles, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
+import { canContinueFromSalesNote, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
 import { normalizeSalesNoteCode } from '../modules/orders/utils/orderCreateFormatters'
 import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
 
@@ -12,7 +12,6 @@ export const ORDER_CREATE_VIEW_MODE = Object.freeze({
 function createInitialDraft() {
   return {
     ...DEFAULT_ORDER_DRAFT,
-    designFiles: [],
   }
 }
 
@@ -22,7 +21,6 @@ export function useOrderCreateFlow({ navigate }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [draft, setDraft] = useState(createInitialDraft)
   const [errors, setErrors] = useState({})
-  const [designFileError, setDesignFileError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [registeredOrder, setRegisteredOrder] = useState(null)
@@ -71,7 +69,7 @@ export function useOrderCreateFlow({ navigate }) {
     setNotice({ type: 'success', message: `Informacion de ${code} importada correctamente.` })
   }
 
-  function goToDesignStep() {
+  function goToReviewStep() {
     const salesNoteErrors = validateSalesNoteStep(draft)
 
     if (Object.keys(salesNoteErrors).length > 0) {
@@ -84,64 +82,6 @@ export function useOrderCreateFlow({ navigate }) {
     }
 
     setCurrentStep(2)
-    setNotice(null)
-  }
-
-  function handleAddDesignFiles(files) {
-    if (!files.length) return
-
-    const nextFiles = [...draft.designFiles, ...files]
-    const validationError = validateDesignFiles(nextFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      return
-    }
-
-    setDesignFileError(null)
-    setDraft((previous) => ({ ...previous, designFiles: [...previous.designFiles, ...files] }))
-  }
-
-  function handleRemoveDesignFile(indexToRemove) {
-    setDraft((previous) => ({
-      ...previous,
-      designFiles: previous.designFiles.filter((_, index) => index !== indexToRemove),
-    }))
-  }
-
-  function handleReplaceDesignFile(indexToReplace, replacementFile) {
-    if (!replacementFile) return
-
-    const nextFiles = draft.designFiles.map((file, index) => (
-      index === indexToReplace ? replacementFile : file
-    ))
-    const validationError = validateDesignFiles(nextFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      return
-    }
-
-    setDesignFileError(null)
-    setDraft((previous) => ({
-      ...previous,
-      designFiles: previous.designFiles.map((file, index) => (
-        index === indexToReplace ? replacementFile : file
-      )),
-    }))
-  }
-
-  function goToReviewStep() {
-    const validationError = validateDesignFiles(draft.designFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      setNotice({ type: 'error', message: 'Revise los archivos de diseno antes de continuar.' })
-      return
-    }
-
-    setDesignFileError(null)
-    setCurrentStep(3)
     setNotice(null)
   }
 
@@ -204,7 +144,6 @@ export function useOrderCreateFlow({ navigate }) {
     setCurrentStep(1)
     setDraft(createInitialDraft())
     setErrors({})
-    setDesignFileError(null)
     setNotice(null)
     setRegisteredOrder(null)
     setShowConfirmModal(false)
@@ -217,14 +156,11 @@ export function useOrderCreateFlow({ navigate }) {
   }
 
   const continueFromCurrentStep = currentStep === 1
-    ? goToDesignStep
-    : currentStep === 2
-      ? goToReviewStep
-      : handleOpenConfirmModal
+    ? goToReviewStep
+    : handleOpenConfirmModal
 
   return {
     currentStep,
-    designFileError,
     draft,
     errors,
     isSubmitting,
@@ -237,11 +173,8 @@ export function useOrderCreateFlow({ navigate }) {
       continueFromCurrentStep,
       goBackOneStep,
       goToKanban,
-      handleAddDesignFiles,
       handleConfirmRegister,
       handleOpenConfirmModal,
-      handleRemoveDesignFile,
-      handleReplaceDesignFile,
       handleSearchSalesNote,
       resetFlow,
       setShowConfirmModal,

@@ -69,17 +69,15 @@ function RequirementItem({ index, title, value, statusType, statusLabel, complet
 }
 
 function getPrimaryLabel(currentStep) {
-  if (currentStep === 3) return 'Registrar pedido'
+  if (currentStep === 2) return 'Registrar pedido'
   return 'Continuar'
 }
 
 export default function OrderRequirementSummary({ draft, currentStep, canContinue, onContinue, onBack }) {
   const hasSalesNoteCode = Boolean(draft.salesNoteCode?.trim())
   const hasPdf = Boolean(draft.salesNotePdf)
-  const designFilesCount = draft.designFiles.length
   const primaryLabel = getPrimaryLabel(currentStep)
   const primaryDisabled = currentStep === 1 && !canContinue
-  const hasDesignFiles = designFilesCount > 0
 
   return (
     <aside className={styles.sidePanel}>
@@ -107,17 +105,6 @@ export default function OrderRequirementSummary({ draft, currentStep, canContinu
             statusType={hasPdf ? 'success' : 'pending'}
             title="Archivo de Nota de Venta"
             value={hasPdf ? draft.salesNotePdf.name : ''}
-          />
-
-          <RequirementItem
-            completed={hasDesignFiles}
-            icon="bi-folder"
-            index={3}
-            muted={!hasDesignFiles}
-            statusLabel={hasDesignFiles ? 'Completado' : 'Opcional'}
-            statusType={hasDesignFiles ? 'success' : 'optional'}
-            title="Archivos de Diseño"
-            value={hasDesignFiles ? `${designFilesCount} archivo(s)` : ''}
           />
         </div>
 

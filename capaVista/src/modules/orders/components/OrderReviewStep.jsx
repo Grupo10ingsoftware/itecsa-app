@@ -51,30 +51,6 @@ export default function OrderReviewStep({ draft, onCommentsChange }) {
               </button>
             </div>
           </section>
-
-          <section className={styles.reviewCard} aria-labelledby="review-design-title">
-            <h2 className={styles.cardTitle} id="review-design-title">
-              <i className="bi bi-paperclip" aria-hidden="true" />
-              Archivos de Diseño ({draft.designFiles.length})
-            </h2>
-            {draft.designFiles.length > 0 ? (
-              <div className={styles.documentsList}>
-                {draft.designFiles.map((file, index) => (
-                  <div className={styles.documentRow} key={`${file.name}-${file.size}-${index}`}>
-                    <span className={`${styles.fileIcon} ${styles.fileIconGeneric}`}>
-                      <i className="bi bi-file-earmark" aria-hidden="true" />
-                    </span>
-                    <span>
-                      <p className={styles.fileTitle}>{file.name}</p>
-                      <p className={styles.fileMeta}>{formatFileSize(file.size)} · Listo para revisión</p>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.helperText}>No se adjuntaron archivos de diseño opcionales.</p>
-            )}
-          </section>
         </div>
 
         <section className={styles.observationsCard} aria-labelledby="review-comments-title">

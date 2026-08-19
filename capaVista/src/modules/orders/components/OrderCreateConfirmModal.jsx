@@ -1,7 +1,6 @@
 import styles from './OrderCreateConfirmModal.module.css'
 
 export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel, onConfirm }) {
-  const designFilesCount = draft.designFiles.length
 
   return (
     <div className={styles.modalBackdrop} role="presentation">
@@ -35,14 +34,6 @@ export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel,
               </span>
               <strong>Nota de Venta (PDF)</strong>
               <span>Adjunta</span>
-            </div>
-
-            <div className={styles.modalSummaryRow}>
-              <span className={styles.summaryIcon}>
-                <i className="bi bi-folder" aria-hidden="true" />
-              </span>
-              <strong>Archivos de Diseño</strong>
-              <span>{designFilesCount} archivo(s) opcional(es)</span>
             </div>
           </div>
 

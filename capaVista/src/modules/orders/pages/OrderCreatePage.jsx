@@ -6,7 +6,6 @@ import OrderCreateSuccess from '../components/OrderCreateSuccess'
 import OrderNotice from '../components/OrderNotice'
 import OrderRequirementSummary from '../components/OrderRequirementSummary'
 import SalesNoteStep from '../components/SalesNoteStep'
-import DesignFilesStep from '../components/DesignFilesStep'
 import OrderReviewStep from '../components/OrderReviewStep'
 import { ORDER_CREATE_VIEW_MODE, useOrderCreateFlow } from '../../../hooks/useOrderCreateFlow'
 import styles from './OrderCreatePage.module.css'
@@ -50,16 +49,6 @@ export default function OrderCreatePage() {
               )}
 
               {flow.currentStep === 2 && (
-                <DesignFilesStep
-                  draft={flow.draft}
-                  error={flow.designFileError}
-                  onFileRemove={actions.handleRemoveDesignFile}
-                  onFileReplace={actions.handleReplaceDesignFile}
-                  onFilesAdd={actions.handleAddDesignFiles}
-                />
-              )}
-
-              {flow.currentStep === 3 && (
                 <OrderReviewStep
                   draft={flow.draft}
                   onCommentsChange={(value) => actions.updateDraftField('comments', value)}

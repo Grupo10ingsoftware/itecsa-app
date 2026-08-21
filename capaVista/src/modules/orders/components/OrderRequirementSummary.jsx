@@ -1,141 +1,98 @@
 import styles from './OrderRequirementSummary.module.css'
+import { getOrderPriorityMeta } from '../mocks/orderCreate.mock'
 
-function SummaryStatus({ type, children }) {
-  const statusClassName = [
-    styles.summaryStatus,
-    type === 'success' ? styles.summaryStatusSuccess : '',
-    type === 'pending' ? styles.summaryStatusPending : '',
-    type === 'optional' ? styles.summaryStatusOptional : '',
-  ].filter(Boolean).join(' ')
-
-  const iconClassName = {
-    success: 'bi-check-circle',
-    pending: 'bi-clock',
-    optional: 'bi-folder',
-  }[type]
-
+function SummaryStatus({ completed, children }) {
   return (
-    <span className={statusClassName}>
-      <i className={`bi ${iconClassName}`} aria-hidden="true" />
+    <span className={styles.summaryStatus + ' ' + (completed ? styles.summaryStatusSuccess : styles.summaryStatusPending)}>
+      <i className={'bi ' + (completed ? 'bi-check-circle' : 'bi-clock')} aria-hidden="true" />
       {children}
     </span>
   )
 }
 
-function SummaryMarker({ completed, index, icon, muted }) {
-  if (completed) {
-    return (
-      <span className={`${styles.summaryMarker} ${styles.summaryMarkerSuccess}`}>
-        <i className="bi bi-check-lg" aria-hidden="true" />
-      </span>
-    )
-  }
-
-  const markerClassName = [
-    styles.summaryMarker,
-    muted ? styles.summaryMarkerMuted : '',
-  ].filter(Boolean).join(' ')
-
-  if (icon) {
-    return (
-      <span className={markerClassName}>
-        <i className={`bi ${icon}`} aria-hidden="true" />
-      </span>
-    )
-  }
-
-  return <span className={markerClassName}>{index}</span>
-}
-
-function RequirementItem({ index, title, value, statusType, statusLabel, completed, icon, muted }) {
+function RequirementItem({ index, title, value, completed, icon, valueTone }) {
   return (
     <div className={styles.summaryRequirementRow}>
-      <SummaryMarker completed={completed} icon={icon} index={index} muted={muted} />
-
+      <span className={styles.summaryMarker + (completed ? ' ' + styles.summaryMarkerSuccess : '')}>
+        {completed ? <i className="bi bi-check-lg" aria-hidden="true" /> : icon ? <i className={'bi ' + icon} aria-hidden="true" /> : index}
+      </span>
       <div className={styles.summaryRequirementContent}>
         <div className={styles.summaryRequirementHeader}>
           <strong>{title}</strong>
-          <SummaryStatus type={statusType}>{statusLabel}</SummaryStatus>
+          <SummaryStatus completed={completed}>{completed ? 'Listo' : 'Pendiente'}</SummaryStatus>
         </div>
-
-        {value ? (
-          <small>{value}</small>
-        ) : (
-          <small className={styles.summaryRequirementEmptyValue} aria-hidden="true">&nbsp;</small>
-        )}
+        <small
+          className={
+            (!value ? styles.summaryRequirementEmptyValue : '')
+            + (valueTone ? ' ' + styles['priorityValue_' + valueTone] : '')
+          }
+        >
+          {value || 'Sin información'}
+        </small>
       </div>
     </div>
   )
 }
 
-function getPrimaryLabel(currentStep) {
-  if (currentStep === 3) return 'Registrar pedido'
-  return 'Continuar'
-}
-
-export default function OrderRequirementSummary({ draft, currentStep, canContinue, onContinue, onBack }) {
+export default function OrderRequirementSummary({ draft, canRegister, isSearching, onRegister }) {
   const hasSalesNoteCode = Boolean(draft.salesNoteCode?.trim())
-  const hasPdf = Boolean(draft.salesNotePdf)
-  const designFilesCount = draft.designFiles.length
-  const primaryLabel = getPrimaryLabel(currentStep)
-  const primaryDisabled = currentStep === 1 && !canContinue
-  const hasDesignFiles = designFilesCount > 0
+  const hasImportedData = Boolean(draft.managerRecord)
+  const primaryDisabled = !canRegister || isSearching
+  const priority = getOrderPriorityMeta(draft.priority)
 
   return (
     <aside className={styles.sidePanel}>
       <section className={styles.summaryPanelMinimal} aria-labelledby="order-register-summary-title">
         <h2 className={styles.summaryPanelTitle} id="order-register-summary-title">
-          <i className="bi bi-clipboard2-data" aria-hidden="true" />
-          Resumen del registro
+          <i className="bi bi-clipboard2-check" aria-hidden="true" />
+          Resumen del pedido
         </h2>
 
         <div className={styles.summaryRequirementGroup}>
           <RequirementItem
             completed={hasSalesNoteCode}
             index={1}
-            statusLabel={hasSalesNoteCode ? 'Completado' : 'Pendiente'}
-            statusType={hasSalesNoteCode ? 'success' : 'pending'}
             title="Código de Nota de Venta"
             value={hasSalesNoteCode ? draft.salesNoteCode : ''}
           />
-
           <RequirementItem
-            completed={hasPdf}
-            icon="bi-file-earmark-pdf"
+            completed={hasImportedData}
+            icon="bi-cloud-check"
             index={2}
-            statusLabel={hasPdf ? 'Completado' : 'Pendiente'}
-            statusType={hasPdf ? 'success' : 'pending'}
-            title="Archivo de Nota de Venta"
-            value={hasPdf ? draft.salesNotePdf.name : ''}
+            title="Datos desde Manager"
+            value={hasImportedData ? draft.managerRecord.client : ''}
           />
-
           <RequirementItem
-            completed={hasDesignFiles}
-            icon="bi-folder"
+            completed={hasImportedData}
+            icon="bi-hourglass-split"
             index={3}
-            muted={!hasDesignFiles}
-            statusLabel={hasDesignFiles ? 'Completado' : 'Opcional'}
-            statusType={hasDesignFiles ? 'success' : 'optional'}
-            title="Archivos de Diseño"
-            value={hasDesignFiles ? `${designFilesCount} archivo(s)` : ''}
+            title="Estado inicial"
+            value={hasImportedData ? 'Confirmación de pago' : ''}
+          />
+          <RequirementItem
+            completed={Boolean(draft.priority)}
+            icon="bi-flag-fill"
+            index={4}
+            title="Prioridad"
+            value={priority.label}
+            valueTone={priority.tone}
           />
         </div>
 
         <div className={styles.summaryActionStack}>
           <button
-            className={primaryDisabled ? `${styles.summaryPrimaryButton} ${styles.disabledButton}` : styles.summaryPrimaryButton}
+            className={styles.summaryPrimaryButton + (primaryDisabled ? ' ' + styles.disabledButton : '')}
             disabled={primaryDisabled}
-            onClick={onContinue}
+            onClick={onRegister}
             type="button"
           >
-            <span>{primaryLabel}</span>
+            <i className="bi bi-plus-circle" aria-hidden="true" />
+            <span>{isSearching ? 'Consultando...' : 'Registrar pedido'}</span>
           </button>
-
-          {currentStep > 1 && (
-            <button className={styles.summaryBackButton} onClick={onBack} type="button">
-              Volver
-            </button>
-          )}
+          <p className={styles.summaryHint}>
+            <i className="bi bi-shield-check" aria-hidden="true" />
+            El pedido quedará pendiente de confirmación de pago.
+          </p>
         </div>
       </section>
     </aside>

@@ -125,6 +125,103 @@
   white-space: nowrap;
 }
 
+.modalSummaryRow .priorityBadge {
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+}
+
+.priorityBadge[data-tone='normal'] {
+  background: #fff;
+  color: #334155;
+}
+
+.priorityBadge[data-tone='rush'] {
+  background: #fef3c7;
+  border-color: #f6cf65;
+  color: #92400e;
+}
+
+.priorityBadge[data-tone='vip'] {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.pinField {
+  background: rgba(var(--orders-orange-rgb), 0.06);
+  border: 1px dashed var(--orders-orange-border);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+}
+
+.pinHeading {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.pinHeading label {
+  color: var(--orders-text);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.pinHeading span {
+  background: var(--orders-orange-soft);
+  border-radius: 999px;
+  color: #c2410c;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  padding: 0.28rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.pinInputWrap {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.45rem;
+  display: flex;
+  min-height: 2.75rem;
+  overflow: hidden;
+}
+
+.pinInputWrap i {
+  color: var(--orders-orange);
+  font-size: 1.05rem;
+  padding-left: 0.85rem;
+}
+
+.pinInputWrap input {
+  background: transparent;
+  border: 0;
+  color: var(--orders-text);
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  min-width: 0;
+  outline: 0;
+  padding: 0.7rem 0.85rem;
+}
+
+.pinInputWrap:focus-within {
+  border-color: var(--orders-orange);
+  box-shadow: 0 0 0 3px var(--orders-orange-soft);
+}
+
+.pinField small {
+  color: var(--orders-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .modalActions {
   align-items: center;
   display: flex;
@@ -191,6 +288,10 @@
   .modalActions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .pinHeading {
+    align-items: flex-start;
   }
 
   .secondaryButton,

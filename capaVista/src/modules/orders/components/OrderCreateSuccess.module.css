@@ -46,6 +46,75 @@
   max-width: 40rem;
 }
 
+.successReference {
+  background: #f8fafc;
+  border: 1px solid var(--orders-border);
+  border-radius: 0.85rem;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 1.6rem auto 0;
+  max-width: 44rem;
+  overflow: hidden;
+  text-align: left;
+}
+
+.successReference span {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.9rem 1rem;
+}
+
+.successReference span + span {
+  border-left: 1px solid var(--orders-border);
+}
+
+.successReference small {
+  color: var(--orders-muted);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.successReference strong {
+  color: var(--orders-text);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.successReference span:nth-child(2) strong,
+.successReference span:nth-child(3) strong {
+  line-height: 1.25;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.successReference .priorityLabel {
+  border-radius: 999px;
+  justify-self: start;
+  padding: 0.2rem 0.55rem;
+}
+
+.priorityLabel[data-tone='normal'] {
+  background: #fff;
+  border: 1px solid #dbe3ef;
+}
+
+.priorityLabel[data-tone='rush'] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.priorityLabel[data-tone='vip'] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .successActions {
   display: flex;
   flex-wrap: wrap;
@@ -118,6 +187,15 @@
 
   .successActions {
     flex-direction: column;
+  }
+
+  .successReference {
+    grid-template-columns: 1fr;
+  }
+
+  .successReference span + span {
+    border-left: 0;
+    border-top: 1px solid var(--orders-border);
   }
 
   .darkButton,

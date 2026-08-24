@@ -72,6 +72,7 @@ export default function OrderCreatePage() {
           draft={flow.draft}
           isSubmitting={flow.isSubmitting}
           onCancel={() => actions.setShowConfirmModal(false)}
+          onChangeUrgent={actions.handleUrgentChange}
           onConfirm={actions.handleConfirmRegister}
         />
       )}

@@ -53,6 +53,7 @@ export const DEFAULT_ORDER_DRAFT = Object.freeze({
   salesNotePdf: null,
   comments: '',
   managerRecord: null,
+  isUrgent: false,
 })
 
 
@@ -85,5 +86,6 @@ export function buildRegisteredOrder(draft) {
     updatedAt: now.toLocaleString('es-CL'),
     channel: 'Web App',
     assignedTo: '—',
+    isUrgent: draft.isUrgent,
   }
 }

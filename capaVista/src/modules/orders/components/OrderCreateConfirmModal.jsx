@@ -1,6 +1,10 @@
 import styles from './OrderCreateConfirmModal.module.css'
 
-export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel, onConfirm }) {
+export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel, onConfirm, onChangeUrgent }) {
+
+  const handleUrgentChange = (event) => {
+    onChangeUrgent?.(event.target.checked)
+  }
 
   return (
     <div className={styles.modalBackdrop} role="presentation">
@@ -36,6 +40,19 @@ export default function OrderCreateConfirmModal({ draft, isSubmitting, onCancel,
               <span>Adjunta</span>
             </div>
           </div>
+
+          <label className={styles.urgentCheckboxRow}>
+            <input
+              type="checkbox"
+              className={styles.urgentCheckbox}
+              checked={draft.isUrgent}
+              onChange={handleUrgentChange}
+            />
+            <span className={styles.urgentCheckboxLabel}>
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+              Marcar como pedido urgente
+            </span>
+          </label>
 
           <footer className={styles.modalActions}>
             <button className={styles.secondaryButton} onClick={onCancel} type="button">

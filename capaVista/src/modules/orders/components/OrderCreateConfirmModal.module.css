@@ -134,6 +134,36 @@
   margin-top: 1.2rem;
 }
 
+.urgentCheckboxRow {
+  align-items: center;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 0.45rem;
+  display: inline-flex;
+  gap: 0.6rem;
+  margin-top: 1.15rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.urgentCheckbox {
+  accent-color: var(--orders-orange);
+  height: 1.1rem;
+  width: 1.1rem;
+}
+
+.urgentCheckboxLabel {
+  align-items: center;
+  color: #92400e;
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 850;
+  gap: 0.35rem;
+}
+
+.urgentCheckboxLabel i {
+  color: var(--orders-orange);
+}
+
 .secondaryButton,
 .primaryButton {
   align-items: center;

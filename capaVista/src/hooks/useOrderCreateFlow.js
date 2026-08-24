@@ -43,6 +43,10 @@ export function useOrderCreateFlow({ navigate }) {
     setNotice(null)
   }
 
+  function handleUrgentChange(isUrgent) {
+    setDraft((previous) => ({ ...previous, isUrgent }))
+  }
+
   function handleSearchSalesNote() {
     const code = normalizeSalesNoteCode(draft.salesNoteCode)
 
@@ -114,7 +118,7 @@ export function useOrderCreateFlow({ navigate }) {
       nombre_cliente: draft.managerRecord.client,
       razon_social: undefined,
       estado_cliente: undefined,
-      id_etiqueta: null,
+      id_etiqueta: draft.isUrgent ? 1 : null,
       productos: [
         {
           nombre_producto: draft.managerRecord.productType,
@@ -176,6 +180,7 @@ export function useOrderCreateFlow({ navigate }) {
       handleConfirmRegister,
       handleOpenConfirmModal,
       handleSearchSalesNote,
+      handleUrgentChange,
       resetFlow,
       setShowConfirmModal,
       updateDraftField,

@@ -45,6 +45,10 @@ function authenticate(req, res, next) {
     next();
 }
 
+function validatePin(req, res, next) {
+    next();
+}
+
 function createController(overrides = {}) {
     return {
         getOrders(req, res) {
@@ -73,6 +77,7 @@ test("GET /api/orders/kanban devuelve ordenes mock", async (t) => {
     const app = createTestApp(
         createOrderRouter({
             authenticate,
+            validatePin,
             controller: createController(),
         }),
     );
@@ -92,6 +97,7 @@ test("PATCH move devuelve el mensaje de pago pendiente si el pago no esta confir
     const app = createTestApp(
         createOrderRouter({
             authenticate,
+            validatePin,
             controller: createController({
                 updateGeneralStep(req, res) {
                     return res.status(409).json({
@@ -121,6 +127,7 @@ test("PATCH move permite Listo para produccion si el pago esta confirmado", asyn
     const app = createTestApp(
         createOrderRouter({
             authenticate,
+            validatePin,
             controller: createController(),
         }),
     );
@@ -144,6 +151,7 @@ test("PATCH move devuelve el mensaje si se intenta saltar etapas", async (t) => 
     const app = createTestApp(
         createOrderRouter({
             authenticate,
+            validatePin,
             controller: createController({
                 updateGeneralStep(req, res) {
                     return res.status(409).json({

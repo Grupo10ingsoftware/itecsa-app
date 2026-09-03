@@ -16,7 +16,6 @@ import {
 import userRepository, {
     UserRepositoryError,
 } from "../repo/users.repo.js";
-import { deleteSignatureFile } from "../middleware/signatureUpload.js";
 
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
@@ -45,7 +44,6 @@ function managementUserResponse(user) {
         correoUsuario: user.correoUsuario,
         rolUsuario: user.rolUsuario,
         estadoUsuario: user.estadoUsuario,
-        rutaFirma: user.rutaFirma,
     };
 }
 
@@ -242,6 +240,7 @@ export function createUpdateAdminUserHandler({
 export function createUpdateAdminUserStatusHandler({
     updateStatus = setAuth0UserStatus,
     users = userRepository,
+    pins = { async invalidateByAuth0Id() {}, async ensureProvisioned() {} },
 } = {}) {
     return async function updateAdminUserStatusHandler(req, res) {
         const userId = req.params.userId;
@@ -287,6 +286,11 @@ export function createUpdateAdminUserStatusHandler({
                 normalizedUserId,
                 validatedRequest.estadoUsuario,
             );
+            if (validatedRequest.estadoUsuario === "Desvinculado") {
+                await pins.invalidateByAuth0Id(normalizedUserId);
+            } else {
+                await pins.ensureProvisioned(normalizedUserId);
+            }
             return res.status(200).json(managementUserResponse(updatedUser));
         } catch (error) {
             if (isMissingUserError(error)) {
@@ -335,12 +339,12 @@ export function createAdminUserHandler({
     createUser = createAuth0User,
     requestPasswordEmail = requestPasswordSetupEmail,
     users = userRepository,
+    pins = { async provisionByUserId() {} },
 } = {}) {
     return async function adminUserHandler(req, res) {
         const validatedRequest = validateAdminUserRequest(req.body);
 
         if (!validatedRequest.valid) {
-            deleteSignatureFile(req.signatureFile?.path);
             return res.status(400).json({ message: validatedRequest.message });
         }
 
@@ -351,12 +355,10 @@ export function createAdminUserHandler({
         try {
             existingInternalUser = await users.findByEmail(user.correoUsuario);
         } catch {
-            deleteSignatureFile(req.signatureFile.path);
             return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
         }
 
         if (existingInternalUser) {
-            deleteSignatureFile(req.signatureFile.path);
             return res.status(409).json({
                 message: "Ya existe un usuario con ese correo.",
             });
@@ -372,13 +374,11 @@ export function createAdminUserHandler({
                 error instanceof Auth0ServiceError &&
                 error.code === "USER_EMAIL_ALREADY_EXISTS"
             ) {
-                deleteSignatureFile(req.signatureFile.path);
                 return res.status(409).json({
                     message: "Ya existe un usuario con ese correo.",
                 });
             }
 
-            deleteSignatureFile(req.signatureFile.path);
             return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
         }
 
@@ -393,11 +393,8 @@ export function createAdminUserHandler({
                 estadoUsuario: createdUser.roleAssignmentCompleted
                     ? ACTIVE_USER_STATUS
                     : PENDING_ROLE_USER_STATUS,
-                rutaFirma: req.signatureFile?.storedPath ?? null,
             });
         } catch (error) {
-            deleteSignatureFile(req.signatureFile?.path);
-
             if (
                 error instanceof UserRepositoryError &&
                 error.code === "USER_ALREADY_EXISTS"
@@ -422,6 +419,17 @@ export function createAdminUserHandler({
                 recoverable: true,
                 message:
                     "La cuenta fue creada, pero no se pudo asignar el rol de acceso. No se solicito el correo de establecimiento de contrasena.",
+            });
+        }
+
+        try {
+            await pins.provisionByUserId(createdUser.internalUser.idUsuario);
+        } catch {
+            return res.status(201).json({
+                ...createdResponse(user, createdUser, false),
+                recoverable: true,
+                message:
+                    "La cuenta fue creada, pero no se pudo generar su PIN. Se aprovisionara en el primer acceso y no se solicito el correo de establecimiento de contrasena.",
             });
         }
 

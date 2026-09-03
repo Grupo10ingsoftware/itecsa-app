@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../hooks/useAuth'
+import { useAuthApi } from '../../auth/hooks/useAuthApi'
 import RoleBadge from '../../../shared/components/data/RoleBadge'
 import styles from './ProfilePage.module.css'
 
@@ -34,7 +35,14 @@ function getInitials(firstName, lastName, email) {
 }
 
 export default function ProfilePage() {
-  const { auth0User, user } = useAuth()
+  const { auth0User, pinStatus, refreshSession, user } = useAuth()
+  const authApi = useAuthApi()
+  const [visiblePin, setVisiblePin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [isPinBusy, setIsPinBusy] = useState(false)
+  const [recoveryOpen, setRecoveryOpen] = useState(false)
+  const [recoveryRequested, setRecoveryRequested] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState('')
   const profile = useMemo(() => {
     const firstName = user?.nombreUsuario ?? user?.primerNombre ?? auth0User?.given_name ?? auth0User?.name
     const lastName = user?.apellidoUsuario ?? user?.apellidoPaterno ?? auth0User?.family_name ?? ''
@@ -53,6 +61,73 @@ export default function ProfilePage() {
       initials: getInitials(firstName, lastName, email),
     }
   }, [auth0User, user])
+
+  useEffect(() => {
+    if (pinStatus !== 'pending_acknowledgement' || visiblePin) return
+
+    let current = true
+    setPinError('')
+    authApi.revealPin()
+      .then(({ pin }) => {
+        if (current) setVisiblePin(pin)
+      })
+      .catch((error) => {
+        if (current) setPinError(error?.payload?.message ?? 'No fue posible mostrar el PIN.')
+      })
+
+    return () => {
+      current = false
+    }
+  }, [authApi, pinStatus, visiblePin])
+
+  async function acknowledgePin() {
+    setIsPinBusy(true)
+    setPinError('')
+
+    try {
+      await authApi.acknowledgePin()
+      setVisiblePin('')
+      await refreshSession()
+    } catch (error) {
+      setPinError(error?.payload?.message ?? 'No fue posible confirmar la recepcion del PIN.')
+    } finally {
+      setIsPinBusy(false)
+    }
+  }
+
+  async function requestRecovery() {
+    setIsPinBusy(true)
+    setPinError('')
+
+    try {
+      await authApi.requestPinRecovery()
+      setRecoveryRequested(true)
+    } catch (error) {
+      setPinError(error?.payload?.message ?? 'No fue posible enviar el codigo de recuperacion.')
+    } finally {
+      setIsPinBusy(false)
+    }
+  }
+
+  async function confirmRecovery(event) {
+    event.preventDefault()
+    setIsPinBusy(true)
+    setPinError('')
+
+    try {
+      await authApi.confirmPinRecovery(recoveryCode)
+      const { pin } = await authApi.revealPin()
+      setVisiblePin(pin)
+      setRecoveryOpen(false)
+      setRecoveryRequested(false)
+      setRecoveryCode('')
+      await refreshSession()
+    } catch (error) {
+      setPinError(error?.payload?.message ?? 'No fue posible validar el codigo.')
+    } finally {
+      setIsPinBusy(false)
+    }
+  }
 
   return (
     <main className={`container-fluid ${styles.page}`} aria-labelledby="profile-title">
@@ -115,6 +190,30 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        <section className="card border-0 shadow-sm mb-4" aria-labelledby="personal-pin-title">
+          <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+              <span className={styles.sectionLabel}>Seguridad</span>
+              <h2 className="h5 mb-1" id="personal-pin-title">PIN personal</h2>
+              <p className="mb-0 text-secondary">
+                {pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
+              </p>
+            </div>
+            {pinStatus === 'active' && (
+              <button
+                className="btn btn-outline-dark"
+                onClick={() => {
+                  setRecoveryOpen(true)
+                  setPinError('')
+                }}
+                type="button"
+              >
+                Recuperar PIN
+              </button>
+            )}
+          </div>
+        </section>
+
         <section className={styles.movementsPanel} aria-labelledby="movements-title">
           <header className={styles.movementsHeader}>
             <span className={styles.sectionLabel}>Actividad</span>
@@ -137,6 +236,100 @@ export default function ProfilePage() {
           </div>
         </section>
       </section>
+
+      {pinStatus === 'pending_acknowledgement' && (
+        <>
+          <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="pin-delivery-title">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h2 className="modal-title fs-5" id="pin-delivery-title">Tu PIN personal</h2>
+                </div>
+                <div className="modal-body text-center">
+                  <p>Guardalo en un lugar seguro. Despues de aceptar no volvera a mostrarse.</p>
+                  <div className="display-5 fw-bold font-monospace" aria-live="polite">
+                    {visiblePin || '------'}
+                  </div>
+                  {pinError && <div className="alert alert-danger mt-3 mb-0">{pinError}</div>}
+                </div>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn-dark"
+                    disabled={!visiblePin || isPinBusy}
+                    onClick={acknowledgePin}
+                    type="button"
+                  >
+                    {isPinBusy ? 'Guardando...' : 'Aceptar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop show" />
+        </>
+      )}
+
+      {recoveryOpen && pinStatus === 'active' && (
+        <>
+          <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="pin-recovery-title">
+            <div className="modal-dialog modal-dialog-centered">
+              <form className="modal-content" onSubmit={confirmRecovery}>
+                <div className="modal-header">
+                  <h2 className="modal-title fs-5" id="pin-recovery-title">Recuperar PIN</h2>
+                  <button
+                    aria-label="Cerrar"
+                    className="btn-close"
+                    disabled={isPinBusy}
+                    onClick={() => setRecoveryOpen(false)}
+                    type="button"
+                  />
+                </div>
+                <div className="modal-body">
+                  {!recoveryRequested ? (
+                    <p>
+                      En desarrollo el codigo temporal se registra en la consola del backend.
+                    </p>
+                  ) : (
+                    <label className="form-label w-100">
+                      Codigo de verificacion
+                      <input
+                        className="form-control font-monospace"
+                        inputMode="numeric"
+                        maxLength={6}
+                        onChange={(event) => setRecoveryCode(event.target.value.replace(/\D/g, ''))}
+                        required
+                        value={recoveryCode}
+                      />
+                    </label>
+                  )}
+                  {pinError && <div className="alert alert-danger mb-0">{pinError}</div>}
+                </div>
+                <div className="modal-footer">
+                  {!recoveryRequested ? (
+                    <button
+                      className="btn btn-dark"
+                      disabled={isPinBusy}
+                      onClick={requestRecovery}
+                      type="button"
+                    >
+                      Generar codigo
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-dark"
+                      disabled={isPinBusy || recoveryCode.length !== 6}
+                      type="submit"
+                    >
+                      Validar codigo
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+          <div className="modal-backdrop show" />
+        </>
+      )}
     </main>
   )
 }

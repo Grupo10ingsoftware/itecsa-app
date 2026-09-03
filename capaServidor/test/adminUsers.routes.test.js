@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
 import { once } from "node:events";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 import express from "express";
 import { Auth0ServiceError } from "../src/modules/users/service/auth0Management.service.js";
 import {
@@ -16,18 +13,12 @@ import {
 } from "../src/modules/users/controller/adminUsers.controller.js";
 import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
-const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(CURRENT_DIRECTORY, "../..");
 const VALID_BODY = {
     nombreUsuario: "Ana",
     apellidoUsuario: "Perez",
     rutUsuario: "12.345.678-9",
     correoUsuario: "ana.perez@itecsa.cl",
     rolUsuario: "Ventas",
-};
-const VALID_SIGNATURE_FILE = {
-    path: "firma-test.pdf",
-    storedPath: "itecsa-app\\data\\Firmas\\firma-test.pdf",
 };
 const VALID_PASSWORD_EMAIL_BODY = {
     correoUsuario: "ana.perez@itecsa.cl",
@@ -41,7 +32,6 @@ const DEFAULT_INTERNAL_USER = {
     apellidoUsuario: VALID_BODY.apellidoUsuario,
     rolUsuario: VALID_BODY.rolUsuario,
     estadoUsuario: "Activo",
-    rutaFirma: VALID_SIGNATURE_FILE.storedPath,
 };
 
 function responseRecorder() {
@@ -124,7 +114,6 @@ function createUsersRepositoryMock({
 
 async function executeHandler({
     body = VALID_BODY,
-    signatureFile = VALID_SIGNATURE_FILE,
     createUser,
     requestPasswordEmail,
     users = createUsersRepositoryMock(),
@@ -136,7 +125,7 @@ async function executeHandler({
         users,
     });
 
-    await handler({ body, signatureFile }, res);
+    await handler({ body }, res);
 
     return res;
 }
@@ -245,7 +234,6 @@ test("responde 200 con listado interno y filtros normalizados", async () => {
         correoUsuario: DEFAULT_INTERNAL_USER.correoUsuario,
         rolUsuario: DEFAULT_INTERNAL_USER.rolUsuario,
         estadoUsuario: DEFAULT_INTERNAL_USER.estadoUsuario,
-        rutaFirma: DEFAULT_INTERNAL_USER.rutaFirma,
     });
 });
 
@@ -479,16 +467,14 @@ test("persiste el usuario interno activo antes de solicitar correo", async () =>
         apellidoUsuario: VALID_BODY.apellidoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
         estadoUsuario: "Activo",
-        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
     });
 });
 
-test("crea usuario aunque no se adjunte firma electronica", async () => {
+test("crea usuario sin firma electronica", async () => {
     let auth0Called = false;
     let persistedPayload;
 
     const res = await executeHandler({
-        signatureFile: null,
         createUser: async () => {
             auth0Called = true;
             return {
@@ -506,7 +492,7 @@ test("crea usuario aunque no se adjunte firma electronica", async () => {
 
     assert.equal(res.statusCode, 201);
     assert.equal(auth0Called, true);
-    assert.equal(persistedPayload.rutaFirma, null);
+    assert.equal("rutaFirma" in persistedPayload, false);
 });
 
 test("responde 409 si el correo ya existe internamente sin llamar Auth0", async () => {
@@ -758,15 +744,14 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
             requestPasswordEmail: async () => {
                 calls.push("requestPasswordEmail");
             },
-            uploadSignature(req, res, next) {
-                req.signatureFile = VALID_SIGNATURE_FILE;
-                next();
-            },
             users: createUsersRepositoryMock({
                 onCreate: () => {
                     calls.push("createInternalUser");
                 },
             }),
+            pins: {
+                provisionByUserId: async () => "pending_acknowledgement",
+            },
         }),
     );
     const server = app.listen(0);
@@ -833,156 +818,3 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
     ]);
 });
 
-test("acepta firma electronica XML, CMS y PDF al crear usuario", async (t) => {
-    const acceptedSignatures = [
-        {
-            fileName: "firma.pdf",
-            mimeType: "application/pdf",
-            content: "%PDF-1.7\n%test\n",
-        },
-        {
-            fileName: "firma.xml",
-            mimeType: "application/xml",
-            content: "<Signature>test</Signature>",
-        },
-        {
-            fileName: "firma.cms",
-            mimeType: "application/octet-stream",
-            content: "cms-test",
-        },
-        {
-            fileName: "firma.p7s",
-            mimeType: "application/pkcs7-signature",
-            content: "p7s-test",
-        },
-        {
-            fileName: "firma.p7m",
-            mimeType: "application/pkcs7-mime",
-            content: "p7m-test",
-        },
-    ];
-    const storedPaths = [];
-    const app = express();
-    app.use(
-        "/api/admin",
-        createAdminUsersRouter({
-            authenticate(req, res, next) {
-                next();
-            },
-            authorize(req, res, next) {
-                next();
-            },
-            createUser: async ({ email }) => ({
-                userId: `auth0|${email}`,
-                roleAssignmentCompleted: true,
-            }),
-            requestPasswordEmail: async () => {},
-            users: {
-                async findByEmail() {
-                    return null;
-                },
-                async create(payload) {
-                    storedPaths.push(payload.rutaFirma);
-                    return {
-                        ...DEFAULT_INTERNAL_USER,
-                        idAuth0: payload.auth0UserId,
-                        correoUsuario: payload.correoUsuario,
-                        rutaFirma: payload.rutaFirma,
-                    };
-                },
-            },
-        }),
-    );
-    const server = app.listen(0);
-    t.after(async () => {
-        server.close();
-
-        await Promise.all(
-            storedPaths.map((storedPath) =>
-                fs.rm(
-                    path.resolve(
-                        PROJECT_ROOT,
-                        storedPath.replace(/^itecsa-app[\\/]/, ""),
-                    ),
-                    { force: true },
-                ),
-            ),
-        );
-    });
-    await once(server, "listening");
-
-    for (const [index, signature] of acceptedSignatures.entries()) {
-        const formData = new FormData();
-        const body = {
-            ...VALID_BODY,
-            correoUsuario: `ana.perez.${index}@itecsa.cl`,
-        };
-        for (const [field, value] of Object.entries(body)) {
-            formData.append(field, value);
-        }
-        formData.append(
-            "firmaElectronica",
-            new Blob([signature.content], { type: signature.mimeType }),
-            signature.fileName,
-        );
-
-        const response = await fetch(
-            `http://127.0.0.1:${server.address().port}/api/admin/users`,
-            {
-                method: "POST",
-                body: formData,
-            },
-        );
-        const responseBody = await response.json();
-
-        assert.equal(response.status, 201);
-        assert.equal(responseBody.rutaFirma, undefined);
-    }
-});
-
-test("rechaza firma electronica con tipo de archivo no permitido", async (t) => {
-    let auth0Called = false;
-    const app = express();
-    app.use(
-        "/api/admin",
-        createAdminUsersRouter({
-            authenticate(req, res, next) {
-                next();
-            },
-            authorize(req, res, next) {
-                next();
-            },
-            createUser: async () => {
-                auth0Called = true;
-            },
-        }),
-    );
-    const server = app.listen(0);
-    t.after(() => server.close());
-    await once(server, "listening");
-
-    const formData = new FormData();
-    for (const [field, value] of Object.entries(VALID_BODY)) {
-        formData.append(field, value);
-    }
-    formData.append(
-        "firmaElectronica",
-        new Blob(["contenido invalido"], { type: "text/plain" }),
-        "firma.txt",
-    );
-
-    const response = await fetch(
-        `http://127.0.0.1:${server.address().port}/api/admin/users`,
-        {
-            method: "POST",
-            body: formData,
-        },
-    );
-    const body = await response.json();
-
-    assert.equal(response.status, 400);
-    assert.deepEqual(body, {
-        message: "La firma electronica debe ser XML, CMS o PDF.",
-    });
-    assert.equal(auth0Called, false);
-});

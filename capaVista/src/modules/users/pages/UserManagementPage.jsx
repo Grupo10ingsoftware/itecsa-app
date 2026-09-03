@@ -240,6 +240,7 @@ export default function UserManagementPage() {
     try {
       await adminUsersApi.unlinkUser({
         idUsuarioAutenticacionExterna: user.idUsuarioAutenticacionExterna,
+        pin: user.pin,
       })
       setUnlinkingUser(null)
       await refreshAfterMutation({ type: 'success', text: 'Usuario desvinculado correctamente.' })

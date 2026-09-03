@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
 import { useAuth } from '../../../hooks/useAuth'
@@ -13,24 +13,6 @@ const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 const KANBAN_LISTO_PRODUCCION_STEP = 1
 const LANYARD_DAILY_CAPACITY = 1200
-
-const processTemplates = {
-  lanyard: [
-    { id: 'impresion', name: 'Impresion', status: 'pending' },
-    { id: 'sublimacion', name: 'Sublimacion', status: 'pending' },
-    { id: 'corte', name: 'Corte', status: 'pending' },
-    { id: 'costura', name: 'Costura', status: 'pending' },
-    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
-  ],
-  tarjeta: [
-    { id: 'revision-info', name: 'Revision info', status: 'pending' },
-    { id: 'orden-info', name: 'Orden info', status: 'pending' },
-    { id: 'carga-info', name: 'Carga info', status: 'pending' },
-    { id: 'confeccion', name: 'Confeccion', status: 'pending' },
-    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
-  ],
-  default: [{ id: 'produccion-general', name: 'Produccion general', status: 'pending' }],
-}
 
 const baseColumns = [
   {
@@ -66,17 +48,6 @@ const baseColumns = [
 function getColumnTitleByStepId(stepId) {
   const column = baseColumns.find((item) => Number(item.generalStepId) === Number(stepId))
   return column?.title ?? 'Confirmacion de pago'
-}
-
-function getProcessesFor(productName) {
-  const normalizedProductName = String(productName ?? '').toLowerCase()
-  const key = normalizedProductName.includes('lanyard')
-    ? 'lanyard'
-    : normalizedProductName.includes('tarjeta')
-      ? 'tarjeta'
-      : 'default'
-  const template = processTemplates[key]
-  return template.map((step) => ({ ...step }))
 }
 
 function parseDate(value) {
@@ -136,6 +107,10 @@ function isLanyardItem(item) {
   return String(item.product ?? item.nombre_producto ?? '').toLowerCase().includes('lanyard')
 }
 
+function toDateKey(value) {
+  return value ? String(value).slice(0, 10) : ''
+}
+
 function getQuantity(value) {
   const quantity = Number(value)
 
@@ -174,13 +149,13 @@ function createItemFromDetail(detail, index) {
     id: String(detail.id_detalle_pedido ?? `${normalizeProcessName(product)}-${index}`),
     product,
     quantity: detail.cantidad ?? detail.quantity ?? null,
-    dueDate: detail.fecha_estimada_termino ?? detail.dueDate ?? null,
+    dueDate: toDateKey(detail.fecha_estimada_termino ?? detail.dueDate),
     manufacturingDetails: detail.manufacturingDetails ?? null,
     subProcesses: Array.isArray(detail.subProcesses)
       ? detail.subProcesses
       : Array.isArray(detail.subprocesos)
         ? detail.subprocesos
-        : getProcessesFor(product),
+        : [],
   }
 }
 
@@ -212,22 +187,7 @@ function buildOrderItems(order, product, dueDate) {
         ? order.subProcesses
         : Array.isArray(order.subprocesos)
           ? order.subprocesos
-          : getProcessesFor(product),
-    })
-  }
-
-  if (Number(order.id ?? order.id_pedido) === 6 && items.length === 1 && isLanyardItem(items[0])) {
-    items.push({
-      id: `${order.id ?? order.id_pedido}-tarjeta-demo`,
-      product: 'Tarjeta',
-      quantity: 200,
-      dueDate,
-      manufacturingDetails: {
-        width: '85.6 mm',
-        length: '53.9 mm',
-        cardType: 'Plastificada',
-      },
-      subProcesses: getProcessesFor('Tarjeta'),
+          : [],
     })
   }
 
@@ -243,19 +203,20 @@ function normalizeOrder(order) {
   const id = order.id ?? order.id_pedido
   const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
   const dueDate =
-    order.dueDate ??
-    order.fecha_estimada_termino ??
-    order.fecha_entrega ??
-    order.fecha_compromiso ??
-    ''
+    toDateKey(
+      order.dueDate ??
+      order.fecha_estimada_termino ??
+      order.fecha_entrega ??
+      order.fecha_compromiso,
+    )
 
   const items = buildOrderItems(order, product, dueDate)
 
   return {
     id,
     clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
-    seller: order.seller ?? order.vendedorResponsable ?? order.vendedor_responsable ?? '',
-    nv: order.nv ?? order.codigo_nota_venta ?? order.codigo_nv ?? `PED-${id}`,
+    seller: order.seller ?? order.vendedorResponsable ?? order.vendedor_responsable ?? order.usuario_manager_origen ?? '',
+    nv: order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta ?? order.codigo_nv ?? `PED-${id}`,
     product,
     date: order.date ?? order.fecha ?? order.fecha_pedido ?? '',
     dueDate,
@@ -268,15 +229,19 @@ function normalizeOrder(order) {
       getColumnTitleByStepId(order.id_etapa_general),
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
-    isUrgent: Boolean(order.isUrgent ?? order.urgente ?? isOrderUrgent(dueDate)),
-    hasContractPriority: Boolean(order.hasContractPriority ?? order.prioridad_contrato),
+    isUrgent: Boolean(order.isUrgent ?? order.urgente ?? (hasOrderLabel(order, ['Urgencia']) || isOrderUrgent(dueDate))),
+    hasContractPriority: Boolean(
+      order.hasContractPriority ??
+      order.prioridad_contrato ??
+      hasOrderLabel(order, ['Prioridad por contrato', 'Cliente con contrato']),
+    ),
     quantity: order.quantity ?? order.cantidad ?? null,
     items,
     subProcesses: Array.isArray(order.subProcesses)
       ? order.subProcesses
       : Array.isArray(order.subprocesos)
         ? order.subprocesos
-        : getProcessesFor(product),
+        : [],
     comments: Array.isArray(order.comments)
       ? order.comments
       : Array.isArray(order.comentarios)
@@ -316,6 +281,15 @@ function normalizeText(value) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+}
+
+function hasOrderLabel(order, expectedNames = []) {
+  const normalizedExpectedNames = expectedNames.map(normalizeText)
+  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+
+  return labels.some((label) =>
+    normalizedExpectedNames.includes(normalizeText(label?.nombre_etiqueta ?? label?.name ?? label)),
+  )
 }
 
 function hasActiveFilters(filters = {}) {
@@ -409,8 +383,7 @@ function sortOrdersForColumn(orders, column, filters) {
 }
 
 function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [pin, setPin] = useState('')
   const [comment, setComment] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -420,8 +393,7 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
   }
 
   function resetFields() {
-    setEmail('')
-    setPassword('')
+    setPin('')
     setComment('')
     setError('')
   }
@@ -435,15 +407,10 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const trimmedEmail = email.trim()
+    const trimmedPin = pin.trim()
 
-    if (!trimmedEmail || !password) {
-      setError('Ingrese correo y contrasena del usuario.')
-      return
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setError('Ingrese un correo valido.')
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setError('Ingrese un PIN valido de 6 digitos.')
       return
     }
 
@@ -452,7 +419,7 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
 
     try {
       await onConfirm({
-        operatorEmail: trimmedEmail,
+        pin: trimmedPin,
         comment: comment.trim(),
       })
       resetFields()
@@ -471,8 +438,8 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
       >
         <header className={styles.operatorModalHeader}>
           <div>
-            <span className={styles.offcanvasKicker}>Validacion administrador</span>
-            <h3 id="move-production-modal-title">Mover a En produccion</h3>
+            <span className={styles.offcanvasKicker}>Validacion PIN</span>
+            <h3 id="move-production-modal-title">Mover pedido</h3>
           </div>
           <button
             aria-label="Cerrar validacion"
@@ -486,31 +453,20 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
         </header>
 
         <div className={styles.operatorModalBody}>
-          <p className={styles.operatorModalText}>Ingrese sus credenciales para hacer efectivo el traspaso de {order.clientName}.</p>
+          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso de {order.clientName}.</p>
           <label>
-            <span>Correo</span>
+            <span>PIN</span>
             <input
-              autoComplete="email"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
               onChange={(event) => {
-                setEmail(event.target.value)
+                setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
                 setError('')
               }}
-              placeholder="administrador@itecsa.cl"
-              type="email"
-              value={email}
-            />
-          </label>
-          <label>
-            <span>Contrasena</span>
-            <input
-              autoComplete="current-password"
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setError('')
-              }}
-              placeholder="Ingrese contrasena"
+              placeholder="000000"
               type="password"
-              value={password}
+              value={pin}
             />
           </label>
           <label>
@@ -571,7 +527,6 @@ function DroppableColumn({ id, accent, icon, count, children }) {
 }
 
 function KanbanColumn({ filters, onOperationalLoadChange }) {
-  const movementCommentIdRef = useRef(0)
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
@@ -594,7 +549,9 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
 
         if (ordersResult.status === 'fulfilled') {
           const normalizedOrders = Array.isArray(ordersResult.value)
-            ? ordersResult.value.map(normalizeOrder)
+            ? ordersResult.value
+                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .map(normalizeOrder)
             : []
           setOrders(normalizedOrders)
         } else {
@@ -630,55 +587,20 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     onOperationalLoadChange?.(calculateOperationalLoad(orders))
   }, [onOperationalLoadChange, orders])
 
-  function applyOrderMove(order, targetColumn, audit = {}) {
-    const previousOrderStatus = order.orderStatus
-    const previousStepId = order.generalStepId
-    const nextComments = audit.comment
-      ? [
-          ...(Array.isArray(order.comments) ? order.comments : []),
-          {
-            id: `${order.id}-move-comment-${movementCommentIdRef.current}`,
-            text: audit.comment,
-          },
-        ]
-      : order.comments
-
-    setOrders((prevOrders) =>
-      prevOrders.map((currentOrder) =>
-        currentOrder.id === order.id
-          ? {
-              ...currentOrder,
-              orderStatus: targetColumn.title,
-              generalStepId: targetColumn.generalStepId,
-              comments: nextComments,
-              productionMoveAudit: audit.operatorEmail
-                ? {
-                    operatorEmail: audit.operatorEmail,
-                    movedAt: new Date().toISOString(),
-                  }
-                : currentOrder.productionMoveAudit,
-            }
-          : currentOrder,
-      ),
-    )
-
-    return kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit).catch((error) => {
+  async function applyOrderMove(order, targetColumn, audit = {}) {
+    try {
+      const updatedOrder = await kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit)
+      const normalizedOrder = normalizeOrder(updatedOrder)
+      setOrders((prevOrders) =>
+        prevOrders.map((currentOrder) => (currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder)),
+      )
+      setSelectedOrder((currentOrder) =>
+        currentOrder?.id === normalizedOrder.id ? normalizedOrder : currentOrder,
+      )
+    } catch (error) {
       console.error('Error moviendo orden:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
-      setOrders((prevOrders) =>
-        prevOrders.map((currentOrder) =>
-          currentOrder.id === order.id && Number(currentOrder.generalStepId) === Number(targetColumn.generalStepId)
-            ? {
-                ...currentOrder,
-                orderStatus: previousOrderStatus,
-                generalStepId: previousStepId,
-                comments: order.comments,
-                productionMoveAudit: order.productionMoveAudit,
-              }
-            : currentOrder,
-        ),
-      )
-    })
+    }
   }
 
   function handleDragEnd(event) {
@@ -717,8 +639,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
       return
     }
 
-    const isMoveToProduction =
-      isForwardMove && targetStep === KANBAN_EN_PRODUCCION_STEP
+    const isMoveToProduction = isForwardMove && targetStep === KANBAN_EN_PRODUCCION_STEP
 
     if (isMoveToProduction && !hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)) {
       setMoveError(MOVE_TO_PRODUCTION_PERMISSION_MESSAGE)
@@ -727,12 +648,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
 
     setMoveError(null)
 
-    if (isMoveToProduction) {
-      setPendingProductionMove({ order, targetColumn })
-      return
-    }
-
-    applyOrderMove(order, targetColumn)
+    setPendingProductionMove({ order, targetColumn })
   }
 
   function handleUpdateOrder(updatedOrder) {
@@ -760,32 +676,29 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     )
   }
 
-  async function approvePaymentDeconfirmation(order, credentials) {
+  async function confirmProductionMove(audit) {
+    if (!pendingProductionMove) return
+
+    const { order, targetColumn } = pendingProductionMove
+    setPendingProductionMove(null)
+    await applyOrderMove(order, targetColumn, audit)
+  }
+
+  async function handleCompleteSubprocess(order, item, process, payload) {
     try {
-      const updatedOrder = await kanbanApi.approvePaymentDeconfirmation(order.id, credentials)
+      const updatedOrder = await kanbanApi.completeSubprocess(order.id, item.id, process.id, payload)
       const normalizedOrder = normalizeOrder(updatedOrder)
 
       setOrders((prevOrders) =>
-        prevOrders.map((currentOrder) =>
-          currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder,
-        ),
+        prevOrders.map((currentOrder) => (currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder)),
       )
       setSelectedOrder(normalizedOrder)
       return true
     } catch (error) {
-      console.error('Error aprobando desconfirmacion:', error)
-      setMoveError(error?.payload?.message ?? 'No fue posible aprobar la desconfirmacion.')
+      console.error('Error completando subproceso:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible completar el subproceso.')
       return false
     }
-  }
-
-  async function confirmProductionMove(audit) {
-    if (!pendingProductionMove) return
-
-    movementCommentIdRef.current += 1
-    const { order, targetColumn } = pendingProductionMove
-    setPendingProductionMove(null)
-    await applyOrderMove(order, targetColumn, audit)
   }
 
   return (
@@ -833,8 +746,8 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
       </DragDropProvider>
       <KanbanOffCanvas
         isOpen={selectedOrder !== null}
-        onApprovePaymentDeconfirmation={approvePaymentDeconfirmation}
         onClose={() => setSelectedOrder(null)}
+        onCompleteSubprocess={handleCompleteSubprocess}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
       />

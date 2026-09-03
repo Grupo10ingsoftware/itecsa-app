@@ -1,17 +1,20 @@
 export function createKanbanApi(apiClient) {
   return {
-    getOrders: () => apiClient.get('/demo-orders'),
-    getAnnouncements: () => apiClient.get('/demo-orders/announcements'),
+    getOrders: () => apiClient.get('/orders'),
     getOrderStatuses: () => apiClient.get('/order-status'),
     moveOrder: (orderId, generalStepId, audit = {}) =>
-      apiClient.request(`/demo-orders/${orderId}/move`, {
+      apiClient.request(`/orders/${orderId}/move`, {
         method: 'PATCH',
         body: {
           generalStepId,
-          operatorEmail: audit.operatorEmail,
+          pin: audit.pin,
+          comment: audit.comment,
         },
       }),
-    approvePaymentDeconfirmation: (orderId, payload) =>
-      apiClient.patch(`/demo-orders/${orderId}/approve-payment-deconfirmation`, payload),
+    completeSubprocess: (orderId, detailId, subprocessId, payload = {}) =>
+      apiClient.patch(`/orders/${orderId}/details/${detailId}/subprocesses/${subprocessId}/complete`, {
+        pin: payload.pin,
+        comment: payload.comment,
+      }),
   }
 }

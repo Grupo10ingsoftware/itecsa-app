@@ -1,9 +1,9 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useMemo } from 'react'
 import { createApiClient } from '../../../services/api/apiClient'
-import { createDemoOrdersApi } from '../api/demoOrdersApi'
+import { createOrdersApi } from '../api/ordersApi'
 
-export function useDemoOrdersApi() {
+export function useOrdersApi() {
   const { getAccessTokenSilently } = useAuth0()
 
   const getAccessToken = useCallback(
@@ -16,5 +16,5 @@ export function useDemoOrdersApi() {
     [getAccessTokenSilently],
   )
 
-  return useMemo(() => createDemoOrdersApi(createApiClient({ getAccessToken })), [getAccessToken])
+  return useMemo(() => createOrdersApi(createApiClient({ getAccessToken })), [getAccessToken])
 }

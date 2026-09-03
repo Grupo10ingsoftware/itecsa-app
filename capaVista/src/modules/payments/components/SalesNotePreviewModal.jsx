@@ -24,6 +24,7 @@ export default function SalesNotePreviewModal({
   const isPaymentDetail = context === PREVIEW_CONTEXT.SIGNED_DETAIL
   const canRequestDeconfirmation =
     isPaymentDetail &&
+    typeof onDeconfirm === 'function' &&
     order?.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
     !order?.paymentDeconfirmationRequested
   const hasDeconfirmationRequest =

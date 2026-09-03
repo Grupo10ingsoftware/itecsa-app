@@ -6,18 +6,6 @@ datasource db {
   provider = "mysql"
 }
 
-model Anuncio {
-  id_anuncio                Int       @id
-  contenido_anuncio         String?   @db.Text
-  fecha_publicacion_anuncio DateTime? @db.DateTime(0)
-  fecha_expiracion_anuncio  DateTime? @db.DateTime(0)
-  estado_anuncio            String?   @db.VarChar(45)
-  id_usuario                Int?
-  Usuario                   Usuario?  @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_anuncio_usuario")
-
-  @@index([id_usuario], map: "id_usuario_idx")
-}
-
 model Cliente {
   id_cliente     Int       @id @default(autoincrement())
   rut_cliente    String?   @unique(map: "rut_cliente_UNIQUE") @db.VarChar(12)
@@ -47,7 +35,9 @@ model Detalle_pedido {
   fecha_real_termino     DateTime?               @db.DateTime(0)
   id_pedido              Int?
   id_tipo_producto       Int?
+  id_estado_subproceso   Int?
   Comentario_Produccion  Comentario_Produccion[]
+  Estado_Subprocesos     Estado_Subprocesos?     @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "Detalle_pedido_Estado_Subprocesos_FK")
   Pedidos                Pedidos?                @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "id_pedido")
   Tipo_Producto          Tipo_Producto?          @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "id_tipo_producto")
   Dise_o                 Dise_o[]
@@ -55,6 +45,7 @@ model Detalle_pedido {
 
   @@index([id_pedido], map: "id_pedido_idx")
   @@index([id_tipo_producto], map: "id_tipo_producto_idx")
+  @@index([id_estado_subproceso], map: "Detalle_pedido_Estado_Subprocesos_FK")
 }
 
 model Dise_o {
@@ -88,24 +79,13 @@ model Dise_o_Tarjeta {
   @@map("Diseño_Tarjeta")
 }
 
-model Documento {
-  id_documento     Int               @id
-  ruta_pdf         String?           @db.VarChar(255)
-  fecha_registro   DateTime?         @db.DateTime(0)
-  id_pedido        Int?
-  Pedidos          Pedidos?          @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_documento_pedido")
-  Ficha_Cliente    Ficha_Cliente?
-  Firma_Documento  Firma_Documento[]
-  Nota_Venta       Nota_Venta?
-  Orden_Produccion Orden_Produccion?
-
-  @@index([id_pedido], map: "id_pedido_idx")
-}
-
 model Estado_Pago {
-  id_estado_Pago          Int     @id @default(autoincrement())
-  nombre_estado_pago      String? @db.VarChar(45)
-  descripcion_estado_pago String? @db.VarChar(105)
+  id_estado_pago                                                   Int             @id @default(autoincrement())
+  nombre_estado_pago                                               String?         @db.VarChar(45)
+  descripcion_estado_pago                                          String?         @db.VarChar(105)
+  Pedidos                                                          Pedidos[]
+  Registro_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago    Registro_Pago[] @relation("Registro_Pago_id_estado_pago_nuevoToEstado_Pago")
+  Registro_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago Registro_Pago[] @relation("Registro_Pago_id_estado_pago_anteriorToEstado_Pago")
 }
 
 model Estado_Pedido {
@@ -121,81 +101,35 @@ model Estado_Subprocesos {
   id_estado_subproceso Int                    @id
   nombre_estado        String?                @db.VarChar(100)
   descripcion_estado   String?                @db.Text
+  Detalle_pedido       Detalle_pedido[]
   Producto_Subproceso  Producto_Subproceso[]
   registro_subprocesos registro_subprocesos[]
 }
 
-model Ficha_Cliente {
-  id_documento Int       @id
-  firmado      Int?      @db.TinyInt
-  Documento    Documento @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_fc_documento")
-}
-
-model Firma_Documento {
-  id_firma_documento Int               @id
-  hash_firma         String?           @db.VarChar(255)
-  fecha_firma        DateTime?         @db.DateTime(0)
-  id_usuario         Int?
-  id_documento       Int?
-  Documento          Documento?        @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_firma_documento")
-  Usuario            Usuario?          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_firma_usuario")
-  Firma_Pago         Firma_Pago?
-  Firma_Subproceso   Firma_Subproceso?
-
-  @@index([id_documento], map: "id_documento_idx")
-  @@index([id_usuario], map: "id_usuario_idx")
-}
-
-model Firma_Pago {
-  id_firma_documento Int             @id
-  Firma_Documento    Firma_Documento @relation(fields: [id_firma_documento], references: [id_firma_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_firmapago_documento")
-}
-
-model Firma_Subproceso {
-  id_firma_documento Int             @id
-  Firma_Documento    Firma_Documento @relation(fields: [id_firma_documento], references: [id_firma_documento], onDelete: NoAction, onUpdate: NoAction, map: "id_firma_documento")
-}
-
-model Historial_Usuario {
-  id_historial_usuario Int       @id
-  fecha_accion         DateTime? @db.DateTime(0)
-  accion_realizada     String?   @db.Text
-  id_usuario           Int?
-  Usuario              Usuario?  @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_historial_usuario")
-
-  @@index([id_usuario], map: "id_usuario_idx")
-}
-
-model Nota_Venta {
-  id_documento      Int       @id
-  firmado           Int?      @db.TinyInt
-  numero_nota_venta String?   @db.VarChar(50)
-  Documento         Documento @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "id_documento")
-}
-
-model Orden_Produccion {
-  id_documento Int       @id
-  numero_op    String?   @db.VarChar(45)
-  Documento    Documento @relation(fields: [id_documento], references: [id_documento], onDelete: NoAction, onUpdate: NoAction, map: "fk_op_documento")
-}
-
 model Pedidos {
-  id_pedido              Int               @id @default(autoincrement())
-  fecha_creacion         DateTime?         @db.Date
-  fecha_estimada_termino DateTime?         @db.Date
-  id_usuario             Int?
-  id_estado_pedido       Int?
-  id_estado_pago         Int?
-  id_cliente             Int?
-  id_etiqueta            Int?
-  Detalle_pedido         Detalle_pedido[]
-  Documento              Documento[]
-  Cliente                Cliente?          @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "id_cliente")
-  Estado_Pedido          Estado_Pedido?    @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
-  etiqueta               etiqueta?         @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: NoAction, onUpdate: NoAction, map: "id_etiqueta")
-  Usuario                Usuario?          @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "id_usuario")
-  Registro_Etapas        Registro_Etapas[]
-  Registro_Pago          Registro_Pago[]
+  id_pedido                   Int                           @id @default(autoincrement())
+  fecha_creacion              DateTime?                     @db.Date
+  fecha_estimada_termino      DateTime?                     @db.Date
+  id_usuario                  Int?
+  id_estado_pedido            Int?
+  id_estado_pago              Int?
+  id_cliente                  Int?
+  id_etiqueta                 Int?
+  observacion                 String?                       @db.Text
+  numero_nota_venta           String?                       @db.VarChar(50)
+  usuario_manager_origen      String?                       @db.VarChar(100)
+  observacion_origen          String?                       @db.Text
+  observacion_interna         String?                       @db.Text
+  Detalle_pedido              Detalle_pedido[]
+  Mensaje                     Mensaje[]
+  Pedido_Etiqueta             Pedido_Etiqueta[]
+  Pedido_Item_Sin_Seguimiento Pedido_Item_Sin_Seguimiento[]
+  Cliente                     Cliente?                      @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "id_cliente")
+  Estado_Pago                 Estado_Pago?                  @relation(fields: [id_estado_pago], references: [id_estado_pago], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pago_FK")
+  Estado_Pedido               Estado_Pedido?                @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
+  etiqueta                    etiqueta?                     @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: NoAction, onUpdate: NoAction, map: "id_etiqueta")
+  Usuario                     Usuario?                      @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "id_usuario")
+  Registros                   Registros[]
 
   @@index([id_cliente], map: "id_cliente_idx")
   @@index([id_estado_pago], map: "id_estado_pago_idx")
@@ -216,34 +150,32 @@ model Producto_Subproceso {
 }
 
 model Registro_Etapas {
-  id_registro_etapa  Int            @id
+  id_registro        Int            @id
   fecha_hora_entrada DateTime?      @db.DateTime(0)
   fecha_hora_salida  DateTime?      @db.DateTime(0)
-  id_pedido          Int?
   id_usuario         Int?
   id_estado_pedido   Int?
   Estado_Pedido      Estado_Pedido? @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Estado_Pedido_FK")
-  Pedidos            Pedidos?       @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Pedidos_FK")
-  Usuario            Usuario?       @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_etapa_usuario")
+  Registros          Registros      @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Registros_FK")
 
   @@index([id_estado_pedido], map: "id_estado_pedido_idx")
-  @@index([id_pedido], map: "id_pedido_idx")
   @@index([id_usuario], map: "id_usuario_idx")
 }
 
 model Registro_Pago {
-  id_registro_pago Int       @id @default(autoincrement())
-  fecha_registro   DateTime? @db.DateTime(0)
-  observacion      String?   @db.LongText
-  id_pedido        Int?
-  id_usuario       Int?
-  id_estado_pago   Int?
-  Pedidos          Pedidos?  @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_pago_pedido")
-  Usuario          Usuario?  @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_pago_usuario")
+  id_registro                                                    Int          @id @default(autoincrement())
+  fecha_registro                                                 DateTime?    @db.DateTime(0)
+  observacion                                                    String?      @db.LongText
+  id_usuario                                                     Int?
+  id_estado_pago_anterior                                        Int?
+  id_estado_pago_nuevo                                           Int?
+  Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago    Estado_Pago? @relation("Registro_Pago_id_estado_pago_nuevoToEstado_Pago", fields: [id_estado_pago_nuevo], references: [id_estado_pago], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Pago_Estado_Pago_FK")
+  Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago Estado_Pago? @relation("Registro_Pago_id_estado_pago_anteriorToEstado_Pago", fields: [id_estado_pago_anterior], references: [id_estado_pago], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Pago_Estado_Pago_FK_1")
+  Registros                                                      Registros    @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Pago_Registros_FK")
 
-  @@index([id_estado_pago], map: "id_estado_pago_idx")
-  @@index([id_pedido], map: "id_pedido_idx")
+  @@index([id_estado_pago_anterior], map: "id_estado_pago_idx")
   @@index([id_usuario], map: "id_usuario_idx")
+  @@index([id_estado_pago_nuevo], map: "Registro_Pago_Estado_Pago_FK")
 }
 
 model Tipo_Producto {
@@ -255,47 +187,134 @@ model Tipo_Producto {
 }
 
 model Usuario {
-  id_usuario            Int                     @id @default(autoincrement())
-  id_auth0              String                  @unique @db.VarChar(128)
-  correo_usuario        String                  @unique @db.VarChar(255)
-  rut_usuario           String?                 @db.VarChar(12)
-  nombre_usuario        String?                 @db.VarChar(100)
-  apellido_usuario      String?                 @db.VarChar(100)
-  rol_usuario           String?                 @db.VarChar(50)
-  estado_usuario        String?                 @db.VarChar(30)
-  ruta_firma            String?                 @db.VarChar(255)
-  Anuncio               Anuncio[]
-  Comentario_Produccion Comentario_Produccion[]
-  Firma_Documento       Firma_Documento[]
-  Historial_Usuario     Historial_Usuario[]
-  Pedidos               Pedidos[]
-  Registro_Etapas       Registro_Etapas[]
-  Registro_Pago         Registro_Pago[]
-  registro_subprocesos  registro_subprocesos[]
+  id_usuario             Int                     @id @default(autoincrement())
+  id_auth0               String                  @unique @db.VarChar(128)
+  correo_usuario         String                  @unique @db.VarChar(255)
+  rut_usuario            String?                 @db.VarChar(12)
+  nombre_usuario         String?                 @db.VarChar(100)
+  apellido_usuario       String?                 @db.VarChar(100)
+  rol_usuario            String?                 @db.VarChar(50)
+  estado_usuario         String?                 @db.VarChar(30)
+  pin_hash               String?                 @db.VarChar(255)
+  pin_salt               String?                 @db.VarChar(64)
+  pin_fingerprint        String?                 @unique @db.Char(64)
+  pin_pending_ciphertext String?                 @db.Text
+  pin_pending_iv         String?                 @db.VarChar(64)
+  pin_pending_tag        String?                 @db.VarChar(64)
+  pin_accepted_at        DateTime?
+  pin_failed_attempts    Int                     @default(0)
+  pin_locked_until       DateTime?
+  Comentario_Produccion  Comentario_Produccion[]
+  MENSAJE_USUARIO        MENSAJE_USUARIO[]
+  Pedido_Etiqueta        Pedido_Etiqueta[]
+  Pedidos                Pedidos[]
+  PinRecoveryChallenge   PinRecoveryChallenge[]
+  Registros              Registros[]
 }
 
 model etiqueta {
-  id_etiqueta     Int       @id
-  nombre_etiqueta String?   @db.VarChar(100)
-  descripcion     String?   @db.Text
-  esta_activa     Int?      @db.TinyInt
+  id_etiqueta     Int               @id
+  nombre_etiqueta String?           @db.VarChar(100)
+  descripcion     String?           @db.Text
+  esta_activa     Int?              @db.TinyInt
+  Pedido_Etiqueta Pedido_Etiqueta[]
   Pedidos         Pedidos[]
 }
 
 model registro_subprocesos {
-  id_registro_subproceso Int                 @id
-  fecha_hora_entrada     DateTime?           @db.DateTime(0)
-  fecha_hora_salida      DateTime?           @db.DateTime(0)
-  id_detalle_pedido      Int?
-  id_estado_subproceso   Int?
-  id_usuario             Int?
-  Estado_Subprocesos     Estado_Subprocesos? @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_estado_subprocesos")
-  Usuario                Usuario?            @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_usuario")
-  Detalle_pedido         Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
+  id_registro          Int                 @id
+  fecha_hora_entrada   DateTime?           @db.DateTime(0)
+  fecha_hora_salida    DateTime?           @db.DateTime(0)
+  id_detalle_pedido    Int?
+  id_estado_subproceso Int?
+  Estado_Subprocesos   Estado_Subprocesos? @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_estado_subprocesos")
+  Detalle_pedido       Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
+  Registros            Registros           @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "registro_subprocesos_Registros_FK")
 
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")
   @@index([id_estado_subproceso], map: "id_estado_subproceso_idx")
-  @@index([id_usuario], map: "id_usuario_idx")
+}
+
+model MENSAJE_USUARIO {
+  leido_     Boolean @default(false) @map("leido?")
+  oculto_    Boolean @default(false) @map("oculto?")
+  id_usuario Int
+  id_mensaje Int
+  Mensaje    Mensaje @relation(fields: [id_mensaje], references: [id_mensaje], onDelete: NoAction, onUpdate: NoAction, map: "MENSAJE_USUARIO_Mensaje_FK")
+  Usuario    Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "MENSAJE_USUARIO_Usuario_FK")
+
+  @@id([id_usuario, id_mensaje])
+  @@index([id_mensaje], map: "MENSAJE_USUARIO_Mensaje_FK")
+}
+
+model Mensaje {
+  id_mensaje        Int               @id @default(autoincrement())
+  contenido         String            @db.Text
+  fecha_publicacion DateTime?         @db.Timestamp(0)
+  Asunto            String            @db.Text
+  id_pedido         Int?
+  MENSAJE_USUARIO   MENSAJE_USUARIO[]
+  Pedidos           Pedidos?          @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Mensaje_Pedidos_FK")
+
+  @@index([id_pedido], map: "Mensaje_Pedidos_FK")
+}
+
+model Pedido_Etiqueta {
+  id_pedido         Int
+  id_etiqueta       Int
+  fecha_asignacion  DateTime @default(now()) @db.DateTime(0)
+  id_usuario_asigna Int?
+  etiqueta          etiqueta @relation(fields: [id_etiqueta], references: [id_etiqueta], map: "Pedido_Etiqueta_Etiqueta_FK")
+  Pedidos           Pedidos  @relation(fields: [id_pedido], references: [id_pedido], onDelete: Cascade, map: "Pedido_Etiqueta_Pedidos_FK")
+  Usuario           Usuario? @relation(fields: [id_usuario_asigna], references: [id_usuario], map: "Pedido_Etiqueta_Usuario_FK")
+
+  @@id([id_pedido, id_etiqueta])
+  @@index([id_etiqueta], map: "Pedido_Etiqueta_Etiqueta_FK")
+  @@index([id_usuario_asigna], map: "Pedido_Etiqueta_Usuario_FK")
+}
+
+model PinRecoveryChallenge {
+  id_pin_recovery_challenge Int       @id @default(autoincrement())
+  id_usuario                Int
+  code_hash                 String    @db.VarChar(255)
+  code_salt                 String    @db.VarChar(64)
+  expires_at                DateTime
+  failed_attempts           Int       @default(0)
+  used_at                   DateTime?
+  delivery_status           String    @db.VarChar(30)
+  created_at                DateTime  @default(now())
+  Usuario                   Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_pin_recovery_usuario")
+
+  @@index([id_usuario, created_at], map: "idx_pin_recovery_user_created")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Registros {
+  ID_REGISTRO          Int                   @id @default(autoincrement())
+  FECHA_HORA           DateTime              @db.Timestamp(0)
+  id_pedido            Int?
+  id_usuario           Int?
+  Registro_Etapas      Registro_Etapas?
+  Registro_Pago        Registro_Pago?
+  Pedidos              Pedidos?              @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registros_Pedidos_FK")
+  Usuario              Usuario?              @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "Registros_Usuario_FK")
+  registro_subprocesos registro_subprocesos?
+
+  @@index([id_pedido], map: "Registros_Pedidos_FK")
+  @@index([id_usuario], map: "Registros_Usuario_FK")
+}
+
+model Pedido_Item_Sin_Seguimiento {
+  id_item_sin_seguimiento Int       @id @default(autoincrement())
+  id_pedido               Int
+  codigo                  String?   @db.VarChar(50)
+  producto                String    @db.VarChar(255)
+  cantidad                Int?
+  subfamilia              String?   @db.VarChar(100)
+  fecha_registro          DateTime? @default(now()) @db.Timestamp(0)
+  Pedidos                 Pedidos   @relation(fields: [id_pedido], references: [id_pedido], onDelete: Cascade, onUpdate: NoAction, map: "Pedido_Item_Sin_Seguimiento_Pedidos_FK")
+
+  @@index([id_pedido])
 }
 
 enum Dise_o_Tarjeta_tipo_tarjeta {

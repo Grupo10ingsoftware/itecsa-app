@@ -4,6 +4,8 @@ import {
     requestPasswordSetupEmail,
 } from "../../users/service/auth0Management.service.js";
 import userRepository from "../../users/repo/users.repo.js";
+import pinService, { PinServiceError } from "../service/pin.service.js";
+import { PinDeliveryUnavailableError } from "../service/pinDelivery.service.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
@@ -75,6 +77,7 @@ async function syncInternalRole({ users, auth0UserId, rolUsuario }) {
 
 export function createVerifyAuthSessionHandler({
     users = userRepository,
+    pins = { async ensureProvisioned() { return "active"; } },
     logger = console,
 } = {}) {
     return async function verifyAuthSessionHandler(req, res) {
@@ -114,6 +117,16 @@ export function createVerifyAuthSessionHandler({
                 auth0UserId: payload.sub,
                 rolUsuario,
             });
+            const pinStatus = await pins.ensureProvisioned(payload.sub);
+
+            return res.status(200).json({
+                sub: payload.sub,
+                email,
+                rolUsuario,
+                isAdministrador: rolUsuario === "Administrador",
+                permissions,
+                pinStatus,
+            });
         } catch (error) {
             logger.error?.("auth_verify_role_sync_error", {
                 auth0UserId: payload.sub,
@@ -121,20 +134,89 @@ export function createVerifyAuthSessionHandler({
                 code: error?.code,
             });
 
+            if (error instanceof PinServiceError && error.status === 403) {
+                return res.status(403).json({
+                    code: error.code,
+                    message: error.message,
+                });
+            }
+
             return res.status(500).json({ message: VERIFY_SESSION_ERROR_MESSAGE });
         }
-
-        return res.status(200).json({
-            sub: payload.sub,
-            email,
-            rolUsuario,
-            isAdministrador: rolUsuario === "Administrador",
-            permissions,
-        });
     };
 }
 
 export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
+
+function pinErrorResponse(error, res) {
+    if (error instanceof PinDeliveryUnavailableError) {
+        return res.status(503).json({
+            code: error.code,
+            message: error.message,
+        });
+    }
+
+    if (error instanceof PinServiceError) {
+        return res.status(error.status).json({
+            code: error.code,
+            message: error.message,
+            ...(error.details ?? {}),
+        });
+    }
+
+    return res.status(500).json({
+        code: "PIN_OPERATION_FAILED",
+        message: "No fue posible completar la operacion de PIN.",
+    });
+}
+
+export function createRevealPinHandler({ pins = pinService } = {}) {
+    return async function revealPinHandler(req, res) {
+        try {
+            return res.status(200).json({
+                pin: await pins.reveal(req.auth?.payload?.sub),
+            });
+        } catch (error) {
+            return pinErrorResponse(error, res);
+        }
+    };
+}
+
+export function createAcknowledgePinHandler({ pins = pinService } = {}) {
+    return async function acknowledgePinHandler(req, res) {
+        try {
+            await pins.acknowledge(req.auth?.payload?.sub);
+            return res.status(204).end();
+        } catch (error) {
+            return pinErrorResponse(error, res);
+        }
+    };
+}
+
+export function createRequestPinRecoveryHandler({ pins = pinService } = {}) {
+    return async function requestPinRecoveryHandler(req, res) {
+        try {
+            await pins.requestRecovery(req.auth?.payload?.sub);
+            return res.status(202).json({ status: "sent" });
+        } catch (error) {
+            return pinErrorResponse(error, res);
+        }
+    };
+}
+
+export function createConfirmPinRecoveryHandler({ pins = pinService } = {}) {
+    return async function confirmPinRecoveryHandler(req, res) {
+        try {
+            const pinStatus = await pins.confirmRecovery(
+                req.auth?.payload?.sub,
+                req.body?.code,
+            );
+            return res.status(200).json({ pinStatus });
+        } catch (error) {
+            return pinErrorResponse(error, res);
+        }
+    };
+}
 
 export function createPasswordResetRequestHandler({
     users = userRepository,

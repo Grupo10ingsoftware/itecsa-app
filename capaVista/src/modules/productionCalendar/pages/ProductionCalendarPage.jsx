@@ -5,9 +5,8 @@ import CalendarSummaryCards from '../components/CalendarSummaryCards'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
-import { useDemoOrdersApi } from '../hooks/useDemoOrdersApi'
-import { buildMonthGrid, isSameMonth, toDateKey } from '../utils/calendarUtils'
-import { LANYARD_DAILY_CAPACITY, calculateOperationalLoadByDate } from '../utils/operationalLoadUtils'
+import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
+import { isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -27,23 +26,36 @@ function getStatusByStep(stepId) {
   return statuses[Number(stepId)] ?? PRODUCTION_STATUSES.PAYMENT_CONFIRMATION
 }
 
+function toCalendarDateKey(value) {
+  return value ? String(value).slice(0, 10) : ''
+}
+
 function normalizeCalendarOrder(order) {
   return {
     ...order,
     id: order.id ?? order.id_pedido,
-    orderNumber: order.orderNumber ?? order.nv ?? order.codigo_nota_venta,
+    orderNumber: order.orderNumber ?? order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta,
     clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
     productType: order.productType ?? order.product ?? order.producto ?? 'Producto no definido',
     quantity: order.quantity ?? order.cantidad ?? 0,
+    items: Array.isArray(order.items) && order.items.length > 0
+      ? order.items
+      : Array.isArray(order.detalles)
+        ? order.detalles
+        : [],
     status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
-    dueDate: order.dueDate ?? order.fecha_estimada_termino,
+    dueDate: toCalendarDateKey(order.dueDate ?? order.fecha_estimada_termino),
   }
 }
 
 export default function ProductionCalendarPage() {
-  const demoOrdersApi = useDemoOrdersApi()
+  const ordersCalendarApi = useOrdersCalendarApi()
   const [calendarItems, setCalendarItems] = useState([])
-  const [monthDate, setMonthDate] = useState(() => new Date(2026, 5, 1))
+  const [monthDate, setMonthDate] = useState(() => {
+    const today = new Date()
+
+    return new Date(today.getFullYear(), today.getMonth(), 1)
+  })
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [loadError, setLoadError] = useState(null)
@@ -54,10 +66,14 @@ export default function ProductionCalendarPage() {
     async function loadOrders() {
       try {
         setLoadError(null)
-        const orders = await demoOrdersApi.getOrders()
+        const orders = await ordersCalendarApi.getOrders()
 
         if (isMounted) {
-          setCalendarItems(Array.isArray(orders) ? orders.map(normalizeCalendarOrder) : [])
+          setCalendarItems(Array.isArray(orders)
+            ? orders
+                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .map(normalizeCalendarOrder)
+            : [])
         }
       } catch (error) {
         console.error('Error cargando pedidos del calendario:', error)
@@ -72,7 +88,7 @@ export default function ProductionCalendarPage() {
     return () => {
       isMounted = false
     }
-  }, [demoOrdersApi])
+  }, [ordersCalendarApi])
 
   const visibleMonthItems = useMemo(
     () => calendarItems.filter((item) => isSameMonth(item.dueDate, monthDate)),
@@ -93,36 +109,6 @@ export default function ProductionCalendarPage() {
     })
   }, [filters, visibleMonthItems])
 
-  const visibleDays = useMemo(() => buildMonthGrid(monthDate), [monthDate])
-  const visibleDateRange = useMemo(
-    () => ({
-      from: visibleDays[0]?.dateKey,
-      to: visibleDays.at(-1)?.dateKey,
-    }),
-    [visibleDays],
-  )
-
-  const operationalLoadByDate = useMemo(
-    () =>
-      calculateOperationalLoadByDate({
-        from: visibleDateRange.from,
-        items: calendarItems,
-        to: visibleDateRange.to,
-      }),
-    [calendarItems, visibleDateRange],
-  )
-
-  const operationalLoad = useMemo(() => {
-    const todayKey = toDateKey(new Date())
-    const todayLoad = operationalLoadByDate.get(todayKey)
-
-    return {
-      capacity: LANYARD_DAILY_CAPACITY,
-      lanyardsInProduction: todayLoad?.lanyardsLoad ?? 0,
-      percentage: todayLoad?.percentage ?? 0,
-    }
-  }, [operationalLoadByDate])
-
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
   }
@@ -139,12 +125,12 @@ export default function ProductionCalendarPage() {
     }))
   }
 
-  async function updateItemDeliveryDate(itemId, nextDate) {
-    const updatedOrder = await demoOrdersApi.updateDeliveryDate(itemId, nextDate)
+  async function updateItemDeliveryDate(itemId, nextDate, credentials) {
+    const updatedOrder = await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
     const normalizedOrder = normalizeCalendarOrder(updatedOrder)
 
     setCalendarItems((currentItems) =>
-      currentItems.map((item) => (item.id === itemId ? normalizedOrder : item)),
+      currentItems.map((item) => (String(item.id) === String(itemId) ? normalizedOrder : item)),
     )
   }
 
@@ -167,7 +153,7 @@ export default function ProductionCalendarPage() {
 
           {loadError && <div className="alert alert-warning mb-0">{loadError}</div>}
 
-          <CalendarSummaryCards items={filteredItems} load={operationalLoad} />
+          <CalendarSummaryCards items={filteredItems} />
 
           <section className={styles.calendarPanel}>
             <CalendarToolbar
@@ -178,7 +164,6 @@ export default function ProductionCalendarPage() {
             />
             <ProductionCalendarGrid
               items={filteredItems}
-              loadByDate={operationalLoadByDate}
               monthDate={monthDate}
               onChangeDeliveryDate={updateItemDeliveryDate}
             />

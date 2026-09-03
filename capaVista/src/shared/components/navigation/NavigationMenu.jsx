@@ -6,6 +6,7 @@ import styles from '../layout/Layout.module.css'
 const ROUTE_ICONS_BY_PATH = Object.freeze({
   [APP_ROUTES.KANBAN]: 'bi-kanban',
   [APP_ROUTES.PROFILE]: 'bi-person-circle',
+  [APP_ROUTES.MESSAGES]: 'bi-envelope-paper',
   [APP_ROUTES.PAYMENTS]: 'bi-cash-coin',
   [APP_ROUTES.ADMIN_USERS]: 'bi-people',
   [APP_ROUTES.ADMIN_USERS_CREATE]: 'bi-person-plus',

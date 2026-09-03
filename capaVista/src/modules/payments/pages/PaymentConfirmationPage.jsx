@@ -32,7 +32,7 @@ const FILTERS = [
 ]
 
 export default function PaymentConfirmationPage() {
-  const { auth0User, hasPermission, user } = useAuth()
+  const { hasPermission } = useAuth()
   const paymentsApi = usePaymentsApi()
   // Mock historico/fallback dev: createMockPaymentOrders() documenta el shape
   // esperado por esta vista. No usar como fuente productiva.
@@ -162,9 +162,8 @@ export default function PaymentConfirmationPage() {
 
     try {
       const updatedOrder = await paymentsApi.updatePaymentStatus(orderId, {
-        email: credentials.email,
+        pin: credentials.pin,
         paymentStatusId,
-        password: credentials.password,
         observacion: `Cambio de estado a ${newStatus} desde modulo de pagos.`,
       })
 
@@ -325,44 +324,8 @@ export default function PaymentConfirmationPage() {
   }, [])
 
   const openSignedDetailPreview = useCallback((order) => {
-    if (!order) return
-
     setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
   }, [])
-
-  const requestPaymentDeconfirmation = useCallback(async (order) => {
-    if (!canUpdatePaymentStatus || isUpdatingPaymentStatus || !order) return
-
-    setIsUpdatingPaymentStatus(true)
-    setUpdateError(null)
-
-    try {
-      const updatedOrder = await paymentsApi.requestPaymentDeconfirmation(order.id, {
-        email: user?.correoUsuario ?? auth0User?.email,
-        responsible: user?.nombresUsuario ?? user?.nombreUsuario ?? auth0User?.name ?? 'Cobranza',
-      })
-      const normalizedOrder = normalizePaymentOrder(updatedOrder)
-
-      setOrders((prev) =>
-        prev.map((currentOrder) =>
-          currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder,
-        ),
-      )
-      setPreviewState((currentPreview) =>
-        currentPreview?.order?.id === normalizedOrder.id
-          ? { ...currentPreview, order: normalizedOrder }
-          : currentPreview,
-      )
-    } catch (error) {
-      console.error('Error solicitando desconfirmacion:', error)
-      setUpdateError(
-        error?.payload?.message ??
-          'No fue posible solicitar la desconfirmacion del pago.',
-      )
-    } finally {
-      setIsUpdatingPaymentStatus(false)
-    }
-  }, [auth0User, canUpdatePaymentStatus, isUpdatingPaymentStatus, paymentsApi, user])
 
   return (
     <main className={`container-fluid ${styles.page}`}>
@@ -441,7 +404,6 @@ export default function PaymentConfirmationPage() {
         context={previewState?.context}
         key={`${previewState?.context || 'closed'}-${previewState?.order?.id || 'none'}`}
         onClose={() => setPreviewState(null)}
-        onDeconfirm={requestPaymentDeconfirmation}
         onDownload={handleDownloadNV}
         onPrint={handlePrintNV}
         order={previewState?.order}

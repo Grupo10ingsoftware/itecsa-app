@@ -12,7 +12,6 @@ const CURRENT_ADMIN_USER = {
     apellidoUsuario: "Perez",
     rolUsuario: "Administrador",
     estadoUsuario: "Activo",
-    rutaFirma: "itecsa-app\\data\\Firmas\\firma-test.pdf",
 };
 
 function responseRecorder() {

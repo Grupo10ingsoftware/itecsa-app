@@ -38,16 +38,19 @@ export function createAdminUsersApi(apiClient) {
       apellidoUsuario,
       correoUsuario,
       rolUsuario,
+      pin,
     }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}`, {
         nombreUsuario,
         apellidoUsuario,
         correoUsuario,
         rolUsuario,
+        pin,
       }),
-    unlinkUser: ({ idUsuarioAutenticacionExterna }) =>
+    unlinkUser: ({ idUsuarioAutenticacionExterna, pin }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}/status`, {
         estadoUsuario: 'Desvinculado',
+        pin,
       }),
     requestPasswordSetupEmail: ({ correoUsuario }) =>
       apiClient.post('/admin/users/password-setup-email', { correoUsuario }),

@@ -12,28 +12,27 @@ test("convierte ruta almacenada de NV a URL consumible por frontend", () => {
   );
 });
 
-test("lista pedidos con ruta_pdf de Nota de Venta expuesta como URL API", async () => {
+test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
   const repo = new OrderRepository({
     prisma: {
       pedidos: {
-        async findMany() {
+        async findMany(query) {
+          assert.equal(query.include.Documento, undefined);
           return [
             {
               id_pedido: 1,
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
+              numero_nota_venta: null,
               id_estado_pago: 1,
               Cliente: null,
               Detalle_pedido: [],
               Estado_Pedido: null,
-              Documento: [
+              Pedido_Etiqueta: [
                 {
-                  id_documento: 10,
-                  ruta_pdf: "itecsa-app\\data\\NVS\\Pedido1.pdf",
-                  Nota_Venta: {
-                    numero_nota_venta: "Pedido1",
-                    firmado: 0,
+                  etiqueta: {
+                    id_etiqueta: 1,
+                    nombre_etiqueta: "Urgente",
                   },
-                  Firma_Documento: [],
                 },
               ],
             },
@@ -44,7 +43,7 @@ test("lista pedidos con ruta_pdf de Nota de Venta expuesta como URL API", async 
         async findMany() {
           return [
             {
-              id_estado_Pago: 1,
+              id_estado_pago: 1,
               nombre_estado_pago: "Pendiente",
             },
           ];
@@ -55,12 +54,20 @@ test("lista pedidos con ruta_pdf de Nota de Venta expuesta como URL API", async 
 
   const orders = await repo.getAllOrders();
 
-  assert.equal(orders[0].ruta_pdf, "/api/documents/nvs/Pedido1.pdf");
-  assert.equal(orders[0].signed_ruta_pdf, undefined);
-  assert.equal(orders[0].numero_nota_venta, "Pedido1");
+  assert.equal(orders[0].ruta_pdf, null);
+  assert.equal(orders[0].numero_nota_venta, null);
+  assert.equal(orders[0].firmado, null);
+  assert.equal(orders[0].firma_pago, null);
+  assert.equal(orders[0].estado_pago, "Pendiente");
+  assert.deepEqual(orders[0].etiquetas, [
+    {
+      id_etiqueta: 1,
+      nombre_etiqueta: "Urgente",
+    },
+  ]);
 });
 
-test("lista pedidos firmados usando ruta_pdf como documento vigente", async () => {
+test("lista pedidos con productos y cliente usando relaciones vigentes", async () => {
   const repo = new OrderRepository({
     prisma: {
       pedidos: {
@@ -70,30 +77,38 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
               id_pedido: 2,
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               id_estado_pago: 2,
-              Cliente: null,
-              Detalle_pedido: [],
-              Estado_Pedido: null,
-              Documento: [
+              Cliente: {
+                nombre_cliente: "Mall Plaza",
+                rut_cliente: "76.812.440-5",
+                razon_social: "Mall Plaza",
+              },
+              Detalle_pedido: [
                 {
-                  id_documento: 20,
-                  ruta_pdf: "itecsa-app\\data\\NVS\\Pedido2.pdf",
-                  Nota_Venta: {
-                    numero_nota_venta: "Pedido2",
-                    firmado: 1,
-                  },
-                  Firma_Documento: [
-                    {
-                      id_firma_documento: 1,
-                      fecha_firma: new Date("2026-06-11T00:00:00.000Z"),
-                      id_usuario: 10,
-                      Usuario: {
-                        ruta_firma: "itecsa-app\\data\\Firmas\\firma-test.pdf",
+                  id_detalle_pedido: 5,
+                  cantidad: 250,
+                  fecha_estimada_termino: null,
+                  fecha_real_termino: null,
+                  id_tipo_producto: 7,
+                  Tipo_Producto: {
+                    nombre_producto: "Lanyard",
+                    descripcion_producto: "Lanyard sublimado",
+                    Producto_Subproceso: [
+                      {
+                        id_estado_subproceso: 1,
+                        orden_flujo: 1,
+                        Estado_Subprocesos: {
+                          nombre_estado: "Impresion",
+                        },
                       },
-                      Firma_Pago: { id_firma_documento: 1 },
-                    },
-                  ],
+                    ],
+                  },
                 },
               ],
+              Estado_Pedido: {
+                orden_kanban: 1,
+                nombre_etapa: "Listo para produccion",
+              },
+              Pedido_Etiqueta: [],
             },
           ];
         },
@@ -102,7 +117,7 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
         async findMany() {
           return [
             {
-              id_estado_Pago: 2,
+              id_estado_pago: 2,
               nombre_estado_pago: "Confirmado",
             },
           ];
@@ -113,14 +128,36 @@ test("lista pedidos firmados usando ruta_pdf como documento vigente", async () =
 
   const orders = await repo.getAllOrders();
 
-  assert.equal(orders[0].ruta_pdf, "/api/documents/nvs/Pedido2.pdf");
-  assert.equal(orders[0].signed_ruta_pdf, undefined);
-  assert.equal(orders[0].firmado, 1);
-  assert.equal(orders[0].firma_pago.id_firma_documento, 1);
-  assert.equal(orders[0].firma_pago.id_usuario, 10);
-  assert.equal(orders[0].firma_pago.evidenceFileName, "firma-test.pdf");
-  assert.equal(
-    orders[0].firma_pago.evidenceUrl,
-    "/api/orders/2/payment-signature-evidence",
-  );
+  assert.equal(orders[0].nombre_cliente, "Mall Plaza");
+  assert.equal(orders[0].rut_cliente, "76.812.440-5");
+  assert.equal(orders[0].nombre_producto, "Lanyard");
+  assert.equal(orders[0].descripcion_producto, "Lanyard sublimado");
+  assert.equal(orders[0].cantidad, 250);
+  assert.equal(orders[0].id_etapa_general, 1);
+  assert.equal(orders[0].nombre_etapa_general, "Listo para produccion");
+  assert.deepEqual(orders[0].detalles, [
+    {
+      id_detalle_pedido: 5,
+      id: "5",
+      id_tipo_producto: 7,
+      nombre_producto: "Lanyard",
+      product: "Lanyard",
+      descripcion_producto: "Lanyard sublimado",
+      cantidad: 250,
+      quantity: 250,
+      fecha_estimada_termino: null,
+      dueDate: null,
+      fecha_real_termino: null,
+      id_estado_subproceso: null,
+      estado_subproceso: null,
+      subProcesses: [
+        {
+          id: "1",
+          name: "Impresion",
+          status: "pending",
+          order: 1,
+        },
+      ],
+    },
+  ]);
 });

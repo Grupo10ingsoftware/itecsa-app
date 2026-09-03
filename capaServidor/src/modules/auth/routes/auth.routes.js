@@ -1,7 +1,12 @@
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
+import pinService from "../service/pin.service.js";
 import {
+    createAcknowledgePinHandler,
+    createConfirmPinRecoveryHandler,
     createPasswordResetRequestHandler,
+    createRequestPinRecoveryHandler,
+    createRevealPinHandler,
     createVerifyAuthSessionHandler,
 } from "../controller/auth.controller.js";
 
@@ -56,13 +61,26 @@ export function createAuthRouter({
     users,
     requestPasswordEmail,
     logger,
+    pins = pinService,
 } = {}) {
     const router = Router();
 
     router.get(
         "/verify",
         authenticate,
-        createVerifyAuthSessionHandler({ users, logger }),
+        createVerifyAuthSessionHandler({ users, pins, logger }),
+    );
+    router.post("/pin/reveal", authenticate, createRevealPinHandler({ pins }));
+    router.post("/pin/acknowledge", authenticate, createAcknowledgePinHandler({ pins }));
+    router.post(
+        "/pin-recovery/request",
+        authenticate,
+        createRequestPinRecoveryHandler({ pins }),
+    );
+    router.post(
+        "/pin-recovery/confirm",
+        authenticate,
+        createConfirmPinRecoveryHandler({ pins }),
     );
     router.post(
         "/password-reset/request",

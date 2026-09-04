@@ -11,7 +11,7 @@ export default function requireAdministratorRole(req, res, next) {
 
     if (!isAdministrator) {
         return res.status(403).json({
-            message: "Solo un usuario con rol Administrador puede cancelar la produccion.",
+            message: "Solo un usuario con rol Administrador puede realizar esta accion.",
         });
     }
 

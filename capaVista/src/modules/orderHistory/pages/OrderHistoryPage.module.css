@@ -11,6 +11,11 @@
 .search { align-items: center; display: flex; gap: .65rem; padding: .75rem 1.25rem 1rem; }
 .search input { border: 1px solid #dbe1e8; border-radius: .75rem; flex: 1; min-height: 2.7rem; padding: 0 .85rem; }
 .search button, .pagination button { background: #111827; border: 0; border-radius: .7rem; color: #fff; font-weight: 800; min-height: 2.5rem; padding: .5rem .9rem; }
+.dateFilters { align-items: end; border-top: 1px solid #f1f5f9; display: flex; flex-wrap: wrap; gap: .75rem; padding: 0 1.25rem 1rem; }
+.dateFilters label { color: #475569; display: grid; font-size: .78rem; font-weight: 800; gap: .3rem; }
+.dateFilters input { border: 1px solid #dbe1e8; border-radius: .65rem; min-height: 2.55rem; padding: 0 .7rem; }
+.dateFilters button { background: #fff; border: 1px solid #cbd5e1; border-radius: .65rem; color: #334155; font-weight: 800; min-height: 2.55rem; padding: .5rem .8rem; }
+.dateFilters button:hover { border-color: #f97316; color: #c2410c; }
 .tableWrap { overflow-x: auto; }
 .tableWrap table { border-collapse: collapse; min-width: 900px; width: 100%; }
 .tableWrap th { background: #f8fafc; color: #475569; font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; }

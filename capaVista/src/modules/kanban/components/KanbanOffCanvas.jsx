@@ -415,6 +415,15 @@ export default function KanbanOffCanvas({
         <div className={styles.offcanvasBody}>
           <section className={styles.detailSection}>
             <h3>Resumen</h3>
+            {Array.isArray(order.etiquetas) && order.etiquetas.length > 0 && (
+              <div className={styles.visibleLabels}>
+                {order.etiquetas.map((label) => (
+                  <span key={label.id_etiqueta ?? label.nombre_etiqueta ?? label}>
+                    {label.nombre_etiqueta ?? label}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className={styles.summaryStack}>
               {orderItems.map((item) => {
                 const manufacturingDetails = getManufacturingDetails(item, order)
@@ -631,7 +640,7 @@ export default function KanbanOffCanvas({
           </section>
 
           {canCancelProduction && (
-            <section className={styles.detailSection}>
+            <section className={`${styles.detailSection} ${styles.dangerZone}`}>
               <h3>Cancelar produccion</h3>
               <button
                 className={styles.correctionButton}

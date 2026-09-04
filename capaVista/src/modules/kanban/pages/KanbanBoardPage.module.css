@@ -209,6 +209,30 @@
   line-height: 1.25;
   margin: 0;
 }
+.capacityHeaderActions { align-items: center; display: flex; gap: .55rem; }
+.capacityHeaderActions button { align-items: center; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); border-radius: .45rem; color: #fff; display: inline-flex; height: 2rem; justify-content: center; transition: .15s ease; width: 2rem; }
+.capacityHeaderActions button:hover { background: var(--payment-orange); border-color: var(--payment-orange); color: #111; transform: translateY(-1px); }
+.modalLayer { align-items: center; background: rgba(15,23,42,.68); display: flex; inset: 0; justify-content: center; padding: 1rem; position: fixed; z-index: 1200; }
+.capacityModal { background: #fff; border-radius: .85rem; box-shadow: 0 24px 70px rgba(0,0,0,.3); max-width: 520px; overflow: hidden; width: 100%; }
+.capacityModal header, .capacityModal footer { align-items: center; display: flex; justify-content: space-between; padding: 1rem 1.25rem; }
+.capacityModal header { background: #111; color: #fff; }
+.capacityModal header h2 { font-size: 1.2rem; margin: .15rem 0 0; }
+.capacityModal header button { background: transparent; border: 0; color: #fff; }
+.capacityFields { display: grid; gap: .8rem; padding: 1.25rem; }
+.capacityFields label { display: grid; font-weight: 800; gap: .3rem; }
+.capacityFields input { border: 1px solid #d0d7de; border-radius: .5rem; min-height: 2.6rem; padding: 0 .7rem; }
+.volumeControl { gap: .85rem !important; }
+.volumeHeading { align-items: center; display: grid; gap: .6rem; grid-template-columns: auto 1fr auto; }
+.volumeHeading > i { color: #f97316; font-size: 1.2rem; }
+.volumeHeading input[type='number'] { background: #111827; border: 1px solid #374151; border-radius: .45rem; color: #fff; font-weight: 850; min-height: 2.35rem; padding: .4rem .55rem; text-align: center; width: 6.5rem; }
+.volumeHeading input[type='number']:focus { border-color: #f97316; outline: 2px solid rgba(249,115,22,.25); }
+.sliderRow { align-items: center; display: block; }
+.capacityFields .sliderRow input[type='range'] { accent-color: #f97316; border: 0; cursor: pointer; min-height: 1.5rem; padding: 0; width: 100%; }
+.sliderLimits { color: #64748b; display: flex; font-weight: 700; justify-content: space-between; }
+.capacityModal footer { border-top: 1px solid #d8dee4; gap: .6rem; justify-content: flex-end; }
+.capacityModal footer button { border: 1px solid #d0d7de; border-radius: .5rem; font-weight: 800; padding: .55rem .8rem; }
+.capacityModal footer button[type='submit'] { background: #111; color: #fff; }
+.capacityError { color: #b42318; margin: 0; }
 
 .content {
   display: grid;

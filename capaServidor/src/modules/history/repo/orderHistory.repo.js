@@ -97,20 +97,17 @@ export default class OrderHistoryRepository {
             ]
             : [];
 
-        if (dateRange) {
-            searchConditions.push({
-                fecha_creacion: {
-                    gte: dateRange.start,
-                    lt: dateRange.end,
-                },
-            });
-        }
-
         const where = {
             ...(status
                 ? { Estado_Pedido: { is: { nombre_etapa: status } } }
                 : {}),
             ...(searchConditions.length > 0 ? { OR: searchConditions } : {}),
+            ...(dateRange ? {
+                fecha_creacion: {
+                    ...(dateRange.start ? { gte: dateRange.start } : {}),
+                    ...(dateRange.end ? { lt: dateRange.end } : {}),
+                },
+            } : {}),
         };
 
         const [orders, total] = await this.client.$transaction([

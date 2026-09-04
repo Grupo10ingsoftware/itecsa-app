@@ -177,7 +177,8 @@ model Registro_Pago {
 model Tipo_Producto {
   id_tipo_producto     Int                   @id @default(autoincrement())
   nombre_producto      String?               @db.VarChar(255)
-  descripcion_producto String?               @db.Text
+    descripcion_producto String?               @db.Text
+    capacidad_diaria     Int?                  @default(0)
   Detalle_pedido       Detalle_pedido[]
   Producto_Subproceso  Producto_Subproceso[]
 }

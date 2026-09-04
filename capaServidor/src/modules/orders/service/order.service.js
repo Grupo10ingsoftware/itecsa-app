@@ -449,6 +449,19 @@ class OrderService {
     }));
   }
 
+  async setOrderLabel(orderId, { label, active }, { auth0UserId } = {}) {
+    const allowed = new Set(["Urgencia", "Prioridad por contrato", "PRODUCIÉNDOSE"]);
+    if (!allowed.has(label) || typeof active !== "boolean") {
+      const error = new Error("Etiqueta o estado no valido."); error.statusCode = 400; throw error;
+    }
+    const userId = await this.resolveInternalUserId({ auth0UserId });
+    return this.runInTransaction(async ({ repo }) => {
+      const result = await repo.setOrderLabel({ orderId, label, active, userId });
+      if (!result) { const error = new Error("Pedido no encontrado."); error.statusCode = 404; throw error; }
+      return result;
+    });
+  }
+
   async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {
     if (auth0UserId) {
       const user = await this.userRepo.findByAuth0Id(auth0UserId);

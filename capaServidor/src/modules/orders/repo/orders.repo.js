@@ -424,6 +424,38 @@ class OrderRepository {
     return this.get(id);
   }
 
+  async setOrderLabel({ orderId, label, active, userId }) {
+    let tag = await this.client.etiqueta.findFirst({ where: { nombre_etiqueta: label } });
+    if (!tag) {
+      const last = await this.client.etiqueta.findFirst({ orderBy: { id_etiqueta: "desc" }, select: { id_etiqueta: true } });
+      tag = await this.client.etiqueta.create({ data: {
+        id_etiqueta: (last?.id_etiqueta ?? 0) + 1, nombre_etiqueta: label,
+        descripcion: "Etiqueta de organización del Kanban", esta_activa: 1,
+      } });
+    }
+    if (active) {
+      await this.client.pedido_Etiqueta.upsert({
+        where: { id_pedido_id_etiqueta: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta } },
+        update: { id_usuario_asigna: Number(userId), fecha_asignacion: new Date() },
+        create: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta, id_usuario_asigna: Number(userId) },
+      });
+    } else {
+      await this.client.pedido_Etiqueta.deleteMany({ where: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta } });
+    }
+    await this.client.registros.create({ data: {
+      FECHA_HORA: new Date(), id_pedido: Number(orderId), id_usuario: Number(userId),
+      observacion: `${active ? "Asignó" : "Quitó"} etiqueta ${label}.`,
+    } });
+    const assignedLabels = await this.client.pedido_Etiqueta.findMany({
+      where: { id_pedido: Number(orderId) },
+      include: { etiqueta: true },
+    });
+    return {
+      id_pedido: Number(orderId),
+      etiquetas: assignedLabels.map((item) => item.etiqueta).filter(Boolean),
+    };
+  }
+
   async updateGeneralStep(id, ordenKanban, audit = {}) {
     return this.transitionGeneralStage({
       id,

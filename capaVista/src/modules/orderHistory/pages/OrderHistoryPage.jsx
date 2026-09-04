@@ -24,6 +24,7 @@ export default function OrderHistoryPage() {
   const [status, setStatus] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [dateRange, setDateRange] = useState({ from: '', to: '' })
   const [page, setPage] = useState(1)
   const [meta, setMeta] = useState({ total: 0, totalPages: 0 })
   const [loading, setLoading] = useState(true)
@@ -31,7 +32,7 @@ export default function OrderHistoryPage() {
 
   useEffect(() => {
     let active = true
-    api.listOrders({ status, search, page, perPage: 20 })
+    api.listOrders({ status, search, from: dateRange.from, to: dateRange.to, page, perPage: 20 })
       .then((result) => {
         if (!active) return
         setOrders(result.orders ?? [])
@@ -40,7 +41,14 @@ export default function OrderHistoryPage() {
       .catch((requestError) => active && setError(errorMessage(requestError)))
       .finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [api, page, search, status])
+  }, [api, dateRange.from, dateRange.to, page, search, status])
+
+  function updateDate(name, value) {
+    setLoading(true)
+    setError('')
+    setPage(1)
+    setDateRange((current) => ({ ...current, [name]: value }))
+  }
 
   function submitSearch(event) {
     event.preventDefault()
@@ -67,7 +75,7 @@ export default function OrderHistoryPage() {
     setPage(nextPage)
   }
 
-  const noRegisteredOrders = !loading && !error && meta.total === 0 && !status && !search
+  const noRegisteredOrders = !loading && !error && meta.total === 0 && !status && !search && !dateRange.from && !dateRange.to
 
   return (
     <main className={`container-fluid ${styles.page}`}>
@@ -95,12 +103,26 @@ export default function OrderHistoryPage() {
           <input
             aria-label="Buscar pedidos"
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Nota de Venta, RUT, cliente o fecha DD-MM-YYYY"
+            placeholder="Nota de Venta, RUT o nombre del cliente"
             type="search"
             value={searchInput}
           />
           <button type="submit">Buscar</button>
         </form>
+
+        <div className={styles.dateFilters} aria-label="Rango de fecha de creacion">
+          <label>
+            <span>Desde</span>
+            <input max={dateRange.to || undefined} onChange={(event) => updateDate('from', event.target.value)} type="date" value={dateRange.from} />
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input min={dateRange.from || undefined} onChange={(event) => updateDate('to', event.target.value)} type="date" value={dateRange.to} />
+          </label>
+          <button onClick={() => setDateRange({ from: '', to: '' })} type="button">
+            <i className="bi bi-arrow-counterclockwise" aria-hidden="true" /> Restablecer fechas
+          </button>
+        </div>
 
         {error && <div className={styles.error} role="alert">{error}</div>}
         {loading ? (

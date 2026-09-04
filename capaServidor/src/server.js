@@ -7,6 +7,7 @@ import documentRoutes from './modules/documents/routes/document.routes.js';
 import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
 import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
+import productionCapacityRoutes from './modules/productionCapacity/routes/productionCapacity.routes.js';
 
 import orderRoutes from './modules/orders/routes/order.routes.js';
 import orderDetailRoutes from './modules/orders/routes/orderDetail.routes.js';
@@ -39,6 +40,7 @@ class Server {
         messages: '/api/messages',
         history: '/api/history',
         productionCalendar: '/api/production-calendar',
+        productionCapacity: '/api/production-capacity',
 
         //* Estados
         orderStatus: '/api/order-status',
@@ -95,6 +97,7 @@ class Server {
     this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.history, orderHistoryRoutes)
     this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
+    this.app.use( this.paths.productionCapacity, productionCapacityRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);
     this.app.use(this.paths.orderStatus, orderStatusRoutes);
     this.app.use(this.paths.orderDetail, orderDetailRoutes );

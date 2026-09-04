@@ -179,6 +179,16 @@ class OrderController {
         }
     }
 
+    setLabel = async (req = request, res = response) => {
+        try {
+            return res.status(200).json(await this.service.setOrderLabel(req.params.orderId, req.body, {
+                auth0UserId: req.auth?.payload?.sub,
+            }));
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({ message: error.message || 'Error al actualizar etiqueta' });
+        }
+    }
+
     updateDeliveryDate = async (req = request, res = response) => {
         try {
             const { orderId } = req.params;

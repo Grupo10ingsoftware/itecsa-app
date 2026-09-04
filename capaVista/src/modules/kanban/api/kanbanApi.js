@@ -26,5 +26,8 @@ export function createKanbanApi(apiClient) {
     rollbackSubprocess: (orderId, detailId, subprocessId, payload = {}) =>
       apiClient.patch(`/orders/${orderId}/details/${detailId}/subprocesses/${subprocessId}/rollback`, payload),
     reevaluate: (orderId) => apiClient.patch(`/orders/${orderId}/reevaluate`, {}),
+    setLabel: (orderId, label, active) => apiClient.patch(`/orders/${orderId}/labels`, { label, active }),
+    getCapacities: () => apiClient.get('/production-capacity'),
+    updateCapacities: (capacities) => apiClient.patch('/production-capacity', { capacities }),
   }
 }

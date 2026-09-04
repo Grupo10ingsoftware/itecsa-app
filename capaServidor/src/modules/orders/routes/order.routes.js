@@ -40,6 +40,7 @@ export function createOrderRouter({
         rollbackSubprocess:
             controller.rollbackSubprocess ?? fallbackController.rollbackSubprocess,
         reevaluate: controller.reevaluate ?? fallbackController.reevaluate,
+        setLabel: controller.setLabel ?? fallbackController.setLabel,
         updateDeliveryDate:
             controller.updateDeliveryDate ?? fallbackController.updateDeliveryDate,
         completeSubprocess:
@@ -75,6 +76,7 @@ export function createOrderRouter({
         routeController.cancelProduction,
     );
     router.patch("/:orderId/reevaluate", authenticate, authorizeSales, routeController.reevaluate);
+    router.patch("/:orderId/labels", authenticate, authorizeCancellation, routeController.setLabel);
     router.patch("/:orderId/delivery-date", authenticate, validatePin, routeController.updateDeliveryDate);
     router.patch(
         "/:orderId/details/:detailId/subprocesses/:subprocessId/complete",

@@ -35,6 +35,27 @@ function dateRangeFromSearch(search) {
     return { start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000) };
 }
 
+function dateRangeFromQuery(from, to) {
+    if (!from && !to) return null;
+    const parse = (value, field) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""))) {
+            throw httpError(400, `${field} debe tener formato YYYY-MM-DD.`);
+        }
+        const date = new Date(`${value}T00:00:00.000Z`);
+        if (Number.isNaN(date.getTime())) throw httpError(400, `${field} no es una fecha valida.`);
+        return date;
+    };
+    const start = from ? parse(from, "from") : undefined;
+    const selectedEnd = to ? parse(to, "to") : undefined;
+    if (start && selectedEnd && start > selectedEnd) {
+        throw httpError(400, "La fecha desde no puede ser posterior a la fecha hasta.");
+    }
+    return {
+        start,
+        end: selectedEnd ? new Date(selectedEnd.getTime() + 24 * 60 * 60 * 1000) : undefined,
+    };
+}
+
 function personName(user) {
     if (!user) return null;
     return [user.nombre_usuario, user.apellido_usuario].filter(Boolean).join(" ") || user.correo_usuario;
@@ -177,10 +198,11 @@ export default class OrderHistoryService {
         const perPage = Math.min(positiveInteger(query.perPage, 20, "perPage"), 100);
         const status = String(query.status ?? "").trim();
         const search = String(query.search ?? "").trim();
+        const selectedDateRange = dateRangeFromQuery(query.from, query.to);
         const { orders, total } = await this.repo.list({
             status: status || null,
             search: search || null,
-            dateRange: dateRangeFromSearch(search),
+            dateRange: selectedDateRange ?? dateRangeFromSearch(search),
             page,
             perPage,
         });

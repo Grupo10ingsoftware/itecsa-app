@@ -34,6 +34,7 @@ function KanbanCard({
   isPaymentDeconfirmationRequested,
   isUrgent,
   hasContractPriority,
+  isProducing,
   canManageIndicators,
   onToggleIndicator,
   onOpenDetail,
@@ -81,6 +82,16 @@ function KanbanCard({
             type="button"
           >
             <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+          </button>
+          <button
+            aria-pressed={isProducing}
+            className={`${styles.cardIndicatorButton} ${styles.producingIndicator} ${isProducing ? styles.producingIndicatorActive : ''}`}
+            disabled={!canManageIndicators}
+            onClick={(event) => { event.stopPropagation(); onToggleIndicator?.('producing') }}
+            title={isProducing ? 'PRODUCIÉNDOSE activa' : 'Marcar como PRODUCIÉNDOSE'}
+            type="button"
+          >
+            <i className="bi bi-gear-fill" aria-hidden="true" />
           </button>
           <button
             aria-pressed={hasContractPriority}

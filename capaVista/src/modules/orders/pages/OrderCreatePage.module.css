@@ -49,6 +49,39 @@
   min-width: 0;
 }
 
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.registerButton {
+  align-items: center;
+  background: var(--orders-orange);
+  border: 1px solid var(--orders-orange);
+  border-radius: 0.65rem;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.55rem;
+  justify-content: center;
+  min-height: 3rem;
+  min-width: 13rem;
+  padding: 0 1.25rem;
+}
+
+.registerButton:hover:not(:disabled) {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+.registerButton:disabled {
+  background: #cbd5e1;
+  border-color: #cbd5e1;
+  color: #f8fafc;
+  cursor: not-allowed;
+}
+
 @media (max-width: 992px) {
   .createGrid {
     grid-template-columns: 1fr;
@@ -62,5 +95,13 @@
 
   .content {
     padding: 1rem;
+  }
+
+  .footerActions {
+    justify-content: stretch;
+  }
+
+  .registerButton {
+    width: 100%;
   }
 }

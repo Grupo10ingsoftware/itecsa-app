@@ -26,13 +26,13 @@ class PaymentStatusRepo {
 
   async get(id) {
     return this.client.estado_Pago.findUnique({
-      where: { id_estado_Pago: Number(id) },
+      where: { id_estado_pago: Number(id) },
     });
   }
 
   async getAll() {
     return this.client.estado_Pago.findMany({
-      orderBy: { id_estado_Pago: "asc" },
+      orderBy: { id_estado_pago: "asc" },
     });
   }
 }

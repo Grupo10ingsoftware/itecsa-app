@@ -1,13 +1,5 @@
 import getPrismaClient from "../../../database/prisma.js";
 
-async function nextPaymentRecordId(client) {
-  const result = await client.registro_Pago.aggregate({
-    _max: { id_registro_pago: true },
-  });
-
-  return Number(result._max.id_registro_pago ?? 0) + 1;
-}
-
 class PaymentRecordRepo {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -28,31 +20,52 @@ class PaymentRecordRepo {
       id_usuario,
       id_estado_pago,
     } = data;
+    const createdAt = fecha_registro ?? new Date();
+
+    const registry = await this.client.registros.create({
+      data: {
+        FECHA_HORA: createdAt,
+        id_pedido: Number(orderId),
+        id_usuario: Number(id_usuario),
+      },
+    });
 
     return this.client.registro_Pago.create({
       data: {
-        id_registro_pago: await nextPaymentRecordId(this.client),
-        fecha_registro: fecha_registro ?? new Date(),
+        id_registro: registry.ID_REGISTRO,
+        fecha_registro: createdAt,
         observacion: observacion ?? null,
-        id_pedido: Number(orderId),
         id_usuario: Number(id_usuario),
-        id_estado_pago: Number(id_estado_pago),
+        id_estado_pago_nuevo: Number(id_estado_pago),
+      },
+      include: {
+        Registros: true,
       },
     });
   }
 
   async getById(paymentRecordId) {
     return this.client.registro_Pago.findUnique({
-      where: { id_registro_pago: Number(paymentRecordId) },
+      where: { id_registro: Number(paymentRecordId) },
+      include: {
+        Registros: true,
+      },
     });
   }
 
   async getByOrderId(orderId) {
     return this.client.registro_Pago.findMany({
-      where: { id_pedido: Number(orderId) },
+      where: {
+        Registros: {
+          id_pedido: Number(orderId),
+        },
+      },
+      include: {
+        Registros: true,
+      },
       orderBy: [
         { fecha_registro: "desc" },
-        { id_registro_pago: "desc" },
+        { id_registro: "desc" },
       ],
     });
   }
@@ -60,8 +73,13 @@ class PaymentRecordRepo {
   async getByOrderIdAndRecordId(orderId, paymentRecordId) {
     return this.client.registro_Pago.findFirst({
       where: {
-        id_pedido: Number(orderId),
-        id_registro_pago: Number(paymentRecordId),
+        id_registro: Number(paymentRecordId),
+        Registros: {
+          id_pedido: Number(orderId),
+        },
+      },
+      include: {
+        Registros: true,
       },
     });
   }

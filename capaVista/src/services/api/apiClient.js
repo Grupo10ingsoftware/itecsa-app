@@ -141,6 +141,7 @@ export function createApiClient({ baseUrl = getDefaultBaseUrl(), getAccessToken 
     get: (path, options) => request(path, { ...options, method: 'GET' }),
     post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
     patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
+    delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
     request,
   }
 }

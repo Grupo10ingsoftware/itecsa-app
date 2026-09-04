@@ -51,6 +51,23 @@ export function AuthProvider({ children }) {
     error: null,
   })
 
+  const verifySession = useCallback(
+    () => withTimeout(authApi.verify(), VERIFY_SESSION_TIMEOUT_MS),
+    [authApi],
+  )
+
+  const refreshSession = useCallback(async () => {
+    const verifiedUser = await verifySession()
+    setVerifiedSession({
+      status: AUTH_STATUS.AUTHENTICATED,
+      subject: user?.sub ?? verifiedUser.sub ?? null,
+      user: verifiedUser,
+      error: null,
+    })
+
+    return verifiedUser
+  }, [user?.sub, verifySession])
+
   useEffect(() => {
     let isCurrent = true
 
@@ -60,7 +77,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    withTimeout(authApi.verify(), VERIFY_SESSION_TIMEOUT_MS)
+    verifySession()
       .then((verifiedUser) => {
         if (!isCurrent) {
           return
@@ -96,7 +113,7 @@ export function AuthProvider({ children }) {
     return () => {
       isCurrent = false
     }
-  }, [authApi, isAuthenticated, isLoading, user?.sub])
+  }, [isAuthenticated, isLoading, user?.sub, verifySession])
 
   const logout = useCallback(() => {
     auth0Logout({
@@ -153,6 +170,8 @@ export function AuthProvider({ children }) {
       logout,
       hasRole,
       hasPermission,
+      pinStatus: verifiedUser?.pinStatus ?? null,
+      refreshSession,
     }),
     [
       verifiedUser,
@@ -166,6 +185,7 @@ export function AuthProvider({ children }) {
       logout,
       hasRole,
       hasPermission,
+      refreshSession,
     ],
   )
 

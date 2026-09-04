@@ -19,6 +19,8 @@ const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordReset
 const ProductionHistoryPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryPage'))
 const ProductionHistoryDetailPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryDetailPage'))
 const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
+const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
+const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
 
 function RouteLoadingState() {
   return (
@@ -56,6 +58,8 @@ export default function AppRouter() {
               }
             />
             <Route path="perfil" element={<ProfilePage />} />
+            <Route path="mensajes" element={<MessageInboxPage />} />
+            <Route path="mensajes/:messageId" element={<MessageDetailPage />} />
             <Route
               path="pagos"
               element={

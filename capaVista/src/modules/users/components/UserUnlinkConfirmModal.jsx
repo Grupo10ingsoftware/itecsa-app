@@ -3,15 +3,13 @@ import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
 export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, user }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const emailInputRef = useRef(null)
+  const pinInputRef = useRef(null)
 
   const resetFields = useCallback(() => {
-    setEmail('')
-    setPassword('')
+    setPin('')
     setError('')
   }, [])
 
@@ -27,7 +25,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
 
     const previousBodyOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => emailInputRef.current?.focus(), 0)
+    const focusTimer = window.setTimeout(() => pinInputRef.current?.focus(), 0)
 
     function handleEscape(event) {
       if (event.key === 'Escape' && !isSubmitting) {
@@ -43,9 +41,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
     }
   }, [handleClose, isOpen, isSubmitting])
 
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 0 && password.length > 0
-  }, [email, password])
+  const canSubmit = useMemo(() => /^\d{6}$/.test(pin.trim()), [pin])
 
   if (!isOpen || !user) {
     return null
@@ -59,15 +55,10 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const trimmedEmail = email.trim()
+    const trimmedPin = pin.trim()
 
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setError('Ingrese un correo valido.')
-      return
-    }
-
-    if (!password) {
-      setError('Ingrese su contrasena.')
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setError('Ingrese un PIN valido de 6 digitos.')
       return
     }
 
@@ -75,7 +66,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
     setError('')
 
     try {
-      await onConfirm(user)
+      await onConfirm({ ...user, pin: trimmedPin })
       resetFields()
     } finally {
       setIsSubmitting(false)
@@ -110,36 +101,25 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
 
         <div className={styles.modalBody}>
           <p className={styles.confirmText}>
-            Ingrese su correo y contrasena para hacer efectiva la desvinculacion de {user.nombreCompleto}.
+            Ingrese su PIN para hacer efectiva la desvinculacion de {user.nombreCompleto}.
           </p>
           <div className={styles.confirmFields}>
-            <label className={styles.editField} htmlFor="unlink-email">
-              <span>Correo</span>
+            <label className={styles.editField} htmlFor="unlink-pin">
+              <span>PIN</span>
               <input
-                autoComplete="email"
+                autoComplete="one-time-code"
                 className={styles.formControl}
-                id="unlink-email"
+                id="unlink-pin"
+                inputMode="numeric"
+                maxLength={6}
                 onChange={(event) => {
-                  setEmail(event.target.value)
+                  setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
                   setError('')
                 }}
-                ref={emailInputRef}
-                type="email"
-                value={email}
-              />
-            </label>
-            <label className={styles.editField} htmlFor="unlink-password">
-              <span>Contrasena</span>
-              <input
-                autoComplete="current-password"
-                className={styles.formControl}
-                id="unlink-password"
-                onChange={(event) => {
-                  setPassword(event.target.value)
-                  setError('')
-                }}
+                placeholder="000000"
+                ref={pinInputRef}
                 type="password"
-                value={password}
+                value={pin}
               />
             </label>
           </div>

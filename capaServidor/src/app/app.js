@@ -7,6 +7,7 @@ const requiredEnvironmentVariables = [
     "AUTH0_DOMAIN",
     "AUTH0_AUDIENCE",
     "FRONTEND_ORIGIN",
+    "PIN_SECRET",
 ];
 
 function validateEnvironment() {

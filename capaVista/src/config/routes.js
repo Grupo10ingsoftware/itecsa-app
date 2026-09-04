@@ -14,6 +14,8 @@ export const APP_ROUTES = Object.freeze({
   PRODUCTION_HISTORY: '/historial-produccion',
   PRODUCTION_HISTORY_DETAIL: '/historial-produccion/:pedidoId',
   PRODUCTION_CALENDAR: '/calendario-produccion',
+  MESSAGES: '/mensajes',
+  MESSAGE_DETAIL: '/mensajes/:messageId',
 })
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
@@ -27,6 +29,11 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     label: 'Mi perfil',
     path: APP_ROUTES.PROFILE,
     requirementIds: Object.freeze(['UR 1.7']),
+  },
+  {
+    label: 'Bandeja de mensajes',
+    path: APP_ROUTES.MESSAGES,
+    requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
   },
   {
     label: 'Confirmar pago',

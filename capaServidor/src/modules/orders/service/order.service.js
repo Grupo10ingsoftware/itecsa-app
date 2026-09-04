@@ -6,7 +6,6 @@ import {
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
 } from "../../../config/status.js";
-import fs from "node:fs/promises";
 
 import OrderRepository from "../repo/orders.repo.js";
 import ClientRepo from "../../clients/repo/clients.repo.js";
@@ -18,10 +17,9 @@ import ProductTypeService from "../../products/service/product.service.js";
 import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
 import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
-import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
-import { resolveStoredSignaturePath } from "../../documents/service/paymentSignature.service.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
+import SalesNoteSourceService from "./salesNoteSource.service.js";
 
 export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
   "No se puede cambiar el estado de un pago confirmado.";
@@ -32,6 +30,52 @@ function toPrismaDate(value) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeQuantity(value) {
+  const quantity = Number(value);
+
+  return Number.isFinite(quantity) ? quantity : null;
+}
+
+function normalizePriorityLabels(priority) {
+  if (!priority) return [];
+
+  const priorities = Array.isArray(priority) ? priority : [priority];
+  const labelNames = new Set();
+
+  for (const item of priorities) {
+    if (item === "urgent") labelNames.add("Urgencia");
+    if (item === "contract") labelNames.add("Prioridad por contrato");
+  }
+
+  return [...labelNames];
+}
+
+function normalizeProductionItems(items = []) {
+  return items.map((item) => ({
+    codigo: item.codigo ?? null,
+    producto: item.producto ?? null,
+    cantidad: normalizeQuantity(item.cantidad),
+    familia: item.familia ?? null,
+    subfamilia: item.subfamilia ?? null,
+    tipoProducto: item.tipoProducto ?? item.nombre_producto ?? null,
+  }));
+}
+
+function normalizeUntrackedItems(items = []) {
+  return items
+    .map((item) => ({
+      codigo: item.codigo ?? null,
+      producto: item.producto ?? null,
+      cantidad: normalizeQuantity(item.cantidad),
+      subfamilia: item.subfamilia ?? null,
+    }))
+    .filter((item) => normalizeText(item.producto));
+}
+
 class OrderService {
   constructor({
     repo,
@@ -40,8 +84,9 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
-    paymentSignatureService,
     userRepo,
+    salesNoteSourceService,
+    repoClient,
     prisma,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
@@ -50,9 +95,10 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
-    this.paymentSignatureService =
-      paymentSignatureService ?? new PaymentSignatureService();
     this.userRepo = userRepo ?? defaultUserRepository;
+    this.salesNoteSourceService =
+      salesNoteSourceService ?? new SalesNoteSourceService();
+    this.repoClient = repoClient ?? null;
     this.prisma = prisma;
     this.hasInjectedDependencies = Boolean(
       repo ||
@@ -61,7 +107,7 @@ class OrderService {
         productTypeService ||
         paymentRecordService ||
         paymentRepo ||
-        paymentSignatureService,
+        salesNoteSourceService,
     );
   }
 
@@ -82,7 +128,7 @@ class OrderService {
         productTypeService: this.productTypeService,
         paymentRecordService: this.paymentRecordService,
         paymentRepo: this.paymentRepo,
-        paymentSignatureService: this.paymentSignatureService,
+        repoClient: this.repoClient,
       });
     }
 
@@ -102,7 +148,7 @@ class OrderService {
           repo: new PaymentRecordRepo({ prisma: tx }),
         }),
         paymentRepo: new PaymentStatusRepo({ prisma: tx }),
-        paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
+        repoClient: tx,
       }),
       {
         timeout: 20000,
@@ -178,8 +224,76 @@ class OrderService {
     return this.repo.updateGeneralStep(orderId, nextStep);
   }
 
+  async updateDeliveryDate(orderId, dueDate) {
+    if (!orderId) {
+      const error = new Error("El ID del pedido es obligatorio");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!dueDate) {
+      const error = new Error("La fecha de entrega es obligatoria.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const parsedDate = toPrismaDate(dueDate);
+
+    if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+      const error = new Error("La fecha de entrega no es valida.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const updatedOrder = await this.repo.updateDeliveryDate(orderId, parsedDate);
+
+    if (!updatedOrder) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return updatedOrder;
+  }
+
+  async completeSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
+    if (!orderId || !detailId || !subprocessId) {
+      const error = new Error("Faltan IDs obligatorios para completar el subproceso.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return this.runInTransaction(async ({ repo }) => {
+      const updatedOrder = await repo.completeSubprocess({
+        orderId,
+        detailId,
+        subprocessId,
+        userId: actor.idUsuario,
+        comment,
+      });
+
+      if (!updatedOrder) {
+        const error = new Error("Pedido o detalle de pedido no encontrado.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      return updatedOrder;
+    });
+  }
+
   async getAllOrders() {
     return this.repo.getAllOrders();
+  }
+
+  async getSalesNoteByNumber(numeroNota) {
+    return this.salesNoteSourceService.getByNumber(numeroNota);
   }
 
   async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {
@@ -204,64 +318,11 @@ class OrderService {
     throw error;
   }
 
-  async previewPaymentSignature(orderId, data = {}) {
-    const resolvedUserId = await this.resolveInternalUserId(data);
-
-    return this.paymentSignatureService.previewSignedPaymentDocument(
-      orderId,
-      resolvedUserId,
-    );
-  }
-
-  async getPaymentSignatureEvidence(orderId) {
-    const salesNoteDocument = await this.paymentSignatureService.getOrderSalesNote(
-      orderId,
-    );
-
-    if (!salesNoteDocument?.id_documento) {
-      const error = new Error("El pedido no tiene una Nota de Venta asociada.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const paymentSignature = salesNoteDocument.Firma_Documento?.find(
-      (signature) => signature.Firma_Pago,
-    );
-
-    if (!paymentSignature?.id_usuario) {
-      const error = new Error("El pedido no tiene evidencia de firma de pago.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const user = await this.paymentSignatureService.getUserSignature(
-      paymentSignature.id_usuario,
-    );
-    const signaturePath = resolveStoredSignaturePath(user.ruta_firma);
-
-    if (!signaturePath) {
-      const error = new Error("La evidencia de firma no tiene una ruta valida.");
-      error.statusCode = 409;
-      throw error;
-    }
-
-    try {
-      await fs.access(signaturePath);
-    } catch {
-      const error = new Error("El archivo de evidencia de firma no existe.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return {
-      filePath: signaturePath,
-    };
-  }
-
   async updPaymentState(orderId, newPaymentStatusId, data = {}) {
     const {
       auth0UserId,
       id_usuario,
+      actor,
       observacion,
     } = data;
 
@@ -305,32 +366,23 @@ class OrderService {
 
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
-    const resolvedUserId = await this.resolveInternalUserId({
-      auth0UserId,
-      id_usuario,
-    });
+    const resolvedUserId =
+      actor?.idUsuario ??
+      await this.resolveInternalUserId({
+        auth0UserId,
+        id_usuario,
+      });
 
     const nextKanbanOrder =
       paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
         ? KANBAN_LISTO_PRODUCCION
         : KANBAN_CONFIRMACION_PAGO;
 
-    // La transicion de pago es atomica: firma, mueve Kanban y registra auditoria.
+    // La transicion de pago es atomica: mueve Kanban y registra auditoria.
     return this.runInTransaction(async ({
       repo,
       paymentRecordService,
-      paymentSignatureService,
     }) => {
-      const shouldSignPaymentDocument =
-        paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
-
-      if (shouldSignPaymentDocument) {
-        await paymentSignatureService.signPaymentDocument(
-          orderId,
-          resolvedUserId,
-        );
-      }
-
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,
@@ -349,7 +401,11 @@ class OrderService {
     });
   }
 
-  async createOrder(data) {
+  async createOrder(data, options = {}) {
+    if (data?.numeroNota || data?.cliente || data?.items) {
+      return this.createOrderFromSalesNote(data, options);
+    }
+
     const {
       rut_cliente,
       nombre_cliente,
@@ -445,6 +501,153 @@ class OrderService {
       return {
         ...order,
         detalles: details,
+      };
+    });
+  }
+
+  async createOrderFromSalesNote(data, options = {}) {
+    const numeroNota = normalizeText(data.numeroNota);
+    const cliente = data.cliente ?? {};
+    const origen = data.origen ?? {};
+    const productionItems = normalizeProductionItems(data.items ?? []);
+    const untrackedItems = normalizeUntrackedItems(
+      data.itemsSinSeguimientoProductivo ?? data.itemsNoSoportados ?? [],
+    );
+
+    if (!numeroNota || !cliente.rut || !cliente.nombre || productionItems.length === 0) {
+      const error = new Error("Faltan datos obligatorios para registrar el pedido.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const invalidItem = productionItems.find(
+      (item) => !item.tipoProducto || !item.producto || item.cantidad === null,
+    );
+
+    if (invalidItem) {
+      const error = new Error("Hay productos sin tipo productivo, nombre o cantidad valida.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existingOrder = await this.repo.getBySalesNoteNumber(numeroNota);
+
+    if (existingOrder) {
+      const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const resolvedUserId = await this.resolveInternalUserId({
+      auth0UserId: options.auth0UserId,
+      id_usuario: data.id_usuario,
+    });
+
+    return this.runInTransaction(async ({
+      repo,
+      clientService,
+      orderDetailService,
+      productTypeService,
+      repoClient,
+    }) => {
+      const duplicateOrder = await repo.getBySalesNoteNumber(numeroNota);
+
+      if (duplicateOrder) {
+        const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const client = await clientService.findOrCreateClient({
+        rut_cliente: cliente.rut,
+        nombre_cliente: cliente.nombre,
+        razon_social: cliente.nombre,
+        estado_cliente: "ACTIVO",
+      });
+
+      if (!client?.id_cliente) {
+        const error = new Error("No se pudo resolver el cliente del pedido.");
+        error.statusCode = 500;
+        throw error;
+      }
+
+      const labelNames = normalizePriorityLabels(data.priority);
+      const labels = labelNames.length > 0
+        ? await repoClient.etiqueta.findMany({
+            where: {
+              nombre_etiqueta: { in: labelNames },
+              esta_activa: 1,
+            },
+          })
+        : [];
+      const primaryLabelId = labels[0]?.id_etiqueta ?? null;
+
+      const order = await repo.create({
+        id_cliente: client.id_cliente,
+        id_usuario: resolvedUserId,
+        id_estado_pedido: 1,
+        id_estado_pago: 1,
+        id_etiqueta: primaryLabelId,
+        fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+        numero_nota_venta: numeroNota,
+        usuario_manager_origen: origen.usuarioManager ?? null,
+        observacion_origen: data.observaciones ?? null,
+        observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
+      });
+
+      if (!order?.id_pedido) {
+        const error = new Error("No se pudo crear el pedido.");
+        error.statusCode = 500;
+        throw error;
+      }
+
+      if (labels.length > 0) {
+        await repo.addLabels(
+          order.id_pedido,
+          labels.map((label) => label.id_etiqueta),
+          resolvedUserId,
+        );
+      }
+
+      const details = [];
+
+      for (const item of productionItems) {
+        const productType = await productTypeService.getProductTypeByName(
+          item.tipoProducto,
+        );
+        const subprocesses = await repo.getProductSubprocesses(
+          productType.id_tipo_producto,
+        );
+        const firstSubprocess = subprocesses[0] ?? null;
+        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
+          id_tipo_producto: productType.id_tipo_producto,
+          cantidad: item.cantidad,
+          fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+          fecha_real_termino: null,
+          id_estado_subproceso: firstSubprocess?.id_estado_subproceso ?? null,
+        });
+
+        details.push({
+          ...detail,
+          codigo: item.codigo,
+          producto: item.producto,
+          familia: item.familia,
+          subfamilia: item.subfamilia,
+          tipoProducto: item.tipoProducto,
+        });
+      }
+
+      const createdUntrackedItems = await repo.createUntrackedItems(
+        order.id_pedido,
+        untrackedItems,
+      );
+
+      const fullOrder = await repo.get(order.id_pedido);
+
+      return {
+        ...fullOrder,
+        detalles: details,
+        itemsSinSeguimientoProductivo: createdUntrackedItems,
       };
     });
   }

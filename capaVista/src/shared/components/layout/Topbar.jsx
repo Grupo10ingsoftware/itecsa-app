@@ -1,4 +1,5 @@
 import ProfileSummary from '../../../modules/profile/components/ProfileSummary'
+import NotificationBell from '../../../modules/messages/components/NotificationBell'
 import styles from './Layout.module.css'
 
 export default function Topbar({ onOpenMobileSidebar }) {
@@ -14,7 +15,10 @@ export default function Topbar({ onOpenMobileSidebar }) {
       </button>
 
       <div className={styles.topbarSpacer} />
-      <ProfileSummary />
+      <NotificationBell />
+      <div className={styles.topbarProfile}>
+        <ProfileSummary />
+      </div>
     </header>
   )
 }

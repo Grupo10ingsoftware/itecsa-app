@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { APP_ROUTES } from '../../../config/routes'
 import { useAuth } from '../../../hooks/useAuth'
 
 const AUTH_LOADING_TIMEOUT_MS = 10000
 
 export default function ProtectedRoute({ children, fallback }) {
-  const { authStatus, error, isAuthenticated, isLoading } = useAuth()
+  const { authStatus, error, isAuthenticated, isLoading, pinStatus } = useAuth()
   const location = useLocation()
   const fromPath = `${location.pathname}${location.search}${location.hash}`
   const [authLoadingExpired, setAuthLoadingExpired] = useState(false)
@@ -54,6 +55,10 @@ export default function ProtectedRoute({ children, fallback }) {
         {error?.message ? ` ${error.message}` : ''}
       </div>
     )
+  }
+
+  if (pinStatus === 'pending_acknowledgement' && location.pathname !== APP_ROUTES.PROFILE) {
+    return <Navigate replace to={APP_ROUTES.PROFILE} />
   }
 
   return children ?? <Outlet />

@@ -22,7 +22,6 @@ function toUserResponse(user) {
         apellidoUsuario: user.apellido_usuario,
         rolUsuario: user.rol_usuario,
         estadoUsuario: user.estado_usuario,
-        rutaFirma: user.ruta_firma,
     };
 }
 
@@ -172,7 +171,6 @@ export class UserRepository {
         apellidoUsuario,
         rolUsuario,
         estadoUsuario,
-        rutaFirma,
     }) {
         try {
             const user = await this.client.usuario.create({
@@ -184,7 +182,6 @@ export class UserRepository {
                     apellido_usuario: apellidoUsuario,
                     rol_usuario: rolUsuario,
                     estado_usuario: estadoUsuario,
-                    ruta_firma: rutaFirma,
                 },
             });
 

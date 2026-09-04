@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { buildRegisteredOrder, DEFAULT_ORDER_DRAFT, MOCK_MANAGER_RECORDS } from '../modules/orders/mocks/orderCreate.mock'
-import { canContinueFromSalesNote, validateDesignFiles, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
+import { DEFAULT_ORDER_DRAFT } from '../modules/orders/mocks/orderCreate.mock'
+import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
+import { canContinueFromSalesNote, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
 import { normalizeSalesNoteCode } from '../modules/orders/utils/orderCreateFormatters'
 
 export const ORDER_CREATE_VIEW_MODE = Object.freeze({
@@ -11,19 +12,57 @@ export const ORDER_CREATE_VIEW_MODE = Object.freeze({
 function createInitialDraft() {
   return {
     ...DEFAULT_ORDER_DRAFT,
-    designFiles: [],
+  }
+}
+
+function getErrorMessage(error, fallback) {
+  return error?.payload?.message || error?.message || fallback
+}
+
+function toDisplayRecord(salesNote) {
+  const items = Array.isArray(salesNote.items) ? salesNote.items : []
+  const productTypes = [...new Set(items.map((item) => item.tipoProducto).filter(Boolean))]
+
+  return {
+    ...salesNote,
+    client: salesNote.cliente?.nombre ?? '-',
+    rut: salesNote.cliente?.rut ?? '-',
+    seller: salesNote.origen?.usuarioManager ?? '-',
+    dueDate: salesNote.fechaEntregaTentativaOrigen ?? '-',
+    productType: productTypes.length > 1 ? 'Mixto' : productTypes[0] ?? '-',
+    quantity: items.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0),
+    productionData: items.map((item) => ({
+      ...item,
+      product: item.producto,
+      quantity: item.cantidad,
+    })),
+  }
+}
+
+function buildCreateOrderPayload(draft) {
+  return {
+    numeroNota: draft.managerRecord.numeroNota,
+    fechaEntregaTentativaOrigen: draft.managerRecord.fechaEntregaTentativaOrigen,
+    cliente: draft.managerRecord.cliente,
+    origen: draft.managerRecord.origen,
+    observaciones: draft.managerRecord.observaciones,
+    observacionInterna: draft.comments?.trim() || null,
+    priority: draft.priority,
+    items: draft.managerRecord.items,
+    itemsSinSeguimientoProductivo: draft.managerRecord.itemsSinSeguimientoProductivo,
   }
 }
 
 export function useOrderCreateFlow({ navigate }) {
+  const ordersApi = useOrdersApi()
   const [viewMode, setViewMode] = useState(ORDER_CREATE_VIEW_MODE.CREATE)
-  const [currentStep, setCurrentStep] = useState(1)
   const [draft, setDraft] = useState(createInitialDraft)
   const [errors, setErrors] = useState({})
-  const [designFileError, setDesignFileError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [registeredOrder, setRegisteredOrder] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const salesNoteIsValid = useMemo(() => canContinueFromSalesNote(draft), [draft])
 
@@ -42,7 +81,7 @@ export function useOrderCreateFlow({ navigate }) {
     setNotice(null)
   }
 
-  function handleSearchSalesNote() {
+  async function handleSearchSalesNote() {
     const code = normalizeSalesNoteCode(draft.salesNoteCode)
 
     if (!code) {
@@ -51,135 +90,70 @@ export function useOrderCreateFlow({ navigate }) {
       return
     }
 
-    const managerRecord = MOCK_MANAGER_RECORDS[code]
+    setIsSearching(true)
 
-    if (!managerRecord) {
+    try {
+      const salesNote = await ordersApi.getSalesNote(code)
+      const managerRecord = toDisplayRecord(salesNote)
+
+      setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord }))
+      setErrors((previous) => ({ ...previous, salesNoteCode: null }))
+      setNotice({ type: 'success', message: `Informacion de ${code} importada correctamente.` })
+    } catch (error) {
+      const message = getErrorMessage(error, `No se encontro informacion para ${code}.`)
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord: null }))
       setErrors((previous) => ({
         ...previous,
-        salesNoteCode: `No se encontro informacion para ${code}.`,
+        salesNoteCode: message,
       }))
-      setNotice({ type: 'error', message: `No se encontro informacion para ${code}.` })
-      return
+      setNotice({ type: 'error', message })
+    } finally {
+      setIsSearching(false)
     }
-
-    setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord }))
-    setErrors((previous) => ({ ...previous, salesNoteCode: null }))
-    setNotice({ type: 'success', message: `Informacion de ${code} importada correctamente.` })
   }
 
-  function goToDesignStep() {
-    const salesNoteErrors = validateSalesNoteStep(draft)
-
-    if (Object.keys(salesNoteErrors).length > 0) {
-      setErrors(salesNoteErrors)
-      setNotice({
-        type: 'error',
-        message: 'Complete el codigo, busque/exporte la informacion y adjunte el PDF obligatorio antes de continuar.',
-      })
-      return
-    }
-
-    setCurrentStep(2)
-    setNotice(null)
-  }
-
-  function handleAddDesignFiles(files) {
-    if (!files.length) return
-
-    const nextFiles = [...draft.designFiles, ...files]
-    const validationError = validateDesignFiles(nextFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      return
-    }
-
-    setDesignFileError(null)
-    setDraft((previous) => ({ ...previous, designFiles: [...previous.designFiles, ...files] }))
-  }
-
-  function handleRemoveDesignFile(indexToRemove) {
+  function updatePriority(priority) {
     setDraft((previous) => ({
       ...previous,
-      designFiles: previous.designFiles.filter((_, index) => index !== indexToRemove),
+      priority: previous.priority === priority ? null : priority,
     }))
-  }
-
-  function handleReplaceDesignFile(indexToReplace, replacementFile) {
-    if (!replacementFile) return
-
-    const nextFiles = draft.designFiles.map((file, index) => (
-      index === indexToReplace ? replacementFile : file
-    ))
-    const validationError = validateDesignFiles(nextFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      return
-    }
-
-    setDesignFileError(null)
-    setDraft((previous) => ({
-      ...previous,
-      designFiles: previous.designFiles.map((file, index) => (
-        index === indexToReplace ? replacementFile : file
-      )),
-    }))
-  }
-
-  function goToReviewStep() {
-    const validationError = validateDesignFiles(draft.designFiles)
-
-    if (validationError) {
-      setDesignFileError(validationError)
-      setNotice({ type: 'error', message: 'Revise los archivos de diseno antes de continuar.' })
-      return
-    }
-
-    setDesignFileError(null)
-    setCurrentStep(3)
-    setNotice(null)
-  }
-
-  function goBackOneStep() {
-    setCurrentStep((step) => Math.max(1, step - 1))
-    setNotice(null)
   }
 
   function handleOpenConfirmModal() {
     const salesNoteErrors = validateSalesNoteStep(draft)
 
     if (Object.keys(salesNoteErrors).length > 0) {
-      setCurrentStep(1)
       setErrors(salesNoteErrors)
-      setNotice({ type: 'error', message: 'No se puede registrar el pedido sin Nota de Venta y PDF obligatorio.' })
+      setNotice({
+        type: 'error',
+        message: 'Debe ingresar el codigo y buscar la informacion de la Nota de Venta antes de registrar.',
+      })
       return
     }
 
     setShowConfirmModal(true)
   }
 
-  function handleConfirmRegister() {
-    const order = buildRegisteredOrder(draft)
-
+  async function handleConfirmRegister() {
+    setIsRegistering(true)
     try {
-      const currentOrders = JSON.parse(sessionStorage.getItem('ordersMock') || '[]')
-      sessionStorage.setItem('ordersMock', JSON.stringify([...currentOrders, order]))
-    } catch {
-      // Persistencia local solo para continuidad visual del flujo frontend.
-    }
+      const order = await ordersApi.createOrder(buildCreateOrderPayload(draft))
 
-    setRegisteredOrder(order)
-    setShowConfirmModal(false)
-    setViewMode(ORDER_CREATE_VIEW_MODE.SUCCESS)
+      setRegisteredOrder(order)
+      setShowConfirmModal(false)
+      setViewMode(ORDER_CREATE_VIEW_MODE.SUCCESS)
+    } catch (error) {
+      const message = getErrorMessage(error, 'No fue posible registrar el pedido.')
+      setShowConfirmModal(false)
+      setNotice({ type: 'error', message })
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   function resetFlow() {
-    setCurrentStep(1)
     setDraft(createInitialDraft())
     setErrors({})
-    setDesignFileError(null)
     setNotice(null)
     setRegisteredOrder(null)
     setViewMode(ORDER_CREATE_VIEW_MODE.CREATE)
@@ -189,35 +163,25 @@ export function useOrderCreateFlow({ navigate }) {
     navigate('/kanban')
   }
 
-  const continueFromCurrentStep = currentStep === 1
-    ? goToDesignStep
-    : currentStep === 2
-      ? goToReviewStep
-      : handleOpenConfirmModal
-
   return {
-    currentStep,
-    designFileError,
     draft,
     errors,
     notice,
     registeredOrder,
+    isRegistering,
+    isSearching,
     salesNoteIsValid,
     showConfirmModal,
     viewMode,
     actions: {
-      continueFromCurrentStep,
-      goBackOneStep,
       goToKanban,
-      handleAddDesignFiles,
       handleConfirmRegister,
       handleOpenConfirmModal,
-      handleRemoveDesignFile,
-      handleReplaceDesignFile,
       handleSearchSalesNote,
       resetFlow,
       setShowConfirmModal,
       updateDraftField,
+      updatePriority,
     },
   }
 }

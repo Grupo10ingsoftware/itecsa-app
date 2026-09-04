@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import styles from './PaymentActionConfirmModal.module.css'
 
 export default function PaymentCredentialsModal({
@@ -8,33 +8,22 @@ export default function PaymentCredentialsModal({
   order,
   targetStatus,
 }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [pin, setPin] = useState('')
   const [error, setError] = useState('')
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.length > 0,
-    [email, password],
-  )
+  const canSubmit = /^\d{6}$/.test(pin)
 
   if (!order || !targetStatus) return null
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    const trimmedEmail = email.trim()
-
-    if (!trimmedEmail || !password) {
-      setError('Ingrese correo y contrasena del usuario.')
-      return
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setError('Ingrese un correo valido.')
+    if (!canSubmit) {
+      setError('Ingrese su PIN de seis digitos.')
       return
     }
 
     setError('')
-    onConfirm({ email: trimmedEmail, password })
+    onConfirm({ pin })
   }
 
   return (
@@ -49,7 +38,7 @@ export default function PaymentCredentialsModal({
         <header className={styles.credentialsModalHeader}>
           <div>
             <span>Validacion de pago</span>
-            <h3 id="payment-credentials-modal-title">Ingrese sus credenciales</h3>
+            <h3 id="payment-credentials-modal-title">Ingrese su PIN</h3>
           </div>
           <button
             aria-label="Cerrar validacion"
@@ -64,37 +53,24 @@ export default function PaymentCredentialsModal({
 
         <div className={styles.credentialsModalBody}>
           <p>
-            Ingrese su correo y contrasena para hacer efectivo el cambio de pago
+            Ingrese su PIN personal para hacer efectivo el cambio de pago
             de {order.nvNumber} a {targetStatus}.
           </p>
 
           <label>
-            <span>Correo</span>
+            <span>PIN personal</span>
             <input
-              autoComplete="email"
+              autoComplete="off"
               disabled={isSubmitting}
+              inputMode="numeric"
+              maxLength={6}
               onChange={(event) => {
-                setEmail(event.target.value)
+                setPin(event.target.value.replace(/\D/g, ''))
                 setError('')
               }}
-              placeholder="usuario@itecsa.cl"
-              type="email"
-              value={email}
-            />
-          </label>
-
-          <label>
-            <span>Contrasena</span>
-            <input
-              autoComplete="current-password"
-              disabled={isSubmitting}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setError('')
-              }}
-              placeholder="Ingrese contrasena"
+              placeholder="000000"
               type="password"
-              value={password}
+              value={pin}
             />
           </label>
 

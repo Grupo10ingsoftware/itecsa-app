@@ -1,5 +1,4 @@
 import { response, request } from "express";
-import path from "node:path";
 
 import OrderService from "../service/order.service.js";
 import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
@@ -36,58 +35,26 @@ class OrderController {
         }
     }
 
-    previewPaymentSignature = async (req = request, res = response) => {
+    getSalesNote = async (req = request, res = response) => {
         try {
-            const { orderId } = req.params;
+            const { numeroNota } = req.params;
+            const salesNote = await this.service.getSalesNoteByNumber(numeroNota);
 
-            const pdfBytes = await this.service.previewPaymentSignature(orderId, {
-                auth0UserId: req.auth?.payload?.sub,
-            });
-
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", "inline");
-
-            return res.send(Buffer.from(pdfBytes));
+            res.status(200).json(salesNote);
         } catch (error) {
             const statusCode = error.statusCode ?? 500;
 
-            return res.status(statusCode).json({
-                message: error.message || "Error al generar vista previa firmada",
-            });
-        }
-    }
-
-    getPaymentSignatureEvidence = async (req = request, res = response) => {
-        try {
-            const { orderId } = req.params;
-            const evidence = await this.service.getPaymentSignatureEvidence(orderId);
-            const fileExtension = path.extname(evidence.filePath).toLowerCase();
-            const contentTypes = {
-                ".pdf": "application/pdf",
-                ".xml": "application/xml",
-                ".cms": "application/cms",
-                ".p7s": "application/pkcs7-signature",
-                ".p7m": "application/pkcs7-mime",
-            };
-
-            return res.sendFile(evidence.filePath, {
-                headers: {
-                    "Content-Disposition": `inline; filename="${path.basename(evidence.filePath)}"`,
-                    "Content-Type": contentTypes[fileExtension] ?? "application/octet-stream",
-                },
-            });
-        } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            return res.status(statusCode).json({
-                message: error.message || "Error al obtener evidencia de firma",
+            res.status(statusCode).json({
+                message: error.message || 'Error al consultar Nota de Venta',
             });
         }
     }
 
     createOrder = async (req = request, res = response) => {
         try {
-            const order = await this.service.createOrder(req.body ?? {});
+            const order = await this.service.createOrder(req.body ?? {}, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
 
             res.status(201).json(order);
         } catch (error) {
@@ -115,6 +82,7 @@ class OrderController {
                 paymentStatusId,
                 {
                     auth0UserId: req.auth?.payload?.sub,
+                    actor: req.pinActor,
                     observacion,
                 },
             );
@@ -147,6 +115,7 @@ class OrderController {
                 generalStepId,
                 {
                     permissions: req.auth?.payload?.permissions,
+                    actor: req.pinActor,
                 },
             );
 
@@ -163,6 +132,50 @@ class OrderController {
             res.status( statusCode ).json({
                 message: error.message || 'Error al actualizar el pedido',
             })
+        }
+    }
+
+    updateDeliveryDate = async (req = request, res = response) => {
+        try {
+            const { orderId } = req.params;
+            const { dueDate } = req.body ?? {};
+
+            const updatedOrder = await this.service.updateDeliveryDate(orderId, dueDate, {
+                actor: req.pinActor,
+            });
+
+            res.status(200).json(updatedOrder);
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            res.status(statusCode).json({
+                message: error.message || 'Error al actualizar fecha de entrega',
+            });
+        }
+    }
+
+    completeSubprocess = async (req = request, res = response) => {
+        try {
+            const { orderId, detailId, subprocessId } = req.params;
+            const { comment } = req.body ?? {};
+
+            const updatedOrder = await this.service.completeSubprocess(
+                orderId,
+                detailId,
+                subprocessId,
+                {
+                    actor: req.pinActor,
+                    comment,
+                },
+            );
+
+            res.status(200).json(updatedOrder);
+        } catch (error) {
+            const statusCode = error.statusCode ?? 500;
+
+            res.status(statusCode).json({
+                message: error.message || 'Error al completar subproceso',
+            });
         }
     }
 

@@ -19,6 +19,7 @@ class OrderDetailRepo {
       cantidad,
       fecha_estimada_termino,
       fecha_real_termino,
+      id_estado_subproceso,
     } = data;
 
     return this.client.detalle_pedido.create({
@@ -28,6 +29,7 @@ class OrderDetailRepo {
         cantidad,
         fecha_estimada_termino: fecha_estimada_termino ?? null,
         fecha_real_termino: fecha_real_termino ?? null,
+        id_estado_subproceso: id_estado_subproceso ?? null,
       },
     });
   }

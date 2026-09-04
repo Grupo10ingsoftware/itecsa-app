@@ -216,7 +216,7 @@ export default function PaymentRowActions({
         order={order}
       />
 
-      {isConfirmed && (
+      {isConfirmed && typeof onViewSignedDetail === 'function' && (
         <button
           className={`${styles.actionButton} ${styles.actionButtonDetail} ${
             isMobile ? 'w-100' : ''

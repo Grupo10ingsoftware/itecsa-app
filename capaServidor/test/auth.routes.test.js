@@ -109,6 +109,7 @@ test("devuelve permisos Auth0 en la verificacion de sesion", async () => {
         rolUsuario: "Ventas",
         isAdministrador: false,
         permissions: ["view:orders-module", "view:kanban-module"],
+        pinStatus: "active",
     });
 });
 

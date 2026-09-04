@@ -1,0 +1,20 @@
+.page { background: radial-gradient(circle at 90% 0, rgba(var(--itexsa-orange-rgb),.1), transparent 28rem), #f8fafc; min-height: calc(100vh - 4.5rem); padding: 2rem clamp(1rem,3vw,2.5rem) 3rem; }
+.shell { margin: 0 auto; max-width: 78rem; }
+.hero { align-items: center; display: flex; gap: 2rem; justify-content: space-between; margin-bottom: 1.25rem; }
+.eyebrow { color: #c2410c; font-size: .72rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.hero h1 { color: #111827; font-size: clamp(1.75rem,3vw,2.6rem); font-weight: 850; letter-spacing: -.035em; margin: .25rem 0; }
+.hero p { color: #64748b; margin: 0; }
+.totalCard { align-items: center; background: #111; border: 1px solid #27272a; border-radius: 1rem; box-shadow: 0 16px 32px rgba(15,23,42,.13); color: #fff; display: flex; gap: .75rem; min-width: 10rem; padding: .9rem 1rem; }
+.totalCard i { color: var(--itexsa-orange); font-size: 1.35rem; }
+.totalCard span { color: #cbd5e1; display: grid; font-size: .72rem; }
+.totalCard strong { color: #fff; font-size: 1.25rem; line-height: 1; }
+.shell > :global(section) { margin-bottom: 1rem; }
+.error { align-items: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: .85rem; color: #9f1239; display: flex; gap: .65rem; margin: 1rem 0; padding: .85rem 1rem; }
+.error span { flex: 1; }
+.error button { background: transparent; border: 0; color: #9f1239; font-weight: 800; text-decoration: underline; }
+.pagination { align-items: center; display: flex; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.pagination button { align-items: center; background: #fff; border: 1px solid #dbe3ed; border-radius: .65rem; color: #334155; display: inline-flex; font-size: .8rem; font-weight: 750; gap: .35rem; padding: .55rem .8rem; }
+.pagination button:hover:not(:disabled) { border-color: var(--itexsa-orange); color: #c2410c; }
+.pagination button:disabled { cursor: not-allowed; opacity: .45; }
+.pagination span { color: #64748b; font-size: .8rem; }
+@media (max-width: 575.98px) { .page { padding: 1.25rem .8rem 2rem; } .hero { align-items: flex-start; flex-direction: column; gap: 1rem; } .totalCard { width: 100%; } .pagination { gap: .5rem; } .pagination button { font-size: 0; } .pagination button i { font-size: .9rem; } }

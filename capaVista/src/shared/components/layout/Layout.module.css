@@ -222,6 +222,10 @@
   flex: 1 1 auto;
 }
 
+.topbarProfile {
+  min-width: 0;
+}
+
 .mobileMenuButton {
   display: none;
   flex: 0 0 2.25rem;

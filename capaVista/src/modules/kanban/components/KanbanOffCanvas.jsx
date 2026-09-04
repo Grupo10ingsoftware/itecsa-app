@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import styles from '../styles/Kanban.module.css'
 
 const KANBAN_LISTO_PRODUCCION_STEP = 1
@@ -8,60 +8,15 @@ function formatStatus(status) {
   return status === 'done' ? 'Completado' : 'Pendiente'
 }
 
-const processTemplates = {
-  lanyard: [
-    { id: 'impresion', name: 'Impresion', status: 'pending' },
-    { id: 'sublimacion', name: 'Sublimacion', status: 'pending' },
-    { id: 'corte', name: 'Corte', status: 'pending' },
-    { id: 'costura', name: 'Costura', status: 'pending' },
-    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
-  ],
-  tarjeta: [
-    { id: 'revision-info', name: 'Revision info', status: 'pending' },
-    { id: 'orden-info', name: 'Orden info', status: 'pending' },
-    { id: 'carga-info', name: 'Carga info', status: 'pending' },
-    { id: 'confeccion', name: 'Confeccion', status: 'pending' },
-    { id: 'empaquetado', name: 'Empaquetado', status: 'pending' },
-  ],
-}
-
-function getProductKey(productName) {
-  const normalizedProductName = String(productName ?? '').toLowerCase()
-
-  if (normalizedProductName.includes('lanyard')) return 'lanyard'
-  if (normalizedProductName.includes('tarjeta')) return 'tarjeta'
-
-  return null
-}
-
-function normalizeProcessName(value) {
-  return String(value ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '-')
-}
-
 function getSubProcessesForItem(item) {
   const existingProcesses = Array.isArray(item.subProcesses) ? item.subProcesses : []
-  const productKey = getProductKey(item.product)
-  const template = productKey ? processTemplates[productKey] : existingProcesses
 
-  return template.map((templateProcess) => {
-    const existingProcess = existingProcesses.find(
-      (process) =>
-        process.id === templateProcess.id ||
-        normalizeProcessName(process.name) === normalizeProcessName(templateProcess.name),
-    )
-
-    return {
-      ...templateProcess,
-      ...existingProcess,
-      id: templateProcess.id,
-      name: templateProcess.name,
-      status: existingProcess?.status ?? templateProcess.status,
-    }
-  })
+  return existingProcesses.map((process, index) => ({
+    ...process,
+    id: process.id ?? String(process.id_estado_subproceso ?? index),
+    name: process.name ?? process.nombre_estado ?? 'Subproceso',
+    status: process.status ?? 'pending',
+  }))
 }
 
 function isLanyardItem(item) {
@@ -260,19 +215,23 @@ function ProductionDocumentLookup({ onUpdateOrder, order }) {
   )
 }
 
-export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation, onClose, onUpdateOrder, order }) {
-  const commentIdRef = useRef(0)
+export default function KanbanOffCanvas({
+  isOpen,
+  onApprovePaymentDeconfirmation,
+  onClose,
+  onCompleteSubprocess,
+  onUpdateOrder,
+  order,
+}) {
   const [authModal, setAuthModal] = useState(null)
-  const [operatorEmail, setOperatorEmail] = useState('')
-  const [operatorPassword, setOperatorPassword] = useState('')
+  const [operatorPin, setOperatorPin] = useState('')
   const [operatorComment, setOperatorComment] = useState('')
   const [authError, setAuthError] = useState('')
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false)
   const [correctionText, setCorrectionText] = useState('')
   const [correctionError, setCorrectionError] = useState('')
   const [deconfirmationAuthOpen, setDeconfirmationAuthOpen] = useState(false)
-  const [deconfirmationEmail, setDeconfirmationEmail] = useState('')
-  const [deconfirmationPassword, setDeconfirmationPassword] = useState('')
+  const [deconfirmationPin, setDeconfirmationPin] = useState('')
   const [deconfirmationError, setDeconfirmationError] = useState('')
   const [isApprovingDeconfirmation, setIsApprovingDeconfirmation] = useState(false)
 
@@ -295,70 +254,39 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
     }
 
     setAuthModal({ item, process })
-    setOperatorEmail('')
-    setOperatorPassword('')
+    setOperatorPin('')
     setOperatorComment('')
     setAuthError('')
   }
 
   function closeAuthModal() {
     setAuthModal(null)
-    setOperatorEmail('')
-    setOperatorPassword('')
+    setOperatorPin('')
     setOperatorComment('')
     setAuthError('')
   }
 
-  function completeSubProcess(event) {
+  async function completeSubProcess(event) {
     event.preventDefault()
-    const trimmedEmail = operatorEmail.trim()
+    const trimmedPin = operatorPin.trim()
 
-    if (!trimmedEmail || !operatorPassword) {
-      setAuthError('Ingrese correo y contrasena del operario.')
-      return
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setAuthError('Ingrese un correo valido.')
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setAuthError('Ingrese un PIN valido de 6 digitos.')
       return
     }
 
     const trimmedComment = operatorComment.trim()
-    commentIdRef.current += 1
-    const nextItems = orderItems.map((item) =>
-      item.id === authModal.item.id
-        ? {
-            ...item,
-            subProcesses: item.subProcesses.map((process) =>
-              process.id === authModal.process.id
-                ? {
-                    ...process,
-                    status: 'done',
-                    operatorEmail: trimmedEmail,
-                    completedAt: new Date().toISOString(),
-                  }
-                : process,
-            ),
-          }
-        : item,
-    )
-    const nextComments = trimmedComment
-      ? [
-          ...comments,
-          {
-            id: `${order.id}-comment-${commentIdRef.current}`,
-            text: trimmedComment,
-          },
-        ]
-      : comments
 
-    const nextOrder = {
-      ...order,
-      items: nextItems,
-      comments: nextComments,
+    const wasCompleted = await onCompleteSubprocess?.(order, authModal.item, authModal.process, {
+      pin: trimmedPin,
+      comment: trimmedComment,
+    })
+
+    if (wasCompleted === false) {
+      setAuthError('No fue posible completar el subproceso.')
+      return
     }
 
-    onUpdateOrder(nextOrder)
     closeAuthModal()
   }
 
@@ -386,22 +314,16 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
     if (isApprovingDeconfirmation) return
 
     setDeconfirmationAuthOpen(false)
-    setDeconfirmationEmail('')
-    setDeconfirmationPassword('')
+    setDeconfirmationPin('')
     setDeconfirmationError('')
   }
 
   async function approvePaymentDeconfirmation(event) {
     event.preventDefault()
-    const trimmedEmail = deconfirmationEmail.trim()
+    const trimmedPin = deconfirmationPin.trim()
 
-    if (!trimmedEmail || !deconfirmationPassword) {
-      setDeconfirmationError('Ingrese correo y contrasena del administrador.')
-      return
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setDeconfirmationError('Ingrese un correo valido.')
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setDeconfirmationError('Ingrese un PIN valido de 6 digitos.')
       return
     }
 
@@ -410,16 +332,14 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
 
     try {
       const wasApproved = await onApprovePaymentDeconfirmation?.(order, {
-        email: trimmedEmail,
-        password: deconfirmationPassword,
+        pin: trimmedPin,
       })
       if (wasApproved === false) {
         setDeconfirmationError('No fue posible aprobar la desconfirmacion.')
         return
       }
       setDeconfirmationAuthOpen(false)
-      setDeconfirmationEmail('')
-      setDeconfirmationPassword('')
+      setDeconfirmationPin('')
     } finally {
       setIsApprovingDeconfirmation(false)
     }
@@ -639,7 +559,7 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
                               <span>{process.name}</span>
                               <strong>
                                 {isDone
-                                  ? process.operatorEmail || formatStatus(process.status)
+                                  ? formatStatus(process.status)
                                   : isCurrent && isInProduction
                                     ? 'En curso'
                                     : 'Bloqueado'}
@@ -677,7 +597,7 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
           >
             <header className={styles.operatorModalHeader}>
               <div>
-                <span className={styles.offcanvasKicker}>Validacion operario</span>
+                <span className={styles.offcanvasKicker}>Validacion PIN</span>
                 <h3 id="operator-modal-title">{authModal.process.name}</h3>
               </div>
               <button
@@ -692,23 +612,18 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
 
             <div className={styles.operatorModalBody}>
               <label>
-                <span>Correo</span>
+                <span>PIN</span>
                 <input
-                  autoComplete="email"
-                  onChange={(event) => setOperatorEmail(event.target.value)}
-                  placeholder="operario@itecsa.cl"
-                  type="email"
-                  value={operatorEmail}
-                />
-              </label>
-              <label>
-                <span>Contrasena</span>
-                <input
-                  autoComplete="current-password"
-                  onChange={(event) => setOperatorPassword(event.target.value)}
-                  placeholder="Ingrese contrasena"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(event) => {
+                    setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 6))
+                    setAuthError('')
+                  }}
+                  placeholder="000000"
                   type="password"
-                  value={operatorPassword}
+                  value={operatorPin}
                 />
               </label>
               <label>
@@ -745,7 +660,7 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
           >
             <header className={styles.operatorModalHeader}>
               <div>
-                <span className={styles.offcanvasKicker}>Validacion administrador</span>
+                <span className={styles.offcanvasKicker}>Validacion PIN</span>
                 <h3 id="deconfirmation-approval-modal-title">Aprobar desconfirmacion</h3>
               </div>
               <button
@@ -760,33 +675,21 @@ export default function KanbanOffCanvas({ isOpen, onApprovePaymentDeconfirmation
             </header>
 
             <div className={styles.operatorModalBody}>
-              <p className={styles.operatorModalText}>Ingrese sus credenciales para devolver {order.nv} a Confirmacion de pago.</p>
+              <p className={styles.operatorModalText}>Ingrese su PIN para devolver {order.nv} a Confirmacion de pago.</p>
               <label>
-                <span>Correo</span>
+                <span>PIN</span>
                 <input
-                  autoComplete="email"
+                  autoComplete="one-time-code"
                   disabled={isApprovingDeconfirmation}
+                  inputMode="numeric"
+                  maxLength={6}
                   onChange={(event) => {
-                    setDeconfirmationEmail(event.target.value)
+                    setDeconfirmationPin(event.target.value.replace(/\D/g, '').slice(0, 6))
                     setDeconfirmationError('')
                   }}
-                  placeholder="administrador@itecsa.cl"
-                  type="email"
-                  value={deconfirmationEmail}
-                />
-              </label>
-              <label>
-                <span>Contrasena</span>
-                <input
-                  autoComplete="current-password"
-                  disabled={isApprovingDeconfirmation}
-                  onChange={(event) => {
-                    setDeconfirmationPassword(event.target.value)
-                    setDeconfirmationError('')
-                  }}
-                  placeholder="Ingrese contrasena"
+                  placeholder="000000"
                   type="password"
-                  value={deconfirmationPassword}
+                  value={deconfirmationPin}
                 />
               </label>
               {deconfirmationError && <p className={styles.operatorModalError}>{deconfirmationError}</p>}

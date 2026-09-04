@@ -16,6 +16,8 @@ function createFormState(user) {
 
 export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, user }) {
   const [values, setValues] = useState(() => (user ? createFormState(user) : null))
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const firstInputRef = useRef(null)
 
@@ -24,6 +26,8 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
       return undefined
     }
 
+    setPin('')
+    setPinError('')
     const previousBodyOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 0)
@@ -51,9 +55,10 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
 
     return (
       Object.values(values).every((value) => String(value).trim().length > 0) &&
+      /^\d{6}$/.test(pin.trim()) &&
       !(isCurrentUser && values.rolUsuario !== currentRole)
     )
-  }, [isCurrentUser, user?.rolUsuario, values])
+  }, [isCurrentUser, pin, user?.rolUsuario, values])
 
   if (!isOpen || !user || !values) {
     return null
@@ -76,6 +81,13 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   async function handleSubmit(event) {
     event.preventDefault()
 
+    const trimmedPin = pin.trim()
+
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setPinError('Ingrese un PIN valido de 6 digitos.')
+      return
+    }
+
     if (isCurrentUser && values.rolUsuario !== (user.rolUsuario ?? '')) {
       return
     }
@@ -89,6 +101,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
         apellidoUsuario: values.apellidoUsuario.trim(),
         correoUsuario: values.correoUsuario.trim().toLowerCase(),
         rolUsuario: values.rolUsuario,
+        pin: trimmedPin,
       })
     } finally {
       setIsSubmitting(false)
@@ -193,6 +206,26 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
               {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_ROLE_EDIT_MESSAGE}</small>}
             </label>
           </div>
+
+          <label className={styles.editField} htmlFor="edit-user-pin">
+            <span>PIN de autorizacion</span>
+            <input
+              autoComplete="one-time-code"
+              className={styles.formControl}
+              id="edit-user-pin"
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(event) => {
+                setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
+                setPinError('')
+              }}
+              placeholder="000000"
+              required
+              type="password"
+              value={pin}
+            />
+            {pinError && <small className={styles.fieldHelpText}>{pinError}</small>}
+          </label>
         </div>
 
         <footer className={styles.modalFooter}>

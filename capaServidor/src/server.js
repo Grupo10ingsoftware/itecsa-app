@@ -18,6 +18,7 @@ import productRoutes from './modules/products/routes/product.routes.js';
 import paymentStatusRoutes from './modules/payments/routes/paymentStatus.routes.js'
 
 import clientsRoutes from './modules/clients/routes/clients.routes.js';
+import messageRoutes from './modules/messages/routes/message.routes.js';
 class Server {
   constructor() {
     // Creamos como propiedad misma de la clase servidor
@@ -34,6 +35,7 @@ class Server {
         documents: '/api/documents',
         demoOrders: '/api/demo-orders',
         health: '/api/health',
+        messages: '/api/messages',
         productionCalendar: '/api/production-calendar',
 
         //* Estados
@@ -88,6 +90,7 @@ class Server {
     this.app.use( this.paths.documents, documentRoutes)
     this.app.use( this.paths.demoOrders, demoOrdersRoutes)
     this.app.use( this.paths.health, healthRoutes)
+    this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
     this.app.use(this.paths.paymentStatus, paymentStatusRoutes);
     this.app.use(this.paths.orderStatus, orderStatusRoutes);

@@ -1,20 +1,27 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../hooks/useAuth'
 import OrderCreateHeader from '../components/OrderCreateHeader'
-import OrderCreateStepper from '../components/OrderCreateStepper'
 import OrderCreateConfirmModal from '../components/OrderCreateConfirmModal'
 import OrderCreateSuccess from '../components/OrderCreateSuccess'
 import OrderNotice from '../components/OrderNotice'
-import OrderRequirementSummary from '../components/OrderRequirementSummary'
 import SalesNoteStep from '../components/SalesNoteStep'
-import DesignFilesStep from '../components/DesignFilesStep'
-import OrderReviewStep from '../components/OrderReviewStep'
 import { ORDER_CREATE_VIEW_MODE, useOrderCreateFlow } from '../../../hooks/useOrderCreateFlow'
 import styles from './OrderCreatePage.module.css'
 
 export default function OrderCreatePage() {
   const navigate = useNavigate()
+  const { auth0User, user } = useAuth()
   const flow = useOrderCreateFlow({ navigate })
   const { actions } = flow
+  const responsibleUserName = [
+    user?.nombreUsuario,
+    user?.apellidoUsuario,
+  ].filter(Boolean).join(' ')
+    || user?.correoUsuario
+    || user?.email
+    || auth0User?.name
+    || auth0User?.email
+    || 'Usuario no identificado'
 
   if (flow.viewMode === ORDER_CREATE_VIEW_MODE.SUCCESS && flow.registeredOrder) {
     return (
@@ -35,44 +42,26 @@ export default function OrderCreatePage() {
         <div className={styles.content}>
           <OrderNotice notice={flow.notice} />
 
-          <div className={styles.createGrid}>
-            <div className={styles.createMainColumn}>
-              <OrderCreateStepper currentStep={flow.currentStep} />
+          <SalesNoteStep
+            draft={flow.draft}
+            errors={flow.errors}
+            isSearching={flow.isSearching}
+            onChange={actions.updateDraftField}
+            onPriorityChange={actions.updatePriority}
+            onSearch={actions.handleSearchSalesNote}
+            responsibleUserName={responsibleUserName}
+          />
 
-              {flow.currentStep === 1 && (
-                <SalesNoteStep
-                  draft={flow.draft}
-                  errors={flow.errors}
-                  onChange={actions.updateDraftField}
-                  onSearch={actions.handleSearchSalesNote}
-                />
-              )}
-
-              {flow.currentStep === 2 && (
-                <DesignFilesStep
-                  draft={flow.draft}
-                  error={flow.designFileError}
-                  onFileRemove={actions.handleRemoveDesignFile}
-                  onFileReplace={actions.handleReplaceDesignFile}
-                  onFilesAdd={actions.handleAddDesignFiles}
-                />
-              )}
-
-              {flow.currentStep === 3 && (
-                <OrderReviewStep
-                  draft={flow.draft}
-                  onCommentsChange={(value) => actions.updateDraftField('comments', value)}
-                />
-              )}
-            </div>
-
-            <OrderRequirementSummary
-              canContinue={flow.salesNoteIsValid}
-              currentStep={flow.currentStep}
-              draft={flow.draft}
-              onBack={actions.goBackOneStep}
-              onContinue={actions.continueFromCurrentStep}
-            />
+          <div className={styles.footerActions}>
+            <button
+              className={styles.registerButton}
+              disabled={!flow.salesNoteIsValid || flow.isRegistering}
+              onClick={actions.handleOpenConfirmModal}
+              type="button"
+            >
+              <i className="bi bi-plus-circle" aria-hidden="true" />
+              {flow.isRegistering ? 'Registrando...' : 'Registrar pedido'}
+            </button>
           </div>
         </div>
       </section>
@@ -80,6 +69,7 @@ export default function OrderCreatePage() {
       {flow.showConfirmModal && (
         <OrderCreateConfirmModal
           draft={flow.draft}
+          isRegistering={flow.isRegistering}
           onCancel={() => actions.setShowConfirmModal(false)}
           onConfirm={actions.handleConfirmRegister}
         />

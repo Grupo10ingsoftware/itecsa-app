@@ -6,9 +6,7 @@ La vista `/pagos` carga pedidos reales desde backend y permite gestionar el esta
 
 - `GET /api/orders`: lista pedidos reales con cliente, RUT, razon social, producto, etapa, estado de pago y datos documentales disponibles.
 - `GET /api/payment-status`: lista estados reales de pago.
-- `PATCH /api/orders/:orderId/payment-status`: actualiza el estado de pago del pedido y registra auditoria en `Registro_Pago`.
-- `GET /api/orders/:orderId/payment-signature-preview`: obtiene una vista previa PDF firmada antes de confirmar pago, sin persistir la firma.
-- `GET /api/orders/:orderId/payment-signature-evidence`: obtiene el archivo de evidencia de firma del pago ya confirmado.
+- `PATCH /api/orders/:orderId/payment-status`: actualiza el estado de pago del pedido con PIN y registra auditoria en `Registro_Pago`.
 - `GET /api/orders/:orderId/payment-records`: consulta registros de auditoria del pedido cuando se requiera.
 
 ## Estados reales de pago
@@ -19,7 +17,7 @@ La BD real usa estos IDs:
 - `2`: `Confirmado`
 - `3`: `Rechazado`
 
-El frontend no debe hardcodear IDs antiguos. La vista resuelve el ID desde `GET /api/payment-status` antes de llamar al PATCH. Si el pago ya esta `Confirmado`, la UI bloquea cambios a `Pendiente` o `Rechazado`; el backend tambien rechaza esa transicion. Confirmar un pago firma la Nota de Venta vigente en backend, registra auditoria y mueve la orden a `Listo para produccion`.
+El frontend no debe hardcodear IDs antiguos. La vista resuelve el ID desde `GET /api/payment-status` antes de llamar al PATCH. Si el pago ya esta `Confirmado`, la UI bloquea cambios a `Pendiente` o `Rechazado`; el backend tambien rechaza esa transicion. Confirmar un pago valida el PIN del usuario, registra auditoria y mueve la orden a `Listo para produccion`.
 
 ## Estructura relevante
 
@@ -51,7 +49,7 @@ payments/
 - La vista cubre loading, error con reintento, estado vacio y ausencia de PDF.
 - Si `ruta_pdf` no existe, el boton de Nota de Venta se deshabilita y no se inventan rutas ni PDFs.
 - El modal de confirmacion mantiene el flujo de hold, pero el cambio real se persiste en backend.
-- La evidencia de firma se abre solo cuando backend expone `firma_pago.evidenceUrl`.
+- La desconfirmacion de pago no queda conectada a `/api/demo-orders`; debe reactivarse solo cuando exista endpoint real.
 
 ## Auditoria
 

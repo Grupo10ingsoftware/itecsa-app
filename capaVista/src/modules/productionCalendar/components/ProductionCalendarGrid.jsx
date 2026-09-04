@@ -1,16 +1,8 @@
 import { useMemo, useState } from 'react'
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import { WEEK_DAYS, buildMonthGrid, groupItemsByDate } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
 
 const MAX_VISIBLE_EVENTS = 1
-
-const STATUS_CLASS = {
-  [PRODUCTION_STATUSES.PAYMENT_CONFIRMATION]: styles.paymentConfirmation,
-  [PRODUCTION_STATUSES.READY_PRODUCTION]: styles.readyProduction,
-  [PRODUCTION_STATUSES.IN_PRODUCTION]: styles.inProduction,
-  [PRODUCTION_STATUSES.READY_DELIVERY]: styles.readyDelivery,
-}
 
 function formatDayTitle(dateKey) {
   return new Intl.DateTimeFormat('es-CL', {
@@ -23,11 +15,7 @@ function formatDayTitle(dateKey) {
 function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
   return (
     <button
-      className={[
-        styles.calendarEvent,
-        STATUS_CLASS[item.status],
-        isDragging ? styles.draggingEvent : '',
-      ]
+      className={[styles.calendarEvent, isDragging ? styles.draggingEvent : '']
         .filter(Boolean)
         .join(' ')}
       draggable
@@ -82,8 +70,7 @@ function DeliveryChangeConfirmModal({ change, onCancel, onConfirm }) {
 }
 
 function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -91,22 +78,17 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const trimmedEmail = email.trim()
+    const trimmedPin = pin.trim()
 
-    if (!trimmedEmail || !password) {
-      setError('Ingrese correo y contrasena del usuario.')
-      return
-    }
-
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setError('Ingrese un correo valido.')
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setError('Ingrese un PIN valido de 6 digitos.')
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      await onConfirm({ operatorEmail: trimmedEmail })
+      await onConfirm({ pin: trimmedPin })
     } catch (submitError) {
       console.error('Error actualizando fecha de entrega:', submitError)
       setError('No fue posible cambiar la fecha de entrega.')
@@ -126,8 +108,8 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
       >
         <header className={styles.modalHeader}>
           <div>
-            <span>Validacion usuario</span>
-            <h2 id="delivery-credentials-title">Ingrese sus credenciales</h2>
+            <span>Validacion PIN</span>
+            <h2 id="delivery-credentials-title">Confirmar cambio</h2>
           </div>
           <button aria-label="Cerrar validacion" onClick={onCancel} type="button">
             <i className="bi bi-x-lg" aria-hidden="true" />
@@ -136,32 +118,21 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
 
         <div className={styles.modalBody}>
           <p className={styles.confirmText}>
-            Ingrese sus credenciales para hacer efectivo el cambio de fecha de {change.item.orderNumber}.
+            Ingrese su PIN para hacer efectivo el cambio de fecha de {change.item.orderNumber}.
           </p>
           <label className={styles.credentialsLabel}>
-            <span>Correo</span>
+            <span>PIN</span>
             <input
-              autoComplete="email"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
               onChange={(event) => {
-                setEmail(event.target.value)
+                setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
                 setError('')
               }}
-              placeholder="usuario@itecsa.cl"
-              type="email"
-              value={email}
-            />
-          </label>
-          <label className={styles.credentialsLabel}>
-            <span>Contrasena</span>
-            <input
-              autoComplete="current-password"
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setError('')
-              }}
-              placeholder="Ingrese contrasena"
+              placeholder="000000"
               type="password"
-              value={password}
+              value={pin}
             />
           </label>
           {error && <p className={styles.modalError}>{error}</p>}
@@ -215,7 +186,6 @@ function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onD
               className={[
                 styles.dayOrderRow,
                 styles.draggableDayOrderRow,
-                STATUS_CLASS[item.status],
                 draggedItemId === item.id ? styles.draggingEvent : '',
               ]
                 .filter(Boolean)
@@ -257,7 +227,6 @@ function CalendarDayCell({
   draggedItemId,
   dropTargetDate,
   items,
-  load,
   onDragEnd,
   onDragStart,
   onDropItem,
@@ -275,7 +244,6 @@ function CalendarDayCell({
         styles.dayCell,
         day.isCurrentMonth ? '' : styles.outsideMonth,
         !day.isBusinessDay ? styles.nonBusinessDay : '',
-        canScheduleProduction && load?.level ? styles[`load${load.level}`] : '',
         isDropTarget ? styles.dropTarget : '',
       ]
         .filter(Boolean)
@@ -319,7 +287,7 @@ function CalendarDayCell({
   )
 }
 
-export default function ProductionCalendarGrid({ items, loadByDate, monthDate, onChangeDeliveryDate }) {
+export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliveryDate }) {
   const [selectedDayKey, setSelectedDayKey] = useState(null)
   const [pendingChange, setPendingChange] = useState(null)
   const [isCredentialStepOpen, setIsCredentialStepOpen] = useState(false)
@@ -332,7 +300,7 @@ export default function ProductionCalendarGrid({ items, loadByDate, monthDate, o
   function handleDropItem(itemId, targetDate) {
     setDraggedItemId(null)
     setDropTargetDate(null)
-    const item = items.find((currentItem) => currentItem.id === itemId)
+    const item = items.find((currentItem) => String(currentItem.id) === String(itemId))
 
     if (!item || !targetDate || item.dueDate === targetDate) return
 
@@ -354,10 +322,10 @@ export default function ProductionCalendarGrid({ items, loadByDate, monthDate, o
     setIsCredentialStepOpen(false)
   }
 
-  async function confirmCredentials() {
+  async function confirmCredentials(credentials) {
     if (!pendingChange) return
 
-    await onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate)
+    await onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate, credentials)
     closeDeliveryChangeFlow()
   }
 
@@ -378,7 +346,6 @@ export default function ProductionCalendarGrid({ items, loadByDate, monthDate, o
               dropTargetDate={dropTargetDate}
               items={itemsByDate.get(day.dateKey) ?? []}
               key={day.dateKey}
-              load={loadByDate?.get(day.dateKey)}
               onDragEnd={handleDragEnd}
               onDragStart={setDraggedItemId}
               onDropItem={handleDropItem}

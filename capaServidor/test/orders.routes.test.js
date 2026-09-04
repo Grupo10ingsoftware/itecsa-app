@@ -32,8 +32,8 @@ function createController(updatePaymentStatus) {
         updateGeneralStep(req, res) {
             return res.status(200).json({});
         },
-        getPaymentSignatureEvidence(req, res) {
-            return res.status(200).send("evidence");
+        completeSubprocess(req, res) {
+            return res.status(200).json({});
         },
         updatePaymentStatus,
     };
@@ -81,6 +81,10 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
                 calls.push("requirePermission");
                 next();
             },
+            validatePin(req, res, next) {
+                calls.push("requirePin");
+                next();
+            },
             controller: createController((req, res) => {
                 calls.push("updatePaymentStatus");
                 return res.status(200).json({
@@ -105,11 +109,12 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
     assert.deepEqual(calls, [
         "checkJwt",
         "requirePermission",
+        "requirePin",
         "updatePaymentStatus",
     ]);
 });
 
-test("monta checkJwt antes de obtener evidencia de firma", async (t) => {
+test("monta checkJwt y requirePin antes de completar subproceso", async (t) => {
     const calls = [];
     const app = createTestApp(
         createOrderRouter({
@@ -117,11 +122,15 @@ test("monta checkJwt antes de obtener evidencia de firma", async (t) => {
                 calls.push("checkJwt");
                 next();
             },
+            validatePin(req, res, next) {
+                calls.push("requirePin");
+                next();
+            },
             controller: {
                 ...createController(() => {}),
-                getPaymentSignatureEvidence(req, res) {
-                    calls.push("getPaymentSignatureEvidence");
-                    return res.status(200).send("evidence");
+                completeSubprocess(req, res) {
+                    calls.push("completeSubprocess");
+                    return res.status(200).json({ completed: true });
                 },
             },
         }),
@@ -129,13 +138,14 @@ test("monta checkJwt antes de obtener evidencia de firma", async (t) => {
     const server = await listen(app, t);
 
     const response = await fetch(
-        `http://127.0.0.1:${server.address().port}/api/orders/1/payment-signature-evidence`,
+        `http://127.0.0.1:${server.address().port}/api/orders/1/details/2/subprocesses/3/complete`,
+        { method: "PATCH", headers: { "Content-Type": "application/json" }, body: "{}" },
     );
-    const body = await response.text();
+    const body = await response.json();
 
     assert.equal(response.status, 200);
-    assert.equal(body, "evidence");
-    assert.deepEqual(calls, ["checkJwt", "getPaymentSignatureEvidence"]);
+    assert.deepEqual(body, { completed: true });
+    assert.deepEqual(calls, ["checkJwt", "requirePin", "completeSubprocess"]);
 });
 
 test("responde 403 si el token no contiene update:payment-status", async (t) => {

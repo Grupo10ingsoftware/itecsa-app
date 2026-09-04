@@ -61,18 +61,6 @@
   opacity: 0.78;
 }
 
-.loadnormal {
-  background: #bbf7d0;
-}
-
-.loadwarning {
-  background: #fde047;
-}
-
-.loadoverloaded {
-  background: #fca5a5;
-}
-
 .dropTarget {
   background: #fff7ed;
   box-shadow: inset 0 0 0 2px var(--calendar-orange);
@@ -165,58 +153,6 @@
   justify-self: start;
   margin-top: 0.18rem;
   padding: 0.15rem 0.38rem;
-}
-
-.readyProduction {
-  border-color: rgba(37, 99, 235, 0.28);
-}
-
-.paymentConfirmation {
-  border-color: rgba(249, 115, 22, 0.32);
-}
-
-.paymentConfirmation strong {
-  color: #ea580c;
-}
-
-.paymentConfirmation small {
-  background: rgba(249, 115, 22, 0.14);
-  color: #c2410c;
-}
-
-.readyProduction strong {
-  color: #2563eb;
-}
-
-.readyProduction small {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1d4ed8;
-}
-
-.inProduction {
-  border-color: rgba(249, 115, 22, 0.32);
-}
-
-.inProduction strong {
-  color: #ea580c;
-}
-
-.inProduction small {
-  background: rgba(249, 115, 22, 0.14);
-  color: #c2410c;
-}
-
-.readyDelivery {
-  border-color: rgba(36, 143, 85, 0.3);
-}
-
-.readyDelivery strong {
-  color: #15803d;
-}
-
-.readyDelivery small {
-  background: rgba(36, 143, 85, 0.12);
-  color: #166534;
 }
 
 .modalLayer {

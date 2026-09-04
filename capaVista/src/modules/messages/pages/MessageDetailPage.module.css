@@ -1,0 +1,22 @@
+.page { background: radial-gradient(circle at 85% 0, rgba(var(--itexsa-orange-rgb),.1), transparent 28rem), #f8fafc; min-height: calc(100vh - 4.5rem); padding: 2rem 1rem 3rem; }
+.shell { margin: 0 auto; max-width: 56rem; }
+.backLink { align-items: center; color: #64748b; display: inline-flex; font-size: .85rem; font-weight: 750; gap: .45rem; margin-bottom: 1rem; text-decoration: none; }
+.backLink:hover { color: #c2410c; }
+.messageCard { background: #fff; border: 1px solid #e5e7eb; border-radius: 1.15rem; box-shadow: 0 22px 55px rgba(15,23,42,.09); overflow: hidden; }
+.header { align-items: flex-start; background: linear-gradient(135deg,#101010,#222); color: #fff; display: flex; gap: 1rem; padding: 1.5rem; }
+.mailIcon { align-items: center; background: rgba(var(--itexsa-orange-rgb),.17); border: 1px solid rgba(var(--itexsa-orange-rgb),.4); border-radius: .9rem; color: var(--itexsa-orange); display: flex; flex: 0 0 3rem; font-size: 1.25rem; height: 3rem; justify-content: center; }
+.heading { flex: 1; min-width: 0; }
+.eyebrow { color: #fb923c; font-size: .68rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.heading h1 { font-size: clamp(1.35rem,3vw,2rem); font-weight: 850; letter-spacing: -.025em; margin: .25rem 0 .35rem; }
+.heading time { color: #aab4c3; font-size: .8rem; }
+.readBadge { align-items: center; background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.28); border-radius: 999px; color: #86efac; display: inline-flex; font-size: .7rem; font-weight: 800; gap: .3rem; padding: .35rem .6rem; }
+.content { color: #334155; font-size: 1rem; line-height: 1.8; min-height: 12rem; padding: clamp(1.5rem,4vw,2.5rem); white-space: pre-wrap; }
+.orderCard { align-items: center; background: #fff7ed; border: 1px solid #fed7aa; border-radius: .9rem; display: flex; gap: .85rem; margin: 0 clamp(1.5rem,4vw,2.5rem) 2rem; padding: .9rem 1rem; }
+.orderIcon { align-items: center; background: #fff; border-radius: .7rem; color: #c2410c; display: flex; flex: 0 0 2.5rem; height: 2.5rem; justify-content: center; }
+.orderCard div { display: grid; }
+.orderCard small { color: #9a3412; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.orderCard strong { color: #7c2d12; }
+.orderCard span { color: #9a3412; font-size: .75rem; }
+.state { align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 1rem; color: #64748b; display: flex; flex-direction: column; gap: .8rem; justify-content: center; min-height: 20rem; padding: 2rem; text-align: center; }
+.state button { background: #111827; border: 0; border-radius: .65rem; color: #fff; font-weight: 750; padding: .55rem .9rem; }
+@media (max-width: 575.98px) { .page { padding: 1.2rem .75rem 2rem; } .header { flex-wrap: wrap; padding: 1.15rem; } .readBadge { margin-left: 4rem; } .content { padding: 1.35rem; } .orderCard { margin: 0 1.35rem 1.35rem; } }

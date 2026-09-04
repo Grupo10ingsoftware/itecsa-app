@@ -151,6 +151,34 @@ class OrderController {
         }
     }
 
+    cancelProduction = async (req = request, res = response) => {
+        try {
+            const result = await this.service.cancelProduction(
+                req.params.orderId,
+                req.body?.comment,
+                { actor: req.pinActor },
+            );
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al cancelar la produccion',
+            });
+        }
+    }
+
+    reevaluate = async (req = request, res = response) => {
+        try {
+            const result = await this.service.reevaluateOrder(req.params.orderId, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al reevaluar el pedido',
+            });
+        }
+    }
+
     updateDeliveryDate = async (req = request, res = response) => {
         try {
             const { orderId } = req.params;
@@ -191,6 +219,21 @@ class OrderController {
 
             res.status(statusCode).json({
                 message: error.message || 'Error al completar subproceso',
+            });
+        }
+    }
+
+    rollbackSubprocess = async (req = request, res = response) => {
+        try {
+            const { orderId, detailId, subprocessId } = req.params;
+            const result = await this.service.rollbackSubprocess(orderId, detailId, subprocessId, {
+                actor: req.pinActor,
+                comment: req.body?.comment,
+            });
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al retroceder el subproceso',
             });
         }
     }

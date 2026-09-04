@@ -6,6 +6,8 @@ import checkJwt from "../../../middlewares/checkJwt.js";
 import requirePermission from "../../../middlewares/requirePermission.js";
 import requirePin from "../../../middlewares/requirePin.js";
 import requireAdministrativeRole from "../../../middlewares/requireAdministrativeRole.js";
+import requireAdministratorRole from "../../../middlewares/requireAdministratorRole.js";
+import requireSalesRole from "../../../middlewares/requireSalesRole.js";
 import OrderController from "../controller/orders.controller.js";
 import orderDetailRoutes from "./orderDetail.routes.js";
 import paymentRecordRoutes from "../../payments/routes/paymentRecord.routes.js";
@@ -16,6 +18,8 @@ export function createOrderRouter({
         UPDATE_PAYMENT_STATUS_PERMISSION,
     ),
     authorizeAdministrativeRole = requireAdministrativeRole,
+    authorizeCancellation = requireAdministratorRole,
+    authorizeSales = requireSalesRole,
     controller = new OrderController(),
     validatePin = requirePin,
 } = {}) {
@@ -31,6 +35,11 @@ export function createOrderRouter({
         updateGeneralStep:
             controller.updateGeneralStep ?? fallbackController.updateGeneralStep,
         sendToReview: controller.sendToReview ?? fallbackController.sendToReview,
+        cancelProduction:
+            controller.cancelProduction ?? fallbackController.cancelProduction,
+        rollbackSubprocess:
+            controller.rollbackSubprocess ?? fallbackController.rollbackSubprocess,
+        reevaluate: controller.reevaluate ?? fallbackController.reevaluate,
         updateDeliveryDate:
             controller.updateDeliveryDate ?? fallbackController.updateDeliveryDate,
         completeSubprocess:
@@ -58,12 +67,27 @@ export function createOrderRouter({
         authorizeAdministrativeRole,
         routeController.sendToReview,
     );
+    router.patch(
+        "/:orderId/cancel-production",
+        authenticate,
+        authorizeCancellation,
+        validatePin,
+        routeController.cancelProduction,
+    );
+    router.patch("/:orderId/reevaluate", authenticate, authorizeSales, routeController.reevaluate);
     router.patch("/:orderId/delivery-date", authenticate, validatePin, routeController.updateDeliveryDate);
     router.patch(
         "/:orderId/details/:detailId/subprocesses/:subprocessId/complete",
         authenticate,
         validatePin,
         routeController.completeSubprocess,
+    );
+    router.patch(
+        "/:orderId/details/:detailId/subprocesses/:subprocessId/rollback",
+        authenticate,
+        authorizeCancellation,
+        validatePin,
+        routeController.rollbackSubprocess,
     );
 
     return router;

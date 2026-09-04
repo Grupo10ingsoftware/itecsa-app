@@ -18,5 +18,13 @@ export function createKanbanApi(apiClient) {
       }),
     sendToReview: (orderId, comment) =>
       apiClient.patch(`/orders/${orderId}/review`, { comment }),
+    cancelProduction: (orderId, payload = {}) =>
+      apiClient.patch(`/orders/${orderId}/cancel-production`, {
+        pin: payload.pin,
+        comment: payload.comment,
+      }),
+    rollbackSubprocess: (orderId, detailId, subprocessId, payload = {}) =>
+      apiClient.patch(`/orders/${orderId}/details/${detailId}/subprocesses/${subprocessId}/rollback`, payload),
+    reevaluate: (orderId) => apiClient.patch(`/orders/${orderId}/reevaluate`, {}),
   }
 }

@@ -85,6 +85,14 @@ function createService(overrides = {}) {
                 stageTransitions.push({ orderId, review: true, ...audit });
                 return { ...order };
             },
+            async cancelProduction(orderId, audit) {
+                const order = findOrder(orderId);
+                if (!order) return null;
+                order.id_etapa_general = 5;
+                order.nombre_etapa_general = "Cancelado";
+                stageTransitions.push({ orderId, cancelled: true, ...audit });
+                return { ...order };
+            },
         },
         paymentRepo: {
             async get(paymentStatusId) {
@@ -274,6 +282,29 @@ test("envia pedido a revision con usuario y comentario", async () => {
         userId: 10,
         comment: "Corregir diseño",
     }]);
+});
+
+test("cancela produccion con actor PIN y deja observacion", async () => {
+    const service = createService();
+    const order = await service.cancelProduction(7, "Cliente cancelo el pedido", {
+        actor: PIN_ACTOR,
+    });
+
+    assert.equal(order.nombre_etapa_general, "Cancelado");
+    assert.deepEqual(stageTransitions, [{
+        orderId: 7,
+        cancelled: true,
+        userId: 10,
+        comment: "Cliente cancelo el pedido",
+    }]);
+});
+
+test("rechaza cancelacion sin observacion", async () => {
+    const service = createService();
+    await assert.rejects(
+        () => service.cancelProduction(7, "", { actor: PIN_ACTOR }),
+        { statusCode: 400 },
+    );
 });
 
 test("bloquea saltar desde Confirmacion de pago directo a En produccion", async () => {

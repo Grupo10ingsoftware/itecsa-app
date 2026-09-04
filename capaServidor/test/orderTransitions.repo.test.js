@@ -11,7 +11,10 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
                 async findFirst() { return { id_estado_pedido: 3 }; },
             },
             pedidos: {
-                async update(payload) { calls.push(["pedidos.update", payload]); },
+                async updateMany(payload) {
+                    calls.push(["pedidos.updateMany", payload]);
+                    return { count: 1 };
+                },
             },
             registro_Etapas: {
                 async updateMany(payload) { calls.push(["registro_Etapas.updateMany", payload]); },

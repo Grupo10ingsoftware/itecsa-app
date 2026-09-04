@@ -378,12 +378,18 @@ class OrderRepository {
     if (!status) return null;
 
     try {
-      await this.client.pedidos.update({
-        where: { id_pedido: Number(id) },
+      const transition = await this.client.pedidos.updateMany({
+        where: {
+          id_pedido: Number(id),
+          NOT: { id_estado_pedido: status.id_estado_pedido },
+        },
         data: {
           id_estado_pedido: status?.id_estado_pedido ?? null,
         },
       });
+
+      // Evita duplicar registros si la misma transición llega más de una vez.
+      if (transition.count !== 1) return this.get(id);
 
       await this.client.registro_Etapas.updateMany({
         where: {
@@ -436,6 +442,89 @@ class OrderRepository {
       comment: audit.comment,
       now: audit.now,
     });
+  }
+
+  async cancelProduction(id, audit = {}) {
+    return this.transitionGeneralStage({
+      id,
+      statusName: "Cancelado",
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
+  }
+
+  async reevaluateFromSalesNote({ orderId, salesNote, userId }) {
+    const order = await this.client.pedidos.findUnique({
+      where: { id_pedido: Number(orderId) },
+      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" } } },
+    });
+    if (!order) return null;
+
+    const dueDate = salesNote.fechaEntregaTentativaOrigen
+      ? new Date(`${salesNote.fechaEntregaTentativaOrigen}T00:00:00.000Z`)
+      : null;
+    await this.client.cliente.update({
+      where: { id_cliente: order.id_cliente },
+      data: {
+        rut_cliente: salesNote.cliente?.rut,
+        nombre_cliente: salesNote.cliente?.nombre,
+        razon_social: salesNote.cliente?.nombre,
+      },
+    });
+    await this.client.pedidos.update({
+      where: { id_pedido: Number(orderId) },
+      data: {
+        fecha_estimada_termino: dueDate,
+        usuario_manager_origen: salesNote.origen?.usuarioManager ?? null,
+        observacion_origen: salesNote.observaciones ?? null,
+      },
+    });
+
+    for (const [index, item] of (salesNote.items ?? []).entries()) {
+      const type = await this.client.tipo_Producto.findFirst({
+        where: { nombre_producto: item.tipoProducto },
+      });
+      if (!type) continue;
+      const existing = order.Detalle_pedido[index];
+      if (existing) {
+        await this.client.detalle_pedido.update({
+          where: { id_detalle_pedido: existing.id_detalle_pedido },
+          data: { cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate },
+        });
+      } else {
+        const first = await this.client.producto_Subproceso.findFirst({
+          where: { id_tipo_producto: type.id_tipo_producto }, orderBy: { orden_flujo: "asc" },
+        });
+        await this.client.detalle_pedido.create({ data: {
+          id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
+          cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
+          id_estado_subproceso: first?.id_estado_subproceso ?? null,
+        } });
+      }
+    }
+
+    const updated = await this.transitionGeneralStage({
+      id: orderId, ordenKanban: 1, userId,
+      comment: "Pedido reevaluado desde la Nota de Venta y enviado a Listo para Produccion.",
+    });
+
+    const administrators = await this.client.usuario.findMany({
+      where: { rol_usuario: "Administrador", NOT: { estado_usuario: "Desvinculado" } },
+      select: { id_usuario: true },
+    });
+    if (administrators.length > 0) {
+      const message = await this.client.mensaje.create({ data: {
+        id_pedido: Number(orderId), fecha_publicacion: new Date(),
+        Asunto: "Revision de pedido resuelta",
+        contenido: `La revision del pedido ${salesNote.numeroNota} fue resuelta por Ventas.`,
+      } });
+      await this.client.mENSAJE_USUARIO.createMany({
+        data: administrators.map(({ id_usuario }) => ({ id_usuario, id_mensaje: message.id_mensaje, leido_: false, oculto_: false })),
+        skipDuplicates: true,
+      });
+    }
+    return updated;
   }
 
   async updateDeliveryDate(id, dueDate) {
@@ -606,6 +695,52 @@ class OrderRepository {
         id_estado_subproceso: Number(subprocessId),
       },
     });
+    return this.get(orderId);
+  }
+
+  async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    const detail = await this.client.detalle_pedido.findFirst({
+      where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
+      include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
+    });
+    if (!detail) return null;
+
+    const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
+    const currentIndex = subprocesses.findIndex((item) =>
+      Number(item.id_estado_subproceso) === Number(detail.id_estado_subproceso));
+    const targetIndex = subprocesses.findIndex((item) =>
+      Number(item.id_estado_subproceso) === Number(subprocessId));
+    if (currentIndex < 1 || targetIndex !== currentIndex - 1) {
+      const error = new Error("Solo se puede retroceder al subproceso inmediatamente anterior.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const changed = await this.client.detalle_pedido.updateMany({
+      where: {
+        id_detalle_pedido: Number(detailId),
+        id_pedido: Number(orderId),
+        id_estado_subproceso: detail.id_estado_subproceso,
+      },
+      data: { id_estado_subproceso: Number(subprocessId), fecha_real_termino: null },
+    });
+    if (changed.count !== 1) {
+      const error = new Error("El subproceso ya fue modificado.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const now = new Date();
+    const registry = await this.client.registros.create({ data: {
+      FECHA_HORA: now, id_pedido: Number(orderId), id_usuario: Number(userId), observacion: comment,
+    } });
+    await this.client.registro_subprocesos.create({ data: {
+      id_registro: registry.ID_REGISTRO,
+      fecha_hora_entrada: now,
+      fecha_hora_salida: null,
+      id_detalle_pedido: Number(detailId),
+      id_estado_subproceso: Number(subprocessId),
+    } });
     return this.get(orderId);
   }
 }

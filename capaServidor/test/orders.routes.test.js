@@ -35,6 +35,9 @@ function createController(updatePaymentStatus) {
         sendToReview(req, res) {
             return res.status(200).json({});
         },
+        cancelProduction(req, res) {
+            return res.status(200).json({});
+        },
         completeSubprocess(req, res) {
             return res.status(200).json({});
         },
@@ -181,6 +184,52 @@ test("monta autenticacion y rol administrativo antes de enviar a revision", asyn
 
     assert.equal(response.status, 200);
     assert.deepEqual(calls, ["checkJwt", "requireAdministrativeRole", "sendToReview"]);
+});
+
+test("exige autenticacion, rol Administrador y PIN antes de cancelar", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate(req, res, next) {
+                calls.push("checkJwt");
+                next();
+            },
+            authorizeCancellation(req, res, next) {
+                calls.push("requireAdministratorRole");
+                next();
+            },
+            validatePin(req, res, next) {
+                calls.push("requirePin");
+                req.pinActor = { idUsuario: 10 };
+                next();
+            },
+            controller: {
+                ...createController(() => {}),
+                cancelProduction(req, res) {
+                    calls.push("cancelProduction");
+                    return res.status(200).json({ id: req.params.orderId });
+                },
+            },
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/1/cancel-production`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: "123456", comment: "Cliente cancelo" }),
+        },
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, [
+        "checkJwt",
+        "requireAdministratorRole",
+        "requirePin",
+        "cancelProduction",
+    ]);
 });
 
 test("responde 403 si el token no contiene update:payment-status", async (t) => {

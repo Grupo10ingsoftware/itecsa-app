@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
+import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import KanbanCard from './KanbanCard'
@@ -12,6 +13,7 @@ const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 const KANBAN_LISTO_PRODUCCION_STEP = 1
+const KANBAN_REVISION_STEP = 6
 const LANYARD_DAILY_CAPACITY = 1200
 
 const baseColumns = [
@@ -43,6 +45,7 @@ const baseColumns = [
     accent: '#248f55',
     icon: 'bi-check2-circle',
   },
+  { id: 'en-revision', title: 'En revision', generalStepId: KANBAN_REVISION_STEP, accent: '#dc2626', icon: 'bi-search' },
 ]
 
 function getColumnTitleByStepId(stepId) {
@@ -535,7 +538,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
   const [moveError, setMoveError] = useState(null)
   const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
-  const { hasPermission } = useAuth()
+  const { hasPermission, hasRole } = useAuth()
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -713,6 +716,41 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     }
   }
 
+  async function handleCancelProduction(order, payload) {
+    try {
+      await kanbanApi.cancelProduction(order.id, payload)
+      setOrders((currentOrders) => currentOrders.filter((item) => item.id !== order.id))
+      setSelectedOrder(null)
+      return true
+    } catch (error) {
+      console.error('Error cancelando la produccion:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible cancelar la produccion.')
+      return false
+    }
+  }
+
+  async function handleRollbackSubprocess(order, item, process, payload) {
+    try {
+      const updated = await kanbanApi.rollbackSubprocess(order.id, item.id, process.id, payload)
+      handleUpdateOrder(normalizeOrder(updated))
+      return true
+    } catch (error) {
+      setMoveError(error?.payload?.message ?? 'No fue posible retroceder el subproceso.')
+      return false
+    }
+  }
+
+  async function handleReevaluate(order) {
+    try {
+      const updated = normalizeOrder(await kanbanApi.reevaluate(order.id))
+      handleUpdateOrder(updated)
+      return true
+    } catch (error) {
+      setMoveError(error?.payload?.message ?? 'No fue posible reevaluar el pedido.')
+      return false
+    }
+  }
+
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
@@ -760,6 +798,11 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
         onCompleteSubprocess={handleCompleteSubprocess}
+        canCancelProduction={hasRole(ROLES.ADMINISTRADOR)}
+        canReevaluate={hasRole(ROLES.VENTAS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
+        onCancelProduction={handleCancelProduction}
+        onRollbackSubprocess={handleRollbackSubprocess}
+        onReevaluate={handleReevaluate}
         onSendToReview={handleSendToReview}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}

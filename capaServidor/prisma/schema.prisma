@@ -153,20 +153,19 @@ model Registro_Etapas {
   id_registro        Int            @id
   fecha_hora_entrada DateTime?      @db.DateTime(0)
   fecha_hora_salida  DateTime?      @db.DateTime(0)
-  id_usuario         Int?
+  
   id_estado_pedido   Int?
   Estado_Pedido      Estado_Pedido? @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Estado_Pedido_FK")
   Registros          Registros      @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Registros_FK")
 
   @@index([id_estado_pedido], map: "id_estado_pedido_idx")
-  @@index([id_usuario], map: "id_usuario_idx")
+  
 }
 
 model Registro_Pago {
-  id_registro                                                    Int          @id @default(autoincrement())
+  id_registro                                                    Int          @id 
   fecha_registro                                                 DateTime?    @db.DateTime(0)
   observacion                                                    String?      @db.LongText
-  id_usuario                                                     Int?
   id_estado_pago_anterior                                        Int?
   id_estado_pago_nuevo                                           Int?
   Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago    Estado_Pago? @relation("Registro_Pago_id_estado_pago_nuevoToEstado_Pago", fields: [id_estado_pago_nuevo], references: [id_estado_pago], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Pago_Estado_Pago_FK")
@@ -174,7 +173,6 @@ model Registro_Pago {
   Registros                                                      Registros    @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Pago_Registros_FK")
 
   @@index([id_estado_pago_anterior], map: "id_estado_pago_idx")
-  @@index([id_usuario], map: "id_usuario_idx")
   @@index([id_estado_pago_nuevo], map: "Registro_Pago_Estado_Pago_FK")
 }
 

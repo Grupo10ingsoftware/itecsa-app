@@ -10,8 +10,8 @@ export function createMessageRouter({
 
     router.get("/", authenticate, controller.getInbox);
     router.get("/notifications", authenticate, controller.getNotifications);
-    router.delete("/notifications", authenticate, controller.clearNotifications);
-    router.delete("/notifications/:messageId", authenticate, controller.hideNotification);
+    router.patch("/notifications", authenticate, controller.clearNotifications);
+    router.patch("/notifications/:messageId", authenticate, controller.hideNotification);
     router.patch("/:messageId/read", authenticate, controller.markAsRead);
     router.get("/:messageId", authenticate, controller.getMessage);
 

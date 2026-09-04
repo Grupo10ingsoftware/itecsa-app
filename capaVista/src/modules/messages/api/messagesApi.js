@@ -19,7 +19,7 @@ export function createMessagesApi(apiClient) {
       apiClient.get(`/messages/notifications${toQueryString({ limit })}`),
     markAsRead: (messageId) => apiClient.patch(`/messages/${messageId}/read`, {}),
     hideNotification: (messageId) =>
-      apiClient.delete(`/messages/notifications/${messageId}`),
-    clearNotifications: () => apiClient.delete('/messages/notifications'),
+      apiClient.patch(`/messages/notifications/${messageId}`),
+    clearNotifications: () => apiClient.patch('/messages/notifications'),
   }
 }

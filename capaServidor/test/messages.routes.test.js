@@ -116,7 +116,7 @@ test("monta checkJwt antes de ocultar una notificacion", async (t) => {
     const server = await listen(app, t);
 
     const response = await fetch(`http://127.0.0.1:${server.address().port}/api/messages/notifications/42`, {
-        method: "DELETE",
+        method: "PATCH",
     });
 
     assert.equal(response.status, 200);

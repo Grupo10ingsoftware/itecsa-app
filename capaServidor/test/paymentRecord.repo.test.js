@@ -39,6 +39,7 @@ test("create registra auditoria de pago enlazada a Registros", async () => {
     FECHA_HORA: registryCreatedAt,
     id_pedido: 3,
     id_usuario: 4,
+    observacion: "Cambio de estado a Confirmado desde modulo de pagos.",
   });
   assert.equal(calls[1][0], "registro_Pago.create");
   assert.deepEqual(calls[1][1], {

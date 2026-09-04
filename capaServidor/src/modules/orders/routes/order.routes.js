@@ -5,6 +5,7 @@ import {
 import checkJwt from "../../../middlewares/checkJwt.js";
 import requirePermission from "../../../middlewares/requirePermission.js";
 import requirePin from "../../../middlewares/requirePin.js";
+import requireAdministrativeRole from "../../../middlewares/requireAdministrativeRole.js";
 import OrderController from "../controller/orders.controller.js";
 import orderDetailRoutes from "./orderDetail.routes.js";
 import paymentRecordRoutes from "../../payments/routes/paymentRecord.routes.js";
@@ -14,6 +15,7 @@ export function createOrderRouter({
     authorizePaymentStatusUpdate = requirePermission(
         UPDATE_PAYMENT_STATUS_PERMISSION,
     ),
+    authorizeAdministrativeRole = requireAdministrativeRole,
     controller = new OrderController(),
     validatePin = requirePin,
 } = {}) {
@@ -28,6 +30,7 @@ export function createOrderRouter({
             controller.updatePaymentStatus ?? fallbackController.updatePaymentStatus,
         updateGeneralStep:
             controller.updateGeneralStep ?? fallbackController.updateGeneralStep,
+        sendToReview: controller.sendToReview ?? fallbackController.sendToReview,
         updateDeliveryDate:
             controller.updateDeliveryDate ?? fallbackController.updateDeliveryDate,
         completeSubprocess:
@@ -49,6 +52,12 @@ export function createOrderRouter({
         routeController.updatePaymentStatus,
     );
     router.patch("/:orderId/move", authenticate, validatePin, routeController.updateGeneralStep);
+    router.patch(
+        "/:orderId/review",
+        authenticate,
+        authorizeAdministrativeRole,
+        routeController.sendToReview,
+    );
     router.patch("/:orderId/delivery-date", authenticate, validatePin, routeController.updateDeliveryDate);
     router.patch(
         "/:orderId/details/:detailId/subprocesses/:subprocessId/complete",

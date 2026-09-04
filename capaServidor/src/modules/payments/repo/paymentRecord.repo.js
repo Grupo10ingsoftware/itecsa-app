@@ -27,6 +27,7 @@ class PaymentRecordRepo {
         FECHA_HORA: createdAt,
         id_pedido: Number(orderId),
         id_usuario: Number(id_usuario),
+        observacion: observacion ?? null,
       },
     });
 

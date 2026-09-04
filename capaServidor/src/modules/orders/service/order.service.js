@@ -221,7 +221,62 @@ class OrderService {
       throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
     }
 
-    return this.repo.updateGeneralStep(orderId, nextStep);
+    if (!options.actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return this.runInTransaction(({ repo }) => repo.updateGeneralStep(
+      orderId,
+      nextStep,
+      {
+        userId: options.actor.idUsuario,
+        comment: options.comment,
+      },
+    ));
+  }
+
+  async sendToReview(orderId, comment, { auth0UserId } = {}) {
+    const normalizedComment = typeof comment === "string" ? comment.trim() : "";
+    if (!normalizedComment) {
+      const error = new Error("El comentario de revision es obligatorio.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (normalizedComment.length > 2000) {
+      const error = new Error("El comentario de revision no puede superar 2000 caracteres.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const currentOrder = await this.repo.get(orderId);
+    if (!currentOrder) {
+      const error = new Error("Pedido no encontrado.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (Number(currentOrder.id_etapa_general) !== 1) {
+      const error = new Error("Solo se puede enviar a revision un pedido Listo para Produccion.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const userId = await this.resolveInternalUserId({ auth0UserId });
+    return this.runInTransaction(async ({ repo }) => {
+      const updatedOrder = await repo.sendToReview(orderId, {
+        userId,
+        comment: normalizedComment,
+      });
+      if (!updatedOrder) {
+        const error = new Error("Pedido o estado En revisión no encontrado.");
+        error.statusCode = 404;
+        throw error;
+      }
+      return updatedOrder;
+    });
   }
 
   async updateDeliveryDate(orderId, dueDate) {

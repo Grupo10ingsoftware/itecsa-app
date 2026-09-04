@@ -16,5 +16,7 @@ export function createKanbanApi(apiClient) {
         pin: payload.pin,
         comment: payload.comment,
       }),
+    sendToReview: (orderId, comment) =>
+      apiClient.patch(`/orders/${orderId}/review`, { comment }),
   }
 }

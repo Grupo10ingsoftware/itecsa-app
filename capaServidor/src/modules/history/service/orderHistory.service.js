@@ -57,12 +57,14 @@ function mapEvent(record) {
         occurredAt: record.FECHA_HORA,
         responsible: personName(record.Usuario),
         responsibleUserId: record.id_usuario,
+        description: record.observacion ?? null,
     };
 
     if (record.Registro_Etapas) {
         const detail = record.Registro_Etapas;
         const enteredAt = detail.fecha_hora_entrada;
         const exitedAt = detail.fecha_hora_salida;
+        const elapsedUntil = exitedAt ?? new Date();
         return {
             ...base,
             type: "stage",
@@ -70,9 +72,10 @@ function mapEvent(record) {
             title: detail.Estado_Pedido?.nombre_etapa ?? "Cambio de etapa",
             enteredAt,
             exitedAt,
-            durationSeconds: enteredAt && exitedAt
-                ? Math.max(0, Math.round((new Date(exitedAt) - new Date(enteredAt)) / 1000))
+            durationSeconds: enteredAt
+                ? Math.max(0, Math.round((new Date(elapsedUntil) - new Date(enteredAt)) / 1000))
                 : null,
+            isOngoing: !exitedAt,
         };
     }
 
@@ -85,7 +88,7 @@ function mapEvent(record) {
             type: "payment",
             typeLabel: "Pago",
             title: next ? `Estado de pago: ${next}` : "Actualizacion de pago",
-            description: detail.observacion ?? null,
+            description: record.observacion ?? detail.observacion ?? null,
             previousStatus: previous ?? null,
             nextStatus: next ?? null,
         };
@@ -100,7 +103,8 @@ function mapEvent(record) {
             type: "subprocess",
             typeLabel: "Subproceso",
             title: detail.Estado_Subprocesos?.nombre_estado ?? "Cambio de subproceso",
-            description: detail.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
+            description: record.observacion ?? null,
+            productType: detail.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
             enteredAt,
             exitedAt,
             durationSeconds: enteredAt && exitedAt

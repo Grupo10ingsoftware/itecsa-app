@@ -221,12 +221,14 @@ export default function KanbanOffCanvas({
   onClose,
   onCompleteSubprocess,
   onUpdateOrder,
+  onSendToReview,
   order,
 }) {
   const [authModal, setAuthModal] = useState(null)
   const [operatorPin, setOperatorPin] = useState('')
   const [operatorComment, setOperatorComment] = useState('')
   const [authError, setAuthError] = useState('')
+  const [isCompletingSubprocess, setIsCompletingSubprocess] = useState(false)
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false)
   const [correctionText, setCorrectionText] = useState('')
   const [correctionError, setCorrectionError] = useState('')
@@ -260,6 +262,7 @@ export default function KanbanOffCanvas({
   }
 
   function closeAuthModal() {
+    if (isCompletingSubprocess) return
     setAuthModal(null)
     setOperatorPin('')
     setOperatorComment('')
@@ -268,6 +271,7 @@ export default function KanbanOffCanvas({
 
   async function completeSubProcess(event) {
     event.preventDefault()
+    if (isCompletingSubprocess) return
     const trimmedPin = operatorPin.trim()
 
     if (!/^\d{6}$/.test(trimmedPin)) {
@@ -277,10 +281,11 @@ export default function KanbanOffCanvas({
 
     const trimmedComment = operatorComment.trim()
 
+    setIsCompletingSubprocess(true)
     const wasCompleted = await onCompleteSubprocess?.(order, authModal.item, authModal.process, {
       pin: trimmedPin,
       comment: trimmedComment,
-    })
+    }).finally(() => setIsCompletingSubprocess(false))
 
     if (wasCompleted === false) {
       setAuthError('No fue posible completar el subproceso.')
@@ -290,7 +295,7 @@ export default function KanbanOffCanvas({
     closeAuthModal()
   }
 
-  function submitCorrection(event) {
+  async function submitCorrection(event) {
     event.preventDefault()
     const trimmedCorrection = correctionText.trim()
 
@@ -299,12 +304,11 @@ export default function KanbanOffCanvas({
       return
     }
 
-    onUpdateOrder({
-      ...order,
-      correctionRequested: true,
-      correctionComment: trimmedCorrection,
-      correctionRequestedAt: new Date().toISOString(),
-    })
+    const wasSent = await onSendToReview?.(order, trimmedCorrection)
+    if (wasSent === false) {
+      setCorrectionError('No fue posible enviar el pedido a revisión.')
+      return
+    }
     setCorrectionText('')
     setCorrectionError('')
     setIsCorrectionFormOpen(false)
@@ -603,6 +607,7 @@ export default function KanbanOffCanvas({
               <button
                 aria-label="Cerrar validacion"
                 className={styles.offcanvasCloseButton}
+                disabled={isCompletingSubprocess}
                 onClick={closeAuthModal}
                 type="button"
               >
@@ -639,11 +644,11 @@ export default function KanbanOffCanvas({
             </div>
 
             <footer className={styles.operatorModalFooter}>
-              <button className={styles.resetFilterButton} onClick={closeAuthModal} type="button">
+              <button className={styles.resetFilterButton} disabled={isCompletingSubprocess} onClick={closeAuthModal} type="button">
                 Cancelar
               </button>
-              <button className={styles.orderCardButton} type="submit">
-                Completar subproceso
+              <button className={styles.orderCardButton} disabled={isCompletingSubprocess} type="submit">
+                {isCompletingSubprocess ? 'Completando...' : 'Completar subproceso'}
               </button>
             </footer>
           </form>

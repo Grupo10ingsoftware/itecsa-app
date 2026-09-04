@@ -367,11 +367,15 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async updateGeneralStep(id, ordenKanban) {
+  async transitionGeneralStage({ id, ordenKanban, statusName, userId, comment, now = new Date() }) {
     const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(ordenKanban) },
+      where: statusName
+        ? { nombre_etapa: statusName }
+        : { orden_kanban: Number(ordenKanban) },
       select: { id_estado_pedido: true },
     });
+
+    if (!status) return null;
 
     try {
       await this.client.pedidos.update({
@@ -380,12 +384,58 @@ class OrderRepository {
           id_estado_pedido: status?.id_estado_pedido ?? null,
         },
       });
+
+      await this.client.registro_Etapas.updateMany({
+        where: {
+          fecha_hora_salida: null,
+          Registros: { id_pedido: Number(id) },
+        },
+        data: { fecha_hora_salida: now },
+      });
+
+      const registry = await this.client.registros.create({
+        data: {
+          FECHA_HORA: now,
+          id_pedido: Number(id),
+          id_usuario: Number(userId),
+          observacion: comment?.trim() || null,
+        },
+      });
+
+      await this.client.registro_Etapas.create({
+        data: {
+          id_registro: registry.ID_REGISTRO,
+          fecha_hora_entrada: now,
+          fecha_hora_salida: null,
+          id_estado_pedido: status.id_estado_pedido,
+        },
+      });
     } catch (error) {
       if (error?.code === "P2025") return null;
       throw error;
     }
 
     return this.get(id);
+  }
+
+  async updateGeneralStep(id, ordenKanban, audit = {}) {
+    return this.transitionGeneralStage({
+      id,
+      ordenKanban,
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
+  }
+
+  async sendToReview(id, audit = {}) {
+    return this.transitionGeneralStage({
+      id,
+      statusName: "En revisión",
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
   }
 
   async updateDeliveryDate(id, dueDate) {
@@ -495,8 +545,34 @@ class OrderRepository {
     const now = new Date();
     const nextSubprocess = subprocesses[processIndex + 1] ?? null;
 
-    await this.client.detalle_pedido.update({
+    const latestSubprocessRecord = await this.client.registro_subprocesos.findFirst({
       where: { id_detalle_pedido: Number(detailId) },
+      include: { Registros: true },
+      orderBy: { Registros: { FECHA_HORA: "desc" } },
+    });
+    const productionStageRecord = latestSubprocessRecord
+      ? null
+      : await this.client.registro_Etapas.findFirst({
+          where: {
+            Registros: { id_pedido: Number(orderId) },
+            Estado_Pedido: { nombre_etapa: "En producción" },
+          },
+          orderBy: { fecha_hora_entrada: "desc" },
+        });
+    const startedAt =
+      latestSubprocessRecord?.fecha_hora_salida ??
+      latestSubprocessRecord?.fecha_hora_entrada ??
+      productionStageRecord?.fecha_hora_entrada ??
+      order.fecha_creacion ??
+      now;
+
+    const transition = await this.client.detalle_pedido.updateMany({
+      where: {
+        id_detalle_pedido: Number(detailId),
+        id_pedido: Number(orderId),
+        id_estado_subproceso: Number(subprocessId),
+        fecha_real_termino: null,
+      },
       data: {
         id_estado_subproceso:
           nextSubprocess?.id_estado_subproceso ?? detail.id_estado_subproceso,
@@ -504,26 +580,32 @@ class OrderRepository {
       },
     });
 
+    // La actualización condicional actúa como barrera de idempotencia. Si dos
+    // solicitudes llegan juntas, solo la primera puede avanzar el detalle.
+    if (transition.count !== 1) {
+      const error = new Error("El subproceso ya fue completado.");
+      error.statusCode = 409;
+      throw error;
+    }
+
     const registry = await this.client.registros.create({
       data: {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
+        observacion: comment?.trim() || null,
       },
     });
 
     await this.client.registro_subprocesos.create({
       data: {
         id_registro: registry.ID_REGISTRO,
-        fecha_hora_entrada: now,
+        fecha_hora_entrada: startedAt,
         fecha_hora_salida: now,
         id_detalle_pedido: Number(detailId),
         id_estado_subproceso: Number(subprocessId),
       },
     });
-
-    void comment;
-
     return this.get(orderId);
   }
 }

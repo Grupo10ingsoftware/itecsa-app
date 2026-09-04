@@ -701,6 +701,18 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     }
   }
 
+  async function handleSendToReview(order, comment) {
+    try {
+      const updatedOrder = await kanbanApi.sendToReview(order.id, comment)
+      handleUpdateOrder(normalizeOrder(updatedOrder))
+      return true
+    } catch (error) {
+      console.error('Error enviando pedido a revisión:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible enviar el pedido a revisión.')
+      return false
+    }
+  }
+
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
@@ -748,6 +760,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
         onCompleteSubprocess={handleCompleteSubprocess}
+        onSendToReview={handleSendToReview}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
       />

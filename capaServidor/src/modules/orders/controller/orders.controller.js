@@ -108,7 +108,7 @@ class OrderController {
         try {
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
-            const { generalStepId } = req.body ?? {};
+            const { generalStepId, comment } = req.body ?? {};
             const result = await
             this.service.updGeneralStep(
                 orderId,
@@ -116,6 +116,7 @@ class OrderController {
                 {
                     permissions: req.auth?.payload?.permissions,
                     actor: req.pinActor,
+                    comment,
                 },
             );
 
@@ -132,6 +133,21 @@ class OrderController {
             res.status( statusCode ).json({
                 message: error.message || 'Error al actualizar el pedido',
             })
+        }
+    }
+
+    sendToReview = async (req = request, res = response) => {
+        try {
+            const result = await this.service.sendToReview(
+                req.params.orderId,
+                req.body?.comment,
+                { auth0UserId: req.auth?.payload?.sub },
+            );
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al enviar el pedido a revision',
+            });
         }
     }
 

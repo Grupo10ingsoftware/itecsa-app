@@ -81,8 +81,13 @@ export default function OrderHistoryDetailPage() {
                     <time>{formatDateTime(event.occurredAt)}</time>
                     <p>Responsable: {event.responsible ?? 'No disponible'}</p>
                     {event.description && <p>{event.description}</p>}
+                    {event.productType && <p>Producto: {event.productType}</p>}
                     {event.previousStatus && <p>{event.previousStatus} → {event.nextStatus ?? 'Sin estado'}</p>}
-                    {formatDuration(event.durationSeconds) && <strong>Tiempo transcurrido: {formatDuration(event.durationSeconds)}</strong>}
+                    {formatDuration(event.durationSeconds) && (
+                      <strong>
+                        Tiempo transcurrido{event.isOngoing ? ' (en curso)' : ''}: {formatDuration(event.durationSeconds)}
+                      </strong>
+                    )}
                   </article>
                 </li>
               ))}</ol>

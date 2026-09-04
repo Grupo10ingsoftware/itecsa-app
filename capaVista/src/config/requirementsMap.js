@@ -8,6 +8,7 @@ export const REQUIREMENTS_MAP = Object.freeze({
   'modules/payments': Object.freeze(['UR 3.1', 'UR 3.3', 'UR 3.7']),
   'modules/kanban': Object.freeze(['UR 5.1', 'UR 5.2', 'UR 5.3']),
   'modules/profile': Object.freeze(['UR 1.7']),
+  'modules/reports': Object.freeze(['RF69', 'RF70', 'RF71', 'RF72', 'RF73', 'RF74', 'RF75']),
   'shared/components/layout': Object.freeze(['UR 1.7', 'UR 1.18', 'UR 12.1']),
   'shared/components/navigation': Object.freeze(['UR 1.4', 'UR 1.13', 'UR 1.14']),
   'shared/components/forms': Object.freeze(['UR 1.1', 'UR 1.15', 'UR 2.2', 'UR 3.1']),

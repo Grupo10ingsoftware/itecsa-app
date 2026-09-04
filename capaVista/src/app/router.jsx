@@ -19,6 +19,7 @@ const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordReset
 const ProductionHistoryPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryPage'))
 const ProductionHistoryDetailPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryDetailPage'))
 const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
+const ReportsPage = lazy(() => import('../modules/reports/pages/ReportsPage'))
 
 function RouteLoadingState() {
   return (
@@ -43,7 +44,6 @@ export default function AppRouter() {
         <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={APP_ROUTES.PASSWORD_RESET} element={<PasswordResetPage />} />
         <Route path={APP_ROUTES.ACCESS_DENIED} element={<AccessDeniedPage />} />
-
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<AppLayout />}>
             <Route index element={<Navigate to={APP_ROUTES.KANBAN} replace />} />
@@ -93,6 +93,14 @@ export default function AppRouter() {
               element={
                 <RoleGuard requiredRole={ROLES.ADMINISTRADOR}>
                   <ProductionCalendarPage />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="reportes"
+              element={
+                <RoleGuard requiredRoles={[ROLES.GERENCIA, ROLES.ADMINISTRADOR]}>
+                  <ReportsPage />
                 </RoleGuard>
               }
             />

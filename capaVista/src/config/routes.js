@@ -14,6 +14,7 @@ export const APP_ROUTES = Object.freeze({
   PRODUCTION_HISTORY: '/historial-produccion',
   PRODUCTION_HISTORY_DETAIL: '/historial-produccion/:pedidoId',
   PRODUCTION_CALENDAR: '/calendario-produccion',
+  REPORTS: '/reportes',
 })
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
@@ -58,5 +59,11 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.PRODUCTION_CALENDAR,
     requiredRoles: Object.freeze([ROLES.ADMINISTRADOR]),
     requirementIds: Object.freeze(['PROTOTIPO']),
+  },
+  {
+    label: 'Reportes y estadísticas',
+    path: APP_ROUTES.REPORTS,
+    requiredRoles: Object.freeze([ROLES.GERENCIA, ROLES.ADMINISTRADOR]),
+    requirementIds: Object.freeze(['RF69', 'RF70', 'RF71', 'RF72', 'RF73', 'RF74', 'RF75']),
   },
 ])

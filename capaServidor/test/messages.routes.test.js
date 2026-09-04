@@ -122,3 +122,21 @@ test("monta checkJwt antes de ocultar una notificacion", async (t) => {
     assert.equal(response.status, 200);
     assert.deepEqual(calls, ["checkJwt", "hideNotification:42"]);
 });
+
+test("monta checkJwt antes de ocultar todas las notificaciones", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createMessageRouter({
+            authenticate: authenticate(calls),
+            controller: createController(calls),
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/messages/notifications`, {
+        method: "PATCH",
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, ["checkJwt", "clearNotifications"]);
+});

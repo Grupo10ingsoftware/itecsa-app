@@ -46,7 +46,6 @@ test("create registra auditoria de pago enlazada a Registros", async () => {
       id_registro: 18,
       fecha_registro: registryCreatedAt,
       observacion: "Cambio de estado a Confirmado desde modulo de pagos.",
-      id_usuario: 4,
       id_estado_pago_nuevo: 2,
     },
     include: {

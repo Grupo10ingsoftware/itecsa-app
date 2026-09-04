@@ -11,8 +11,11 @@ export const APP_ROUTES = Object.freeze({
   ADMIN_USERS: '/admin/usuarios',
   ADMIN_USERS_CREATE: '/admin/usuarios/nuevo',
   ORDERS_CREATE: '/ordenes/nuevo',
-  PRODUCTION_HISTORY: '/historial-produccion',
-  PRODUCTION_HISTORY_DETAIL: '/historial-produccion/:pedidoId',
+  ORDER_HISTORY: '/historial-pedidos',
+  ORDER_HISTORY_DETAIL: '/historial-pedidos/:orderId',
+  // Alias temporales para componentes del prototipo anterior que aún viven en el repositorio.
+  PRODUCTION_HISTORY: '/historial-pedidos',
+  PRODUCTION_HISTORY_DETAIL: '/historial-pedidos/:pedidoId',
   PRODUCTION_CALENDAR: '/calendario-produccion',
   MESSAGES: '/mensajes',
   MESSAGE_DETAIL: '/mensajes/:messageId',
@@ -55,10 +58,9 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     requirementIds: Object.freeze(['UR 19.1', 'UR 19.2', 'UR 19.3', 'UR 19.4', 'UR 19.5']),
   },
   {
-    label: 'Historial Produccion',
-    path: APP_ROUTES.PRODUCTION_HISTORY,
-    requiredRoles: ADMINISTRATIVE_ROLES,
-    requirementIds: Object.freeze(['PROTOTIPO']),
+    label: 'Historial de pedidos',
+    path: APP_ROUTES.ORDER_HISTORY,
+    requirementIds: Object.freeze(['RF64', 'RF65', 'RF66', 'RF67', 'RF68']),
   },
   {
     label: 'Calendario',

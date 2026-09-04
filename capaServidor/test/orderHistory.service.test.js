@@ -1,0 +1,108 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import OrderHistoryService from "../src/modules/history/service/orderHistory.service.js";
+
+test("lista pedidos y normaliza filtros de estado, busqueda y paginacion", async () => {
+    let received;
+    const service = new OrderHistoryService({
+        repo: {
+            async list(filters) {
+                received = filters;
+                return {
+                    total: 1,
+                    orders: [{
+                        id_pedido: 8,
+                        numero_nota_venta: "NV-8",
+                        fecha_creacion: new Date("2026-09-04T00:00:00Z"),
+                        Cliente: { rut_cliente: "1-9", nombre_cliente: "Cliente" },
+                        Estado_Pedido: { nombre_etapa: "En produccion" },
+                    }],
+                };
+            },
+        },
+    });
+
+    const result = await service.listOrders({
+        status: "En produccion",
+        search: "04-09-2026",
+        page: "2",
+        perPage: "10",
+    });
+
+    assert.equal(received.status, "En produccion");
+    assert.equal(received.page, 2);
+    assert.equal(received.perPage, 10);
+    assert.equal(received.dateRange.start.toISOString(), "2026-09-04T00:00:00.000Z");
+    assert.deepEqual(result.orders[0], {
+        id: 8,
+        salesNoteNumber: "NV-8",
+        clientRut: "1-9",
+        clientName: "Cliente",
+        status: "En produccion",
+        createdAt: new Date("2026-09-04T00:00:00Z"),
+    });
+});
+
+test("consolida y filtra cronologia por tipo de registro", async () => {
+    const baseRecord = {
+        FECHA_HORA: new Date("2026-09-04T10:00:00Z"),
+        id_usuario: 4,
+        Usuario: { nombre_usuario: "Ana", apellido_usuario: "Perez" },
+    };
+    const service = new OrderHistoryService({
+        repo: {
+            async getById() {
+                return {
+                    id_pedido: 8,
+                    numero_nota_venta: "NV-8",
+                    fecha_creacion: new Date("2026-09-01T00:00:00Z"),
+                    fecha_estimada_termino: null,
+                    observacion: null,
+                    observacion_origen: null,
+                    observacion_interna: null,
+                    usuario_manager_origen: null,
+                    Cliente: { nombre_cliente: "Cliente", rut_cliente: "1-9" },
+                    Usuario: { id_usuario: 4, nombre_usuario: "Ana", apellido_usuario: "Perez", correo_usuario: "a@b.cl" },
+                    Estado_Pedido: { nombre_etapa: "En produccion" },
+                    Estado_Pago: { nombre_estado_pago: "Confirmado" },
+                    Detalle_pedido: [],
+                    Pedido_Item_Sin_Seguimiento: [],
+                    Pedido_Etiqueta: [],
+                    Registros: [
+                        {
+                            ...baseRecord,
+                            ID_REGISTRO: 1,
+                            Registro_Etapas: { nombre: "unused" },
+                            Registro_Pago: null,
+                            registro_subprocesos: null,
+                        },
+                        {
+                            ...baseRecord,
+                            ID_REGISTRO: 2,
+                            Registro_Etapas: null,
+                            Registro_Pago: {
+                                observacion: "Pago confirmado",
+                                Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago: { nombre_estado_pago: "Pendiente" },
+                                Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: { nombre_estado_pago: "Confirmado" },
+                            },
+                            registro_subprocesos: null,
+                        },
+                    ],
+                };
+            },
+        },
+    });
+
+    const result = await service.getOrderHistory("8", { type: "payment" });
+    assert.equal(result.events.length, 1);
+    assert.equal(result.events[0].type, "payment");
+    assert.equal(result.events[0].responsible, "Ana Perez");
+    assert.equal(result.events[0].previousStatus, "Pendiente");
+    assert.equal(result.events[0].nextStatus, "Confirmado");
+});
+
+test("rechaza IDs y tipos de evento invalidos", async () => {
+    const service = new OrderHistoryService({ repo: {} });
+    await assert.rejects(() => service.getOrderHistory("abc"), { statusCode: 400 });
+    await assert.rejects(() => service.getOrderHistory("1", { type: "otro" }), { statusCode: 400 });
+});

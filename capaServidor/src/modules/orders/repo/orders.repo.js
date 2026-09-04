@@ -389,7 +389,7 @@ class OrderRepository {
       });
 
       // Evita duplicar registros si la misma transición llega más de una vez.
-      if (transition.count !== 1) return this.get(id);
+      if (transition.count !== 1) return null;
 
       await this.client.registro_Etapas.updateMany({
         where: {
@@ -435,13 +435,41 @@ class OrderRepository {
   }
 
   async sendToReview(id, audit = {}) {
-    return this.transitionGeneralStage({
+    const updatedOrder = await this.transitionGeneralStage({
       id,
       statusName: "En revisión",
       userId: audit.userId,
       comment: audit.comment,
       now: audit.now,
     });
+
+    const responsibleUserId = Number(updatedOrder?.id_usuario);
+    if (!updatedOrder || !Number.isInteger(responsibleUserId) || responsibleUserId <= 0) {
+      return updatedOrder;
+    }
+
+    const message = await this.client.mensaje.create({
+      data: {
+        id_pedido: Number(id),
+        fecha_publicacion: audit.now ?? new Date(),
+        Asunto: "Pedido enviado a revisión",
+        contenido: [
+          `El pedido ${updatedOrder.numero_nota_venta ?? `#${id}`} fue enviado a revisión por Producción.`,
+          audit.comment ? `Observación: ${audit.comment}` : null,
+        ].filter(Boolean).join("\n"),
+      },
+    });
+
+    await this.client.mENSAJE_USUARIO.create({
+      data: {
+        id_usuario: responsibleUserId,
+        id_mensaje: message.id_mensaje,
+        leido_: false,
+        oculto_: false,
+      },
+    });
+
+    return updatedOrder;
   }
 
   async cancelProduction(id, audit = {}) {

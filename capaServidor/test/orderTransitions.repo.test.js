@@ -148,3 +148,36 @@ test("subproceso duplicado se rechaza antes de crear un segundo registro", async
     );
     assert.equal(registryCreates, 0);
 });
+
+test("enviar a revision notifica al usuario de Ventas responsable", async () => {
+    const assignments = [];
+    const repo = new OrderRepository({
+        prisma: {
+            mensaje: {
+                async create({ data }) {
+                    assert.equal(data.id_pedido, 6);
+                    assert.match(data.contenido, /NV-100/);
+                    assert.match(data.contenido, /Corregir diseño/);
+                    return { id_mensaje: 44 };
+                },
+            },
+            mENSAJE_USUARIO: {
+                async create({ data }) { assignments.push(data); },
+            },
+        },
+    });
+    repo.transitionGeneralStage = async () => ({
+        id_pedido: 6,
+        id_usuario: 21,
+        numero_nota_venta: "NV-100",
+    });
+
+    await repo.sendToReview(6, { userId: 10, comment: "Corregir diseño" });
+
+    assert.deepEqual(assignments, [{
+        id_usuario: 21,
+        id_mensaje: 44,
+        leido_: false,
+        oculto_: false,
+    }]);
+});

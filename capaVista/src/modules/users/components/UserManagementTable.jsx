@@ -1,3 +1,4 @@
+import { getRoleLabel } from '../../../config/roles'
 import UserButton from './UserButton'
 import UserManagementMobileList from './UserManagementMobileList'
 import UserStatusBadge from './UserStatusBadge'
@@ -76,7 +77,7 @@ export default function UserManagementTable({
                   <td className={styles.nameCell}>{user.nombreListado}</td>
                   <td>{user.rutUsuario}</td>
                   <td className={styles.emailCell}>{user.correoUsuario}</td>
-                  <td>{user.rolUsuario}</td>
+                  <td>{getRoleLabel(user.rolUsuario)}</td>
                   <td>
                     <UserStatusBadge status={user.estadoUsuario} />
                   </td>

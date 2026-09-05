@@ -57,7 +57,7 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 - API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
-- Roles permitidos: `Administrador Producción`, `Soporte`, `Gerencia`, `Operario Producción`, `Operario Ventas` y `Operario Cobranzas`.
+- Roles permitidos: `Administrador Produccion`, `Soporte`, `Gerencia`, `Operario Produccion`, `Operario Ventas` y `Operario Cobranzas`.
 
 El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La fuente de roles es Auth0 RBAC y la validacion de endpoints pertenece al backend.
 
@@ -100,3 +100,9 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 - ITECSA no recibe ni persiste contrasenas; la captura y gestion de contrasenas ocurre en Auth0.
 
 Consulta el diseno transversal en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md) y las convenciones visuales en [docs/CONVENCIONES_UI_FRONTEND.md](../docs/CONVENCIONES_UI_FRONTEND.md).
+
+El valor oficial del administrador en Auth0, API y base de datos es
+`Administrador Produccion` (sin tilde). La interfaz muestra la etiqueta
+`Administrador Producción` mediante `getRoleLabel`; nunca envía esa etiqueta
+como valor del rol. `Operario Produccion` también usa un valor oficial sin tilde y se muestra como
+`Operario Producción` mediante la misma función.

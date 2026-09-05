@@ -395,7 +395,7 @@ test("rechaza cambio de estado desde edicion completa", async () => {
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador Producción",
+                rolUsuario: "Administrador Produccion",
                 estadoUsuario: "Desvinculado",
             },
             params: { userId: "auth0|created-user" },

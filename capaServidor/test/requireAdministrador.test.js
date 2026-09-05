@@ -27,8 +27,8 @@ function executeMiddleware(payload) {
     return { statusCode, body, nextCalled };
 }
 
-test("permite un usuario con solo el rol Administrador Producción", () => {
-    const result = executeMiddleware({ [ROLES_CLAIM]: ["Administrador Producción"] });
+test("permite un usuario con solo el rol Administrador Produccion", () => {
+    const result = executeMiddleware({ [ROLES_CLAIM]: ["Administrador Produccion"] });
 
     assert.equal(result.nextCalled, true);
     assert.equal(result.statusCode, undefined);
@@ -62,9 +62,9 @@ test("rechaza un usuario sin claim de roles", () => {
     assert.equal(result.statusCode, 403);
 });
 
-test("rechaza multiples roles aunque incluyan Administrador Producción", () => {
+test("rechaza multiples roles aunque incluyan Administrador Produccion", () => {
     const result = executeMiddleware({
-        [ROLES_CLAIM]: ["Administrador Producción", "Gerencia"],
+        [ROLES_CLAIM]: ["Administrador Produccion", "Gerencia"],
     });
 
     assert.equal(result.nextCalled, false);

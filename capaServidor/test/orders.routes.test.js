@@ -186,7 +186,7 @@ test("monta autenticacion y rol administrativo antes de enviar a revision", asyn
     assert.deepEqual(calls, ["checkJwt", "requireAdministrativeRole", "sendToReview"]);
 });
 
-test("exige autenticacion, rol Administrador Producción y PIN antes de cancelar", async (t) => {
+test("exige autenticacion, rol Administrador Produccion y PIN antes de cancelar", async (t) => {
     const calls = [];
     const app = createTestApp(
         createOrderRouter({

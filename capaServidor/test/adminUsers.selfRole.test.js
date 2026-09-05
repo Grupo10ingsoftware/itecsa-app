@@ -10,7 +10,7 @@ const CURRENT_ADMIN_USER = {
     rutUsuario: "12.345.678-9",
     nombreUsuario: "Ana",
     apellidoUsuario: "Perez",
-    rolUsuario: "Administrador Producción",
+    rolUsuario: "Administrador Produccion",
     estadoUsuario: "Activo",
 };
 
@@ -139,7 +139,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador Producción",
+                rolUsuario: "Administrador Produccion",
             },
         },
         res,
@@ -149,7 +149,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
     assert.deepEqual(externalPayload, {
         userId: CURRENT_ADMIN_ID,
         correoUsuario: "ana.maria@itecsa.cl",
-        rolUsuario: "Administrador Producción",
+        rolUsuario: "Administrador Produccion",
     });
     assert.deepEqual(internalPayload, {
         userId: CURRENT_ADMIN_ID,
@@ -157,7 +157,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
             nombreUsuario: "Ana Maria",
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
-            rolUsuario: "Administrador Producción",
+            rolUsuario: "Administrador Produccion",
         },
     });
 });

@@ -1,4 +1,4 @@
-import { OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
@@ -93,7 +93,7 @@ export default function UserManagementFilters({
                   onClick={() => onRoleChange(role)}
                   type="button"
                 >
-                  <span>{role}</span>
+                  <span>{getRoleLabel(role)}</span>
                 </button>
               ))}
             </div>

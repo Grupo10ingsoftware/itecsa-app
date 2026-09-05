@@ -1,7 +1,7 @@
-import { isOfficialRole } from '../../../config/roles'
+import { getRoleLabel, isOfficialRole } from '../../../config/roles'
 
 export default function RoleBadge({ role }) {
-  const displayRole = isOfficialRole(role) ? role : 'Rol no reconocido'
+  const displayRole = isOfficialRole(role) ? getRoleLabel(role) : 'Rol no reconocido'
   const badgeClass = isOfficialRole(role) ? 'text-bg-light' : 'text-bg-secondary'
 
   return (

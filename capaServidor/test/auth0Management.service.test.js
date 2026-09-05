@@ -152,7 +152,7 @@ test("no crea usuario si el rol solicitado no existe en Auth0", async () => {
             return jsonResponse(200, { access_token: "management-access-token" });
         }
 
-        return jsonResponse(200, [{ id: "rol_produccion", name: "Operario Producción" }]);
+        return jsonResponse(200, [{ id: "rol_produccion", name: "Operario Produccion" }]);
     };
 
     await assert.rejects(
@@ -211,7 +211,7 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
 
         if (url.includes("/api/v2/roles?")) {
             return jsonResponse(200, [
-                { id: "rol_admin", name: "Administrador Producción" },
+                { id: "rol_admin", name: "Administrador Produccion" },
                 { id: "rol_soporte", name: "Soporte" },
                 { id: "rol_ventas", name: "Operario Ventas" },
             ]);

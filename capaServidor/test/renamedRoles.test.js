@@ -6,11 +6,11 @@ import requireAdministrativeRole from "../src/middlewares/requireAdministrativeR
 import OrderRepository from "../src/modules/orders/repo/orders.repo.js";
 
 for (const [middleware, allowed] of [
-    [requireAdministratorRole, ["Administrador Producción"]],
+    [requireAdministratorRole, ["Administrador Produccion"]],
     [requireSalesRole, ["Operario Ventas"]],
-    [requireAdministrativeRole, ["Administrador Producción", "Soporte"]],
+    [requireAdministrativeRole, ["Administrador Produccion", "Soporte"]],
 ]) {
-    for (const role of ["Administrador Producción", "Operario Producción", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte", "Administrador", "Producción", "Ventas", "Cobranzas"]) {
+    for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte", "Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas"]) {
         test(`${middleware.name}: acceso de ${role}`, () => {
             let accepted = false;
             let status;
@@ -35,7 +35,7 @@ test("la reevaluación notifica a administradores de producción activos", async
     repo.transitionGeneralStage = async () => ({ id: 1 });
     await repo.reevaluateFromSalesNote({ orderId: 1, salesNote: { numeroNota: 123, items: [] }, userId: 3 });
     assert.deepEqual(recipientsQuery.where, {
-        rol_usuario: "Administrador Producción", NOT: { estado_usuario: "Desvinculado" },
+        rol_usuario: "Administrador Produccion", NOT: { estado_usuario: "Desvinculado" },
     });
     assert.deepEqual(delivery.data, [{ id_usuario: 7, id_mensaje: 9, leido_: false, oculto_: false }]);
 });

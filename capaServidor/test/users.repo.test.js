@@ -12,7 +12,7 @@ const DATABASE_USER = {
     rut_usuario: "12.345.678-9",
     nombre_usuario: "Dana",
     apellido_usuario: "Gadansky",
-    rol_usuario: "Administrador",
+    rol_usuario: "Administrador Producción",
     estado_usuario: "Activo",
 };
 
@@ -31,15 +31,15 @@ test("updateRoleByAuth0Id actualiza solo el rol del usuario interno", async () =
 
     const user = await repository.updateRoleByAuth0Id(
         "auth0|user-id",
-        "Administrador",
+        "Administrador Producción",
     );
 
     assert.deepEqual(receivedUpdate, {
         where: { id_auth0: "auth0|user-id" },
-        data: { rol_usuario: "Administrador" },
+        data: { rol_usuario: "Administrador Producción" },
     });
     assert.equal(user.idAuth0, "auth0|user-id");
-    assert.equal(user.rolUsuario, "Administrador");
+    assert.equal(user.rolUsuario, "Administrador Producción");
 });
 
 test("updateRoleByAuth0Id normaliza usuario inexistente", async () => {
@@ -56,7 +56,7 @@ test("updateRoleByAuth0Id normaliza usuario inexistente", async () => {
     });
 
     await assert.rejects(
-        repository.updateRoleByAuth0Id("auth0|missing-user", "Administrador"),
+        repository.updateRoleByAuth0Id("auth0|missing-user", "Administrador Producción"),
         (error) =>
             error instanceof UserRepositoryError &&
             error.code === "USER_NOT_FOUND",

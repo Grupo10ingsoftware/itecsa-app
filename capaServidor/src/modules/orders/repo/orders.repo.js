@@ -1,3 +1,4 @@
+import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
 
 const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
@@ -570,7 +571,7 @@ class OrderRepository {
     });
 
     const administrators = await this.client.usuario.findMany({
-      where: { rol_usuario: "Administrador", NOT: { estado_usuario: "Desvinculado" } },
+      where: { rol_usuario: ROLES.ADMINISTRADOR, NOT: { estado_usuario: "Desvinculado" } },
       select: { id_usuario: true },
     });
     if (administrators.length > 0) {

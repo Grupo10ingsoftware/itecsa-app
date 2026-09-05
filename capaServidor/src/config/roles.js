@@ -1,10 +1,10 @@
 export const ROLES = Object.freeze({
-    ADMINISTRADOR: "Administrador",
+    ADMINISTRADOR: "Administrador Producción",
     SOPORTE: "Soporte",
     GERENCIA: "Gerencia",
-    PRODUCCION: "Producción",
-    VENTAS: "Ventas",
-    COBRANZAS: "Cobranzas",
+    PRODUCCION: "Operario Producción",
+    VENTAS: "Operario Ventas",
+    COBRANZAS: "Operario Cobranzas",
 });
 
 export const OFFICIAL_ROLES = new Set(Object.values(ROLES));

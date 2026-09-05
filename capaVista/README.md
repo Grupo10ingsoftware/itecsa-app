@@ -57,7 +57,7 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 - API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
-- Roles permitidos: `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador Producción`, `Soporte`, `Gerencia`, `Operario Producción`, `Operario Ventas` y `Operario Cobranzas`.
 
 El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La fuente de roles es Auth0 RBAC y la validacion de endpoints pertenece al backend.
 

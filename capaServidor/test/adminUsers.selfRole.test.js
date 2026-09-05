@@ -10,7 +10,7 @@ const CURRENT_ADMIN_USER = {
     rutUsuario: "12.345.678-9",
     nombreUsuario: "Ana",
     apellidoUsuario: "Perez",
-    rolUsuario: "Administrador",
+    rolUsuario: "Administrador Producción",
     estadoUsuario: "Activo",
 };
 
@@ -71,7 +71,7 @@ test("rechaza que un administrador edite su propio rol", async () => {
                 nombreUsuario: "Ana",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.perez@itecsa.cl",
-                rolUsuario: "Ventas",
+                rolUsuario: "Operario Ventas",
             },
         },
         res,
@@ -104,7 +104,7 @@ test("rechaza que un usuario de Soporte edite su propio rol", async () => {
                 nombreUsuario: "Ana",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.perez@itecsa.cl",
-                rolUsuario: "Ventas",
+                rolUsuario: "Operario Ventas",
             },
         },
         res,
@@ -139,7 +139,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador",
+                rolUsuario: "Administrador Producción",
             },
         },
         res,
@@ -149,7 +149,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
     assert.deepEqual(externalPayload, {
         userId: CURRENT_ADMIN_ID,
         correoUsuario: "ana.maria@itecsa.cl",
-        rolUsuario: "Administrador",
+        rolUsuario: "Administrador Producción",
     });
     assert.deepEqual(internalPayload, {
         userId: CURRENT_ADMIN_ID,
@@ -157,7 +157,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
             nombreUsuario: "Ana Maria",
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
-            rolUsuario: "Administrador",
+            rolUsuario: "Administrador Producción",
         },
     });
 });

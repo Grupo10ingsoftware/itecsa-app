@@ -25,7 +25,7 @@ flowchart LR
 - M2M backend: `ITECSA Backend Management`, usada solo por Express para Auth0 Management API con token validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
-- Roles permitidos: `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador Producción`, `Soporte`, `Gerencia`, `Operario Producción`, `Operario Ventas` y `Operario Cobranzas`.
 
 No se documentan secretos reales. Los `client_id` son identificadores publicos; el secret M2M queda fuera del repositorio y no se expone al frontend.
 
@@ -82,7 +82,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
+Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador Producción` o `Soporte`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
 
 El backend usa `ITECSA Backend Management` para:
 

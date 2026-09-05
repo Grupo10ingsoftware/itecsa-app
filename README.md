@@ -102,7 +102,7 @@ Recursos Auth0 esperados/configurados para esta rama:
 - M2M backend: `ITECSA Backend Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
-- Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
+- Roles permitidos: `Administrador Producción`, `Soporte`, `Gerencia`, `Operario Producción`, `Operario Ventas` y `Operario Cobranzas`.
 
 La autorizacion de roles se basa en Auth0 RBAC. Si una cuenta heredada contiene `app_metadata.rolUsuario`, ese dato es auxiliar y no reemplaza los roles RBAC ni debe usarse como fuente de autorizacion.
 
@@ -116,3 +116,19 @@ El tenant usa Classic Universal Login con template personalizado. En desarrollo,
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.
+
+### Despliegue del renombre de roles
+
+Los nombres oficiales son `Administrador Producción`, `Operario Producción`,
+`Operario Ventas`, `Operario Cobranzas`, `Gerencia` y `Soporte`. Soporte conserva
+los accesos administrativos del equipo de desarrollo. No se incorporan todavía
+`Administración Cobranzas` ni `Administrador Ventas`.
+
+Antes de desplegar, coordinar el renombre de los cuatro roles existentes en Auth0,
+conservando sus permisos y asignaciones. Este cambio de código no modifica Auth0.
+Aplicar durante el despliegue la migración
+`capaServidor/prisma/migrations/20260905120000_rename_existing_roles/migration.sql`
+para actualizar los nombres almacenados en `Usuario.rol_usuario`.
+Después, renovar los tokens de sesión: los nombres anteriores se rechazan sin alias
+de compatibilidad. `rolUsuario` devuelve el nuevo nombre e `isAdministrador` sigue
+identificando exclusivamente a `Administrador Producción`.

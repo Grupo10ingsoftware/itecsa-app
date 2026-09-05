@@ -7,8 +7,8 @@ import UserCreateModal from '../components/UserCreateModal'
 import UserEditModal from '../components/UserEditModal'
 import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
-import UserSummaryCards from '../components/UserSummaryCards'
 import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
+import UserSummaryCards from '../components/UserSummaryCards'
 import styles from './UserManagementPage.module.css'
 
 const EMPTY_SUMMARY = Object.freeze({
@@ -299,7 +299,6 @@ export default function UserManagementPage() {
             isLoading={isLoading}
             onEditUser={setEditingUser}
             onPageChange={setPage}
-            onUnlinkUser={setUnlinkingUser}
             totalPages={totalPages}
             users={users}
           />
@@ -316,6 +315,10 @@ export default function UserManagementPage() {
         isOpen={Boolean(editingUser)}
         onClose={() => setEditingUser(null)}
         onSave={handleSaveUser}
+        onUnlink={(user) => {
+          setEditingUser(null)
+          setUnlinkingUser(user)
+        }}
         isCurrentUser={Boolean(editingUser?.isCurrentUser)}
         user={editingUser}
       />

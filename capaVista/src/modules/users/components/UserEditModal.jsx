@@ -14,7 +14,7 @@ function createFormState(user) {
   }
 }
 
-export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, user }) {
+export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, onUnlink, user }) {
   const [values, setValues] = useState(() => (user ? createFormState(user) : null))
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
@@ -229,6 +229,14 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
         </div>
 
         <footer className={styles.modalFooter}>
+          <UserButton
+            disabled={isSubmitting || isCurrentUser || user.estadoUsuario === 'Desvinculado'}
+            onClick={() => onUnlink(user)}
+            title={isCurrentUser ? 'No puedes desvincular tu propia cuenta.' : undefined}
+            variant="danger"
+          >
+            Desvincular
+          </UserButton>
           <UserButton disabled={isSubmitting} onClick={onClose} variant="secondary">
             Cancelar
           </UserButton>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
@@ -199,7 +199,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
                 <option value="">Selecciona un rol</option>
                 {OFFICIAL_ROLES.map((role) => (
                   <option key={role} value={role}>
-                    {role}
+                    {getRoleLabel(role)}
                   </option>
                 ))}
               </select>

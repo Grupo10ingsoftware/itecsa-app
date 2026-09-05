@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
+import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import KanbanCard from './KanbanCard'
@@ -12,6 +13,7 @@ const STAGE_SKIP_MESSAGE = 'No puedes saltar etapas del pedido.'
 const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 const KANBAN_LISTO_PRODUCCION_STEP = 1
+const KANBAN_REVISION_STEP = 6
 const LANYARD_DAILY_CAPACITY = 1200
 
 const baseColumns = [
@@ -43,6 +45,7 @@ const baseColumns = [
     accent: '#248f55',
     icon: 'bi-check2-circle',
   },
+  { id: 'en-revision', title: 'En revision', generalStepId: KANBAN_REVISION_STEP, accent: '#dc2626', icon: 'bi-search' },
 ]
 
 function getColumnTitleByStepId(stepId) {
@@ -121,9 +124,9 @@ function getOrderQuantity(order) {
   return getQuantity(order.quantity ?? order.cantidad)
 }
 
-function calculateOperationalLoad(orders) {
+function calculateOperationalLoad(orders, capacity = LANYARD_DAILY_CAPACITY) {
   const lanyardsInProduction = orders
-    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP)
+    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP && order.isProducing)
     .reduce((total, order) => {
       if (Array.isArray(order.items) && order.items.length > 0) {
         return total + order.items
@@ -133,10 +136,10 @@ function calculateOperationalLoad(orders) {
 
       return total + (isLanyardOrder(order) ? getOrderQuantity(order) : 0)
     }, 0)
-  const percentage = Math.round((lanyardsInProduction / LANYARD_DAILY_CAPACITY) * 100)
+  const percentage = capacity > 0 ? Math.round((lanyardsInProduction / capacity) * 100) : 0
 
   return {
-    capacity: LANYARD_DAILY_CAPACITY,
+    capacity,
     lanyardsInProduction,
     percentage,
   }
@@ -235,6 +238,8 @@ function normalizeOrder(order) {
       order.prioridad_contrato ??
       hasOrderLabel(order, ['Prioridad por contrato', 'Cliente con contrato']),
     ),
+    isProducing: Boolean(order.isProducing ?? hasOrderLabel(order, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE'])),
+    etiquetas: order.etiquetas ?? [],
     quantity: order.quantity ?? order.cantidad ?? null,
     items,
     subProcesses: Array.isArray(order.subProcesses)
@@ -260,8 +265,9 @@ function normalizeOrder(order) {
 function getProductionPriority(order) {
   if (order.hasContractPriority) return 0
   if (order.isUrgent) return 1
+  if (order.isProducing) return 2
 
-  return 2
+  return 3
 }
 
 function compareOrderIds(leftId, rightId) {
@@ -526,7 +532,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
   )
 }
 
-function KanbanColumn({ filters, onOperationalLoadChange }) {
+function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationalLoadChange }) {
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
@@ -535,7 +541,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
   const [moveError, setMoveError] = useState(null)
   const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
-  const { hasPermission } = useAuth()
+  const { hasPermission, hasRole } = useAuth()
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -552,6 +558,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
             ? ordersResult.value
                 .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
                 .map(normalizeOrder)
+                .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
             : []
           setOrders(normalizedOrders)
         } else {
@@ -562,6 +569,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
         if (statusesResult.status === 'fulfilled' && Array.isArray(statusesResult.value)) {
           const normalizedStatuses = statusesResult.value
             .map(normalizeStatus)
+            .filter((status) => !['terminado', 'cancelado'].includes(normalizeText(status.title)))
             .sort((a, b) => a.order - b.order)
 
           setColumns(normalizedStatuses.length > 0 ? normalizedStatuses : baseColumns)
@@ -584,8 +592,8 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
   }, [kanbanApi])
 
   useEffect(() => {
-    onOperationalLoadChange?.(calculateOperationalLoad(orders))
-  }, [onOperationalLoadChange, orders])
+    onOperationalLoadChange?.(calculateOperationalLoad(orders, capacity))
+  }, [capacity, onOperationalLoadChange, orders])
 
   async function applyOrderMove(order, targetColumn, audit = {}) {
     try {
@@ -658,22 +666,39 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     setSelectedOrder(updatedOrder)
   }
 
-  function handleToggleIndicator(orderId, indicator) {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => {
-        if (order.id !== orderId) return order
-
-        if (indicator === 'urgent') {
-          return { ...order, isUrgent: !order.isUrgent }
-        }
-
-        if (indicator === 'contractPriority') {
-          return { ...order, hasContractPriority: !order.hasContractPriority }
-        }
-
-        return order
-      }),
-    )
+  async function handleToggleIndicator(orderId, indicator) {
+    const order = orders.find((item) => item.id === orderId)
+    if (!order) return
+    const config = {
+      urgent: ['Urgencia', !order.isUrgent],
+      contractPriority: ['Prioridad por contrato', !order.hasContractPriority],
+      producing: ['PRODUCIÉNDOSE', !order.isProducing],
+    }[indicator]
+    if (!config) return
+    const optimisticPatch = {
+      urgent: { isUrgent: config[1] },
+      contractPriority: { hasContractPriority: config[1] },
+      producing: { isProducing: config[1] },
+    }[indicator]
+    setOrders((current) => current.map((item) => item.id === orderId ? { ...item, ...optimisticPatch } : item))
+    setSelectedOrder((current) => current?.id === orderId ? { ...current, ...optimisticPatch } : current)
+    try {
+      const result = await kanbanApi.setLabel(orderId, config[0], config[1])
+      const updatedLabels = result.etiquetas ?? []
+      const patchOrder = (current) => ({
+        ...current,
+        etiquetas: updatedLabels,
+        isUrgent: hasOrderLabel({ etiquetas: updatedLabels }, ['Urgencia']),
+        hasContractPriority: hasOrderLabel({ etiquetas: updatedLabels }, ['Prioridad por contrato']),
+        isProducing: hasOrderLabel({ etiquetas: updatedLabels }, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
+      })
+      setOrders((current) => current.map((item) => item.id === orderId ? patchOrder(item) : item))
+      setSelectedOrder((current) => current?.id === orderId ? patchOrder(current) : current)
+    } catch (error) {
+      setOrders((current) => current.map((item) => item.id === orderId ? order : item))
+      setSelectedOrder((current) => current?.id === orderId ? order : current)
+      setMoveError(error?.payload?.message ?? 'No fue posible actualizar la etiqueta.')
+    }
   }
 
   async function confirmProductionMove(audit) {
@@ -697,6 +722,53 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
     } catch (error) {
       console.error('Error completando subproceso:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible completar el subproceso.')
+      return false
+    }
+  }
+
+  async function handleSendToReview(order, comment) {
+    try {
+      const updatedOrder = await kanbanApi.sendToReview(order.id, comment)
+      handleUpdateOrder(normalizeOrder(updatedOrder))
+      return true
+    } catch (error) {
+      console.error('Error enviando pedido a revisión:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible enviar el pedido a revisión.')
+      return false
+    }
+  }
+
+  async function handleCancelProduction(order, payload) {
+    try {
+      await kanbanApi.cancelProduction(order.id, payload)
+      setOrders((currentOrders) => currentOrders.filter((item) => item.id !== order.id))
+      setSelectedOrder(null)
+      return true
+    } catch (error) {
+      console.error('Error cancelando la produccion:', error)
+      setMoveError(error?.payload?.message ?? 'No fue posible cancelar la produccion.')
+      return false
+    }
+  }
+
+  async function handleRollbackSubprocess(order, item, process, payload) {
+    try {
+      const updated = await kanbanApi.rollbackSubprocess(order.id, item.id, process.id, payload)
+      handleUpdateOrder(normalizeOrder(updated))
+      return true
+    } catch (error) {
+      setMoveError(error?.payload?.message ?? 'No fue posible retroceder el subproceso.')
+      return false
+    }
+  }
+
+  async function handleReevaluate(order) {
+    try {
+      const updated = normalizeOrder(await kanbanApi.reevaluate(order.id))
+      handleUpdateOrder(updated)
+      return true
+    } catch (error) {
+      setMoveError(error?.payload?.message ?? 'No fue posible reevaluar el pedido.')
       return false
     }
   }
@@ -731,6 +803,7 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
                         isMoveBlocked={!isPaymentConfirmed(order)}
                         isCorrectionRequested={order.correctionRequested}
                         isPaymentDeconfirmationRequested={order.paymentDeconfirmationRequested}
+                        isProducing={order.isProducing}
                         canManageIndicators={hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
@@ -748,6 +821,12 @@ function KanbanColumn({ filters, onOperationalLoadChange }) {
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
         onCompleteSubprocess={handleCompleteSubprocess}
+        canCancelProduction={hasRole(ROLES.ADMINISTRADOR)}
+        canReevaluate={hasRole(ROLES.VENTAS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
+        onCancelProduction={handleCancelProduction}
+        onRollbackSubprocess={handleRollbackSubprocess}
+        onReevaluate={handleReevaluate}
+        onSendToReview={handleSendToReview}
         onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
       />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
 import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
@@ -318,7 +318,7 @@ export default function UserCreateForm({ onCreated } = {}) {
           <option value="">Selecciona un rol</option>
           {OFFICIAL_ROLES.map((role) => (
             <option key={role} value={role}>
-              {role}
+              {getRoleLabel(role)}
             </option>
           ))}
         </select>
@@ -378,7 +378,7 @@ export default function UserCreateForm({ onCreated } = {}) {
               </div>
               <div className="col-md-6">
                 <dt className="text-secondary">Rol</dt>
-                <dd>{createdUser.rolUsuario}</dd>
+                <dd>{getRoleLabel(createdUser.rolUsuario)}</dd>
               </div>
               <div className="col-md-6">
                 <dt className="text-secondary">Correo de contrasena</dt>

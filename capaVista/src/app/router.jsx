@@ -16,8 +16,8 @@ const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/Pay
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
 const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordResetPage'))
-const ProductionHistoryPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryPage'))
-const ProductionHistoryDetailPage = lazy(() => import('../modules/productionHistory/pages/ProductionHistoryDetailPage'))
+const OrderHistoryPage = lazy(() => import('../modules/orderHistory/pages/OrderHistoryPage'))
+const OrderHistoryDetailPage = lazy(() => import('../modules/orderHistory/pages/OrderHistoryDetailPage'))
 const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
 const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
 const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
@@ -76,22 +76,8 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
-            <Route
-              path="historial-produccion"
-              element={
-                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
-                  <ProductionHistoryPage />
-                </RoleGuard>
-              }
-            />
-            <Route
-              path="historial-produccion/:pedidoId"
-              element={
-                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
-                  <ProductionHistoryDetailPage />
-                </RoleGuard>
-              }
-            />
+            <Route path="historial-pedidos" element={<OrderHistoryPage />} />
+            <Route path="historial-pedidos/:orderId" element={<OrderHistoryDetailPage />} />
             <Route
               path="calendario-produccion"
               element={

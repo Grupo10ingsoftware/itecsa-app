@@ -108,7 +108,7 @@ class OrderController {
         try {
             const { orderId } = req.params;
             if ( !orderId ) return res.status(400).json({ msg: 'Missing ID' });
-            const { generalStepId } = req.body ?? {};
+            const { generalStepId, comment } = req.body ?? {};
             const result = await
             this.service.updGeneralStep(
                 orderId,
@@ -116,6 +116,7 @@ class OrderController {
                 {
                     permissions: req.auth?.payload?.permissions,
                     actor: req.pinActor,
+                    comment,
                 },
             );
 
@@ -132,6 +133,59 @@ class OrderController {
             res.status( statusCode ).json({
                 message: error.message || 'Error al actualizar el pedido',
             })
+        }
+    }
+
+    sendToReview = async (req = request, res = response) => {
+        try {
+            const result = await this.service.sendToReview(
+                req.params.orderId,
+                req.body?.comment,
+                { auth0UserId: req.auth?.payload?.sub },
+            );
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al enviar el pedido a revision',
+            });
+        }
+    }
+
+    cancelProduction = async (req = request, res = response) => {
+        try {
+            const result = await this.service.cancelProduction(
+                req.params.orderId,
+                req.body?.comment,
+                { actor: req.pinActor },
+            );
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al cancelar la produccion',
+            });
+        }
+    }
+
+    reevaluate = async (req = request, res = response) => {
+        try {
+            const result = await this.service.reevaluateOrder(req.params.orderId, {
+                auth0UserId: req.auth?.payload?.sub,
+            });
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al reevaluar el pedido',
+            });
+        }
+    }
+
+    setLabel = async (req = request, res = response) => {
+        try {
+            return res.status(200).json(await this.service.setOrderLabel(req.params.orderId, req.body, {
+                auth0UserId: req.auth?.payload?.sub,
+            }));
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({ message: error.message || 'Error al actualizar etiqueta' });
         }
     }
 
@@ -175,6 +229,21 @@ class OrderController {
 
             res.status(statusCode).json({
                 message: error.message || 'Error al completar subproceso',
+            });
+        }
+    }
+
+    rollbackSubprocess = async (req = request, res = response) => {
+        try {
+            const { orderId, detailId, subprocessId } = req.params;
+            const result = await this.service.rollbackSubprocess(orderId, detailId, subprocessId, {
+                actor: req.pinActor,
+                comment: req.body?.comment,
+            });
+            return res.status(200).json(result);
+        } catch (error) {
+            return res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al retroceder el subproceso',
             });
         }
     }

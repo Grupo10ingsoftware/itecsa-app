@@ -221,7 +221,109 @@ class OrderService {
       throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
     }
 
-    return this.repo.updateGeneralStep(orderId, nextStep);
+    if (!options.actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return this.runInTransaction(({ repo }) => repo.updateGeneralStep(
+      orderId,
+      nextStep,
+      {
+        userId: options.actor.idUsuario,
+        comment: options.comment,
+      },
+    ));
+  }
+
+  async sendToReview(orderId, comment, { auth0UserId } = {}) {
+    const normalizedComment = typeof comment === "string" ? comment.trim() : "";
+    if (!normalizedComment) {
+      const error = new Error("El comentario de revision es obligatorio.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (normalizedComment.length > 2000) {
+      const error = new Error("El comentario de revision no puede superar 2000 caracteres.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const currentOrder = await this.repo.get(orderId);
+    if (!currentOrder) {
+      const error = new Error("Pedido no encontrado.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (Number(currentOrder.id_etapa_general) !== 1) {
+      const error = new Error("Solo se puede enviar a revision un pedido Listo para Produccion.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const userId = await this.resolveInternalUserId({ auth0UserId });
+    return this.runInTransaction(async ({ repo }) => {
+      const updatedOrder = await repo.sendToReview(orderId, {
+        userId,
+        comment: normalizedComment,
+      });
+      if (!updatedOrder) {
+        const error = new Error("Pedido o estado En revisión no encontrado.");
+        error.statusCode = 404;
+        throw error;
+      }
+      return updatedOrder;
+    });
+  }
+
+  async cancelProduction(orderId, comment, { actor } = {}) {
+    const normalizedComment = typeof comment === "string" ? comment.trim() : "";
+    if (!normalizedComment) {
+      const error = new Error("La observacion de cancelacion es obligatoria.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (normalizedComment.length > 2000) {
+      const error = new Error("La observacion no puede superar 2000 caracteres.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const currentOrder = await this.repo.get(orderId);
+    if (!currentOrder) {
+      const error = new Error("Pedido no encontrado.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (currentOrder.nombre_etapa_general === "Cancelado") {
+      const error = new Error("El pedido ya se encuentra cancelado.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    return this.runInTransaction(async ({ repo }) => {
+      const updatedOrder = await repo.cancelProduction(orderId, {
+        userId: actor.idUsuario,
+        comment: normalizedComment,
+      });
+      if (!updatedOrder) {
+        const error = new Error("Pedido o estado Cancelado no encontrado.");
+        error.statusCode = 404;
+        throw error;
+      }
+      return updatedOrder;
+    });
   }
 
   async updateDeliveryDate(orderId, dueDate) {
@@ -288,12 +390,76 @@ class OrderService {
     });
   }
 
+  async rollbackSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
+    const observation = typeof comment === "string" ? comment.trim() : "";
+    if (!actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+    if (!observation) {
+      const error = new Error("La observacion del retroceso es obligatoria.");
+      error.statusCode = 400;
+      throw error;
+    }
+    if (observation.length > 2000) {
+      const error = new Error("La observacion no puede superar 2000 caracteres.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return this.runInTransaction(async ({ repo }) => {
+      const result = await repo.rollbackSubprocess({
+        orderId, detailId, subprocessId, userId: actor.idUsuario, comment: observation,
+      });
+      if (!result) {
+        const error = new Error("Pedido o subproceso no encontrado.");
+        error.statusCode = 404;
+        throw error;
+      }
+      return result;
+    });
+  }
+
   async getAllOrders() {
     return this.repo.getAllOrders();
   }
 
   async getSalesNoteByNumber(numeroNota) {
     return this.salesNoteSourceService.getByNumber(numeroNota);
+  }
+
+  async reevaluateOrder(orderId, { auth0UserId } = {}) {
+    const order = await this.repo.get(orderId);
+    if (!order) {
+      const error = new Error("Pedido no encontrado."); error.statusCode = 404; throw error;
+    }
+    if (Number(order.id_etapa_general) !== 6) {
+      const error = new Error("Solo se pueden reevaluar pedidos En revision."); error.statusCode = 409; throw error;
+    }
+    if (!order.numero_nota_venta) {
+      const error = new Error("El pedido no tiene numero de Nota de Venta."); error.statusCode = 409; throw error;
+    }
+    const [salesNote, userId] = await Promise.all([
+      this.salesNoteSourceService.getByNumber(order.numero_nota_venta),
+      this.resolveInternalUserId({ auth0UserId }),
+    ]);
+    return this.runInTransaction(({ repo }) => repo.reevaluateFromSalesNote({
+      orderId, salesNote, userId,
+    }));
+  }
+
+  async setOrderLabel(orderId, { label, active }, { auth0UserId } = {}) {
+    const allowed = new Set(["Urgencia", "Prioridad por contrato", "PRODUCIÉNDOSE"]);
+    if (!allowed.has(label) || typeof active !== "boolean") {
+      const error = new Error("Etiqueta o estado no valido."); error.statusCode = 400; throw error;
+    }
+    const userId = await this.resolveInternalUserId({ auth0UserId });
+    return this.runInTransaction(async ({ repo }) => {
+      const result = await repo.setOrderLabel({ orderId, label, active, userId });
+      if (!result) { const error = new Error("Pedido no encontrado."); error.statusCode = 404; throw error; }
+      return result;
+    });
   }
 
   async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {

@@ -57,7 +57,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
         }
 
         if (url.includes("/api/v2/roles?")) {
-            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Operario Ventas" }]);
         }
 
         if (url.endsWith("/api/v2/users")) {
@@ -69,7 +69,7 @@ test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", a
 
     const result = await createAuth0User({
         email: "nuevo@example.cl",
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
     });
 
     assert.deepEqual(result, {
@@ -126,7 +126,7 @@ test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
         }
 
         if (url.includes("/api/v2/roles?")) {
-            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Operario Ventas" }]);
         }
 
         return jsonResponse(409, { message: "The user already exists." });
@@ -135,7 +135,7 @@ test("normaliza el correo duplicado para un futuro HTTP 409", async () => {
     await assert.rejects(
         createAuth0User({
             email: "existente@example.cl",
-            rolUsuario: "Ventas",
+            rolUsuario: "Operario Ventas",
         }),
         (error) =>
             error instanceof Auth0ServiceError &&
@@ -152,13 +152,13 @@ test("no crea usuario si el rol solicitado no existe en Auth0", async () => {
             return jsonResponse(200, { access_token: "management-access-token" });
         }
 
-        return jsonResponse(200, [{ id: "rol_produccion", name: "Producción" }]);
+        return jsonResponse(200, [{ id: "rol_produccion", name: "Operario Produccion" }]);
     };
 
     await assert.rejects(
         createAuth0User({
             email: "nuevo@example.cl",
-            rolUsuario: "Ventas",
+            rolUsuario: "Operario Ventas",
         }),
         (error) =>
             error instanceof Auth0ServiceError &&
@@ -174,7 +174,7 @@ test("reporta asignacion RBAC incompleta si falla despues de crear usuario", asy
         }
 
         if (url.includes("/api/v2/roles?")) {
-            return jsonResponse(200, [{ id: "rol_ventas", name: "Ventas" }]);
+            return jsonResponse(200, [{ id: "rol_ventas", name: "Operario Ventas" }]);
         }
 
         if (url.endsWith("/api/v2/users")) {
@@ -186,7 +186,7 @@ test("reporta asignacion RBAC incompleta si falla despues de crear usuario", asy
 
     const result = await createAuth0User({
         email: "nuevo@example.cl",
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
     });
 
     assert.deepEqual(result, {
@@ -211,9 +211,9 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
 
         if (url.includes("/api/v2/roles?")) {
             return jsonResponse(200, [
-                { id: "rol_admin", name: "Administrador" },
+                { id: "rol_admin", name: "Administrador Produccion" },
                 { id: "rol_soporte", name: "Soporte" },
-                { id: "rol_ventas", name: "Ventas" },
+                { id: "rol_ventas", name: "Operario Ventas" },
             ]);
         }
 
@@ -227,18 +227,18 @@ test("actualiza correo, estado y rol de usuario Auth0", async () => {
     const result = await updateAuth0User({
         userId: "auth0|user-1",
         correoUsuario: "editado@example.cl",
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
     });
 
     assert.deepEqual(result, {
         idUsuarioAutenticacionExterna: "auth0|user-1",
         correoUsuario: "editado@example.cl",
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
     });
     assert.deepEqual(requests[1].body, {
         email: "editado@example.cl",
         app_metadata: {
-            rolUsuario: "Ventas",
+            rolUsuario: "Operario Ventas",
         },
     });
     assert.equal(requests.some((request) => request.options.method === "DELETE"), true);
@@ -315,7 +315,7 @@ test("rechaza la creacion si falta configuracion Management requerida", async ()
     await assert.rejects(
         createAuth0User({
             email: "nuevo@example.cl",
-            rolUsuario: "Ventas",
+            rolUsuario: "Operario Ventas",
         }),
         (error) =>
             error instanceof Auth0ServiceError &&

@@ -1,3 +1,4 @@
+import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
 
 const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
@@ -367,17 +368,53 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async updateGeneralStep(id, ordenKanban) {
+  async transitionGeneralStage({ id, ordenKanban, statusName, userId, comment, now = new Date() }) {
     const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(ordenKanban) },
+      where: statusName
+        ? { nombre_etapa: statusName }
+        : { orden_kanban: Number(ordenKanban) },
       select: { id_estado_pedido: true },
     });
 
+    if (!status) return null;
+
     try {
-      await this.client.pedidos.update({
-        where: { id_pedido: Number(id) },
+      const transition = await this.client.pedidos.updateMany({
+        where: {
+          id_pedido: Number(id),
+          NOT: { id_estado_pedido: status.id_estado_pedido },
+        },
         data: {
           id_estado_pedido: status?.id_estado_pedido ?? null,
+        },
+      });
+
+      // Evita duplicar registros si la misma transición llega más de una vez.
+      if (transition.count !== 1) return null;
+
+      await this.client.registro_Etapas.updateMany({
+        where: {
+          fecha_hora_salida: null,
+          Registros: { id_pedido: Number(id) },
+        },
+        data: { fecha_hora_salida: now },
+      });
+
+      const registry = await this.client.registros.create({
+        data: {
+          FECHA_HORA: now,
+          id_pedido: Number(id),
+          id_usuario: Number(userId),
+          observacion: comment?.trim() || null,
+        },
+      });
+
+      await this.client.registro_Etapas.create({
+        data: {
+          id_registro: registry.ID_REGISTRO,
+          fecha_hora_entrada: now,
+          fecha_hora_salida: null,
+          id_estado_pedido: status.id_estado_pedido,
         },
       });
     } catch (error) {
@@ -386,6 +423,169 @@ class OrderRepository {
     }
 
     return this.get(id);
+  }
+
+  async setOrderLabel({ orderId, label, active, userId }) {
+    let tag = await this.client.etiqueta.findFirst({ where: { nombre_etiqueta: label } });
+    if (!tag) {
+      const last = await this.client.etiqueta.findFirst({ orderBy: { id_etiqueta: "desc" }, select: { id_etiqueta: true } });
+      tag = await this.client.etiqueta.create({ data: {
+        id_etiqueta: (last?.id_etiqueta ?? 0) + 1, nombre_etiqueta: label,
+        descripcion: "Etiqueta de organización del Kanban", esta_activa: 1,
+      } });
+    }
+    if (active) {
+      await this.client.pedido_Etiqueta.upsert({
+        where: { id_pedido_id_etiqueta: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta } },
+        update: { id_usuario_asigna: Number(userId), fecha_asignacion: new Date() },
+        create: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta, id_usuario_asigna: Number(userId) },
+      });
+    } else {
+      await this.client.pedido_Etiqueta.deleteMany({ where: { id_pedido: Number(orderId), id_etiqueta: tag.id_etiqueta } });
+    }
+    await this.client.registros.create({ data: {
+      FECHA_HORA: new Date(), id_pedido: Number(orderId), id_usuario: Number(userId),
+      observacion: `${active ? "Asignó" : "Quitó"} etiqueta ${label}.`,
+    } });
+    const assignedLabels = await this.client.pedido_Etiqueta.findMany({
+      where: { id_pedido: Number(orderId) },
+      include: { etiqueta: true },
+    });
+    return {
+      id_pedido: Number(orderId),
+      etiquetas: assignedLabels.map((item) => item.etiqueta).filter(Boolean),
+    };
+  }
+
+  async updateGeneralStep(id, ordenKanban, audit = {}) {
+    return this.transitionGeneralStage({
+      id,
+      ordenKanban,
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
+  }
+
+  async sendToReview(id, audit = {}) {
+    const updatedOrder = await this.transitionGeneralStage({
+      id,
+      statusName: "En revisión",
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
+
+    const responsibleUserId = Number(updatedOrder?.id_usuario);
+    if (!updatedOrder || !Number.isInteger(responsibleUserId) || responsibleUserId <= 0) {
+      return updatedOrder;
+    }
+
+    const message = await this.client.mensaje.create({
+      data: {
+        id_pedido: Number(id),
+        fecha_publicacion: audit.now ?? new Date(),
+        Asunto: "Pedido enviado a revisión",
+        contenido: [
+          `El pedido ${updatedOrder.numero_nota_venta ?? `#${id}`} fue enviado a revisión por Producción.`,
+          audit.comment ? `Observación: ${audit.comment}` : null,
+        ].filter(Boolean).join("\n"),
+      },
+    });
+
+    await this.client.mENSAJE_USUARIO.create({
+      data: {
+        id_usuario: responsibleUserId,
+        id_mensaje: message.id_mensaje,
+        leido_: false,
+        oculto_: false,
+      },
+    });
+
+    return updatedOrder;
+  }
+
+  async cancelProduction(id, audit = {}) {
+    return this.transitionGeneralStage({
+      id,
+      statusName: "Cancelado",
+      userId: audit.userId,
+      comment: audit.comment,
+      now: audit.now,
+    });
+  }
+
+  async reevaluateFromSalesNote({ orderId, salesNote, userId }) {
+    const order = await this.client.pedidos.findUnique({
+      where: { id_pedido: Number(orderId) },
+      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" } } },
+    });
+    if (!order) return null;
+
+    const dueDate = salesNote.fechaEntregaTentativaOrigen
+      ? new Date(`${salesNote.fechaEntregaTentativaOrigen}T00:00:00.000Z`)
+      : null;
+    await this.client.cliente.update({
+      where: { id_cliente: order.id_cliente },
+      data: {
+        rut_cliente: salesNote.cliente?.rut,
+        nombre_cliente: salesNote.cliente?.nombre,
+        razon_social: salesNote.cliente?.nombre,
+      },
+    });
+    await this.client.pedidos.update({
+      where: { id_pedido: Number(orderId) },
+      data: {
+        fecha_estimada_termino: dueDate,
+        usuario_manager_origen: salesNote.origen?.usuarioManager ?? null,
+        observacion_origen: salesNote.observaciones ?? null,
+      },
+    });
+
+    for (const [index, item] of (salesNote.items ?? []).entries()) {
+      const type = await this.client.tipo_Producto.findFirst({
+        where: { nombre_producto: item.tipoProducto },
+      });
+      if (!type) continue;
+      const existing = order.Detalle_pedido[index];
+      if (existing) {
+        await this.client.detalle_pedido.update({
+          where: { id_detalle_pedido: existing.id_detalle_pedido },
+          data: { cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate },
+        });
+      } else {
+        const first = await this.client.producto_Subproceso.findFirst({
+          where: { id_tipo_producto: type.id_tipo_producto }, orderBy: { orden_flujo: "asc" },
+        });
+        await this.client.detalle_pedido.create({ data: {
+          id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
+          cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
+          id_estado_subproceso: first?.id_estado_subproceso ?? null,
+        } });
+      }
+    }
+
+    const updated = await this.transitionGeneralStage({
+      id: orderId, ordenKanban: 1, userId,
+      comment: "Pedido reevaluado desde la Nota de Venta y enviado a Listo para Produccion.",
+    });
+
+    const administrators = await this.client.usuario.findMany({
+      where: { rol_usuario: ROLES.ADMINISTRADOR, NOT: { estado_usuario: "Desvinculado" } },
+      select: { id_usuario: true },
+    });
+    if (administrators.length > 0) {
+      const message = await this.client.mensaje.create({ data: {
+        id_pedido: Number(orderId), fecha_publicacion: new Date(),
+        Asunto: "Revision de pedido resuelta",
+        contenido: `La revision del pedido ${salesNote.numeroNota} fue resuelta por Ventas.`,
+      } });
+      await this.client.mENSAJE_USUARIO.createMany({
+        data: administrators.map(({ id_usuario }) => ({ id_usuario, id_mensaje: message.id_mensaje, leido_: false, oculto_: false })),
+        skipDuplicates: true,
+      });
+    }
+    return updated;
   }
 
   async updateDeliveryDate(id, dueDate) {
@@ -495,8 +695,34 @@ class OrderRepository {
     const now = new Date();
     const nextSubprocess = subprocesses[processIndex + 1] ?? null;
 
-    await this.client.detalle_pedido.update({
+    const latestSubprocessRecord = await this.client.registro_subprocesos.findFirst({
       where: { id_detalle_pedido: Number(detailId) },
+      include: { Registros: true },
+      orderBy: { Registros: { FECHA_HORA: "desc" } },
+    });
+    const productionStageRecord = latestSubprocessRecord
+      ? null
+      : await this.client.registro_Etapas.findFirst({
+          where: {
+            Registros: { id_pedido: Number(orderId) },
+            Estado_Pedido: { nombre_etapa: "En producción" },
+          },
+          orderBy: { fecha_hora_entrada: "desc" },
+        });
+    const startedAt =
+      latestSubprocessRecord?.fecha_hora_salida ??
+      latestSubprocessRecord?.fecha_hora_entrada ??
+      productionStageRecord?.fecha_hora_entrada ??
+      order.fecha_creacion ??
+      now;
+
+    const transition = await this.client.detalle_pedido.updateMany({
+      where: {
+        id_detalle_pedido: Number(detailId),
+        id_pedido: Number(orderId),
+        id_estado_subproceso: Number(subprocessId),
+        fecha_real_termino: null,
+      },
       data: {
         id_estado_subproceso:
           nextSubprocess?.id_estado_subproceso ?? detail.id_estado_subproceso,
@@ -504,26 +730,78 @@ class OrderRepository {
       },
     });
 
+    // La actualización condicional actúa como barrera de idempotencia. Si dos
+    // solicitudes llegan juntas, solo la primera puede avanzar el detalle.
+    if (transition.count !== 1) {
+      const error = new Error("El subproceso ya fue completado.");
+      error.statusCode = 409;
+      throw error;
+    }
+
     const registry = await this.client.registros.create({
       data: {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
+        observacion: comment?.trim() || null,
       },
     });
 
     await this.client.registro_subprocesos.create({
       data: {
         id_registro: registry.ID_REGISTRO,
-        fecha_hora_entrada: now,
+        fecha_hora_entrada: startedAt,
         fecha_hora_salida: now,
         id_detalle_pedido: Number(detailId),
         id_estado_subproceso: Number(subprocessId),
       },
     });
+    return this.get(orderId);
+  }
 
-    void comment;
+  async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    const detail = await this.client.detalle_pedido.findFirst({
+      where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
+      include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
+    });
+    if (!detail) return null;
 
+    const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
+    const currentIndex = subprocesses.findIndex((item) =>
+      Number(item.id_estado_subproceso) === Number(detail.id_estado_subproceso));
+    const targetIndex = subprocesses.findIndex((item) =>
+      Number(item.id_estado_subproceso) === Number(subprocessId));
+    if (currentIndex < 1 || targetIndex !== currentIndex - 1) {
+      const error = new Error("Solo se puede retroceder al subproceso inmediatamente anterior.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const changed = await this.client.detalle_pedido.updateMany({
+      where: {
+        id_detalle_pedido: Number(detailId),
+        id_pedido: Number(orderId),
+        id_estado_subproceso: detail.id_estado_subproceso,
+      },
+      data: { id_estado_subproceso: Number(subprocessId), fecha_real_termino: null },
+    });
+    if (changed.count !== 1) {
+      const error = new Error("El subproceso ya fue modificado.");
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const now = new Date();
+    const registry = await this.client.registros.create({ data: {
+      FECHA_HORA: now, id_pedido: Number(orderId), id_usuario: Number(userId), observacion: comment,
+    } });
+    await this.client.registro_subprocesos.create({ data: {
+      id_registro: registry.ID_REGISTRO,
+      fecha_hora_entrada: now,
+      fecha_hora_salida: null,
+      id_detalle_pedido: Number(detailId),
+      id_estado_subproceso: Number(subprocessId),
+    } });
     return this.get(orderId);
   }
 }

@@ -153,13 +153,11 @@ model Registro_Etapas {
   id_registro        Int            @id
   fecha_hora_entrada DateTime?      @db.DateTime(0)
   fecha_hora_salida  DateTime?      @db.DateTime(0)
-  
   id_estado_pedido   Int?
   Estado_Pedido      Estado_Pedido? @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Estado_Pedido_FK")
   Registros          Registros      @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "Registro_Etapas_Registros_FK")
 
   @@index([id_estado_pedido], map: "id_estado_pedido_idx")
-  
 }
 
 model Registro_Pago {
@@ -179,7 +177,8 @@ model Registro_Pago {
 model Tipo_Producto {
   id_tipo_producto     Int                   @id @default(autoincrement())
   nombre_producto      String?               @db.VarChar(255)
-  descripcion_producto String?               @db.Text
+    descripcion_producto String?               @db.Text
+    capacidad_diaria     Int?                  @default(0)
   Detalle_pedido       Detalle_pedido[]
   Producto_Subproceso  Producto_Subproceso[]
 }
@@ -292,6 +291,7 @@ model Registros {
   FECHA_HORA           DateTime              @db.Timestamp(0)
   id_pedido            Int?
   id_usuario           Int?
+  observacion          String?               @db.Text
   Registro_Etapas      Registro_Etapas?
   Registro_Pago        Registro_Pago?
   Pedidos              Pedidos?              @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Registros_Pedidos_FK")

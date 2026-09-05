@@ -34,10 +34,13 @@ const INITIAL_ORDERS = [
 
 let orders;
 let paymentRecords;
+let stageTransitions;
+const PIN_ACTOR = { idUsuario: 10 };
 
 beforeEach(() => {
     orders = INITIAL_ORDERS.map((order) => ({ ...order }));
     paymentRecords = [];
+    stageTransitions = [];
 });
 
 function findOrder(orderId) {
@@ -65,13 +68,29 @@ function createService(overrides = {}) {
 
                 return { ...order };
             },
-            async updateGeneralStep(orderId, stepId) {
+            async updateGeneralStep(orderId, stepId, audit) {
                 const order = findOrder(orderId);
 
                 if (!order) return null;
 
                 order.id_etapa_general = Number(stepId);
+                stageTransitions.push({ orderId, stepId, ...audit });
 
+                return { ...order };
+            },
+            async sendToReview(orderId, audit) {
+                const order = findOrder(orderId);
+                if (!order) return null;
+                order.id_etapa_general = 6;
+                stageTransitions.push({ orderId, review: true, ...audit });
+                return { ...order };
+            },
+            async cancelProduction(orderId, audit) {
+                const order = findOrder(orderId);
+                if (!order) return null;
+                order.id_etapa_general = 5;
+                order.nombre_etapa_general = "Cancelado";
+                stageTransitions.push({ orderId, cancelled: true, ...audit });
                 return { ...order };
             },
         },
@@ -215,7 +234,7 @@ test("bloquea mover a Listo para produccion con pago pendiente", async () => {
 
 test("permite mover a Listo para produccion con pago confirmado", async () => {
     const service = createService();
-    const order = await service.updGeneralStep(6, 1);
+    const order = await service.updGeneralStep(6, 1, { actor: PIN_ACTOR });
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 1);
@@ -225,7 +244,7 @@ test("bloquea mover a En produccion sin permiso admin", async () => {
     const service = createService();
 
     await assert.rejects(
-        () => service.updGeneralStep(6, 2, { permissions: ["view:kanban-module"] }),
+        () => service.updGeneralStep(6, 2, { permissions: ["view:kanban-module"], actor: PIN_ACTOR }),
         {
             statusCode: 403,
             message: KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
@@ -237,10 +256,55 @@ test("permite mover a En produccion con el permiso requerido", async () => {
     const service = createService();
     const order = await service.updGeneralStep(6, 2, {
         permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+        actor: PIN_ACTOR,
     });
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 2);
+    assert.deepEqual(stageTransitions, [{
+        orderId: 6,
+        stepId: 2,
+        userId: 10,
+        comment: undefined,
+    }]);
+});
+
+test("envia pedido a revision con usuario y comentario", async () => {
+    const service = createService();
+    const order = await service.sendToReview(6, "Corregir diseño", {
+        auth0UserId: "auth0|user-10",
+    });
+
+    assert.equal(order.id_etapa_general, 6);
+    assert.deepEqual(stageTransitions, [{
+        orderId: 6,
+        review: true,
+        userId: 10,
+        comment: "Corregir diseño",
+    }]);
+});
+
+test("cancela produccion con actor PIN y deja observacion", async () => {
+    const service = createService();
+    const order = await service.cancelProduction(7, "Cliente cancelo el pedido", {
+        actor: PIN_ACTOR,
+    });
+
+    assert.equal(order.nombre_etapa_general, "Cancelado");
+    assert.deepEqual(stageTransitions, [{
+        orderId: 7,
+        cancelled: true,
+        userId: 10,
+        comment: "Cliente cancelo el pedido",
+    }]);
+});
+
+test("rechaza cancelacion sin observacion", async () => {
+    const service = createService();
+    await assert.rejects(
+        () => service.cancelProduction(7, "", { actor: PIN_ACTOR }),
+        { statusCode: 400 },
+    );
 });
 
 test("bloquea saltar desde Confirmacion de pago directo a En produccion", async () => {
@@ -261,7 +325,7 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
     const service = createService();
 
     await assert.rejects(
-        () => service.updGeneralStep(6, 3),
+        () => service.updGeneralStep(6, 3, { actor: PIN_ACTOR }),
         {
             statusCode: 409,
             message: KANBAN_STAGE_SKIP_MESSAGE,
@@ -271,7 +335,7 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
 
 test("permite mover de En produccion a Listo para entrega", async () => {
     const service = createService();
-    const order = await service.updGeneralStep(7, 3);
+    const order = await service.updGeneralStep(7, 3, { actor: PIN_ACTOR });
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 3);

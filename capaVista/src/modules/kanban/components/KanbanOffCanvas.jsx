@@ -216,17 +216,24 @@ function ProductionDocumentLookup({ onUpdateOrder, order }) {
 }
 
 export default function KanbanOffCanvas({
+  canCancelProduction = false,
+  canReevaluate = false,
   isOpen,
   onApprovePaymentDeconfirmation,
   onClose,
   onCompleteSubprocess,
+  onRollbackSubprocess,
+  onReevaluate,
+  onCancelProduction,
   onUpdateOrder,
+  onSendToReview,
   order,
 }) {
   const [authModal, setAuthModal] = useState(null)
   const [operatorPin, setOperatorPin] = useState('')
   const [operatorComment, setOperatorComment] = useState('')
   const [authError, setAuthError] = useState('')
+  const [isCompletingSubprocess, setIsCompletingSubprocess] = useState(false)
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false)
   const [correctionText, setCorrectionText] = useState('')
   const [correctionError, setCorrectionError] = useState('')
@@ -234,6 +241,12 @@ export default function KanbanOffCanvas({
   const [deconfirmationPin, setDeconfirmationPin] = useState('')
   const [deconfirmationError, setDeconfirmationError] = useState('')
   const [isApprovingDeconfirmation, setIsApprovingDeconfirmation] = useState(false)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [cancelPin, setCancelPin] = useState('')
+  const [cancelComment, setCancelComment] = useState('')
+  const [cancelError, setCancelError] = useState('')
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [isReevaluating, setIsReevaluating] = useState(false)
 
   if (!isOpen || !order) {
     return null
@@ -253,14 +266,22 @@ export default function KanbanOffCanvas({
       return
     }
 
-    setAuthModal({ item, process })
+    setAuthModal({ item, process, action: 'complete' })
     setOperatorPin('')
     setOperatorComment('')
     setAuthError('')
   }
 
   function closeAuthModal() {
+    if (isCompletingSubprocess) return
     setAuthModal(null)
+    setOperatorPin('')
+    setOperatorComment('')
+    setAuthError('')
+  }
+
+  function openRollbackModal(item, process) {
+    setAuthModal({ item, process, action: 'rollback' })
     setOperatorPin('')
     setOperatorComment('')
     setAuthError('')
@@ -268,6 +289,7 @@ export default function KanbanOffCanvas({
 
   async function completeSubProcess(event) {
     event.preventDefault()
+    if (isCompletingSubprocess) return
     const trimmedPin = operatorPin.trim()
 
     if (!/^\d{6}$/.test(trimmedPin)) {
@@ -277,10 +299,17 @@ export default function KanbanOffCanvas({
 
     const trimmedComment = operatorComment.trim()
 
-    const wasCompleted = await onCompleteSubprocess?.(order, authModal.item, authModal.process, {
+    if (authModal.action === 'rollback' && !trimmedComment) {
+      setAuthError('Debe ingresar una observacion para retroceder.')
+      return
+    }
+
+    setIsCompletingSubprocess(true)
+    const action = authModal.action === 'rollback' ? onRollbackSubprocess : onCompleteSubprocess
+    const wasCompleted = await action?.(order, authModal.item, authModal.process, {
       pin: trimmedPin,
       comment: trimmedComment,
-    })
+    }).finally(() => setIsCompletingSubprocess(false))
 
     if (wasCompleted === false) {
       setAuthError('No fue posible completar el subproceso.')
@@ -290,7 +319,7 @@ export default function KanbanOffCanvas({
     closeAuthModal()
   }
 
-  function submitCorrection(event) {
+  async function submitCorrection(event) {
     event.preventDefault()
     const trimmedCorrection = correctionText.trim()
 
@@ -299,15 +328,40 @@ export default function KanbanOffCanvas({
       return
     }
 
-    onUpdateOrder({
-      ...order,
-      correctionRequested: true,
-      correctionComment: trimmedCorrection,
-      correctionRequestedAt: new Date().toISOString(),
-    })
+    const wasSent = await onSendToReview?.(order, trimmedCorrection)
+    if (wasSent === false) {
+      setCorrectionError('No fue posible enviar el pedido a revisión.')
+      return
+    }
     setCorrectionText('')
     setCorrectionError('')
     setIsCorrectionFormOpen(false)
+  }
+
+  async function submitCancellation(event) {
+    event.preventDefault()
+    if (isCancelling) return
+
+    const pin = cancelPin.trim()
+    const comment = cancelComment.trim()
+    if (!/^\d{6}$/.test(pin)) {
+      setCancelError('Ingrese un PIN valido de 6 digitos.')
+      return
+    }
+    if (!comment) {
+      setCancelError('Debe ingresar una observacion para cancelar.')
+      return
+    }
+
+    setIsCancelling(true)
+    try {
+      const wasCancelled = await onCancelProduction?.(order, { pin, comment })
+      if (wasCancelled === false) {
+        setCancelError('No fue posible cancelar la produccion.')
+      }
+    } finally {
+      setIsCancelling(false)
+    }
   }
 
   function closeDeconfirmationAuthModal() {
@@ -361,6 +415,15 @@ export default function KanbanOffCanvas({
         <div className={styles.offcanvasBody}>
           <section className={styles.detailSection}>
             <h3>Resumen</h3>
+            {Array.isArray(order.etiquetas) && order.etiquetas.length > 0 && (
+              <div className={styles.visibleLabels}>
+                {order.etiquetas.map((label) => (
+                  <span key={label.id_etiqueta ?? label.nombre_etiqueta ?? label}>
+                    {label.nombre_etiqueta ?? label}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className={styles.summaryStack}>
               {orderItems.map((item) => {
                 const manufacturingDetails = getManufacturingDetails(item, order)
@@ -535,6 +598,7 @@ export default function KanbanOffCanvas({
                         const isDone = process.status === 'done'
                         const isCurrent = isInProduction && index === currentProcessIndex
                         const isLocked = !isInProduction || (!isDone && !isCurrent)
+                        const canRollback = canCancelProduction && isInProduction && isDone && index === currentProcessIndex - 1
 
                         return (
                           <button
@@ -547,9 +611,9 @@ export default function KanbanOffCanvas({
                             ]
                               .filter(Boolean)
                               .join(' ')}
-                            disabled={isLocked || isDone}
+                            disabled={!canRollback && (isLocked || isDone)}
                             key={process.id}
-                            onClick={() => openAuthModal(item, process, index, currentProcessIndex)}
+                            onClick={() => canRollback ? openRollbackModal(item, process) : openAuthModal(item, process, index, currentProcessIndex)}
                             type="button"
                           >
                             <span className={styles.subProcessMarker}>
@@ -575,6 +639,36 @@ export default function KanbanOffCanvas({
             </div>
           </section>
 
+          {canCancelProduction && (
+            <section className={`${styles.detailSection} ${styles.dangerZone}`}>
+              <h3>Cancelar produccion</h3>
+              <button
+                className={styles.correctionButton}
+                onClick={() => {
+                  setCancelError('')
+                  setIsCancelModalOpen(true)
+                }}
+                type="button"
+              >
+                <i className="bi bi-x-octagon" aria-hidden="true" />
+                Cancelar pedido
+              </button>
+            </section>
+          )}
+
+          {canReevaluate && (
+            <section className={styles.detailSection}>
+              <h3>Revision del pedido</h3>
+              <button className={styles.orderCardButton} disabled={isReevaluating} onClick={async () => {
+                setIsReevaluating(true)
+                try { await onReevaluate?.(order) } finally { setIsReevaluating(false) }
+              }} type="button">
+                <i className="bi bi-arrow-repeat" aria-hidden="true" />
+                {isReevaluating ? 'Reevaluando...' : 'Reevaluar pedido'}
+              </button>
+            </section>
+          )}
+
           <section className={styles.detailSection}>
             <h3>Comentarios</h3>
             <ul className={styles.commentList}>
@@ -598,11 +692,12 @@ export default function KanbanOffCanvas({
             <header className={styles.operatorModalHeader}>
               <div>
                 <span className={styles.offcanvasKicker}>Validacion PIN</span>
-                <h3 id="operator-modal-title">{authModal.process.name}</h3>
+                <h3 id="operator-modal-title">{authModal.action === 'rollback' ? `Retroceder a ${authModal.process.name}` : authModal.process.name}</h3>
               </div>
               <button
                 aria-label="Cerrar validacion"
                 className={styles.offcanvasCloseButton}
+                disabled={isCompletingSubprocess}
                 onClick={closeAuthModal}
                 type="button"
               >
@@ -627,7 +722,7 @@ export default function KanbanOffCanvas({
                 />
               </label>
               <label>
-                <span>Comentario opcional</span>
+                <span>{authModal.action === 'rollback' ? 'Observacion obligatoria' : 'Comentario opcional'}</span>
                 <textarea
                   onChange={(event) => setOperatorComment(event.target.value)}
                   placeholder="Describe una observacion del traspaso si corresponde."
@@ -639,11 +734,73 @@ export default function KanbanOffCanvas({
             </div>
 
             <footer className={styles.operatorModalFooter}>
-              <button className={styles.resetFilterButton} onClick={closeAuthModal} type="button">
+              <button className={styles.resetFilterButton} disabled={isCompletingSubprocess} onClick={closeAuthModal} type="button">
                 Cancelar
               </button>
-              <button className={styles.orderCardButton} type="submit">
-                Completar subproceso
+              <button className={styles.orderCardButton} disabled={isCompletingSubprocess} type="submit">
+                {isCompletingSubprocess ? 'Procesando...' : authModal.action === 'rollback' ? 'Confirmar retroceso' : 'Completar subproceso'}
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {isCancelModalOpen && (
+        <div className={styles.operatorModalLayer} role="presentation">
+          <form className={styles.operatorModal} onSubmit={submitCancellation} role="dialog" aria-labelledby="cancel-production-title">
+            <header className={styles.operatorModalHeader}>
+              <div>
+                <span className={styles.offcanvasKicker}>Confirmacion requerida</span>
+                <h3 id="cancel-production-title">Cancelar produccion</h3>
+              </div>
+              <button
+                aria-label="Cerrar cancelacion"
+                className={styles.offcanvasCloseButton}
+                disabled={isCancelling}
+                onClick={() => setIsCancelModalOpen(false)}
+                type="button"
+              >
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
+            </header>
+            <div className={styles.operatorModalBody}>
+              <label>
+                <span>PIN personal</span>
+                <input
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(event) => {
+                    setCancelPin(event.target.value.replace(/\D/g, '').slice(0, 6))
+                    setCancelError('')
+                  }}
+                  placeholder="000000"
+                  type="password"
+                  value={cancelPin}
+                />
+              </label>
+              <label>
+                <span>Observacion</span>
+                <textarea
+                  maxLength={2000}
+                  onChange={(event) => {
+                    setCancelComment(event.target.value)
+                    setCancelError('')
+                  }}
+                  placeholder="Explique por que se cancela la produccion."
+                  required
+                  rows={4}
+                  value={cancelComment}
+                />
+              </label>
+              {cancelError && <p className={styles.operatorModalError}>{cancelError}</p>}
+            </div>
+            <footer className={styles.operatorModalFooter}>
+              <button className={styles.resetFilterButton} disabled={isCancelling} onClick={() => setIsCancelModalOpen(false)} type="button">
+                Volver
+              </button>
+              <button className={styles.orderCardButton} disabled={isCancelling} type="submit">
+                {isCancelling ? 'Cancelando...' : 'Confirmar cancelacion'}
               </button>
             </footer>
           </form>

@@ -39,3 +39,12 @@ test("acepta Soporte al filtrar usuarios", () => {
     assert.equal(result.valid, true);
     assert.equal(result.filters.rolUsuario, "Soporte");
 });
+
+for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte", "Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas", "Administración Cobranzas", "Administrador Ventas"]) {
+    test(`valida vigencia de ${role} en creación, edición y filtros`, () => {
+        const valid = ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"].includes(role);
+        assert.equal(validateAdminUserRequest({ ...SUPPORT_USER, rolUsuario: role }).valid, valid);
+        assert.equal(validateAdminUserUpdateRequest({ nombreUsuario: SUPPORT_USER.nombreUsuario, apellidoUsuario: SUPPORT_USER.apellidoUsuario, correoUsuario: SUPPORT_USER.correoUsuario, rolUsuario: role }).valid, valid);
+        assert.equal(validateListUsersQuery({ rolUsuario: role }).valid, valid);
+    });
+}

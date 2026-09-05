@@ -27,6 +27,7 @@ class PaymentRecordRepo {
         FECHA_HORA: createdAt,
         id_pedido: Number(orderId),
         id_usuario: Number(id_usuario),
+        observacion: observacion ?? null,
       },
     });
 
@@ -35,7 +36,6 @@ class PaymentRecordRepo {
         id_registro: registry.ID_REGISTRO,
         fecha_registro: createdAt,
         observacion: observacion ?? null,
-        id_usuario: Number(id_usuario),
         id_estado_pago_nuevo: Number(id_estado_pago),
       },
       include: {

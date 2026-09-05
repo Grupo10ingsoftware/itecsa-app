@@ -18,7 +18,7 @@ const VALID_BODY = {
     apellidoUsuario: "Perez",
     rutUsuario: "12.345.678-9",
     correoUsuario: "ana.perez@itecsa.cl",
-    rolUsuario: "Ventas",
+    rolUsuario: "Operario Ventas",
 };
 const VALID_PASSWORD_EMAIL_BODY = {
     correoUsuario: "ana.perez@itecsa.cl",
@@ -306,7 +306,7 @@ test("rechaza actualizacion con campos legacy", async () => {
             primerNombre: "Ana",
             apellidoPaterno: "Perez",
             correoUsuario: "ana@itecsa.cl",
-            rolUsuario: "Ventas",
+            rolUsuario: "Operario Ventas",
         },
         updateUser: async () => {
             calls += 1;
@@ -395,7 +395,7 @@ test("rechaza cambio de estado desde edicion completa", async () => {
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador",
+                rolUsuario: "Administrador Produccion",
                 estadoUsuario: "Desvinculado",
             },
             params: { userId: "auth0|created-user" },

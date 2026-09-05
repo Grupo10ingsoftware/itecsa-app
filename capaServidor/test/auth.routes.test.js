@@ -17,7 +17,7 @@ import {
 const VALID_PAYLOAD = {
     sub: "auth0|user-id",
     "https://itecsa.local/email": "usuario.controlado@example.cl",
-    "https://itecsa.local/roles": ["Ventas"],
+    "https://itecsa.local/roles": ["Operario Ventas"],
 };
 
 function responseRecorder() {
@@ -106,7 +106,7 @@ test("devuelve permisos Auth0 en la verificacion de sesion", async () => {
     assert.deepEqual(res.body, {
         sub: VALID_PAYLOAD.sub,
         email: VALID_PAYLOAD["https://itecsa.local/email"],
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
         isAdministrador: false,
         permissions: ["view:orders-module", "view:kanban-module"],
         pinStatus: "active",
@@ -120,7 +120,7 @@ test("devuelve permisos vacios si Auth0 no incluye permissions", async () => {
     assert.deepEqual(res.body.permissions, []);
 });
 
-test("acepta Soporte como rol oficial sin identificarlo como Administrador", async () => {
+test("acepta Soporte como rol oficial sin identificarlo como Administrador Produccion", async () => {
     const res = await executeVerify({
         ...VALID_PAYLOAD,
         "https://itecsa.local/roles": ["Soporte"],
@@ -143,7 +143,7 @@ test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => 
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Cobranzas",
+                rolUsuario: "Operario Cobranzas",
             },
             onFindByAuth0Id(auth0UserId) {
                 receivedLookup = auth0UserId;
@@ -161,7 +161,7 @@ test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => 
             auth: {
                 payload: {
                     ...VALID_PAYLOAD,
-                    "https://itecsa.local/roles": ["Administrador"],
+                    "https://itecsa.local/roles": ["Administrador Produccion"],
                 },
             },
         },
@@ -169,12 +169,12 @@ test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => 
     );
 
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.rolUsuario, "Administrador");
+    assert.equal(res.body.rolUsuario, "Administrador Produccion");
     assert.equal(res.body.isAdministrador, true);
     assert.equal(receivedLookup, VALID_PAYLOAD.sub);
     assert.deepEqual(receivedUpdate, {
         auth0UserId: VALID_PAYLOAD.sub,
-        rolUsuario: "Administrador",
+        rolUsuario: "Administrador Produccion",
     });
 });
 
@@ -184,7 +184,7 @@ test("no actualiza el rol interno si ya coincide con Auth0", async () => {
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Ventas",
+                rolUsuario: "Operario Ventas",
             },
             onUpdateRoleByAuth0Id() {
                 updateCalls += 1;
@@ -205,7 +205,7 @@ test("responde error controlado si falla la sincronizacion del rol interno", asy
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Cobranzas",
+                rolUsuario: "Operario Cobranzas",
             },
             onUpdateRoleByAuth0Id() {
                 throw new Error("database failure");
@@ -220,7 +220,7 @@ test("responde error controlado si falla la sincronizacion del rol interno", asy
             auth: {
                 payload: {
                     ...VALID_PAYLOAD,
-                    "https://itecsa.local/roles": ["Administrador"],
+                    "https://itecsa.local/roles": ["Administrador Produccion"],
                 },
             },
         },
@@ -465,3 +465,18 @@ test("limita intentos repetidos de recuperacion", async (t) => {
             "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
     });
 });
+
+for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"]) {
+    test(`verifica el rol oficial ${role}`, async () => {
+        const res = await executeVerify({ ...VALID_PAYLOAD, "https://itecsa.local/roles": [role] });
+        assert.equal(res.statusCode, 200);
+        assert.equal(res.body.rolUsuario, role);
+        assert.equal(res.body.isAdministrador, role === "Administrador Produccion");
+    });
+}
+for (const role of ["Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas", "Administración Cobranzas", "Administrador Ventas"]) {
+    test(`rechaza en sesión el rol no vigente ${role}`, async () => {
+        const res = await executeVerify({ ...VALID_PAYLOAD, "https://itecsa.local/roles": [role] });
+        assert.equal(res.statusCode, 403);
+    });
+}

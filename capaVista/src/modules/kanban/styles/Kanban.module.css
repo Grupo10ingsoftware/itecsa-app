@@ -806,6 +806,28 @@
   margin: 0;
 }
 
+.dangerZone {
+  border-color: #fecaca;
+  border-top: 4px solid #cf222e;
+}
+
+.dangerZone h3 {
+  color: #b42318;
+}
+
+.dangerZone .correctionButton {
+  background: #fff;
+  border-color: #cf222e;
+  color: #cf222e;
+}
+
+.dangerZone .correctionButton:hover,
+.dangerZone .correctionButton:focus {
+  background: #cf222e;
+  border-color: #cf222e;
+  color: #fff;
+}
+
 .summaryStack,
 .stepperStack {
   display: grid;
@@ -885,6 +907,9 @@
   outline: none;
   transform: translateY(-1px);
 }
+.visibleLabels { display: flex; flex-wrap: wrap; gap: .4rem; }
+.visibleLabels span { background: #ecfdf3; border: 1px solid #86efac; border-radius: 999px; color: #166534; font-size: .72rem; font-weight: 850; padding: .3rem .55rem; }
+.producingIndicatorActive { background: #16a34a !important; border-color: #15803d !important; color: #fff !important; }
 
 .deconfirmationApprovalPanel {
   align-items: center;

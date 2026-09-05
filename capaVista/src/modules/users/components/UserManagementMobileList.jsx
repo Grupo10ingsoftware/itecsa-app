@@ -1,3 +1,4 @@
+import { getRoleLabel } from '../../../config/roles'
 import UserButton from './UserButton'
 import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
@@ -28,7 +29,7 @@ export default function UserManagementMobileList({ isLoading, onEditUser, onUnli
             </div>
             <div>
               <dt>Rol</dt>
-              <dd>{user.rolUsuario}</dd>
+              <dd>{getRoleLabel(user.rolUsuario)}</dd>
             </div>
           </dl>
           <footer>

@@ -26,7 +26,6 @@ import {
 import styles from './PaymentConfirmationPage.module.css'
 
 const FILTERS = [
-  { key: 'TODOS', label: 'Todos' },
   { key: PAYMENT_STATUS.PENDIENTE, label: 'Pendientes' },
   { key: PAYMENT_STATUS.RECHAZADO, label: 'Rechazados' },
   { key: PAYMENT_STATUS.CONFIRMADO, label: 'Confirmados' },
@@ -40,7 +39,7 @@ export default function PaymentConfirmationPage() {
   // esperado por esta vista. No usar como fuente productiva.
   const [orders, setOrders] = useState([])
   const [paymentStatuses, setPaymentStatuses] = useState([])
-  const [activeFilter, setActiveFilter] = useState('TODOS')
+  const [activeFilter, setActiveFilter] = useState(PAYMENT_STATUS.PENDIENTE)
   const [editingStatus, setEditingStatus] = useState({})
   const [pendingTransition, setPendingTransition] = useState(null)
   const [credentialsTransition, setCredentialsTransition] = useState(null)
@@ -100,7 +99,6 @@ export default function PaymentConfirmationPage() {
 
   const counters = useMemo(() => {
     return {
-      all: orders.length,
       pending: orders.filter(
         (order) => order.paymentStatus === PAYMENT_STATUS.PENDIENTE,
       ).length,
@@ -117,8 +115,7 @@ export default function PaymentConfirmationPage() {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
     return orders.filter((order) => {
-      const matchesFilter =
-        activeFilter === 'TODOS' || order.paymentStatus === activeFilter
+      const matchesFilter = order.paymentStatus === activeFilter
 
       const searchableText = [
         order.nvNumber,
@@ -139,7 +136,6 @@ export default function PaymentConfirmationPage() {
 
   const getFilterCount = useCallback(
     (filterKey) => {
-      if (filterKey === 'TODOS') return counters.all
       if (filterKey === PAYMENT_STATUS.PENDIENTE) return counters.pending
       if (filterKey === PAYMENT_STATUS.RECHAZADO) return counters.rejected
       if (filterKey === PAYMENT_STATUS.CONFIRMADO) return counters.confirmed

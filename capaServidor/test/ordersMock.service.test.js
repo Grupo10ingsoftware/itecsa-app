@@ -53,6 +53,10 @@ function createService(overrides = {}) {
             async get(orderId) {
                 return findOrder(orderId) ?? null;
             },
+            async getTransitionState(orderId) {
+                const order = findOrder(orderId);
+                return order ? { ...order, id_estado_pedido: order.id_etapa_general + 1 } : null;
+            },
             async updatePaymentStatus(orderId, paymentStatusId, nextKanbanOrder) {
                 const order = findOrder(orderId);
 
@@ -266,6 +270,7 @@ test("permite mover a En produccion con el permiso requerido", async () => {
         stepId: 2,
         userId: 10,
         comment: undefined,
+        expectedState: { id_estado_pedido: 2, id_estado_pago: 2 },
     }]);
 });
 

@@ -244,13 +244,8 @@ class OrderRepository {
       include: orderReadInclude,
       orderBy: { id_pedido: "desc" },
     });
-    const paymentStatuses = await this.getPaymentStatusNamesByIds(
-      orders.map((order) => order.id_estado_pago),
-    );
 
-    return orders.map((order) =>
-      mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
-    );
+    return orders.map((order) => mapOrderRow(order));
   }
 
   async get(id) {
@@ -259,14 +254,33 @@ class OrderRepository {
       include: orderReadInclude,
     });
 
+    return mapOrderRow(order);
+  }
+
+  async getTransitionState(id) {
+    const order = await this.client.pedidos.findUnique({
+      where: { id_pedido: Number(id) },
+      select: {
+        id_pedido: true,
+        id_estado_pedido: true,
+        id_estado_pago: true,
+        Estado_Pedido: { select: { orden_kanban: true, nombre_etapa: true } },
+        Estado_Pago: { select: { nombre_estado_pago: true } },
+      },
+    });
+
     if (!order) return null;
 
-    const paymentStatuses = await this.getPaymentStatusNamesByIds([order.id_estado_pago]);
-
-    return mapOrderRow(
-      order,
-      paymentStatuses.get(Number(order.id_estado_pago)) ?? null,
-    );
+    return {
+      id_pedido: order.id_pedido,
+      id_estado_pedido: order.id_estado_pedido,
+      id_estado_pago: order.id_estado_pago,
+      id_etapa_general: order.Estado_Pedido?.orden_kanban ?? null,
+      generalStepId: order.Estado_Pedido?.orden_kanban ?? null,
+      nombre_etapa_general: order.Estado_Pedido?.nombre_etapa ?? null,
+      estado_pago: order.Estado_Pago?.nombre_estado_pago ?? null,
+      paymentStatus: order.Estado_Pago?.nombre_estado_pago ?? null,
+    };
   }
 
   async create(data) {
@@ -368,12 +382,12 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async transitionGeneralStage({ id, ordenKanban, statusName, userId, comment, now = new Date() }) {
+  async transitionGeneralStage({ id, ordenKanban, statusName, userId, comment, now = new Date(), compact = false, expectedState }) {
     const status = await this.client.estado_Pedido.findFirst({
       where: statusName
         ? { nombre_etapa: statusName }
         : { orden_kanban: Number(ordenKanban) },
-      select: { id_estado_pedido: true },
+      select: { id_estado_pedido: true, orden_kanban: true, nombre_etapa: true },
     });
 
     if (!status) return null;
@@ -383,6 +397,10 @@ class OrderRepository {
         where: {
           id_pedido: Number(id),
           NOT: { id_estado_pedido: status.id_estado_pedido },
+          ...(expectedState ? {
+            id_estado_pedido: expectedState.id_estado_pedido,
+            id_estado_pago: expectedState.id_estado_pago,
+          } : {}),
         },
         data: {
           id_estado_pedido: status?.id_estado_pedido ?? null,
@@ -390,7 +408,14 @@ class OrderRepository {
       });
 
       // Evita duplicar registros si la misma transición llega más de una vez.
-      if (transition.count !== 1) return null;
+      if (transition.count !== 1) {
+        if (expectedState) {
+          const error = new Error("El pedido cambio mientras se procesaba la solicitud. Actualiza el tablero e intenta nuevamente.");
+          error.statusCode = 409;
+          throw error;
+        }
+        return null;
+      }
 
       await this.client.registro_Etapas.updateMany({
         where: {
@@ -420,6 +445,16 @@ class OrderRepository {
     } catch (error) {
       if (error?.code === "P2025") return null;
       throw error;
+    }
+
+    if (compact) {
+      return {
+        id_pedido: Number(id),
+        id_estado_pedido: status.id_estado_pedido,
+        id_etapa_general: status.orden_kanban,
+        generalStepId: status.orden_kanban,
+        nombre_etapa_general: status.nombre_etapa,
+      };
     }
 
     return this.get(id);
@@ -464,6 +499,8 @@ class OrderRepository {
       userId: audit.userId,
       comment: audit.comment,
       now: audit.now,
+      compact: true,
+      expectedState: audit.expectedState,
     });
   }
 
@@ -765,6 +802,16 @@ class OrderRepository {
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });
     if (!detail) return null;
+    if (
+      detail.Pedidos?.Estado_Pedido?.orden_kanban !==
+       KANBAN_EN_PRODUCCION_STEP
+    ) {
+      const error = new Error(
+        "Solo se pueden retroceder subprocesos de pedidos En producción.",
+      );
+      error.statusCode = 409;
+      throw error;
+    }
 
     const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
     const currentIndex = subprocesses.findIndex((item) =>

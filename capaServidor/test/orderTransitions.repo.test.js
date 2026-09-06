@@ -8,7 +8,7 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
     const repo = new OrderRepository({
         prisma: {
             estado_Pedido: {
-                async findFirst() { return { id_estado_pedido: 3 }; },
+                async findFirst() { return { id_estado_pedido: 3, orden_kanban: 2, nombre_etapa: "En producción" }; },
             },
             pedidos: {
                 async updateMany(payload) {
@@ -28,13 +28,21 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
             },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => { assert.fail("El movimiento no debe releer el pedido completo"); };
 
-    await repo.updateGeneralStep(6, 2, {
+    const result = await repo.updateGeneralStep(6, 2, {
         userId: 10,
         comment: "Inicio de producción",
         now,
+        expectedState: { id_estado_pedido: 2, id_estado_pago: 2 },
     });
+
+    assert.deepEqual(result, {
+        id_pedido: 6, id_estado_pedido: 3, id_etapa_general: 2,
+        generalStepId: 2, nombre_etapa_general: "En producción",
+    });
+    assert.equal(calls[0][1].where.id_estado_pedido, 2);
+    assert.equal(calls[0][1].where.id_estado_pago, 2);
 
     assert.deepEqual(calls[2], ["registros.create", {
         data: {
@@ -180,4 +188,33 @@ test("enviar a revision notifica al usuario de Ventas responsable", async () => 
         leido_: false,
         oculto_: false,
     }]);
+});
+
+test("movimiento concurrente se rechaza sin escribir auditoria", async () => {
+    const repo = new OrderRepository({ prisma: {
+        estado_Pedido: { async findFirst() { return { id_estado_pedido: 3 }; } },
+        pedidos: { async updateMany() { return { count: 0 }; } },
+        registros: { async create() { assert.fail("No debe crear auditoria"); } },
+    } });
+    await assert.rejects(repo.updateGeneralStep(6, 2, {
+        userId: 10, expectedState: { id_estado_pedido: 2, id_estado_pago: 2 },
+    }), error => error.statusCode === 409);
+});
+
+test("lectura de validacion conserva etapa y pago sin cargar detalles", async () => {
+    const repo = new OrderRepository({ prisma: { pedidos: {
+        async findUnique(query) {
+            assert.equal(query.include, undefined);
+            assert.equal(query.select.Detalle_pedido, undefined);
+            return {
+                id_pedido: 6, id_estado_pedido: 2, id_estado_pago: 2,
+                Estado_Pedido: { orden_kanban: 1, nombre_etapa: "Listo para produccion" },
+                Estado_Pago: { nombre_estado_pago: "Confirmado" },
+            };
+        },
+    } } });
+    const result = await repo.getTransitionState(6);
+    assert.equal(result.id_etapa_general, 1);
+    assert.equal(result.estado_pago, "Confirmado");
+    assert.equal(result.detalles, undefined);
 });

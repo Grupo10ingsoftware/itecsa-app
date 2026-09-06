@@ -170,7 +170,7 @@ class OrderService {
       throw error;
     }
 
-    const order = await this.repo.get(orderId);
+    const order = await this.repo.getTransitionState(orderId);
 
     if (!order) {
       const error = new Error("Pedido no encontrado");
@@ -233,6 +233,10 @@ class OrderService {
       {
         userId: options.actor.idUsuario,
         comment: options.comment,
+        expectedState: {
+          id_estado_pedido: order.id_estado_pedido,
+          id_estado_pago: order.id_estado_pago,
+        },
       },
     ));
   }

@@ -24,6 +24,7 @@ test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               numero_nota_venta: null,
               id_estado_pago: 1,
+              Estado_Pago: { nombre_estado_pago: "Pendiente" },
               Cliente: null,
               Detalle_pedido: [],
               Estado_Pedido: null,
@@ -77,6 +78,7 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
               id_pedido: 2,
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               id_estado_pago: 2,
+              Estado_Pago: { nombre_estado_pago: "Confirmado" },
               Cliente: {
                 nombre_cliente: "Mall Plaza",
                 rut_cliente: "76.812.440-5",

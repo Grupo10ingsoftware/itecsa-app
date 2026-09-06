@@ -4,6 +4,7 @@ import { PERMISSIONS } from '../../../config/permissions'
 import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
+import { applyOrderStagePatch } from '../utils/orderStagePatch'
 import KanbanCard from './KanbanCard'
 import KanbanOffCanvas from './KanbanOffCanvas'
 import styles from '../styles/Kanban.module.css'
@@ -413,6 +414,7 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (isSubmitting) return
     const trimmedPin = pin.trim()
 
     if (!/^\d{6}$/.test(trimmedPin)) {
@@ -429,6 +431,8 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
         comment: comment.trim(),
       })
       resetFields()
+    } catch (submitError) {
+      setError(submitError?.payload?.message ?? 'No fue posible mover la orden.')
     } finally {
       setIsSubmitting(false)
     }
@@ -596,19 +600,11 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   }, [capacity, onOperationalLoadChange, orders])
 
   async function applyOrderMove(order, targetColumn, audit = {}) {
-    try {
-      const updatedOrder = await kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit)
-      const normalizedOrder = normalizeOrder(updatedOrder)
-      setOrders((prevOrders) =>
-        prevOrders.map((currentOrder) => (currentOrder.id === normalizedOrder.id ? normalizedOrder : currentOrder)),
-      )
-      setSelectedOrder((currentOrder) =>
-        currentOrder?.id === normalizedOrder.id ? normalizedOrder : currentOrder,
-      )
-    } catch (error) {
-      console.error('Error moviendo orden:', error)
-      setMoveError(error?.payload?.message ?? 'No fue posible mover la orden.')
-    }
+    const patch = await kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit)
+    setOrders((prevOrders) =>
+      prevOrders.map((currentOrder) => applyOrderStagePatch(currentOrder, patch)),
+    )
+    setSelectedOrder((currentOrder) => applyOrderStagePatch(currentOrder, patch))
   }
 
   function handleDragEnd(event) {
@@ -705,8 +701,8 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
     if (!pendingProductionMove) return
 
     const { order, targetColumn } = pendingProductionMove
-    setPendingProductionMove(null)
     await applyOrderMove(order, targetColumn, audit)
+    setPendingProductionMove(null)
   }
 
   async function handleCompleteSubprocess(order, item, process, payload) {

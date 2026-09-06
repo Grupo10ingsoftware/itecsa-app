@@ -107,6 +107,7 @@ Estado funcional actual:
 - Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria, firma la Nota de Venta vigente y mueve el pedido a `Listo para produccion`.
 - Un pago ya confirmado no puede devolverse a `Pendiente` ni `Rechazado`; el backend responde conflicto y no genera auditoria nueva.
 - Kanban consume `GET /api/orders` y `GET /api/order-status`, mueve etapas con `PATCH /api/orders/:orderId/move`, bloquea saltos o retrocesos y exige `move:kanban-to-production` para mover a `En produccion`.
+- El movimiento devuelve los campos de etapa (`id_pedido`, `id_estado_pedido`, `id_etapa_general`, `generalStepId`, `nombre_etapa_general`), no el pedido completo. Kanban aplica estos campos sobre la tarjeta existente y conserva productos, cliente, pago y etiquetas. Si etapa o pago cambiaron desde la validacion, responde 409; las escrituras y la auditoria siguen en una transaccion. Una solicitud a la etapa actual devuelve el estado reducido sin escribir.
 - El backend expone `POST /api/orders` para crear pedidos JSON con cliente y productos, pero la pantalla frontend `/ordenes/nuevo` sigue siendo visual/mock y guarda una copia temporal en `sessionStorage`.
 - `data/NVS` y `data/Firmas` son almacenamiento local de desarrollo para PDFs de Nota de Venta y firmas electronicas; no deben contener documentos reales ni datos sensibles.
 

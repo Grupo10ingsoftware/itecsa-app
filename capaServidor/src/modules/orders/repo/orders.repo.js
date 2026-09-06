@@ -1,7 +1,7 @@
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
 
-const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
+
 const ORDER_UPDATE_FIELDS = new Set([
   "fecha_estimada_termino",
   "id_usuario",
@@ -105,26 +105,6 @@ function mapUntrackedItem(item) {
   };
 }
 
-export function buildSalesNotePdfUrl(storedPath) {
-  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
-    return null;
-  }
-
-  const normalizedPath = storedPath.replace(/\\/g, "/");
-  const pathParts = normalizedPath.split("/").filter(Boolean);
-  const nvsIndex = pathParts.findIndex((part) => part.toLowerCase() === "nvs");
-  const filename = pathParts.at(-1);
-
-  if (!filename?.toLowerCase().endsWith(".pdf")) {
-    return storedPath;
-  }
-
-  if (nvsIndex === -1 || pathParts[nvsIndex + 1] !== filename) {
-    return storedPath;
-  }
-
-  return `${SALES_NOTE_DOCUMENT_URL_PREFIX}${encodeURIComponent(filename)}`;
-}
 
 function mapOrderRow(order, paymentStatusName = null) {
   if (!order) return null;

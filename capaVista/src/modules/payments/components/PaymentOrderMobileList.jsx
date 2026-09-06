@@ -33,23 +33,14 @@ export default function PaymentOrderMobileList({
             }`}
             key={`mobile-${order.id}`}
           >
-            <header
-              className={`${styles.mobileCardHeader} d-flex flex-column flex-sm-row align-items-start justify-content-between gap-3`}
-            >
+            <header className={styles.mobileCardHeader}>
               <div>
                 <span>Pedido</span>
                 <strong>{order.nvNumber}</strong>
               </div>
-              <div className={styles.mobileStatusBadgeWrap}>
-                <PaymentStatusBadge status={order.paymentStatus} />
-              </div>
             </header>
 
             <dl className={styles.mobileDataList}>
-              <div>
-                <dt>Fecha</dt>
-                <dd>{formatPaymentDateTime(order.createdAt)}</dd>
-              </div>
               <div>
                 <dt>Cliente</dt>
                 <dd>{order.companyName}</dd>
@@ -57,6 +48,16 @@ export default function PaymentOrderMobileList({
               <div>
                 <dt>RUT</dt>
                 <dd>{order.rut}</dd>
+              </div>
+              <div>
+                <dt>Fecha</dt>
+                <dd>{formatPaymentDateTime(order.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Estado</dt>
+                <dd className={styles.mobileStatusBadgeWrap}>
+                  <PaymentStatusBadge status={order.paymentStatus} />
+                </dd>
               </div>
             </dl>
 

@@ -1,4 +1,3 @@
-import { useAuthorizedFile } from '../../../hooks/useAuthorizedFile'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
@@ -9,7 +8,6 @@ import PaymentFilters from '../components/PaymentFilters'
 import PaymentOrderMobileList from '../components/PaymentOrderMobileList'
 import PaymentOrdersTable from '../components/PaymentOrdersTable'
 import PaymentSummaryCards from '../components/PaymentSummaryCards'
-import SalesNotePreviewModal from '../components/SalesNotePreviewModal'
 import { usePaymentsApi } from '../hooks/usePaymentsApi'
 import {
   getPaymentStatusIdByName,
@@ -17,13 +15,7 @@ import {
   normalizePaymentOrder,
   normalizePaymentOrders,
 } from '../utils/paymentOrders'
-import {
-  PREVIEW_CONTEXT,
-  formatPaymentDateTime,
-  getPdfAsset,
-  openPdfForDownload,
-  printPdf,
-} from '../utils/paymentDocuments'
+import { formatPaymentDate } from '../utils/paymentDocuments'
 import styles from './PaymentConfirmationPage.module.css'
 
 const FILTERS = [
@@ -35,7 +27,6 @@ const FILTERS = [
 export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
   const paymentsApi = usePaymentsApi()
-  const fetchAuthorizedFile = useAuthorizedFile()
   // Mock historico/fallback dev: createMockPaymentOrders() documenta el shape
   // esperado por esta vista. No usar como fuente productiva.
   const [orders, setOrders] = useState([])
@@ -52,7 +43,10 @@ export default function PaymentConfirmationPage() {
   const [isUpdatingPaymentStatus, setIsUpdatingPaymentStatus] = useState(false)
   const [isLoadingActionDetails, setIsLoadingActionDetails] = useState(false)
   const [actionDetailsError, setActionDetailsError] = useState(null)
+  const [isLoadingPreviewDetails, setIsLoadingPreviewDetails] = useState(false)
+  const [previewDetailsError, setPreviewDetailsError] = useState(null)
   const previewRequestId = useRef(0)
+  const detailPreviewRequestId = useRef(0)
   const canUpdatePaymentStatus = hasPermission(PERMISSIONS.UPDATE_PAYMENT_STATUS)
 
   useEffect(() => {
@@ -126,7 +120,7 @@ export default function PaymentConfirmationPage() {
         order.companyName,
         order.rut,
         order.paymentStatus,
-        formatPaymentDateTime(order.createdAt),
+        formatPaymentDate(order.createdAt),
       ]
         .join(' ')
         .toLowerCase()
@@ -200,34 +194,6 @@ export default function PaymentConfirmationPage() {
     paymentStatuses,
     paymentsApi,
   ])
-
-  const handleDownloadNV = useCallback(async (order, variant, options = {}) => {
-    try {
-      const pdfAsset = getPdfAsset(order, variant, options)
-
-      if (pdfAsset.filePath) {
-        const objectUrl = URL.createObjectURL(await fetchAuthorizedFile(pdfAsset.filePath))
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-        openPdfForDownload(
-          objectUrl,
-          pdfAsset.fileName || `${order.nvNumber}.pdf`,
-        )
-        return
-      }
-
-      return
-    } catch (err) {
-      console.error('Error downloading NV PDF:', err)
-    }
-  }, [fetchAuthorizedFile])
-
-  const handlePrintNV = useCallback(async (filePath) => {
-    try {
-      const objectUrl = URL.createObjectURL(await fetchAuthorizedFile(filePath))
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
-      await printPdf(objectUrl)
-    } catch { setUpdateError("No fue posible acceder al documento autorizado.") }
-  }, [fetchAuthorizedFile])
 
   const handleFilterChange = useCallback((filterKey) => {
     setActiveFilter(filterKey)
@@ -373,8 +339,46 @@ export default function PaymentConfirmationPage() {
     handleUpdatePaymentStatus,
   ])
 
-  const openSignedDetailPreview = useCallback((order) => {
-    setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
+  const openPaymentDetail = useCallback(async (order) => {
+    const requestId = detailPreviewRequestId.current + 1
+    detailPreviewRequestId.current = requestId
+    setPreviewState({ order })
+    setPreviewDetailsError(null)
+    setIsLoadingPreviewDetails(true)
+
+    try {
+      const preview = await paymentsApi.getPaymentPreview(order.id)
+
+      if (detailPreviewRequestId.current !== requestId) return
+
+      setPreviewState((currentPreview) => {
+        if (currentPreview?.order?.id !== order.id) return currentPreview
+
+        return {
+          ...currentPreview,
+          order: mergePaymentPreview(currentPreview.order, preview),
+        }
+      })
+    } catch (error) {
+      if (detailPreviewRequestId.current !== requestId) return
+
+      console.error('Error cargando detalle de pago:', error)
+      setPreviewDetailsError(
+        error?.payload?.message ??
+          'No fue posible cargar la información completa del pedido.',
+      )
+    } finally {
+      if (detailPreviewRequestId.current === requestId) {
+        setIsLoadingPreviewDetails(false)
+      }
+    }
+  }, [paymentsApi])
+
+  const closePaymentDetail = useCallback(() => {
+    detailPreviewRequestId.current += 1
+    setPreviewState(null)
+    setPreviewDetailsError(null)
+    setIsLoadingPreviewDetails(false)
   }, [])
 
   return (
@@ -430,7 +434,7 @@ export default function PaymentConfirmationPage() {
               onCloseEditor={closePaymentEditor}
               onSelectStatus={openPaymentActionConfirmation}
               onToggleEditor={openPaymentEditor}
-              onViewSignedDetail={openSignedDetailPreview}
+              onViewDetail={openPaymentDetail}
               orders={filteredOrders}
             />
 
@@ -441,19 +445,19 @@ export default function PaymentConfirmationPage() {
               onCloseEditor={closePaymentEditor}
               onSelectStatus={openPaymentActionConfirmation}
               onToggleEditor={openPaymentEditor}
-              onViewSignedDetail={openSignedDetailPreview}
+              onViewDetail={openPaymentDetail}
               orders={filteredOrders}
             />
           </>
         )}
       </section>
 
-      <SalesNotePreviewModal
-        context={previewState?.context}
-        key={`${previewState?.context || 'closed'}-${previewState?.order?.id || 'none'}`}
-        onClose={() => setPreviewState(null)}
-        onDownload={handleDownloadNV}
-        onPrint={handlePrintNV}
+      <PaymentActionConfirmModal
+        detailsError={previewDetailsError}
+        isLoadingDetails={isLoadingPreviewDetails}
+        key={`detail-${previewState?.order?.id || 'closed'}`}
+        mode="detail"
+        onCancel={closePaymentDetail}
         order={previewState?.order}
       />
 

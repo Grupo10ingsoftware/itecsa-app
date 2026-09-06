@@ -189,7 +189,7 @@ export default function PaymentRowActions({
   onCloseEditor,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
   order,
 }) {
   const { hasPermission } = useAuth()
@@ -221,12 +221,12 @@ export default function PaymentRowActions({
         order={order}
       />}
 
-      {isConfirmed && typeof onViewSignedDetail === 'function' && (
+      {isResolved && typeof onViewDetail === 'function' && (
         <button
           className={`${styles.actionButton} ${styles.actionButtonDetail} ${
             isMobile ? 'w-100' : ''
           }`}
-          onClick={() => onViewSignedDetail(order)}
+          onClick={() => onViewDetail(order)}
           type="button"
         >
           Ver detalle

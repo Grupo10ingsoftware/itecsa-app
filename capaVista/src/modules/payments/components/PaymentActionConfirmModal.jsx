@@ -50,17 +50,23 @@ export default function PaymentActionConfirmModal({
   detailsError = null,
   isLoadingDetails = false,
   isUpdating = false,
+  mode = 'action',
   onCancel,
   onValidate,
   order,
   targetStatus,
 }) {
-  if (!order || !targetStatus) return null
+  const isDetailMode = mode === 'detail'
 
-  const actionMeta = getPaymentActionMeta(targetStatus)
+  if (!order || (!isDetailMode && !targetStatus)) return null
+
+  const actionMeta = isDetailMode ? null : getPaymentActionMeta(targetStatus)
   const trackedProducts = order.trackedProducts ?? []
+  const normalizedPaymentStatus = String(order.paymentStatus ?? 'registrado')
+    .trim()
+    .toLocaleLowerCase('es')
 
-  const footer = (
+  const actionFooter = (
     <>
       <button
         className="btn btn-outline-secondary"
@@ -78,23 +84,36 @@ export default function PaymentActionConfirmModal({
         type="button"
       >
         <span>
-          {isUpdating ? actionMeta.completedLabel : actionMeta.holdLabel}
+          {isUpdating ? actionMeta?.completedLabel : actionMeta?.holdLabel}
         </span>
       </button>
     </>
+  )
+  const detailFooter = (
+    <button
+      className="btn btn-outline-secondary"
+      onClick={onCancel}
+      type="button"
+    >
+      Cerrar
+    </button>
   )
 
   return (
     <DocumentPreviewModalLayout
       bodyClassName={styles.confirmModalBody}
-      closeAriaLabel="Cancelar cambio de estado"
-      description="Revisa los datos registrados desde Manager antes de validar el cambio."
-      footer={footer}
-      kicker="Cambio de estado"
+      closeAriaLabel={isDetailMode ? 'Cerrar detalle de pago' : 'Cancelar cambio de estado'}
+      description={
+        isDetailMode
+          ? `Detalle de la Nota de Venta asociada al pago ${normalizedPaymentStatus}.`
+          : 'Revisa los datos registrados desde Manager antes de validar el cambio.'
+      }
+      footer={isDetailMode ? detailFooter : actionFooter}
+      kicker={isDetailMode ? `Pago ${normalizedPaymentStatus}` : 'Cambio de estado'}
       onClose={onCancel}
-      title={actionMeta.modalTitle}
-      titleId="payment-action-confirm-title"
-      variant="actionConfirm"
+      title={isDetailMode ? 'Detalle de pago' : actionMeta?.modalTitle}
+      titleId={isDetailMode ? 'payment-detail-title' : 'payment-action-confirm-title'}
+      variant={isDetailMode ? 'salesNote' : 'actionConfirm'}
     >
       {isLoadingDetails ? (
         <div className={styles.detailsState} role="status">

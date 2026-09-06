@@ -1,4 +1,4 @@
-import { formatPaymentDateTime } from '../utils/paymentDocuments'
+import { formatPaymentDate } from '../utils/paymentDocuments'
 import PaymentRowActions from './PaymentRowActions'
 import PaymentStatusBadge from './PaymentStatusBadge'
 import styles from './PaymentOrdersTable.module.css'
@@ -11,7 +11,7 @@ export default function PaymentOrdersTable({
   onCloseEditor,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
 }) {
   return (
     <section
@@ -47,7 +47,7 @@ export default function PaymentOrdersTable({
                 <td className={styles.clientCell}>{order.companyName}</td>
                 <td className={styles.rutCell}>{order.rut}</td>
                 <td className={styles.dateCell}>
-                  {formatPaymentDateTime(order.createdAt)}
+                  {formatPaymentDate(order.createdAt)}
                 </td>
                 <td>
                   <PaymentStatusBadge status={order.paymentStatus} />
@@ -60,7 +60,7 @@ export default function PaymentOrdersTable({
                     onCloseEditor={onCloseEditor}
                     onSelectStatus={onSelectStatus}
                     onToggleEditor={onToggleEditor}
-                    onViewSignedDetail={onViewSignedDetail}
+                    onViewDetail={onViewDetail}
                     order={order}
                   />
                 </td>

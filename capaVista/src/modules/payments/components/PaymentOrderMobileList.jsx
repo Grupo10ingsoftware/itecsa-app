@@ -1,5 +1,5 @@
 import { PAYMENT_STATUS } from '@/config/status'
-import { formatPaymentDateTime } from '../utils/paymentDocuments'
+import { formatPaymentDate } from '../utils/paymentDocuments'
 import PaymentRowActions from './PaymentRowActions'
 import PaymentStatusBadge from './PaymentStatusBadge'
 import styles from './PaymentOrderMobileList.module.css'
@@ -18,7 +18,7 @@ export default function PaymentOrderMobileList({
   onCloseEditor,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
 }) {
   return (
     <section
@@ -51,7 +51,7 @@ export default function PaymentOrderMobileList({
               </div>
               <div>
                 <dt>Fecha</dt>
-                <dd>{formatPaymentDateTime(order.createdAt)}</dd>
+                <dd>{formatPaymentDate(order.createdAt)}</dd>
               </div>
               <div>
                 <dt>Estado</dt>
@@ -70,7 +70,7 @@ export default function PaymentOrderMobileList({
                 onCloseEditor={onCloseEditor}
                 onSelectStatus={onSelectStatus}
                 onToggleEditor={onToggleEditor}
-                onViewSignedDetail={onViewSignedDetail}
+                onViewDetail={onViewDetail}
                 order={order}
               />
             </div>

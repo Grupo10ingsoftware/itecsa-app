@@ -6,6 +6,39 @@ function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function textOrNull(value) {
+  return hasText(value) ? value.trim() : null
+}
+
+function normalizeQuantity(value) {
+  if (value === null || value === undefined || value === '') return null
+
+  const quantity = Number(value)
+  return Number.isFinite(quantity) ? quantity : null
+}
+
+function normalizeTrackedProducts(details) {
+  if (!Array.isArray(details)) return []
+
+  return details.map((detail, index) => {
+    const explicitProductType = textOrNull(
+      detail?.productType ?? detail?.tipoProducto ?? detail?.nombre_producto,
+    )
+
+    return {
+      id: detail?.id_detalle_pedido ?? detail?.id ?? `detail-${index}`,
+      code: textOrNull(
+        detail?.code ?? detail?.codigo ?? detail?.codigo_producto,
+      ),
+      productType: explicitProductType ?? textOrNull(detail?.product),
+      product:
+        textOrNull(detail?.producto ?? detail?.descripcion_producto) ??
+        (explicitProductType ? textOrNull(detail?.product) : null),
+      quantity: normalizeQuantity(detail?.cantidad ?? detail?.quantity),
+    }
+  })
+}
+
 function normalizeStatusName(status) {
   if (!hasText(status)) return PAYMENT_STATUS.PENDIENTE
 
@@ -78,6 +111,7 @@ export function normalizePaymentOrder(order) {
   const productName = hasText(order?.nombre_producto)
     ? order.nombre_producto.trim()
     : null
+  const trackedProducts = normalizeTrackedProducts(order?.detalles)
   const nvFilePath = resolveApiAssetUrl(order?.ruta_pdf)
   const isSigned =
     Number(order?.firmado) === 1 ||
@@ -103,6 +137,9 @@ export function normalizePaymentOrder(order) {
     rut: hasText(order?.rut_cliente)
       ? order.rut_cliente.trim()
       : 'RUT no disponible',
+    sellerEmail: hasText(order?.correo_vendedor)
+      ? order.correo_vendedor.trim()
+      : null,
     productDescription: hasText(order?.descripcion_producto)
       ? order.descripcion_producto.trim()
       : productName || 'Producto no disponible',
@@ -111,6 +148,7 @@ export function normalizePaymentOrder(order) {
       ? order.descripcion_producto.trim()
       : '',
     productType: productName || 'Producto',
+    trackedProducts,
     nvFileName: getSalesNoteFileName(order ?? {}, nvNumber),
     nvFilePath,
     isSigned,
@@ -135,6 +173,22 @@ export function normalizePaymentOrders(orders) {
   return orders
     .map(normalizePaymentOrder)
     .filter((order) => order.id !== undefined && order.id !== null)
+}
+
+export function mergePaymentPreview(order, preview) {
+  if (!order || !preview) return order
+
+  const previewProducts = normalizeTrackedProducts(preview.products)
+
+  return {
+    ...order,
+    nvNumber: textOrNull(preview.nvNumber) ?? order.nvNumber,
+    companyName: textOrNull(preview.companyName) ?? order.companyName,
+    rut: textOrNull(preview.rut) ?? order.rut,
+    sellerEmail: textOrNull(preview.sellerEmail) ?? order.sellerEmail,
+    trackedProducts:
+      previewProducts.length > 0 ? previewProducts : order.trackedProducts,
+  }
 }
 
 export function getPaymentStatusIdByName(statuses, statusName) {

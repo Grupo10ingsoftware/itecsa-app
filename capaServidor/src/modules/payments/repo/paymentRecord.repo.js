@@ -83,6 +83,41 @@ class PaymentRecordRepo {
       },
     });
   }
+
+  async getConfirmationSource(orderId) {
+    return this.client.pedidos.findUnique({
+      where: { id_pedido: Number(orderId) },
+      select: {
+        id_pedido: true,
+        numero_nota_venta: true,
+        Cliente: {
+          select: {
+            nombre_cliente: true,
+            razon_social: true,
+            rut_cliente: true,
+          },
+        },
+        Usuario: {
+          select: {
+            correo_usuario: true,
+          },
+        },
+        Detalle_pedido: {
+          orderBy: { id_detalle_pedido: "asc" },
+          select: {
+            id_detalle_pedido: true,
+            cantidad: true,
+            Tipo_Producto: {
+              select: {
+                nombre_producto: true,
+                descripcion_producto: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
 
 export default PaymentRecordRepo;

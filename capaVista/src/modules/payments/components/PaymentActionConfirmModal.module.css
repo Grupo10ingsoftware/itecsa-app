@@ -1,140 +1,189 @@
 .confirmModalBody {
   background: #fff;
+  display: block;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding: 1.25rem 1.5rem;
-}
-
-.actionConfirmSummary {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 auto;
-  max-width: 56rem;
   min-width: 0;
+  overscroll-behavior: contain;
+  overflow-y: auto;
+  padding: 1.35rem 1.5rem 1.6rem;
+  scrollbar-color: #aeb7c4 #eef1f5;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
   width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
-.card {
+.confirmModalBody > * + * {
+  margin-top: 1.5rem;
+}
+
+.confirmModalBody::-webkit-scrollbar {
+  width: 0.65rem;
+}
+
+.confirmModalBody::-webkit-scrollbar-track {
+  background: #eef1f5;
+}
+
+.confirmModalBody::-webkit-scrollbar-thumb {
+  background: #aeb7c4;
+  border: 2px solid #eef1f5;
+  border-radius: 999px;
+}
+
+.contentCard {
   background: #fff;
-  border: 1px solid var(--payment-border);
-  border-radius: 0.72rem;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
-  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-width: 0;
+  overflow: visible;
 }
 
-.cardHeader {
+.sectionTitle {
   align-items: center;
-  background: #000;
-  color: #fff;
+  background: transparent;
+  color: var(--payment-text);
   display: flex;
-  gap: 0.75rem;
-  min-height: 3.25rem;
-  padding: 0.85rem 1rem;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 0 0 1rem;
+  row-gap: 0.55rem;
 }
 
-.cardHeader i {
+.sectionTitle > div {
+  align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.sectionTitle i {
   color: var(--payment-orange);
+  flex: 0 0 auto;
   font-size: 1rem;
 }
 
-.cardHeader span {
-  color: #fff;
-  font-size: 0.82rem;
+.sectionTitle h3 {
+  color: var(--payment-text);
+  font-size: 0.95rem;
   font-weight: 850;
-  letter-spacing: 0.045em;
+  letter-spacing: 0.06em;
+  margin: 0;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
-.cardBody {
+.dataGrid {
   display: grid;
-  padding: 1rem 1.05rem;
+  gap: 0.8rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
 }
 
-.detailItem {
-  align-items: center;
-  border-bottom: 1px solid #edf2f7;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: auto 1fr;
-  min-height: 4.35rem;
-  padding: 0.58rem 0;
-}
-
-.detailItem:first-child {
-  padding-top: 0;
-}
-
-.detailItem:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.detailIcon {
-  align-items: center;
-  background: rgba(var(--payment-orange-rgb), 0.1);
-  border: 1px solid rgba(var(--payment-orange-rgb), 0.18);
+.dataItem {
+  background: #f8fafc;
+  border: 1px solid var(--payment-border);
   border-radius: 0.62rem;
-  color: var(--payment-orange);
-  display: inline-flex;
-  font-size: 1.2rem;
-  height: 2.75rem;
-  justify-content: center;
-  width: 2.75rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
 }
 
-.detailItem span:not(.detailIcon) {
+.dataItem dt {
   color: #64748b;
-  display: block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 850;
   letter-spacing: 0.065em;
-  line-height: 1.1;
-  margin-bottom: 0.3rem;
+  line-height: 1.15;
+  margin-bottom: 0.35rem;
   text-transform: uppercase;
 }
 
-.detailItem strong {
-  color: #111;
-  display: block;
-  font-size: 0.98rem;
+.dataItem dd {
+  color: var(--payment-text);
+  font-size: 0.92rem;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.3;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
-.detailStatusPill {
+.productsSection {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.productCard {
+  border: 1px solid var(--payment-border);
+  border-radius: 0.65rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.productCardHeader {
   align-items: center;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  display: inline-flex !important;
-  font-size: 0.85rem !important;
-  font-weight: 850 !important;
-  line-height: 1 !important;
-  padding: 0.45rem 0.75rem;
-  width: fit-content;
+  background: var(--payment-text);
+  border-bottom: 1px solid var(--payment-border);
+  display: grid;
+  gap: 0.3rem;
+  min-height: 3.35rem;
+  padding: 0.8rem 0.9rem;
 }
 
-.detailStatusPending {
-  background: rgba(var(--payment-orange-rgb), 0.1);
-  color: var(--payment-orange) !important;
+.productCardHeader span {
+  color: var(--payment-orange);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
-.detailStatusRejected {
-  background: rgba(239, 18, 28, 0.08);
-  color: var(--payment-red) !important;
+.productDetails {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
 }
 
-.detailStatusConfirmed {
-  background: rgba(36, 143, 85, 0.09);
-  color: var(--payment-green) !important;
+.productDetails .dataItem {
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--payment-border);
+}
+
+.productDetails .dataItem:not(:last-child) {
+  border-right: 1px solid var(--payment-border);
+}
+
+.detailsState {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--payment-border);
+  border-radius: 0.65rem;
+  color: var(--payment-muted);
+  display: flex;
+  font-weight: 750;
+  gap: 0.65rem;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.detailsError {
+  background: #fff1f0;
+  border-color: #f1b5b5;
+  color: #b02a37;
 }
 
 .holdConfirmButton {
   align-items: center;
-  background: #000;
-  border: 1px solid #111;
+  background: var(--payment-text);
+  border: 1px solid var(--payment-text);
   border-radius: 0.45rem;
   color: #fff;
   display: inline-flex;
@@ -282,34 +331,50 @@
 }
 
 @media (max-width: 767.98px) {
-  .actionConfirmSummary {
-    grid-template-columns: 1fr;
+  .confirmModalBody {
+    padding: 1rem;
+  }
+
+  .dataGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .productDetails {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .productDetails .dataItem:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .productDetails .dataItem:not(:last-child) {
+    border-right: 0;
   }
 }
 
 @media (max-width: 575.98px) {
   .confirmModalBody {
-    gap: 0.85rem;
     padding: 0.85rem;
   }
 
-  .cardHeader {
+  .sectionTitle {
+    align-items: flex-start;
+    flex-wrap: wrap;
     min-height: 3rem;
     padding: 0.72rem 0.82rem;
   }
 
-  .cardBody {
-    padding: 0.85rem;
+  .dataGrid {
+    grid-template-columns: 1fr;
+    padding: 0;
   }
 
-  .detailItem {
-    gap: 0.75rem;
-    min-height: 3.85rem;
+  .productDetails {
+    grid-template-columns: 1fr;
   }
 
-  .detailIcon {
-    height: 2.35rem;
-    width: 2.35rem;
+  .productDetails .dataItem:not(:last-child) {
+    border-right: 0;
   }
 
   .holdConfirmButton {

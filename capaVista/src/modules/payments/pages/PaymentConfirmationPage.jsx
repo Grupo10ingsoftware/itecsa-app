@@ -1,5 +1,5 @@
 import { useAuthorizedFile } from '../../../hooks/useAuthorizedFile'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,6 +13,7 @@ import SalesNotePreviewModal from '../components/SalesNotePreviewModal'
 import { usePaymentsApi } from '../hooks/usePaymentsApi'
 import {
   getPaymentStatusIdByName,
+  mergePaymentPreview,
   normalizePaymentOrder,
   normalizePaymentOrders,
 } from '../utils/paymentOrders'
@@ -49,6 +50,9 @@ export default function PaymentConfirmationPage() {
   const [loadError, setLoadError] = useState(null)
   const [updateError, setUpdateError] = useState(null)
   const [isUpdatingPaymentStatus, setIsUpdatingPaymentStatus] = useState(false)
+  const [isLoadingActionDetails, setIsLoadingActionDetails] = useState(false)
+  const [actionDetailsError, setActionDetailsError] = useState(null)
+  const previewRequestId = useRef(0)
   const canUpdatePaymentStatus = hasPermission(PERMISSIONS.UPDATE_PAYMENT_STATUS)
 
   useEffect(() => {
@@ -250,7 +254,7 @@ export default function PaymentConfirmationPage() {
     setEditingStatus({})
   }, [])
 
-  const openPaymentActionConfirmation = useCallback((order, targetStatus) => {
+  const openPaymentActionConfirmation = useCallback(async (order, targetStatus) => {
     if (!canUpdatePaymentStatus || isUpdatingPaymentStatus) {
       setEditingStatus({})
       setPendingTransition(null)
@@ -274,22 +278,68 @@ export default function PaymentConfirmationPage() {
       return
     }
 
+    const requestId = previewRequestId.current + 1
+    previewRequestId.current = requestId
     setPendingTransition({ order, targetStatus })
     setEditingStatus({})
-  }, [canUpdatePaymentStatus, isUpdatingPaymentStatus])
+    setActionDetailsError(null)
+    setIsLoadingActionDetails(true)
+
+    try {
+      const preview = await paymentsApi.getPaymentPreview(order.id)
+
+      if (previewRequestId.current !== requestId) return
+
+      setPendingTransition((currentTransition) => {
+        if (
+          currentTransition?.order?.id !== order.id ||
+          currentTransition?.targetStatus !== targetStatus
+        ) {
+          return currentTransition
+        }
+
+        return {
+          ...currentTransition,
+          order: mergePaymentPreview(currentTransition.order, preview),
+        }
+      })
+    } catch (error) {
+      if (previewRequestId.current !== requestId) return
+
+      console.error('Error cargando detalle de pago:', error)
+      setActionDetailsError(
+        error?.payload?.message ??
+          'No fue posible cargar la información completa del pedido.',
+      )
+    } finally {
+      if (previewRequestId.current === requestId) {
+        setIsLoadingActionDetails(false)
+      }
+    }
+  }, [
+    canUpdatePaymentStatus,
+    isUpdatingPaymentStatus,
+    paymentsApi,
+  ])
 
   const closePaymentActionConfirmation = useCallback(() => {
     if (isUpdatingPaymentStatus) return
 
+    previewRequestId.current += 1
     setPendingTransition(null)
+    setActionDetailsError(null)
+    setIsLoadingActionDetails(false)
   }, [isUpdatingPaymentStatus])
 
   const openCredentialsValidation = useCallback(() => {
-    if (!pendingTransition) return
+    if (!pendingTransition || isLoadingActionDetails || actionDetailsError) return
 
+    previewRequestId.current += 1
     setCredentialsTransition(pendingTransition)
     setPendingTransition(null)
-  }, [pendingTransition])
+    setActionDetailsError(null)
+    setIsLoadingActionDetails(false)
+  }, [actionDetailsError, isLoadingActionDetails, pendingTransition])
 
   const closeCredentialsValidation = useCallback(() => {
     if (isUpdatingPaymentStatus) return
@@ -408,6 +458,8 @@ export default function PaymentConfirmationPage() {
       />
 
       <PaymentActionConfirmModal
+        detailsError={actionDetailsError}
+        isLoadingDetails={isLoadingActionDetails}
         isUpdating={isUpdatingPaymentStatus}
         onCancel={closePaymentActionConfirmation}
         onValidate={openCredentialsValidation}

@@ -10,6 +10,7 @@
 
 .confirmModalBackdrop {
   background: rgba(15, 23, 42, 0.62);
+  overflow: hidden;
   z-index: 1060;
 }
 
@@ -29,8 +30,8 @@
 
 .confirmModalDialog {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
-  height: auto;
-  max-width: min(62rem, calc(100vw - 2rem));
+  height: min(920px, calc(100dvh - 2rem));
+  max-width: min(76rem, calc(100vw - 2rem));
 }
 
 .salesNoteModalDialogExpanded,
@@ -58,6 +59,10 @@
 .confirmModalHeader {
   min-height: 7.6rem;
   padding: 1.55rem 2rem;
+}
+
+.confirmModalHeader > div {
+  min-width: 0;
 }
 
 .salesNoteModalKicker,
@@ -138,7 +143,7 @@
   }
 
   .confirmModalDialog {
-    height: auto;
+    height: calc(100dvh - 1.5rem);
     max-height: calc(100dvh - 1.5rem);
     min-height: 0;
     width: min(100%, calc(100vw - 1.5rem));
@@ -178,6 +183,8 @@
 
   .confirmModalDialog {
     border-radius: 0.7rem;
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
     min-height: 0;
     width: calc(100vw - 1rem);
   }
@@ -223,7 +230,7 @@
   }
 
   .confirmModalDialog {
-    height: auto;
+    height: calc(100dvh - 2rem);
     max-height: calc(100dvh - 2rem);
   }
 }

@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import requireAdministrativeRole from "../src/middlewares/requireAdministrativeRole.js";
@@ -8,7 +9,7 @@ function executeMiddleware(payload) {
     let statusCode;
     let body;
     let nextCalled = false;
-    const req = { auth: { payload } };
+    const req = { auth: { payload: { ...payloadFor(), [ROLES_CLAIM]: undefined, ...payload } } };
     const res = {
         status(code) {
             statusCode = code;

@@ -61,16 +61,7 @@ function logPasswordResetAttempt(logger, { email, status }) {
     });
 }
 
-async function syncInternalRole({ users, auth0UserId, rolUsuario }) {
-    const internalUser = await users.findByAuth0Id(auth0UserId);
-
-    if (internalUser && internalUser.rolUsuario !== rolUsuario) {
-        await users.updateRoleByAuth0Id(auth0UserId, rolUsuario);
-    }
-}
-
 export function createVerifyAuthSessionHandler({
-    users = userRepository,
     pins = { async ensureProvisioned() { return "active"; } },
     logger = console,
 } = {}) {
@@ -106,11 +97,6 @@ export function createVerifyAuthSessionHandler({
         );
 
         try {
-            await syncInternalRole({
-                users,
-                auth0UserId: payload.sub,
-                rolUsuario,
-            });
             const pinStatus = await pins.ensureProvisioned(payload.sub);
 
             return res.status(200).json({

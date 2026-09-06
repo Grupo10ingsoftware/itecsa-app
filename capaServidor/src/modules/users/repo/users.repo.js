@@ -91,7 +91,7 @@ export class UserRepository {
         }
     }
 
-    buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "" } = {}) {
+    buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {
         const where = {};
 
         if (search) {
@@ -113,14 +113,15 @@ export class UserRepository {
             where.rol_usuario = rolUsuario;
         }
 
+        if (allowedRoles) where.AND = [{rol_usuario: {in: allowedRoles}}];
         return where;
     }
 
-    async list({ page = 1, perPage = 10, search = "", estadoUsuario = "", rolUsuario = "" } = {}) {
+    async list({ page = 1, perPage = 10, search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {
         const safePage = Number.isInteger(page) && page > 0 ? page : 1;
         const safePerPage =
             Number.isInteger(perPage) && perPage > 0 && perPage <= 50 ? perPage : 10;
-        const where = this.buildListWhere({ search, estadoUsuario, rolUsuario });
+        const where = this.buildListWhere({ search, estadoUsuario, rolUsuario, allowedRoles });
 
         try {
             const [users, total] = await Promise.all([
@@ -144,12 +145,13 @@ export class UserRepository {
         }
     }
 
-    async getSummary() {
+    async getSummary({allowedRoles} = {}) {
+        const where = allowedRoles ? {rol_usuario:{in:allowedRoles}} : {};
         try {
             const [totalUsuarios, desvinculados] = await Promise.all([
-                this.client.usuario.count(),
+                this.client.usuario.count({where}),
                 this.client.usuario.count({
-                    where: { estado_usuario: "Desvinculado" },
+                    where: { ...where, estado_usuario: "Desvinculado" },
                 }),
             ]);
 

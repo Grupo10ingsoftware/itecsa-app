@@ -1,8 +1,8 @@
+import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
   KANBAN_EN_PRODUCCION_STEP,
   KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
   KANBAN_STAGE_SKIP_MESSAGE,
-  MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
 } from "../../../config/status.js";
@@ -203,14 +203,17 @@ class OrderService {
       throw error;
     }
 
+    // Las etapas automaticas no se pueden forzar mediante /move (tampoco Soporte).
+    if (!((currentStep === 1 && nextStep === 2) || (currentStep === 3 && nextStep === 4))) {
+      const error = new Error("Esta transicion no admite movimiento manual."); error.statusCode = 403; throw error;
+    }
     const isMoveToProduction =
       currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
     const permissions = options.permissions;
 
     if (
       isMoveToProduction &&
-      (!Array.isArray(permissions) ||
-        !permissions.includes(MOVE_KANBAN_TO_PRODUCTION_PERMISSION))
+      !can(options.role, permissions, P.START_PRODUCTION)
     ) {
       const error = new Error(KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
       error.statusCode = 403;
@@ -516,6 +519,18 @@ class OrderService {
       throw error;
     }
 
+    if (currentOrder.estado_pago !== PAYMENT_STATUS.PENDIENTE &&
+        Number(currentOrder.id_estado_pago) !== paymentStatusId) {
+      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
+        const error = new Error("Solo Administrador Cobranzas puede modificar una decision de pago."); error.statusCode = 403; throw error;
+      }
+      if (!String(observacion ?? '').trim()) {
+        const error = new Error("El motivo del cambio de pago es obligatorio."); error.statusCode = 400; throw error;
+      }
+      if (Number(currentOrder.id_etapa_general) >= 2) {
+        const error = new Error("Se requiere el flujo de aprobacion de Produccion, pendiente de implementar."); error.statusCode = 403; throw error;
+      }
+    }
     const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
     const keepsConfirmedPayment =
       paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
@@ -577,10 +592,11 @@ class OrderService {
       nombre_cliente,
       razon_social,
       estado_cliente,
-      id_usuario,
       id_etiqueta,
       productos,
     } = data;
+
+    const id_usuario = await this.resolveInternalUserId({ auth0UserId: options.auth0UserId });
 
     if (
       !id_usuario ||

@@ -101,3 +101,19 @@ test("hideNotification oculta solo mensajes existentes", async () => {
         ["hideNotification", 7, 42],
     ]);
 });
+
+for (const operation of ['markAsRead', 'hideNotification']) {
+    test(`${operation} rechaza un mensaje ajeno sin ejecutar la escritura`, async () => {
+        const { service, calls } = createService({
+            repoOverrides: {
+                async findUserMessage(userId, messageId) {
+                    assert.equal(userId, 7);
+                    assert.equal(messageId, 42);
+                    return null;
+                },
+            },
+        });
+        await assert.rejects(() => service[operation]('auth0|abc', '42'), { statusCode: 404 });
+        assert.equal(calls.some(([name]) => name === operation), false);
+    });
+}

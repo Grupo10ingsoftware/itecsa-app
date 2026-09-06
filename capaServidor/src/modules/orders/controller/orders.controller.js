@@ -1,3 +1,4 @@
+import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
@@ -84,6 +85,8 @@ class OrderController {
                     auth0UserId: req.auth?.payload?.sub,
                     actor: req.pinActor,
                     observacion,
+                    role: roleFromPayload(req.auth?.payload),
+                    permissions: req.auth?.payload?.permissions,
                 },
             );
 
@@ -115,6 +118,7 @@ class OrderController {
                 generalStepId,
                 {
                     permissions: req.auth?.payload?.permissions,
+                    role: roleFromPayload(req.auth?.payload),
                     actor: req.pinActor,
                     comment,
                 },

@@ -66,10 +66,9 @@ export default function ProfilePage() {
     if (pinStatus !== 'pending_acknowledgement' || visiblePin) return
 
     let current = true
-    setPinError('')
     authApi.revealPin()
       .then(({ pin }) => {
-        if (current) setVisiblePin(pin)
+        if (current) { setPinError(''); setVisiblePin(pin) }
       })
       .catch((error) => {
         if (current) setPinError(error?.payload?.message ?? 'No fue posible mostrar el PIN.')

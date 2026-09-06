@@ -656,7 +656,7 @@ class OrderRepository {
 
     if (!order) return null;
 
-    if (Number(order.id_etapa_general) !== 2) {
+    if (Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
       const error = new Error("Los subprocesos solo pueden completarse en Produccion.");
       error.statusCode = 409;
       throw error;
@@ -765,6 +765,10 @@ class OrderRepository {
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });
     if (!detail) return null;
+    const order = await this.get(orderId);
+    if (!order || Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
+      const error = new Error("El pedido debe estar en produccion y con pago confirmado."); error.statusCode = 409; throw error;
+    }
 
     const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
     const currentIndex = subprocesses.findIndex((item) =>

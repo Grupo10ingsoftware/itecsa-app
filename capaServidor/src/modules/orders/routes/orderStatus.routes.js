@@ -1,3 +1,4 @@
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 
 import checkJwt from "../../../middlewares/checkJwt.js";
@@ -10,8 +11,8 @@ export function createOrderStatusRouter({
 } = {}) {
     const router = Router();
 
-    router.get("/", authenticate, controller.getOrderStatuses);
-    router.post("/", authenticate, controller.postOrderStatus);
+    router.get("/", authenticate, requireCapability(P.READ_ORDERS), controller.getOrderStatuses);
+    router.post("/", authenticate, (_req,res) => res.status(403).json({message:"Operacion interna; utiliza el flujo de negocio autorizado."}));
 
     return router;
 }

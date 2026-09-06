@@ -1,3 +1,5 @@
+import { manageableRoles, ROLES } from "../../shared/authorization.js";
+import { invoke, payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -125,7 +127,7 @@ async function executeHandler({
         users,
     });
 
-    await handler({ body }, res);
+    await invoke(handler, { body }, res);
 
     return res;
 }
@@ -135,9 +137,9 @@ async function executePasswordEmailHandler({
     requestPasswordEmail,
 }) {
     const res = responseRecorder();
-    const handler = createPasswordSetupEmailHandler({ requestPasswordEmail });
+    const handler = createPasswordSetupEmailHandler({ requestPasswordEmail, users: createUsersRepositoryMock({existingUser: DEFAULT_INTERNAL_USER}) });
 
-    await handler({ body }, res);
+    await invoke(handler, { body }, res);
 
     return res;
 }
@@ -146,7 +148,7 @@ async function executeListHandler({ query = {}, users = createUsersRepositoryMoc
     const res = responseRecorder();
     const handler = createListAdminUsersHandler({ users });
 
-    await handler({ query }, res);
+    await invoke(handler, { query }, res);
 
     return res;
 }
@@ -155,7 +157,7 @@ async function executeSummaryHandler({ users = createUsersRepositoryMock() } = {
     const res = responseRecorder();
     const handler = createAdminUsersSummaryHandler({ users });
 
-    await handler({}, res);
+    await invoke(handler, {}, res);
 
     return res;
 }
@@ -174,7 +176,7 @@ async function executeUpdateHandler({
     const res = responseRecorder();
     const handler = createUpdateAdminUserHandler({ updateUser, users });
 
-    await handler({ auth: { payload: {} }, body, params }, res);
+    await invoke(handler, { auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -188,7 +190,7 @@ async function executeStatusHandler({
     const res = responseRecorder();
     const handler = createUpdateAdminUserStatusHandler({ updateStatus, users });
 
-    await handler({ auth: { payload: {} }, body, params }, res);
+    await invoke(handler, { auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -223,6 +225,7 @@ test("responde 200 con listado interno y filtros normalizados", async () => {
         search: "ana",
         estadoUsuario: "Vinculado",
         rolUsuario: "Gerencia",
+        allowedRoles: manageableRoles(ROLES.SOPORTE),
     });
     assert.deepEqual(res.body.usuarios[0], {
         idUsuario: DEFAULT_INTERNAL_USER.idUsuario,
@@ -357,7 +360,7 @@ test("rechaza autodesvinculacion por endpoint de estado", async () => {
         }),
     });
     const selfRes = responseRecorder();
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: "auth0|created-user" } },
             body: { estadoUsuario: "Desvinculado" },
@@ -388,7 +391,7 @@ test("rechaza cambio de estado desde edicion completa", async () => {
         }),
     });
     const selfRes = responseRecorder();
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: "auth0|created-user" } },
             body: {
@@ -727,6 +730,7 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
         "/api/admin",
         createAdminUsersRouter({
             authenticate(req, res, next) {
+                req.auth={payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -784,7 +788,9 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
     app.use(
         "/api/admin",
         createAdminUsersRouter({
+            users: createUsersRepositoryMock({existingUser: DEFAULT_INTERNAL_USER}),
             authenticate(req, res, next) {
+                req.auth={payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },

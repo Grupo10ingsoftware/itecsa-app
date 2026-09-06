@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
-import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import KanbanCard from './KanbanCard'
@@ -541,7 +540,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   const [moveError, setMoveError] = useState(null)
   const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
-  const { hasPermission, hasRole } = useAuth()
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -612,7 +611,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   }
 
   function handleDragEnd(event) {
-    if (event.canceled) return
+    if (event.canceled || !hasPermission(PERMISSIONS.MOVE_ORDERS)) return
 
     const { source, target } = event.operation
     if (!source || !target) return
@@ -624,6 +623,9 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
 
     const currentStep = Number(order.generalStepId)
     const targetStep = Number(targetColumn.generalStepId)
+    if (!((currentStep === 1 && targetStep === 2) || (currentStep === 3 && targetStep === 4))) {
+      setMoveError('Esta transicion es automatica o no esta permitida.'); return
+    }
     const isForwardMove = targetStep > currentStep
 
     // Prechecks de UX; el backend vuelve a validar etapa, pago y permisos.
@@ -804,7 +806,11 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
                         isCorrectionRequested={order.correctionRequested}
                         isPaymentDeconfirmationRequested={order.paymentDeconfirmationRequested}
                         isProducing={order.isProducing}
-                        canManageIndicators={hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)}
+                        canMove={hasPermission(PERMISSIONS.MOVE_ORDERS) && (
+                          Number(order.generalStepId) === 3 ||
+                          (Number(order.generalStepId) === 1 && hasPermission(PERMISSIONS.START_PRODUCTION))
+                        )}
+                        canManageIndicators={hasPermission(PERMISSIONS.MANAGE_TAGS)}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
                         onToggleIndicator={(indicator) => handleToggleIndicator(order.id, indicator)}
@@ -821,8 +827,11 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
         onCompleteSubprocess={handleCompleteSubprocess}
-        canCancelProduction={hasRole(ROLES.ADMINISTRADOR)}
-        canReevaluate={hasRole(ROLES.VENTAS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
+        canCompleteSubprocess={hasPermission(PERMISSIONS.UPDATE_SUBPROCESSES)}
+        canReview={hasPermission(PERMISSIONS.REVIEW_ORDERS)}
+        canRollbackSubprocess={hasPermission(PERMISSIONS.ROLLBACK_SUBPROCESSES)}
+        canCancelProduction={hasPermission(PERMISSIONS.CANCEL_ORDERS)}
+        canReevaluate={hasPermission(PERMISSIONS.REEVALUATE_ORDERS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
         onCancelProduction={handleCancelProduction}
         onRollbackSubprocess={handleRollbackSubprocess}
         onReevaluate={handleReevaluate}

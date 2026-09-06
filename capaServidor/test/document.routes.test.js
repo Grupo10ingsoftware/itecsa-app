@@ -1,3 +1,4 @@
+import { authenticated } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -7,7 +8,7 @@ import { createDocumentRouter } from "../src/modules/documents/routes/document.r
 
 function createTestApp() {
   const app = express();
-  app.use("/api/documents", createDocumentRouter());
+  app.use("/api/documents", createDocumentRouter(undefined, authenticated));
   return app;
 }
 

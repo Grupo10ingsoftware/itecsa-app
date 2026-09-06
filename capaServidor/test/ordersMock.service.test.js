@@ -1,3 +1,5 @@
+import { ROLES, ROLE_PERMISSIONS } from "../../shared/authorization.js";
+const revisionActor = {role: ROLES.ADMIN_COBRANZAS, permissions: ROLE_PERMISSIONS[ROLES.ADMIN_COBRANZAS], observacion:"Correccion justificada"};
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
@@ -149,7 +151,7 @@ test("al dejar pago pendiente desde rechazado devuelve la orden a Confirmacion d
     const service = createService();
     await service.updPaymentState(1, 3, { id_usuario: 10 });
 
-    const order = await service.updPaymentState(1, 1, { id_usuario: 10 });
+    const order = await service.updPaymentState(1, 1, { id_usuario: 10, ...revisionActor });
 
     assert.equal(order.estado_pago, "Pendiente");
     assert.equal(order.id_etapa_general, 0);
@@ -175,7 +177,7 @@ test("bloquea devolver un pago confirmado a pendiente sin crear auditoria", asyn
     const service = createService();
 
     await assert.rejects(
-        () => service.updPaymentState(6, 1, { id_usuario: 10 }),
+        () => service.updPaymentState(6, 1, { id_usuario: 10, ...revisionActor }),
         {
             statusCode: 409,
             message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
@@ -189,7 +191,7 @@ test("bloquea rechazar un pago confirmado sin crear auditoria", async () => {
     const service = createService();
 
     await assert.rejects(
-        () => service.updPaymentState(6, 3, { id_usuario: 10 }),
+        () => service.updPaymentState(6, 3, { id_usuario: 10, ...revisionActor }),
         {
             statusCode: 409,
             message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
@@ -227,7 +229,8 @@ test("bloquea mover a Listo para produccion con pago pendiente", async () => {
     await assert.rejects(
         () => service.updGeneralStep(1, 1),
         {
-            message: PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
+            statusCode: 403,
+            message: "Esta transicion no admite movimiento manual.",
         },
     );
 });
@@ -255,6 +258,7 @@ test("bloquea mover a En produccion sin permiso admin", async () => {
 test("permite mover a En produccion con el permiso requerido", async () => {
     const service = createService();
     const order = await service.updGeneralStep(6, 2, {
+        role: ROLES.ADMINISTRADOR,
         permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
         actor: PIN_ACTOR,
     });
@@ -312,7 +316,8 @@ test("bloquea saltar desde Confirmacion de pago directo a En produccion", async 
 
     await assert.rejects(
         () => service.updGeneralStep(1, 2, {
-            permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+            role: ROLES.ADMINISTRADOR,
+        permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
         }),
         {
             statusCode: 409,
@@ -333,10 +338,7 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
     );
 });
 
-test("permite mover de En produccion a Listo para entrega", async () => {
+test("rechaza forzar manualmente la salida automatica de produccion", async () => {
     const service = createService();
-    const order = await service.updGeneralStep(7, 3, { actor: PIN_ACTOR });
-
-    assert.equal(order.id_estado_pago, 2);
-    assert.equal(order.id_etapa_general, 3);
+    await assert.rejects(() => service.updGeneralStep(7, 3, { actor: PIN_ACTOR }), {statusCode:403});
 });

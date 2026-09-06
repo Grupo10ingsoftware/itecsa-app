@@ -1,3 +1,5 @@
+import { useAuth } from "../../../hooks/useAuth";
+import { PERMISSIONS } from "../../../config/permissions";
 import { useEffect, useId, useRef } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentRowActions.module.css'
@@ -190,6 +192,9 @@ export default function PaymentRowActions({
   onViewSignedDetail,
   order,
 }) {
+  const { hasPermission } = useAuth()
+  const canRevise = hasPermission(PERMISSIONS.REVISE_PAYMENT_STATUS)
+  const isResolved = order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
   const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
   const isManageDisabled =
     !canUpdatePaymentStatus || isUpdatingPaymentStatus || isConfirmed
@@ -205,7 +210,7 @@ export default function PaymentRowActions({
         isMobile ? styles.actionControlsGroupMobile : ''
       }`}
     >
-      <ManageButton
+      {canUpdatePaymentStatus && (!isResolved || canRevise) && <ManageButton
         disabled={isManageDisabled}
         disabledTooltip={manageDisabledTooltip}
         isMobile={isMobile}
@@ -214,7 +219,7 @@ export default function PaymentRowActions({
         onSelect={onSelectStatus}
         onToggle={onToggleEditor}
         order={order}
-      />
+      />}
 
       {isConfirmed && typeof onViewSignedDetail === 'function' && (
         <button

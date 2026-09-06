@@ -46,7 +46,7 @@ export function createAdminUsersRouter({
         "/users/password-setup-email",
         authenticate,
         authorize,
-        createPasswordSetupEmailHandler({ requestPasswordEmail }),
+        createPasswordSetupEmailHandler({ requestPasswordEmail, users }),
     );
     router.patch(
         "/users/:userId",

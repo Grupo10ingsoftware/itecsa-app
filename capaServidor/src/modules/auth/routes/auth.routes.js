@@ -1,3 +1,4 @@
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import pinService from "../service/pin.service.js";
@@ -68,18 +69,21 @@ export function createAuthRouter({
     router.get(
         "/verify",
         authenticate,
+        requireCapability(P.READ_PROFILE),
         createVerifyAuthSessionHandler({ users, pins, logger }),
     );
-    router.post("/pin/reveal", authenticate, createRevealPinHandler({ pins }));
-    router.post("/pin/acknowledge", authenticate, createAcknowledgePinHandler({ pins }));
+    router.post("/pin/reveal", authenticate, requireCapability(P.MANAGE_PIN), createRevealPinHandler({ pins }));
+    router.post("/pin/acknowledge", authenticate, requireCapability(P.MANAGE_PIN), createAcknowledgePinHandler({ pins }));
     router.post(
         "/pin-recovery/request",
         authenticate,
+        requireCapability(P.MANAGE_PIN),
         createRequestPinRecoveryHandler({ pins }),
     );
     router.post(
         "/pin-recovery/confirm",
         authenticate,
+        requireCapability(P.MANAGE_PIN),
         createConfirmPinRecoveryHandler({ pins }),
     );
     router.post(

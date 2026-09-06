@@ -1,3 +1,4 @@
+import { useAuthorizedFile } from '../../../hooks/useAuthorizedFile'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
@@ -71,6 +72,7 @@ export default function PdfPreviewFrame({
   viewerClassName = '',
   zoom = 100,
 }) {
+  const fetchAuthorizedFile = useAuthorizedFile()
   const [documentProxy, setDocumentProxy] = useState(null)
   const [pageNumbers, setPageNumbers] = useState([])
   const [loadState, setLoadState] = useState('idle')
@@ -150,10 +152,15 @@ export default function PdfPreviewFrame({
 
     if (!filePath) return undefined
 
-    loadingTask = pdfjsLib.getDocument({ url: filePath })
-
-    loadingTask.promise
+    fetchAuthorizedFile(filePath)
+      .then(blob => blob.arrayBuffer())
+      .then(data => {
+        if (isCancelled) return null
+        loadingTask = pdfjsLib.getDocument({ data })
+        return loadingTask.promise
+      })
       .then((pdfDocument) => {
+        if (!pdfDocument) return
         if (isCancelled) {
           pdfDocument.destroy()
           return
@@ -179,7 +186,7 @@ export default function PdfPreviewFrame({
       cancelActiveRenderTasks()
       loadingTask?.destroy?.()
     }
-  }, [cancelActiveRenderTasks, filePath, retryKey])
+  }, [cancelActiveRenderTasks, fetchAuthorizedFile, filePath, retryKey])
 
   useEffect(() => {
     if (!documentProxy || pageNumbers.length === 0 || viewerWidth <= 0) {

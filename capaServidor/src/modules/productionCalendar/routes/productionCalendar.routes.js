@@ -1,3 +1,4 @@
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 
 import checkJwt from "../../../middlewares/checkJwt.js";
@@ -11,7 +12,7 @@ export function createProductionCalendarRouter({
 
   // Calcula la carga operativa diaria de lanyards repartiendo cada pedido en los dias habiles previos a su entrega.
   // Hoy recibe pedidos desde el cliente para soportar mocks; luego puede leerlos directo desde Prisma/MySQL.
-  router.post("/operational-load", authenticate, controller.calculateOperationalLoad);
+  router.post("/operational-load", authenticate, requireCapability(P.READ_CALENDAR), controller.calculateOperationalLoad);
 
   return router;
 }

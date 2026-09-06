@@ -1,3 +1,4 @@
+import { can } from "../../../../shared/authorization.js";
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthApi } from '../../modules/auth/hooks/useAuthApi'
@@ -140,7 +141,7 @@ export function AuthProvider({ children }) {
       // Control visual de experiencia: la autorizacion efectiva siempre la valida el backend.
       const permissions = verifiedUser?.permissions
 
-      return Array.isArray(permissions) && permissions.includes(permission)
+      return can(verifiedUser?.rolUsuario, permissions, permission)
     },
     [verifiedUser],
   )

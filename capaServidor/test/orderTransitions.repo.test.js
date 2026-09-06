@@ -28,7 +28,7 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
             },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
 
     await repo.updateGeneralStep(6, 2, {
         userId: 10,
@@ -87,7 +87,7 @@ test("subproceso usa la salida anterior como inicio y no genera duración cero",
             registros: { async create() { return { ID_REGISTRO: 30 }; } },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
 
     await repo.completeSubprocess({
         orderId: 6,
@@ -135,7 +135,7 @@ test("subproceso duplicado se rechaza antes de crear un segundo registro", async
             },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
 
     await assert.rejects(
         repo.completeSubprocess({

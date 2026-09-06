@@ -1,3 +1,4 @@
+import { invoke, payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createUpdateAdminUserHandler } from "../src/modules/users/controller/adminUsers.controller.js";
@@ -63,7 +64,7 @@ test("rechaza que un administrador edite su propio rol", async () => {
     });
     const res = responseRecorder();
 
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: CURRENT_ADMIN_ID } },
             params: { userId: CURRENT_ADMIN_ID },
@@ -96,7 +97,7 @@ test("rechaza que un usuario de Soporte edite su propio rol", async () => {
     });
     const res = responseRecorder();
 
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: CURRENT_ADMIN_ID } },
             params: { userId: CURRENT_ADMIN_ID },
@@ -110,10 +111,7 @@ test("rechaza que un usuario de Soporte edite su propio rol", async () => {
         res,
     );
 
-    assert.equal(res.statusCode, 409);
-    assert.deepEqual(res.body, {
-        message: "No puedes cambiar tu propio rol.",
-    });
+    assert.equal(res.statusCode, 403);
 });
 
 test("permite que un administrador edite sus datos si conserva su rol", async () => {
@@ -131,7 +129,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
     });
     const res = responseRecorder();
 
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: CURRENT_ADMIN_ID } },
             params: { userId: CURRENT_ADMIN_ID },

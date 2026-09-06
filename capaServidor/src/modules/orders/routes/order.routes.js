@@ -3,9 +3,8 @@ import {
     UPDATE_PAYMENT_STATUS_PERMISSION,
 } from "../../../config/status.js";
 import checkJwt from "../../../middlewares/checkJwt.js";
-import requirePermission from "../../../middlewares/requirePermission.js";
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import requirePin from "../../../middlewares/requirePin.js";
-import requireAdministrativeRole from "../../../middlewares/requireAdministrativeRole.js";
 import requireAdministratorRole from "../../../middlewares/requireAdministratorRole.js";
 import requireSalesRole from "../../../middlewares/requireSalesRole.js";
 import OrderController from "../controller/orders.controller.js";
@@ -14,10 +13,10 @@ import paymentRecordRoutes from "../../payments/routes/paymentRecord.routes.js";
 
 export function createOrderRouter({
     authenticate = checkJwt,
-    authorizePaymentStatusUpdate = requirePermission(
+    authorizePaymentStatusUpdate = requireCapability(
         UPDATE_PAYMENT_STATUS_PERMISSION,
     ),
-    authorizeAdministrativeRole = requireAdministrativeRole,
+    authorizeAdministrativeRole = requireCapability(P.REVIEW_ORDERS),
     authorizeCancellation = requireAdministratorRole,
     authorizeSales = requireSalesRole,
     controller = new OrderController(),
@@ -47,13 +46,13 @@ export function createOrderRouter({
             controller.completeSubprocess ?? fallbackController.completeSubprocess,
     };
 
-    router.get("/", authenticate, routeController.getOrders);
-    router.get("/kanban", authenticate, routeController.getOrders);
-    router.get("/sales-notes/:numeroNota", authenticate, routeController.getSalesNote);
+    router.get("/", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
+    router.get("/kanban", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
+    router.get("/sales-notes/:numeroNota", authenticate, requireCapability(P.READ_SALES_NOTES), routeController.getSalesNote);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);
-    router.get("/:orderId", authenticate, routeController.getOrder);
-    router.post("/", authenticate, routeController.createOrder);
+    router.get("/:orderId", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrder);
+    router.post("/", authenticate, requireCapability(P.CREATE_ORDERS), routeController.createOrder);
     router.patch(
         "/:orderId/payment-status",
         authenticate,
@@ -61,7 +60,7 @@ export function createOrderRouter({
         validatePin,
         routeController.updatePaymentStatus,
     );
-    router.patch("/:orderId/move", authenticate, validatePin, routeController.updateGeneralStep);
+    router.patch("/:orderId/move", authenticate, requireCapability(P.MOVE_ORDERS), validatePin, routeController.updateGeneralStep);
     router.patch(
         "/:orderId/review",
         authenticate,
@@ -76,18 +75,19 @@ export function createOrderRouter({
         routeController.cancelProduction,
     );
     router.patch("/:orderId/reevaluate", authenticate, authorizeSales, routeController.reevaluate);
-    router.patch("/:orderId/labels", authenticate, authorizeCancellation, routeController.setLabel);
-    router.patch("/:orderId/delivery-date", authenticate, validatePin, routeController.updateDeliveryDate);
+    router.patch("/:orderId/labels", authenticate, requireCapability(P.MANAGE_TAGS), routeController.setLabel);
+    router.patch("/:orderId/delivery-date", authenticate, requireCapability(P.UPDATE_DELIVERY_DATE), validatePin, routeController.updateDeliveryDate);
     router.patch(
         "/:orderId/details/:detailId/subprocesses/:subprocessId/complete",
         authenticate,
+        requireCapability(P.UPDATE_SUBPROCESSES),
         validatePin,
         routeController.completeSubprocess,
     );
     router.patch(
         "/:orderId/details/:detailId/subprocesses/:subprocessId/rollback",
         authenticate,
-        authorizeCancellation,
+        requireCapability(P.ROLLBACK_SUBPROCESSES),
         validatePin,
         routeController.rollbackSubprocess,
     );

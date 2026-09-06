@@ -1,3 +1,4 @@
+import { useAuthorizedFile } from '../../../hooks/useAuthorizedFile'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
@@ -34,6 +35,7 @@ const FILTERS = [
 export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
   const paymentsApi = usePaymentsApi()
+  const fetchAuthorizedFile = useAuthorizedFile()
   // Mock historico/fallback dev: createMockPaymentOrders() documenta el shape
   // esperado por esta vista. No usar como fuente productiva.
   const [orders, setOrders] = useState([])
@@ -204,8 +206,10 @@ export default function PaymentConfirmationPage() {
       const pdfAsset = getPdfAsset(order, variant, options)
 
       if (pdfAsset.filePath) {
+        const objectUrl = URL.createObjectURL(await fetchAuthorizedFile(pdfAsset.filePath))
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
         openPdfForDownload(
-          pdfAsset.filePath,
+          objectUrl,
           pdfAsset.fileName || `${order.nvNumber}.pdf`,
         )
         return
@@ -215,11 +219,15 @@ export default function PaymentConfirmationPage() {
     } catch (err) {
       console.error('Error downloading NV PDF:', err)
     }
-  }, [])
+  }, [fetchAuthorizedFile])
 
-  const handlePrintNV = useCallback((filePath) => {
-    printPdf(filePath)
-  }, [])
+  const handlePrintNV = useCallback(async (filePath) => {
+    try {
+      const objectUrl = URL.createObjectURL(await fetchAuthorizedFile(filePath))
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000)
+      await printPdf(objectUrl)
+    } catch { setUpdateError("No fue posible acceder al documento autorizado.") }
+  }, [fetchAuthorizedFile])
 
   const handleFilterChange = useCallback((filterKey) => {
     setActiveFilter(filterKey)

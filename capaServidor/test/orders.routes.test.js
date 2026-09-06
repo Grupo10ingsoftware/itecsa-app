@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -50,6 +51,7 @@ test("monta checkJwt antes de listar pedidos", async (t) => {
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -77,6 +79,7 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 req.auth = {
                     payload: { permissions: ["update:payment-status"] },
@@ -125,6 +128,7 @@ test("monta checkJwt y requirePin antes de completar subproceso", async (t) => {
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -159,6 +163,7 @@ test("monta autenticacion y rol administrativo antes de enviar a revision", asyn
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -191,6 +196,7 @@ test("exige autenticacion, rol Administrador Produccion y PIN antes de cancelar"
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -237,6 +243,7 @@ test("responde 403 si el token no contiene update:payment-status", async (t) => 
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 req.auth = { payload: { permissions: ["view:payments-module"] } };
                 next();
             },
@@ -261,6 +268,6 @@ test("responde 403 si el token no contiene update:payment-status", async (t) => 
     assert.equal(response.status, 403);
     assert.equal(updateCalled, false);
     assert.deepEqual(body, {
-        message: "El usuario autenticado no tiene el permiso requerido.",
+        message: "No tienes autorizacion para esta accion.",
     });
 });

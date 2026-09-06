@@ -31,12 +31,7 @@ export function getPaymentActionMeta(targetStatus) {
     return {
       icon: 'bi-check-circle',
       modalTitle: 'Confirmar pago',
-      question: '¿Quieres confirmar el pago de esta nota de venta?',
       statusLabel: PAYMENT_STATUS.CONFIRMADO,
-      previewTitle: 'Vista previa de Nota de Venta',
-      previewDescription:
-        'Se muestra el documento asociado si existe una ruta disponible.',
-      pdfVariant: PDF_VARIANT.ORIGINAL,
       holdLabel: 'Validar cambio',
       completedLabel: 'Validando cambio...',
     }
@@ -46,12 +41,7 @@ export function getPaymentActionMeta(targetStatus) {
     return {
       icon: 'bi-x-circle',
       modalTitle: 'Rechazar pago',
-      question: '¿Quieres rechazar el pago de esta nota de venta?',
       statusLabel: PAYMENT_STATUS.RECHAZADO,
-      previewTitle: 'Vista previa de Nota de Venta a rechazar',
-      previewDescription:
-        'Se muestra el documento original asociado al pago que será rechazado.',
-      pdfVariant: PDF_VARIANT.ORIGINAL,
       holdLabel: 'Validar cambio',
       completedLabel: 'Confirmando cambio...',
     }
@@ -60,12 +50,7 @@ export function getPaymentActionMeta(targetStatus) {
   return {
     icon: 'bi-arrow-counterclockwise',
     modalTitle: 'Marcar como pendiente',
-    question: '¿Quieres marcar este pago como pendiente?',
     statusLabel: PAYMENT_STATUS.PENDIENTE,
-    previewTitle: 'Vista previa de Nota de Venta',
-    previewDescription:
-      'Se muestra el documento original asociado al pago que volverá a quedar pendiente.',
-    pdfVariant: PDF_VARIANT.ORIGINAL,
     holdLabel: 'Validar cambio',
     completedLabel: 'Confirmando cambio...',
   }

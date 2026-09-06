@@ -1,19 +1,19 @@
 .confirmModalBody {
   background: #fff;
-  display: grid;
   flex: 1 1 auto;
-  gap: 1.25rem;
-  grid-template-columns: minmax(300px, 0.31fr) minmax(0, 1fr);
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
   padding: 1.25rem 1.5rem;
 }
 
-.actionConfirmSidebar {
-  align-content: start;
+.actionConfirmSummary {
   display: grid;
   gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 56rem;
   min-width: 0;
+  width: 100%;
 }
 
 .card {
@@ -130,125 +130,6 @@
   background: rgba(36, 143, 85, 0.09);
   color: var(--payment-green) !important;
 }
-
-.documentPanel {
-  background: #fff;
-  border: 1px solid var(--payment-border);
-  border-radius: 0.82rem;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-
-.documentPanelExpanded {
-  border-radius: 0;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
-  height: 100dvh;
-  inset: 0;
-  position: fixed;
-  width: 100vw;
-  z-index: 2000;
-}
-
-.documentPanelExpanded .pdfPreviewFrame {
-  border-radius: 0;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.documentHeader {
-  align-items: center;
-  background: #000;
-  color: #fff;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  min-height: 3.45rem;
-  padding: 0.7rem 1rem;
-}
-
-.documentTitle {
-  align-items: center;
-  color: #fff;
-  display: flex;
-  gap: 0.62rem;
-  min-width: 0;
-}
-
-.documentTitle i {
-  color: var(--payment-orange);
-  font-size: 1rem;
-}
-
-.documentTitle span {
-  color: #fff;
-  font-size: 0.86rem;
-  font-weight: 850;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.toolbar {
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 0.35rem;
-  display: inline-flex;
-  flex: 0 0 auto;
-  overflow: hidden;
-}
-
-.toolbar button,
-.toolbar span {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
-  display: inline-flex;
-  font-size: 0.9rem;
-  font-weight: 750;
-  height: 2.15rem;
-  justify-content: center;
-  min-width: 2.55rem;
-  padding: 0 0.72rem;
-}
-
-.toolbar button:last-child,
-.toolbar span:last-child {
-  border-right: 0;
-}
-
-.toolbar button:hover:not(:disabled) {
-  background: rgba(var(--payment-orange-rgb), 0.18);
-  color: var(--payment-orange);
-}
-
-.toolbar button:disabled {
-  color: rgba(255, 255, 255, 0.35);
-  cursor: not-allowed;
-}
-
-.toolbar span {
-  min-width: 4.4rem;
-}
-
-.pdfPreviewFrame {
-  background: #e9eef5;
-  border: 4px solid #1f2933;
-  border-radius: 0;
-  border-top: 0;
-  flex: 1 1 auto;
-  min-height: clamp(520px, 62dvh, 680px);
-}
-
-.previewSpinner {
-  color: var(--payment-orange);
-}
-
-
 
 .holdConfirmButton {
   align-items: center;
@@ -400,46 +281,9 @@
   border-top: 1px solid var(--payment-border);
 }
 
-@media (max-width: 1199.98px) {
-  .confirmModalBody {
-    grid-template-columns: 1fr;
-    overflow: visible;
-    padding: 1rem;
-  }
-
-  .actionConfirmSidebar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pdfPreviewFrame {
-    min-height: clamp(500px, 64dvh, 620px);
-  }
-}
-
 @media (max-width: 767.98px) {
-  .actionConfirmSidebar {
+  .actionConfirmSummary {
     grid-template-columns: 1fr;
-  }
-
-  .documentHeader {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .toolbar {
-    align-self: stretch;
-    width: 100%;
-  }
-
-  .toolbar button,
-  .toolbar span {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .pdfPreviewFrame {
-    min-height: 480px;
   }
 }
 
@@ -449,8 +293,7 @@
     padding: 0.85rem;
   }
 
-  .cardHeader,
-  .documentHeader {
+  .cardHeader {
     min-height: 3rem;
     padding: 0.72rem 0.82rem;
   }
@@ -469,27 +312,7 @@
     width: 2.35rem;
   }
 
-  .toolbar button,
-  .toolbar span {
-    height: 2rem;
-    padding: 0 0.45rem;
-  }
-
-  .toolbar span {
-    min-width: 3.25rem;
-  }
-
-  .pdfPreviewFrame {
-    min-height: 420px;
-  }
-
   .holdConfirmButton {
     width: 100%;
-  }
-}
-
-@media (max-height: 760px) and (min-width: 1200px) {
-  .pdfPreviewFrame {
-    min-height: 520px;
   }
 }

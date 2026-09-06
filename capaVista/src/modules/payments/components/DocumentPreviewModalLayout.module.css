@@ -29,8 +29,8 @@
 
 .confirmModalDialog {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
-  height: min(900px, calc(100dvh - 2rem));
-  max-width: min(1360px, calc(100vw - 2rem));
+  height: auto;
+  max-width: min(62rem, calc(100vw - 2rem));
 }
 
 .salesNoteModalDialogExpanded,
@@ -130,11 +130,17 @@
     padding: 0.75rem;
   }
 
-  .salesNoteModalDialog,
-  .confirmModalDialog {
+  .salesNoteModalDialog {
     height: auto;
     max-height: none;
     min-height: calc(100dvh - 1.5rem);
+    width: min(100%, calc(100vw - 1.5rem));
+  }
+
+  .confirmModalDialog {
+    height: auto;
+    max-height: calc(100dvh - 1.5rem);
+    min-height: 0;
     width: min(100%, calc(100vw - 1.5rem));
   }
 
@@ -164,10 +170,15 @@
     padding: 0.5rem;
   }
 
-  .salesNoteModalDialog,
-  .confirmModalDialog {
+  .salesNoteModalDialog {
     border-radius: 0.7rem;
     min-height: calc(100dvh - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
+  .confirmModalDialog {
+    border-radius: 0.7rem;
+    min-height: 0;
     width: calc(100vw - 1rem);
   }
 
@@ -207,8 +218,12 @@
     align-items: flex-start !important;
   }
 
-  .salesNoteModalDialog,
-  .confirmModalDialog {
+  .salesNoteModalDialog {
     height: calc(100dvh - 2rem);
+  }
+
+  .confirmModalDialog {
+    height: auto;
+    max-height: calc(100dvh - 2rem);
   }
 }

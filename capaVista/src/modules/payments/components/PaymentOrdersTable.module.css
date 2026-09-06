@@ -32,31 +32,27 @@
 }
 
 .colOrder {
-  width: 11%;
-}
-
-.colDate {
-  width: 14%;
-}
-
-.colClient {
-  width: 19%;
-}
-
-.colRut {
-  width: 12%;
-}
-
-.colSalesNote {
-  width: 16%;
-}
-
-.colPaymentStatus {
   width: 13%;
 }
 
-.colActions {
+.colDate {
+  width: 17%;
+}
+
+.colClient {
+  width: 24%;
+}
+
+.colRut {
+  width: 14%;
+}
+
+.colPaymentStatus {
   width: 15%;
+}
+
+.colActions {
+  width: 17%;
 }
 
 .orderCell {

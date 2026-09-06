@@ -7,7 +7,6 @@ export const PDF_VARIANT = {
 }
 
 export const PREVIEW_CONTEXT = {
-  ORIGINAL: 'original',
   SIGNED_DETAIL: 'signed-detail',
 }
 

@@ -323,10 +323,6 @@ export default function PaymentConfirmationPage() {
     handleUpdatePaymentStatus,
   ])
 
-  const openOriginalPreview = useCallback((order) => {
-    setPreviewState({ context: PREVIEW_CONTEXT.ORIGINAL, order })
-  }, [])
-
   const openSignedDetailPreview = useCallback((order) => {
     setPreviewState({ context: PREVIEW_CONTEXT.SIGNED_DETAIL, order })
   }, [])
@@ -382,7 +378,6 @@ export default function PaymentConfirmationPage() {
               editingStatus={editingStatus}
               isUpdatingPaymentStatus={isUpdatingPaymentStatus}
               onCloseEditor={closePaymentEditor}
-              onOpenSalesNote={openOriginalPreview}
               onSelectStatus={openPaymentActionConfirmation}
               onToggleEditor={openPaymentEditor}
               onViewSignedDetail={openSignedDetailPreview}
@@ -394,7 +389,6 @@ export default function PaymentConfirmationPage() {
               editingStatus={editingStatus}
               isUpdatingPaymentStatus={isUpdatingPaymentStatus}
               onCloseEditor={closePaymentEditor}
-              onOpenSalesNote={openOriginalPreview}
               onSelectStatus={openPaymentActionConfirmation}
               onToggleEditor={openPaymentEditor}
               onViewSignedDetail={openSignedDetailPreview}

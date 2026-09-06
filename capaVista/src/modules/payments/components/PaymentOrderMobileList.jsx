@@ -2,7 +2,6 @@ import { PAYMENT_STATUS } from '@/config/status'
 import { formatPaymentDateTime } from '../utils/paymentDocuments'
 import PaymentRowActions from './PaymentRowActions'
 import PaymentStatusBadge from './PaymentStatusBadge'
-import SalesNoteButton from './SalesNoteButton'
 import styles from './PaymentOrderMobileList.module.css'
 
 const MOBILE_CARD_STATUS_CLASS = {
@@ -17,7 +16,6 @@ export default function PaymentOrderMobileList({
   isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
-  onOpenSalesNote,
   onSelectStatus,
   onToggleEditor,
   onViewSignedDetail,
@@ -63,7 +61,6 @@ export default function PaymentOrderMobileList({
             </dl>
 
             <div className="d-grid gap-2 mt-3">
-              <SalesNoteButton isMobile order={order} onOpen={onOpenSalesNote} />
               <PaymentRowActions
                 canUpdatePaymentStatus={canUpdatePaymentStatus}
                 editingStatus={editingStatus}

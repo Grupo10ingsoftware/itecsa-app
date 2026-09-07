@@ -442,7 +442,7 @@ class OrderRepository {
       where: statusName
         ? { nombre_etapa: statusName }
         : { orden_kanban: Number(ordenKanban) },
-      select: { id_estado_pedido: true },
+      select: { id_estado_pedido: true, orden_kanban: true },
     });
 
     if (!status) return null;
@@ -491,7 +491,11 @@ class OrderRepository {
       throw error;
     }
 
-    return this.get(id);
+    const updatedOrder = await this.get(id);
+    if (Number(status.orden_kanban) === 3) {
+      await this.notifyOrderReady(updatedOrder, now);
+    }
+    return updatedOrder;
   }
 
   async setOrderLabel({ orderId, label, active, userId }) {
@@ -777,7 +781,32 @@ class OrderRepository {
     return message;
   }
 
+  async notifyOrderReady(order, now = new Date()) {
+    const responsibleUserId = Number(order?.id_usuario);
+    if (!Number.isInteger(responsibleUserId) || responsibleUserId <= 0) return null;
+    return this.client.mensaje.create({
+      data: {
+        id_pedido: Number(order.id_pedido),
+        fecha_publicacion: now,
+        Asunto: "Pedido listo para entrega",
+        contenido: `El pedido ${order.numero_nota_venta ?? `#${order.id_pedido}`} pasó a la etapa Listo para Entrega.`,
+        MENSAJE_USUARIO: {
+          create: { id_usuario: responsibleUserId, leido_: false, oculto_: false },
+        },
+      },
+    });
+  }
+
+  // Se invoca dentro de la transacción del servicio, antes de leer los detalles.
+  // Serializa cierres y retrocesos del mismo pedido sin bloquear otros pedidos.
+  async lockProductionOrder(orderId) {
+    await this.client.$queryRaw`
+      SELECT id_pedido FROM Pedidos WHERE id_pedido = ${Number(orderId)} FOR UPDATE
+    `;
+  }
+
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
       where: {
         id_pedido: Number(orderId),
@@ -901,10 +930,30 @@ class OrderRepository {
         id_estado_subproceso: Number(subprocessId),
       },
     });
+    if (!nextSubprocess) {
+      const pendingDetail = await this.client.detalle_pedido.findFirst({
+        where: { id_pedido: Number(orderId), fecha_real_termino: null },
+        select: { id_detalle_pedido: true },
+      });
+      if (!pendingDetail) {
+        const readyOrder = await this.transitionGeneralStage({
+          id: orderId,
+          ordenKanban: 3,
+          userId,
+          comment: "Todos los detalles del pedido completaron sus subprocesos.",
+          now,
+        });
+        if (!readyOrder) {
+          throw new Error("No fue posible avanzar el pedido a Listo para Entrega.");
+        }
+        return readyOrder;
+      }
+    }
     return this.get(orderId);
   }
 
   async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
       where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },

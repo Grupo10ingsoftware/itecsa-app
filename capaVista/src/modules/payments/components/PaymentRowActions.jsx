@@ -65,6 +65,7 @@ function ManageButton({
   const dropdownRef = useRef(null)
   const menuId = useId()
   const actionRootSelector = `[data-payment-action-root="${order.id}"]`
+  const isResolved = order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -163,7 +164,10 @@ function ManageButton({
           onPointerDown={(event) => event.stopPropagation()}
           role="menu"
         >
-          {ACTION_OPTIONS.map((option) => (
+          {ACTION_OPTIONS.filter(
+            (option) =>
+              !isResolved || option.status !== PAYMENT_STATUS.PENDIENTE,
+          ).map((option) => (
             <PaymentActionOption
               className={option.className}
               icon={option.icon}
@@ -195,12 +199,9 @@ export default function PaymentRowActions({
   const { hasPermission } = useAuth()
   const canRevise = hasPermission(PERMISSIONS.REVISE_PAYMENT_STATUS)
   const isResolved = order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
-  const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
   const isManageDisabled =
-    !canUpdatePaymentStatus || isUpdatingPaymentStatus || isConfirmed
-  const manageDisabledTooltip = isConfirmed
-    ? 'El pago confirmado no puede modificarse.'
-    : isUpdatingPaymentStatus
+    !canUpdatePaymentStatus || isUpdatingPaymentStatus
+  const manageDisabledTooltip = isUpdatingPaymentStatus
       ? 'Actualizando estado de pago.'
       : undefined
 

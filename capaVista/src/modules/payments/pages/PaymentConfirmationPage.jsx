@@ -160,7 +160,9 @@ export default function PaymentConfirmationPage() {
       const updatedOrder = await paymentsApi.updatePaymentStatus(orderId, {
         pin: credentials.pin,
         paymentStatusId,
-        observacion: `Cambio de estado a ${newStatus} desde modulo de pagos.`,
+        observacion:
+          credentials.comment ||
+          `Cambio de estado a ${newStatus} desde modulo de pagos.`,
       })
 
       if (updatedOrder?.id_pedido !== undefined || updatedOrder?.id !== undefined) {
@@ -229,13 +231,13 @@ export default function PaymentConfirmationPage() {
     }
 
     if (
-      order.paymentStatus === PAYMENT_STATUS.CONFIRMADO &&
-      targetStatus !== PAYMENT_STATUS.CONFIRMADO
+      order.paymentStatus !== PAYMENT_STATUS.PENDIENTE &&
+      targetStatus === PAYMENT_STATUS.PENDIENTE
     ) {
       setEditingStatus({})
       setPendingTransition(null)
       setCredentialsTransition(null)
-      setUpdateError('El pago confirmado no puede modificarse.')
+      setUpdateError('Un pago resuelto no puede volver al estado Pendiente.')
       return
     }
 

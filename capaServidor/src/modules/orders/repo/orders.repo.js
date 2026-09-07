@@ -611,17 +611,25 @@ class OrderRepository {
   }
 
   async updatePaymentStatus(id, paymentStatusId, nextKanbanOrder) {
-    const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(nextKanbanOrder) },
-      select: { id_estado_pedido: true },
-    });
+    const shouldUpdateOrderStage =
+      nextKanbanOrder !== null && nextKanbanOrder !== undefined;
+    const status = shouldUpdateOrderStage
+      ? await this.client.estado_Pedido.findFirst({
+          where: { orden_kanban: Number(nextKanbanOrder) },
+          select: { id_estado_pedido: true },
+        })
+      : null;
+
+    if (shouldUpdateOrderStage && !status) return null;
 
     try {
       await this.client.pedidos.update({
         where: { id_pedido: Number(id) },
         data: {
           id_estado_pago: Number(paymentStatusId),
-          id_estado_pedido: status?.id_estado_pedido ?? null,
+          ...(shouldUpdateOrderStage
+            ? { id_estado_pedido: status.id_estado_pedido }
+            : {}),
         },
       });
     } catch (error) {
@@ -630,6 +638,44 @@ class OrderRepository {
     }
 
     return this.get(id);
+  }
+
+  async notifyProductionAdministrators({
+    orderId,
+    subject,
+    content,
+    now = new Date(),
+  }) {
+    const administrators = await this.client.usuario.findMany({
+      where: {
+        rol_usuario: ROLES.ADMINISTRADOR,
+        NOT: { estado_usuario: "Desvinculado" },
+      },
+      select: { id_usuario: true },
+    });
+
+    if (administrators.length === 0) return null;
+
+    const message = await this.client.mensaje.create({
+      data: {
+        id_pedido: Number(orderId),
+        fecha_publicacion: now,
+        Asunto: subject,
+        contenido: content,
+      },
+    });
+
+    await this.client.mENSAJE_USUARIO.createMany({
+      data: administrators.map(({ id_usuario }) => ({
+        id_usuario,
+        id_mensaje: message.id_mensaje,
+        leido_: false,
+        oculto_: false,
+      })),
+      skipDuplicates: true,
+    });
+
+    return message;
   }
 
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {

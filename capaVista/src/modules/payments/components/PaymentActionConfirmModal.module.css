@@ -300,7 +300,8 @@
   text-transform: uppercase;
 }
 
-.credentialsModalBody input {
+.credentialsModalBody input,
+.credentialsModalBody textarea {
   border: 1px solid #d7dee8;
   border-radius: 0.55rem;
   color: var(--payment-text);
@@ -309,7 +310,13 @@
   text-transform: none;
 }
 
-.credentialsModalBody input:focus {
+.credentialsModalBody textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.credentialsModalBody input:focus,
+.credentialsModalBody textarea:focus {
   border-color: var(--payment-orange);
   box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.18);
   outline: none;

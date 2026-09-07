@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 
 export default function PaymentCredentialsModal({
@@ -9,21 +10,30 @@ export default function PaymentCredentialsModal({
   targetStatus,
 }) {
   const [pin, setPin] = useState('')
+  const [comment, setComment] = useState('')
   const [error, setError] = useState('')
 
-  const canSubmit = /^\d{6}$/.test(pin)
+  const requiresComment =
+    order?.paymentStatus !== undefined &&
+    order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
+  const canSubmit =
+    /^\d{6}$/.test(pin) && (!requiresComment || comment.trim().length > 0)
 
   if (!order || !targetStatus) return null
 
   const handleSubmit = (event) => {
     event.preventDefault()
     if (!canSubmit) {
-      setError('Ingrese su PIN de seis digitos.')
+      setError(
+        !/^\d{6}$/.test(pin)
+          ? 'Ingrese su PIN de seis digitos.'
+          : 'Ingrese el motivo del cambio de estado.',
+      )
       return
     }
 
     setError('')
-    onConfirm({ pin })
+    onConfirm({ comment: comment.trim(), pin })
   }
 
   return (
@@ -73,6 +83,23 @@ export default function PaymentCredentialsModal({
               value={pin}
             />
           </label>
+
+          {requiresComment && (
+            <label>
+              <span>Motivo del cambio</span>
+              <textarea
+                disabled={isSubmitting}
+                maxLength={2000}
+                onChange={(event) => {
+                  setComment(event.target.value)
+                  setError('')
+                }}
+                placeholder="Explique por qué se modifica la decisión de pago"
+                rows={4}
+                value={comment}
+              />
+            </label>
+          )}
 
           {error && <p className={styles.credentialsError}>{error}</p>}
         </div>

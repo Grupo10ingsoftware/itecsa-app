@@ -181,3 +181,70 @@ test("enviar a revision notifica al usuario de Ventas responsable", async () => 
         oculto_: false,
     }]);
 });
+
+test("actualiza solo el pago cuando la etapa debe mantenerse", async () => {
+    const updates = [];
+    let statusQueries = 0;
+    const repo = new OrderRepository({
+        prisma: {
+            estado_Pedido: {
+                async findFirst() {
+                    statusQueries += 1;
+                    return { id_estado_pedido: 1 };
+                },
+            },
+            pedidos: {
+                async update(payload) {
+                    updates.push(payload);
+                    return {};
+                },
+            },
+        },
+    });
+    repo.get = async () => ({
+        id_pedido: 7,
+        estado_pago: "Rechazado",
+        id_etapa_general: 2,
+    });
+
+    await repo.updatePaymentStatus(7, 3, null);
+
+    assert.equal(statusQueries, 0);
+    assert.deepEqual(updates[0].data, { id_estado_pago: 3 });
+});
+
+test("notifica a todos los administradores de Produccion activos", async () => {
+    const assignments = [];
+    const repo = new OrderRepository({
+        prisma: {
+            usuario: {
+                async findMany() {
+                    return [{ id_usuario: 2 }, { id_usuario: 9 }];
+                },
+            },
+            mensaje: {
+                async create({ data }) {
+                    assert.equal(data.Asunto, "Cancelación de producción requerida");
+                    assert.equal(data.id_pedido, 7);
+                    return { id_mensaje: 51 };
+                },
+            },
+            mENSAJE_USUARIO: {
+                async createMany({ data }) {
+                    assignments.push(...data);
+                },
+            },
+        },
+    });
+
+    await repo.notifyProductionAdministrators({
+        orderId: 7,
+        subject: "Cancelación de producción requerida",
+        content: "El pedido debe cancelarse.",
+    });
+
+    assert.deepEqual(assignments, [
+        { id_usuario: 2, id_mensaje: 51, leido_: false, oculto_: false },
+        { id_usuario: 9, id_mensaje: 51, leido_: false, oculto_: false },
+    ]);
+});

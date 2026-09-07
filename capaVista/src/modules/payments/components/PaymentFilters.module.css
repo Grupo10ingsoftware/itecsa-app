@@ -1,15 +1,21 @@
 .toolbar {
+  align-items: center;
   border-bottom: 1px solid var(--payment-border);
   border-top: 1px solid #eef2f7;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 38rem), 1fr)
+  );
   padding: 1.25rem 2.55rem 1.05rem;
 }
 
 .filterGroup {
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-width: 45rem;
-  width: min(100%, 45rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
 }
 
 .filterButton {
@@ -82,21 +88,131 @@
   color: #111;
 }
 
+.filterControls {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  justify-content: end;
+  justify-self: end;
+  min-width: 0;
+  width: 100%;
+}
+
+.dateRangeGroup {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 0.22rem solid var(--payment-orange);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 3.35rem;
+  min-width: 0;
+  padding: 0.38rem 0.65rem;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dateRangeGroupActive {
+  background: #fff;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+}
+
+.dateRangeGroup:focus-within {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.14);
+}
+
+.dateField {
+  cursor: pointer;
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.dateField + .dateField {
+  border-left: 1px solid var(--payment-border);
+  padding-left: 0.6rem;
+}
+
+.dateField span {
+  color: var(--payment-muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dateField input {
+  accent-color: var(--payment-orange);
+  background: transparent;
+  border: 0;
+  color: var(--payment-text);
+  color-scheme: light;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.25;
+  min-width: 0;
+  outline: 0;
+  padding: 0.08rem 0;
+  width: 100%;
+}
+
+.dateField input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.dateRangeClearButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--payment-border);
+  border-radius: 0;
+  color: var(--payment-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 150ms ease, color 150ms ease;
+  width: 2rem;
+}
+
+.dateRangeClearButton:hover:not(:disabled),
+.dateRangeClearButton:focus-visible:not(:disabled) {
+  background: var(--payment-orange);
+  border-left-color: var(--payment-orange);
+  border-radius: 0.4rem;
+  color: #111;
+  outline: none;
+}
+
 .searchBox {
+  align-items: center;
   border: 1px solid #d7dee8;
   border-radius: 0.55rem;
+  display: flex;
   gap: 0.65rem;
-  max-width: 27rem;
   min-height: 3.35rem;
-  padding: 0 1.15rem;
+  min-width: 0;
+  padding: 0 0.9rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
   width: 100%;
+}
+
+.searchBox:focus-within {
+  border-color: var(--payment-orange);
+  box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.14);
 }
 
 .searchBox input {
   border: 0;
   color: #111;
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-style: italic;
   min-width: 0;
   outline: 0;
@@ -107,11 +223,11 @@
 }
 
 .searchBox i {
-  color: #111;
-  font-size: 1.45rem;
+  color: var(--payment-orange);
+  font-size: 1.2rem;
 }
 
-@media (max-width: 1199.98px) {
+@media (max-width: 1399.98px) {
   .toolbar {
     padding-left: 1.35rem;
     padding-right: 1.35rem;
@@ -119,6 +235,11 @@
 
   .filterGroup {
     max-width: none;
+    width: 100%;
+  }
+
+  .filterControls {
+    justify-self: stretch;
     width: 100%;
   }
 }
@@ -132,9 +253,11 @@
   .filterGroup {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .searchBox {
-    max-width: none;
+@media (max-width: 767.98px) {
+  .filterControls {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -161,6 +284,33 @@
 
   .searchBox {
     min-height: 2.9rem;
+  }
+}
+
+@media (max-width: 399.98px) {
+  .dateRangeGroup {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.6rem 0.7rem;
+  }
+
+  .dateRangeGroupActive {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dateRangeGroupActive .dateField {
+    grid-column: 1;
+  }
+
+  .dateField + .dateField {
+    border-left: 0;
+    border-top: 1px solid var(--payment-border);
+    padding-left: 0;
+    padding-top: 0.5rem;
+  }
+
+  .dateRangeClearButton {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 }
 

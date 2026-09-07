@@ -217,6 +217,9 @@ function ProductionDocumentLookup({ onUpdateOrder, order }) {
 
 export default function KanbanOffCanvas({
   canCancelProduction = false,
+  canRollbackSubprocess = false,
+  canCompleteSubprocess = false,
+  canReview = false,
   canReevaluate = false,
   isOpen,
   onApprovePaymentDeconfirmation,
@@ -255,14 +258,15 @@ export default function KanbanOffCanvas({
   const orderItems = getOrderItems(order)
   const comments = Array.isArray(order.comments) ? order.comments : []
   const isInProduction = Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP
-  const canRequestCorrection = Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
+  const canRequestCorrection = canReview && Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
   const hasCorrectionRequest = Boolean(order.correctionRequested)
   const canApprovePaymentDeconfirmation =
+    canReview && typeof onApprovePaymentDeconfirmation === 'function' &&
     Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP &&
     Boolean(order.paymentDeconfirmationRequested)
 
   function openAuthModal(item, process, processIndex, currentProcessIndex) {
-    if (!isInProduction || process.status === 'done' || processIndex !== currentProcessIndex) {
+    if (!canCompleteSubprocess || !isInProduction || process.status === 'done' || processIndex !== currentProcessIndex) {
       return
     }
 
@@ -588,7 +592,8 @@ export default function KanbanOffCanvas({
             )}
             <div className={styles.stepperStack}>
               {orderItems.map((item) => {
-                const currentProcessIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
+                const firstPendingIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
+                const currentProcessIndex = firstPendingIndex < 0 ? item.subProcesses.length : firstPendingIndex
 
                 return (
                   <article className={styles.stepperGroup} key={item.id}>
@@ -597,8 +602,8 @@ export default function KanbanOffCanvas({
                       {item.subProcesses.map((process, index) => {
                         const isDone = process.status === 'done'
                         const isCurrent = isInProduction && index === currentProcessIndex
-                        const isLocked = !isInProduction || (!isDone && !isCurrent)
-                        const canRollback = canCancelProduction && isInProduction && isDone && index === currentProcessIndex - 1
+                        const isLocked = !canCompleteSubprocess || !isInProduction || (!isDone && !isCurrent)
+                        const canRollback = canRollbackSubprocess && isInProduction && isDone && index === currentProcessIndex - 1
 
                         return (
                           <button

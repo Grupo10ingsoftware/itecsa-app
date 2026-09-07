@@ -1,3 +1,4 @@
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 
 import checkJwt from "../../../middlewares/checkJwt.js";
@@ -9,9 +10,10 @@ export function createPaymentRecordRouter({
 } = {}) {
   const router = Router({ mergeParams: true });
 
-  router.get("/", authenticate, controller.getPaymentRecordsByOrderId);
-  router.get("/:paymentRecordId", authenticate, controller.getPaymentRecord);
-  router.post("/", authenticate, controller.postPaymentRecord);
+  router.get("/preview", authenticate, requireCapability(P.READ_PAYMENTS), controller.getConfirmationDetails);
+  router.get("/", authenticate, requireCapability(P.READ_ORDERS), controller.getPaymentRecordsByOrderId);
+  router.get("/:paymentRecordId", authenticate, requireCapability(P.READ_ORDERS), controller.getPaymentRecord);
+  router.post("/", authenticate, (_req,res) => res.status(403).json({message:"Operacion interna; utiliza el flujo de negocio autorizado."}));
 
   return router;
 }

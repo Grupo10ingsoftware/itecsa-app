@@ -12,7 +12,7 @@ export default function ProfileSummary() {
     )
   }
 
-  // Perfil desde la sesion verificada por backend; una vista de perfil dedicada puede ampliarlo despues.
+  // Datos internos entregados por la sesión verificada.
   const firstName = user.primerNombre ?? user.firstName ?? 'Usuario'
   const lastName = user.apellidoPaterno ?? user.lastName ?? ''
   const email = user.correoUsuario ?? user.email ?? 'Correo no disponible'

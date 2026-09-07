@@ -1,110 +1,72 @@
-import { useState } from 'react'
-import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 import DocumentPreviewModalLayout from './DocumentPreviewModalLayout'
-import PdfPreviewFrame from './PdfPreviewFrame'
-import {
-  formatPaymentDateTime,
-  getPaymentActionMeta,
-  getPdfAsset,
-} from '../utils/paymentDocuments'
+import { getPaymentActionMeta } from '../utils/paymentDocuments'
+
+const EMPTY_VALUE = '—'
+
+function displayValue(value) {
+  if (value === null || value === undefined || value === '') return EMPTY_VALUE
+  return value
+}
+
+function DataItem({ label, value }) {
+  return (
+    <div className={styles.dataItem}>
+      <dt>{label}</dt>
+      <dd>{displayValue(value)}</dd>
+    </div>
+  )
+}
+
+function ProductCard({ item, index }) {
+  return (
+    <article className={styles.productCard}>
+      <header className={styles.productCardHeader}>
+        <span>Producto {index + 1}</span>
+      </header>
+
+      <dl className={styles.productDetails}>
+        <DataItem label="Tipo de producto" value={item.productType} />
+        <DataItem label="Producto" value={item.product} />
+        <DataItem label="Código" value={item.code} />
+        <DataItem label="Cantidad" value={item.quantity} />
+      </dl>
+    </article>
+  )
+}
+
+function SectionTitle({ icon, title, titleId }) {
+  return (
+    <header className={styles.sectionTitle}>
+      <div>
+        <i className={`bi ${icon}`} aria-hidden="true" />
+        <h3 id={titleId}>{title}</h3>
+      </div>
+    </header>
+  )
+}
 
 export default function PaymentActionConfirmModal({
+  detailsError = null,
+  isLoadingDetails = false,
   isUpdating = false,
+  mode = 'action',
   onCancel,
   onValidate,
   order,
   targetStatus,
 }) {
-  const [confirmPreviewZoom, setConfirmPreviewZoom] = useState(100)
-  const [isConfirmPreviewExpanded, setIsConfirmPreviewExpanded] = useState(false)
+  const isDetailMode = mode === 'detail'
 
-  if (!order || !targetStatus) return null
+  if (!order || (!isDetailMode && !targetStatus)) return null
 
-  const actionMeta = getPaymentActionMeta(targetStatus)
-  const pdfAsset = getPdfAsset(order, actionMeta.pdfVariant)
+  const actionMeta = isDetailMode ? null : getPaymentActionMeta(targetStatus)
+  const trackedProducts = order.trackedProducts ?? []
+  const normalizedPaymentStatus = String(order.paymentStatus ?? 'registrado')
+    .trim()
+    .toLocaleLowerCase('es')
 
-  const statusClassByValue = {
-    [PAYMENT_STATUS.PENDIENTE]: styles.detailStatusPending,
-    [PAYMENT_STATUS.RECHAZADO]: styles.detailStatusRejected,
-    [PAYMENT_STATUS.CONFIRMADO]: styles.detailStatusConfirmed,
-  }
-
-  const currentStatusClass =
-    statusClassByValue[order.paymentStatus] || styles.detailStatusPending
-  const targetStatusClass =
-    statusClassByValue[targetStatus] || styles.detailStatusPending
-
-  const handleZoomOut = () => {
-    setConfirmPreviewZoom((currentZoom) => Math.max(75, currentZoom - 25))
-  }
-
-  const handleZoomIn = () => {
-    setConfirmPreviewZoom((currentZoom) => Math.min(150, currentZoom + 25))
-  }
-
-  const renderActionDetailItem = ({ icon, label, value, content }) => (
-    <div className={styles.detailItem} key={label}>
-      <span className={styles.detailIcon} aria-hidden="true">
-        <i className={`bi ${icon}`} />
-      </span>
-      <div>
-        <span>{label}</span>
-        {content || <strong>{value}</strong>}
-      </div>
-    </div>
-  )
-
-  const managementRows = [
-    {
-      icon: 'bi-hash',
-      label: 'N° Nota de Venta',
-      value: order.nvNumber,
-    },
-    {
-      icon: 'bi-paperclip',
-      label: 'Archivo asociado',
-      value: pdfAsset.fileName,
-    },
-    {
-      icon: 'bi-clock',
-      label: 'Estado actual',
-      content: (
-        <strong className={`${styles.detailStatusPill} ${currentStatusClass}`}>
-          {order.paymentStatus}
-        </strong>
-      ),
-    },
-    {
-      icon: actionMeta.icon,
-      label: 'Nuevo estado',
-      content: (
-        <strong className={`${styles.detailStatusPill} ${targetStatusClass}`}>
-          {actionMeta.statusLabel}
-        </strong>
-      ),
-    },
-  ]
-
-  const confirmationRows = [
-    {
-      icon: 'bi-people',
-      label: 'Cliente',
-      value: order.companyName,
-    },
-    {
-      icon: 'bi-calendar3',
-      label: 'Fecha de emisión',
-      value: formatPaymentDateTime(order.createdAt),
-    },
-    {
-      icon: 'bi-arrow-repeat',
-      label: 'Resultado esperado',
-      value: 'Actualizar estado del pago',
-    },
-  ]
-
-  const footer = (
+  const actionFooter = (
     <>
       <button
         className="btn btn-outline-secondary"
@@ -117,117 +79,76 @@ export default function PaymentActionConfirmModal({
 
       <button
         className={styles.holdConfirmButton}
-        disabled={isUpdating}
+        disabled={isUpdating || isLoadingDetails || Boolean(detailsError)}
         onClick={onValidate}
         type="button"
       >
         <span>
-          {isUpdating
-            ? actionMeta.completedLabel
-            : actionMeta.holdLabel}
+          {isUpdating ? actionMeta?.completedLabel : actionMeta?.holdLabel}
         </span>
       </button>
     </>
+  )
+  const detailFooter = (
+    <button
+      className="btn btn-outline-secondary"
+      onClick={onCancel}
+      type="button"
+    >
+      Cerrar
+    </button>
   )
 
   return (
     <DocumentPreviewModalLayout
       bodyClassName={styles.confirmModalBody}
-      closeAriaLabel="Cancelar cambio de estado"
-      description="Revisa y confirma el cambio que se aplicará sobre la Nota de Venta."
-      footer={footer}
-      kicker="Cambio de estado"
+      closeAriaLabel={isDetailMode ? 'Cerrar detalle de pago' : 'Cancelar cambio de estado'}
+      description={
+        isDetailMode
+          ? `Detalle de la Nota de Venta asociada al pago ${normalizedPaymentStatus}.`
+          : 'Revisa los datos registrados desde Manager antes de validar el cambio.'
+      }
+      footer={isDetailMode ? detailFooter : actionFooter}
+      kicker={isDetailMode ? `Pago ${normalizedPaymentStatus}` : 'Cambio de estado'}
       onClose={onCancel}
-      title={actionMeta.modalTitle}
-      titleId="payment-action-confirm-title"
-      variant="actionConfirm"
+      title={isDetailMode ? 'Detalle de pago' : actionMeta?.modalTitle}
+      titleId={isDetailMode ? 'payment-detail-title' : 'payment-action-confirm-title'}
+      variant={isDetailMode ? 'salesNote' : 'actionConfirm'}
     >
-      <aside className={styles.actionConfirmSidebar}>
-        <section className={styles.card}>
-          <header className={styles.cardHeader}>
-            <i className="bi bi-file-earmark-text" aria-hidden="true" />
-            <span>Detalle de la gestión</span>
-          </header>
-
-          <div className={styles.cardBody}>
-            {managementRows.map(renderActionDetailItem)}
-          </div>
-        </section>
-
-        <section className={styles.card}>
-          <header className={styles.cardHeader}>
-            <i className="bi bi-shield-exclamation" aria-hidden="true" />
-            <span>Confirmación de acción</span>
-          </header>
-
-          <div className={styles.cardBody}>
-            {confirmationRows.map(renderActionDetailItem)}
-          </div>
-        </section>
-      </aside>
-
-      <section
-        className={`${styles.documentPanel} ${
-          isConfirmPreviewExpanded ? styles.documentPanelExpanded : ''
-        }`}
-      >
-        <div className={styles.documentHeader}>
-          <div className={styles.documentTitle}>
-            <i className="bi bi-file-earmark-pdf" aria-hidden="true" />
-            <span>Vista previa del documento</span>
-          </div>
-
-          <div
-            aria-label="Controles de vista previa"
-            className={styles.toolbar}
-            role="toolbar"
-          >
-            <button
-              aria-label="Reducir zoom"
-              disabled={confirmPreviewZoom <= 75}
-              onClick={handleZoomOut}
-              type="button"
-            >
-              <i className="bi bi-dash-lg" />
-            </button>
-            <span>{confirmPreviewZoom}%</span>
-            <button
-              aria-label="Aumentar zoom"
-              disabled={confirmPreviewZoom >= 150}
-              onClick={handleZoomIn}
-              type="button"
-            >
-              <i className="bi bi-plus-lg" />
-            </button>
-            <button
-              aria-label={
-                isConfirmPreviewExpanded
-                  ? 'Restaurar tamaño'
-                  : 'Agrandar vista previa'
-              }
-              aria-pressed={isConfirmPreviewExpanded}
-              onClick={() =>
-                setIsConfirmPreviewExpanded((currentValue) => !currentValue)
-              }
-              type="button"
-            >
-              <i
-                className={`bi ${
-                  isConfirmPreviewExpanded ? 'bi-fullscreen-exit' : 'bi-fullscreen'
-                }`}
-              />
-            </button>
-          </div>
+      {isLoadingDetails ? (
+        <div className={styles.detailsState} role="status">
+          <span className="spinner-border spinner-border-sm" aria-hidden="true" />
+          Cargando información del pedido...
         </div>
+      ) : detailsError ? (
+        <div className={`${styles.detailsState} ${styles.detailsError}`} role="alert">
+          {detailsError}
+        </div>
+      ) : (
+        <>
+          <section className={styles.contentCard} aria-labelledby="sales-note-detail-title">
+            <SectionTitle
+              icon="bi-receipt"
+              title="Detalle de la Nota de Venta"
+              titleId="sales-note-detail-title"
+            />
+            <dl className={styles.dataGrid}>
+              <DataItem label="Nota de Venta" value={order.nvNumber} />
+              <DataItem label="Cliente" value={order.companyName} />
+              <DataItem label="RUT" value={order.rut} />
+              <DataItem label="Vendedor" value={order.sellerEmail} />
+            </dl>
+          </section>
 
-        <PdfPreviewFrame
-          className={styles.pdfPreviewFrame}
-          emptyMessage="No existe un PDF asociado para mostrar la vista previa de esta accion."
-          filePath={pdfAsset.filePath}
-          title={`${actionMeta.previewTitle} ${order.nvNumber}`}
-          zoom={confirmPreviewZoom}
-        />
-      </section>
+          {trackedProducts.length > 0 && (
+            <section className={styles.productsSection} aria-label="Productos del pedido">
+              {trackedProducts.map((item, index) => (
+                <ProductCard item={item} index={index} key={item.id} />
+              ))}
+            </section>
+          )}
+        </>
+      )}
     </DocumentPreviewModalLayout>
   )
 }

@@ -1,3 +1,4 @@
+import { roleFromPayload, manageableRoles, canManageUser } from "../../../../../shared/authorization.js";
 import {
     AUTH0_MANAGEMENT_SCOPES,
     Auth0ServiceError,
@@ -16,6 +17,14 @@ import {
 import userRepository, {
     UserRepositoryError,
 } from "../repo/users.repo.js";
+
+function allowedTarget(req, res, role) {
+    if (!canManageUser(roleFromPayload(req.auth?.payload), role)) {
+        res.status(403).json({message:"No puedes gestionar ese rol o departamento."});
+        return false;
+    }
+    return true;
+}
 
 const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
 const PASSWORD_EMAIL_ERROR_MESSAGE =
@@ -135,7 +144,12 @@ export function createListAdminUsersHandler({ users = userRepository } = {}) {
         }
 
         try {
-            const result = await users.list(validatedQuery.filters);
+            const allowedRoles = manageableRoles(roleFromPayload(req.auth?.payload));
+            if (!allowedRoles.length || (validatedQuery.filters.rolUsuario && !allowedTarget(req,res,validatedQuery.filters.rolUsuario))) {
+                if (!allowedRoles.length) res.status(403).json({message:"Acceso denegado."});
+                return;
+            }
+            const result = await users.list({...validatedQuery.filters, allowedRoles});
             return res.status(200).json({
                 ...result,
                 usuarios: result.usuarios.map(managementUserResponse),
@@ -149,7 +163,9 @@ export function createListAdminUsersHandler({ users = userRepository } = {}) {
 export function createAdminUsersSummaryHandler({ users = userRepository } = {}) {
     return async function adminUsersSummaryHandler(req, res) {
         try {
-            const result = await users.getSummary();
+            const allowedRoles = manageableRoles(roleFromPayload(req.auth?.payload));
+            if (!allowedRoles.length) return res.status(403).json({message:"Acceso denegado."});
+            const result = await users.getSummary({allowedRoles});
             return res.status(200).json(result);
         } catch {
             return res.status(500).json({ message: LIST_USERS_ERROR_MESSAGE });
@@ -162,6 +178,7 @@ export function createUpdateAdminUserHandler({
     users = userRepository,
 } = {}) {
     return async function updateAdminUserHandler(req, res) {
+        if (req.body?.rolUsuario === "Soporte" && !allowedTarget(req,res,req.body.rolUsuario)) return;
         const userId = req.params.userId;
         const validatedRequest = validateAdminUserUpdateRequest(req.body);
 
@@ -185,6 +202,7 @@ export function createUpdateAdminUserHandler({
                 return res.status(404).json({ message: "El usuario no existe." });
             }
 
+            if (!allowedTarget(req,res,existingUser.rolUsuario) || !allowedTarget(req,res,user.rolUsuario)) return;
             if (
                 isSelfRoleUpdateRequest(
                     req,
@@ -277,6 +295,8 @@ export function createUpdateAdminUserStatusHandler({
                 return res.status(404).json({ message: "El usuario no existe." });
             }
 
+            if (!allowedTarget(req,res,existingUser.rolUsuario)) return;
+
             await updateStatus({
                 userId: normalizedUserId,
                 estadoUsuario: validatedRequest.estadoUsuario,
@@ -309,6 +329,7 @@ export function createUpdateAdminUserStatusHandler({
 }
 
 export function createPasswordSetupEmailHandler({
+    users = userRepository,
     requestPasswordEmail = requestPasswordSetupEmail,
 } = {}) {
     return async function passwordSetupEmailHandler(req, res) {
@@ -319,6 +340,12 @@ export function createPasswordSetupEmailHandler({
         }
 
         try {
+            const target = await users.findByEmail(validatedRequest.correoUsuario);
+            if (!target || !allowedTarget(req,res,target.rolUsuario)) {
+                if (!target) res.status(403).json({message:"No puedes gestionar ese usuario."});
+                return;
+            }
+            if (!['Activo','Vinculado'].includes(target.estadoUsuario)) return res.status(403).json({message:"Usuario desvinculado."});
             await requestPasswordEmail({
                 email: validatedRequest.correoUsuario,
             });
@@ -342,6 +369,7 @@ export function createAdminUserHandler({
     pins = { async provisionByUserId() {} },
 } = {}) {
     return async function adminUserHandler(req, res) {
+        if (req.body?.rolUsuario === "Soporte" && !allowedTarget(req,res,req.body.rolUsuario)) return;
         const validatedRequest = validateAdminUserRequest(req.body);
 
         if (!validatedRequest.valid) {
@@ -349,6 +377,7 @@ export function createAdminUserHandler({
         }
 
         const user = validatedRequest.user;
+        if (!allowedTarget(req,res,user.rolUsuario)) return;
         let createdUser;
         let existingInternalUser;
 

@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -7,7 +8,8 @@ import { createProductionCalendarRouter } from "../src/modules/productionCalenda
 import { calculateOperationalLoadByDate } from "../src/modules/productionCalendar/service/operationalLoad.service.js";
 
 function authenticate(req, res, next) {
-  req.auth = { payload: { sub: "auth0|test-user" } };
+            req.auth = {payload:payloadFor()};
+  req.auth = { payload: payloadFor() };
   next();
 }
 

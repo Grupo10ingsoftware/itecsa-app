@@ -105,6 +105,19 @@ function mapUntrackedItem(item) {
   };
 }
 
+function mapInitialOrderComments(order) {
+  const observation = String(order?.observacion_interna ?? "").trim();
+
+  if (!observation) return [];
+
+  return [
+    {
+      id: `pedido-${order.id_pedido}-observacion-inicial`,
+      text: observation,
+    },
+  ];
+}
+
 export function buildSalesNotePdfUrl(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
     return null;
@@ -165,9 +178,30 @@ function mapOrderRow(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(Pedido_Item_Sin_Seguimiento)
       ? Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
+    comments: mapInitialOrderComments(order),
     ruta_pdf: null,
     firmado: null,
     firma_pago: null,
+  };
+}
+
+function mapPaymentOrderRow(order) {
+  if (!order) return null;
+
+  return {
+    id_pedido: order.id_pedido,
+    numero_nota_venta: order.numero_nota_venta,
+    fecha_creacion: order.fecha_creacion,
+    id_estado_pago: order.id_estado_pago,
+    id_estado_pedido: order.id_estado_pedido,
+    nombre_cliente: order.nombre_cliente ?? null,
+    razon_social: order.razon_social ?? null,
+    rut_cliente: order.rut_cliente ?? null,
+    id_etapa_general: order.id_etapa_general ?? null,
+    generalStepId: order.id_etapa_general ?? null,
+    nombre_etapa_general: order.nombre_etapa_general ?? null,
+    estado_pago: order.estado_pago ?? null,
+    paymentStatus: order.estado_pago ?? null,
   };
 }
 
@@ -213,25 +247,6 @@ class OrderRepository {
     return this.prisma;
   }
 
-  async getPaymentStatusNamesByIds(ids) {
-    const uniqueIds = [...new Set(ids.filter((id) => id !== null && id !== undefined))];
-
-    if (uniqueIds.length === 0) return new Map();
-
-    const statuses = await this.client.estado_Pago.findMany({
-      where: {
-        id_estado_pago: { in: uniqueIds.map(Number) },
-      },
-    });
-
-    return new Map(
-      statuses.map((status) => [
-        Number(status.id_estado_pago),
-        status.nombre_estado_pago,
-      ]),
-    );
-  }
-
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
@@ -239,18 +254,71 @@ class OrderRepository {
     });
   }
 
+  async existsBySalesNoteNumber(numeroNota) {
+    const order = await this.client.pedidos.findFirst({
+      where: { numero_nota_venta: String(numeroNota) },
+      select: { id_pedido: true },
+    });
+
+    return Boolean(order);
+  }
+
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
       include: orderReadInclude,
       orderBy: { id_pedido: "desc" },
     });
-    const paymentStatuses = await this.getPaymentStatusNamesByIds(
-      orders.map((order) => order.id_estado_pago),
-    );
 
-    return orders.map((order) =>
-      mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
-    );
+    return orders.map((order) => mapOrderRow(order));
+  }
+
+  async getPaymentOrders() {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      ORDER BY p.id_pedido DESC
+    `;
+
+    return orders.map(mapPaymentOrderRow);
+  }
+
+  async getPaymentOrder(id) {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      WHERE p.id_pedido = ${Number(id)}
+      LIMIT 1
+    `;
+
+    return mapPaymentOrderRow(orders[0]);
   }
 
   async get(id) {
@@ -261,15 +329,10 @@ class OrderRepository {
 
     if (!order) return null;
 
-    const paymentStatuses = await this.getPaymentStatusNamesByIds([order.id_estado_pago]);
-
-    return mapOrderRow(
-      order,
-      paymentStatuses.get(Number(order.id_estado_pago)) ?? null,
-    );
+    return mapOrderRow(order);
   }
 
-  async create(data) {
+  async create(data, { hydrate = true } = {}) {
     const {
       id_cliente,
       id_usuario,
@@ -302,7 +365,7 @@ class OrderRepository {
       },
     });
 
-    return this.get(order.id_pedido);
+    return hydrate ? this.get(order.id_pedido) : order;
   }
 
   async addLabels(orderId, labelIds = [], userId = null) {
@@ -373,7 +436,7 @@ class OrderRepository {
       where: statusName
         ? { nombre_etapa: statusName }
         : { orden_kanban: Number(ordenKanban) },
-      select: { id_estado_pedido: true },
+      select: { id_estado_pedido: true, orden_kanban: true },
     });
 
     if (!status) return null;
@@ -422,7 +485,11 @@ class OrderRepository {
       throw error;
     }
 
-    return this.get(id);
+    const updatedOrder = await this.get(id);
+    if (Number(status.orden_kanban) === 3) {
+      await this.notifyOrderReady(updatedOrder, now);
+    }
+    return updatedOrder;
   }
 
   async setOrderLabel({ orderId, label, active, userId }) {
@@ -458,6 +525,18 @@ class OrderRepository {
   }
 
   async updateGeneralStep(id, ordenKanban, audit = {}) {
+    if (Number(ordenKanban) === 3) {
+      await this.lockProductionOrder(id);
+      const details = await this.client.detalle_pedido.findMany({
+        where: { id_pedido: Number(id) },
+        select: { fecha_real_termino: true },
+      });
+      if (details.length === 0 || details.some((detail) => !detail.fecha_real_termino)) {
+        const error = new Error("Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
     return this.transitionGeneralStage({
       id,
       ordenKanban,
@@ -610,18 +689,35 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async updatePaymentStatus(id, paymentStatusId, nextKanbanOrder) {
-    const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(nextKanbanOrder) },
-      select: { id_estado_pedido: true },
-    });
+  async updatePaymentStatus(
+    id,
+    paymentStatusId,
+    nextKanbanOrder,
+    { currentOrder, paymentStatusName } = {},
+  ) {
+    const shouldUpdateOrderStage =
+      nextKanbanOrder !== null && nextKanbanOrder !== undefined;
+    const status = shouldUpdateOrderStage
+      ? await this.client.estado_Pedido.findFirst({
+          where: { orden_kanban: Number(nextKanbanOrder) },
+          select: {
+            id_estado_pedido: true,
+            nombre_etapa: true,
+            orden_kanban: true,
+          },
+        })
+      : null;
+
+    if (shouldUpdateOrderStage && !status) return null;
 
     try {
       await this.client.pedidos.update({
         where: { id_pedido: Number(id) },
         data: {
           id_estado_pago: Number(paymentStatusId),
-          id_estado_pedido: status?.id_estado_pedido ?? null,
+          ...(shouldUpdateOrderStage
+            ? { id_estado_pedido: status.id_estado_pedido }
+            : {}),
         },
       });
     } catch (error) {
@@ -629,10 +725,94 @@ class OrderRepository {
       throw error;
     }
 
-    return this.get(id);
+    if (!currentOrder) return this.getPaymentOrder(id);
+
+    const normalizedPaymentStatus =
+      paymentStatusName ?? currentOrder.estado_pago ?? null;
+    const normalizedKanbanOrder = shouldUpdateOrderStage
+      ? Number(status.orden_kanban ?? nextKanbanOrder)
+      : currentOrder.id_etapa_general;
+
+    return {
+      ...currentOrder,
+      id_estado_pago: Number(paymentStatusId),
+      estado_pago: normalizedPaymentStatus,
+      paymentStatus: normalizedPaymentStatus,
+      id_estado_pedido: shouldUpdateOrderStage
+        ? status.id_estado_pedido
+        : currentOrder.id_estado_pedido,
+      id_etapa_general: normalizedKanbanOrder,
+      generalStepId: normalizedKanbanOrder,
+      nombre_etapa_general: shouldUpdateOrderStage
+        ? status.nombre_etapa
+        : currentOrder.nombre_etapa_general,
+    };
+  }
+
+  async notifyProductionAdministrators({
+    orderId,
+    subject,
+    content,
+    now = new Date(),
+  }) {
+    const administrators = await this.client.usuario.findMany({
+      where: {
+        rol_usuario: ROLES.ADMINISTRADOR,
+        NOT: { estado_usuario: "Desvinculado" },
+      },
+      select: { id_usuario: true },
+    });
+
+    if (administrators.length === 0) return null;
+
+    const message = await this.client.mensaje.create({
+      data: {
+        id_pedido: Number(orderId),
+        fecha_publicacion: now,
+        Asunto: subject,
+        contenido: content,
+      },
+    });
+
+    await this.client.mENSAJE_USUARIO.createMany({
+      data: administrators.map(({ id_usuario }) => ({
+        id_usuario,
+        id_mensaje: message.id_mensaje,
+        leido_: false,
+        oculto_: false,
+      })),
+      skipDuplicates: true,
+    });
+
+    return message;
+  }
+
+  async notifyOrderReady(order, now = new Date()) {
+    const responsibleUserId = Number(order?.id_usuario);
+    if (!Number.isInteger(responsibleUserId) || responsibleUserId <= 0) return null;
+    return this.client.mensaje.create({
+      data: {
+        id_pedido: Number(order.id_pedido),
+        fecha_publicacion: now,
+        Asunto: "Pedido listo para entrega",
+        contenido: `El pedido ${order.numero_nota_venta ?? `#${order.id_pedido}`} pasó a la etapa Listo para Entrega.`,
+        MENSAJE_USUARIO: {
+          create: { id_usuario: responsibleUserId, leido_: false, oculto_: false },
+        },
+      },
+    });
+  }
+
+  // Se invoca dentro de la transacción del servicio, antes de leer los detalles.
+  // Serializa cierres y retrocesos del mismo pedido sin bloquear otros pedidos.
+  async lockProductionOrder(orderId) {
+    await this.client.$queryRaw`
+      SELECT id_pedido FROM Pedidos WHERE id_pedido = ${Number(orderId)} FOR UPDATE
+    `;
   }
 
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
       where: {
         id_pedido: Number(orderId),
@@ -656,7 +836,7 @@ class OrderRepository {
 
     if (!order) return null;
 
-    if (Number(order.id_etapa_general) !== 2) {
+    if (Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
       const error = new Error("Los subprocesos solo pueden completarse en Produccion.");
       error.statusCode = 409;
       throw error;
@@ -760,18 +940,24 @@ class OrderRepository {
   }
 
   async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
+    await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
       where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });
     if (!detail) return null;
+    const order = await this.get(orderId);
+    if (!order || Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
+      const error = new Error("El pedido debe estar en produccion y con pago confirmado."); error.statusCode = 409; throw error;
+    }
 
     const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
     const currentIndex = subprocesses.findIndex((item) =>
       Number(item.id_estado_subproceso) === Number(detail.id_estado_subproceso));
     const targetIndex = subprocesses.findIndex((item) =>
       Number(item.id_estado_subproceso) === Number(subprocessId));
-    if (currentIndex < 1 || targetIndex !== currentIndex - 1) {
+    const rollbackIndex = detail.fecha_real_termino ? currentIndex : currentIndex - 1;
+    if (currentIndex < 0 || rollbackIndex < 0 || targetIndex !== rollbackIndex) {
       const error = new Error("Solo se puede retroceder al subproceso inmediatamente anterior.");
       error.statusCode = 409;
       throw error;

@@ -1,3 +1,4 @@
+import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import OrderHistoryController from "../controller/orderHistory.controller.js";
@@ -7,8 +8,8 @@ export function createOrderHistoryRouter({
     controller = new OrderHistoryController(),
 } = {}) {
     const router = Router();
-    router.get("/orders", authenticate, controller.listOrders);
-    router.get("/orders/:orderId", authenticate, controller.getOrderHistory);
+    router.get("/orders", authenticate, requireCapability(P.READ_ORDERS), controller.listOrders);
+    router.get("/orders/:orderId", authenticate, requireCapability(P.READ_ORDERS), controller.getOrderHistory);
     return router;
 }
 

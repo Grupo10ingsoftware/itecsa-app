@@ -91,7 +91,45 @@ export class UserRepository {
         }
     }
 
-    buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "" } = {}) {
+    async listRecentRecords(idUsuario) {
+        if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+            throw new UserRepositoryError("USER_NOT_FOUND", "Usuario no válido.");
+        }
+        const records = await this.client.registros.findMany({
+            where: { id_usuario: idUsuario },
+            orderBy: [{ FECHA_HORA: "desc" }, { ID_REGISTRO: "desc" }],
+            take: 10,
+            select: {
+                ID_REGISTRO: true,
+                FECHA_HORA: true,
+                observacion: true,
+                Registro_Pago: { select: {
+                    Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: {
+                        select: { nombre_estado_pago: true },
+                    },
+                } },
+                Registro_Etapas: { select: {
+                    Estado_Pedido: { select: { nombre_etapa: true } },
+                } },
+                registro_subprocesos: { select: {
+                    Estado_Subprocesos: { select: { nombre_estado: true } },
+                } },
+            },
+        });
+        return records.map((record) => ({
+            id: record.ID_REGISTRO,
+            dateTime: record.FECHA_HORA,
+            detail: record.Registro_Pago
+                ? `Estado de pago: ${record.Registro_Pago.Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago?.nombre_estado_pago ?? 'No informado'}`
+                : record.Registro_Etapas
+                    ? `Etapa del pedido: ${record.Registro_Etapas.Estado_Pedido?.nombre_etapa ?? 'No informada'}`
+                    : record.registro_subprocesos
+                        ? `Subproceso: ${record.registro_subprocesos.Estado_Subprocesos?.nombre_estado ?? 'No informado'}`
+                        : record.observacion?.trim() || 'Actividad del pedido',
+        }));
+    }
+
+    buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {
         const where = {};
 
         if (search) {
@@ -113,14 +151,15 @@ export class UserRepository {
             where.rol_usuario = rolUsuario;
         }
 
+        if (allowedRoles) where.AND = [{rol_usuario: {in: allowedRoles}}];
         return where;
     }
 
-    async list({ page = 1, perPage = 10, search = "", estadoUsuario = "", rolUsuario = "" } = {}) {
+    async list({ page = 1, perPage = 10, search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {
         const safePage = Number.isInteger(page) && page > 0 ? page : 1;
         const safePerPage =
             Number.isInteger(perPage) && perPage > 0 && perPage <= 50 ? perPage : 10;
-        const where = this.buildListWhere({ search, estadoUsuario, rolUsuario });
+        const where = this.buildListWhere({ search, estadoUsuario, rolUsuario, allowedRoles });
 
         try {
             const [users, total] = await Promise.all([
@@ -144,12 +183,13 @@ export class UserRepository {
         }
     }
 
-    async getSummary() {
+    async getSummary({allowedRoles} = {}) {
+        const where = allowedRoles ? {rol_usuario:{in:allowedRoles}} : {};
         try {
             const [totalUsuarios, desvinculados] = await Promise.all([
-                this.client.usuario.count(),
+                this.client.usuario.count({where}),
                 this.client.usuario.count({
-                    where: { estado_usuario: "Desvinculado" },
+                    where: { ...where, estado_usuario: "Desvinculado" },
                 }),
             ]);
 

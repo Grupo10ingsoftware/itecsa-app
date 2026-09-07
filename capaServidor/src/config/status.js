@@ -23,7 +23,7 @@ export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
 export const UPDATE_PAYMENT_STATUS_PERMISSION = "update:payment-status";
 
 export const MOVE_KANBAN_TO_PRODUCTION_PERMISSION =
-    "move:kanban-to-production";
+    "start:production";
 
 export const KANBAN_EN_PRODUCCION_STEP = 2;
 

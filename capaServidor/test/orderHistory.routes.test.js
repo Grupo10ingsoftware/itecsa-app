@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -8,6 +9,7 @@ test("protege listado y detalle con checkJwt", async (t) => {
     const calls = [];
     const router = createOrderHistoryRouter({
         authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
             calls.push("checkJwt");
             next();
         },

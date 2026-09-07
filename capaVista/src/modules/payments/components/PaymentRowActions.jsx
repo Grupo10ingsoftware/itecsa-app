@@ -1,3 +1,5 @@
+import { useAuth } from "../../../hooks/useAuth";
+import { PERMISSIONS } from "../../../config/permissions";
 import { useEffect, useId, useRef } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentRowActions.module.css'
@@ -56,6 +58,7 @@ function ManageButton({
   isMobile,
   isOpen,
   onClose,
+  onPrefetch,
   onSelect,
   onToggle,
   order,
@@ -63,6 +66,7 @@ function ManageButton({
   const dropdownRef = useRef(null)
   const menuId = useId()
   const actionRootSelector = `[data-payment-action-root="${order.id}"]`
+  const isResolved = order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -143,8 +147,11 @@ function ManageButton({
           isMobile ? 'w-100' : ''
         }`}
         disabled={disabled}
+        onFocus={() => onPrefetch?.(order)}
+        onMouseEnter={() => onPrefetch?.(order)}
         onClick={() => {
           if (disabled) return
+          onPrefetch?.(order)
           onToggle(order.id)
         }}
         type="button"
@@ -161,7 +168,10 @@ function ManageButton({
           onPointerDown={(event) => event.stopPropagation()}
           role="menu"
         >
-          {ACTION_OPTIONS.map((option) => (
+          {ACTION_OPTIONS.filter(
+            (option) =>
+              !isResolved || option.status !== PAYMENT_STATUS.PENDIENTE,
+          ).map((option) => (
             <PaymentActionOption
               className={option.className}
               icon={option.icon}
@@ -185,17 +195,18 @@ export default function PaymentRowActions({
   isMobile = false,
   isUpdatingPaymentStatus = false,
   onCloseEditor,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
   order,
 }) {
-  const isConfirmed = order.paymentStatus === PAYMENT_STATUS.CONFIRMADO
+  const { hasPermission } = useAuth()
+  const canRevise = hasPermission(PERMISSIONS.REVISE_PAYMENT_STATUS)
+  const isResolved = order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
   const isManageDisabled =
-    !canUpdatePaymentStatus || isUpdatingPaymentStatus || isConfirmed
-  const manageDisabledTooltip = isConfirmed
-    ? 'El pago confirmado no puede modificarse.'
-    : isUpdatingPaymentStatus
+    !canUpdatePaymentStatus || isUpdatingPaymentStatus
+  const manageDisabledTooltip = isUpdatingPaymentStatus
       ? 'Actualizando estado de pago.'
       : undefined
 
@@ -205,23 +216,26 @@ export default function PaymentRowActions({
         isMobile ? styles.actionControlsGroupMobile : ''
       }`}
     >
-      <ManageButton
+      {canUpdatePaymentStatus && (!isResolved || canRevise) && <ManageButton
         disabled={isManageDisabled}
         disabledTooltip={manageDisabledTooltip}
         isMobile={isMobile}
         isOpen={Boolean(editingStatus[order.id])}
         onClose={onCloseEditor}
+        onPrefetch={onPrefetchDetails}
         onSelect={onSelectStatus}
         onToggle={onToggleEditor}
         order={order}
-      />
+      />}
 
-      {isConfirmed && typeof onViewSignedDetail === 'function' && (
+      {isResolved && typeof onViewDetail === 'function' && (
         <button
           className={`${styles.actionButton} ${styles.actionButtonDetail} ${
             isMobile ? 'w-100' : ''
           }`}
-          onClick={() => onViewSignedDetail(order)}
+          onClick={() => onViewDetail(order)}
+          onFocus={() => onPrefetchDetails?.(order)}
+          onMouseEnter={() => onPrefetchDetails?.(order)}
           type="button"
         >
           Ver detalle

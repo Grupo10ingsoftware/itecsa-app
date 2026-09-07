@@ -1,3 +1,4 @@
+import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
@@ -16,6 +17,17 @@ class OrderController {
             res.status( 200 ).json( orders );
         } catch ( error ) {
             res.status(500).json({ message: 'Error al obtener pedidos' });
+        }
+    }
+
+    getPaymentWorkspace = async (req = request, res = response) => {
+        try {
+            const workspace = await this.service.getPaymentWorkspace();
+            res.status(200).json(workspace);
+        } catch (error) {
+            res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al obtener pedidos de cobranza',
+            });
         }
     }
 
@@ -84,6 +96,8 @@ class OrderController {
                     auth0UserId: req.auth?.payload?.sub,
                     actor: req.pinActor,
                     observacion,
+                    role: roleFromPayload(req.auth?.payload),
+                    permissions: req.auth?.payload?.permissions,
                 },
             );
 
@@ -115,6 +129,7 @@ class OrderController {
                 generalStepId,
                 {
                     permissions: req.auth?.payload?.permissions,
+                    role: roleFromPayload(req.auth?.payload),
                     actor: req.pinActor,
                     comment,
                 },

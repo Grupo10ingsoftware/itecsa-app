@@ -9,6 +9,9 @@ try {
   const authorization = await server.ssrLoadModule('/test/authorization.cases.jsx')
   const payments = await server.ssrLoadModule('/test/payment.cases.jsx')
 
+  const profile = await server.ssrLoadModule('/test/profile.cases.jsx')
+
+  profile.run()
   authorization.run()
   payments.run()
 } finally {

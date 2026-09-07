@@ -142,7 +142,7 @@
 .movementRow {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.35fr);
+  grid-template-columns: minmax(7rem, 0.2fr) minmax(0, 1fr) minmax(9rem, 0.3fr);
 }
 
 .movementsHead {
@@ -160,6 +160,7 @@
 }
 
 .movementRow {
+  overflow-wrap: anywhere;
   border-top: 1px solid #edf0f3;
 }
 

@@ -3,26 +3,9 @@ import { useAuth } from '../../../hooks/useAuth'
 import { useAuthApi } from '../../auth/hooks/useAuthApi'
 import RoleBadge from '../../../shared/components/data/RoleBadge'
 import styles from './ProfilePage.module.css'
+import { formatProfileDate } from '../utils/profileFormatters'
 
-const MOCK_MOVEMENTS = Object.freeze([
-  {
-    id: 'profile-movement-1',
-    action: 'Completo el subproceso Impresion del pedido Pedido6.',
-    dateTime: '2026-08-05 11:45',
-  },
-  {
-    id: 'profile-movement-2',
-    action: 'Registro una observacion operativa en el pedido Pedido6.',
-    dateTime: '2026-08-05 11:48',
-  },
-  {
-    id: 'profile-movement-3',
-    action: 'Valido una desvinculacion desde Gestion de usuarios.',
-    dateTime: '2026-08-05 12:10',
-  },
-])
-
-function getDisplayValue(value, fallback = 'Pendiente de backend') {
+function getDisplayValue(value, fallback = 'No informado') {
   return String(value ?? '').trim() || fallback
 }
 
@@ -37,6 +20,19 @@ function getInitials(firstName, lastName, email) {
 export default function ProfilePage() {
   const { auth0User, pinStatus, refreshSession, user } = useAuth()
   const authApi = useAuthApi()
+  const [profileData, setProfileData] = useState(null)
+  const [profileError, setProfileError] = useState('')
+  const [profileAttempt, setProfileAttempt] = useState(0)
+  useEffect(() => {
+    let current = true
+    authApi.getProfile().then((data) => {
+      if (current) setProfileData({ subject: user?.sub, data })
+    }).catch((error) => {
+      if (current) setProfileError(error?.payload?.message ?? 'No fue posible cargar tu perfil.')
+    })
+    return () => { current = false }
+  }, [authApi, user?.sub, profileAttempt])
+  const loadedProfile = profileData?.subject === user?.sub ? profileData?.data : null
   const [visiblePin, setVisiblePin] = useState('')
   const [pinError, setPinError] = useState('')
   const [isPinBusy, setIsPinBusy] = useState(false)
@@ -44,11 +40,11 @@ export default function ProfilePage() {
   const [recoveryRequested, setRecoveryRequested] = useState(false)
   const [recoveryCode, setRecoveryCode] = useState('')
   const profile = useMemo(() => {
-    const firstName = user?.nombreUsuario ?? user?.primerNombre ?? auth0User?.given_name ?? auth0User?.name
-    const lastName = user?.apellidoUsuario ?? user?.apellidoPaterno ?? auth0User?.family_name ?? ''
-    const email = user?.correoUsuario ?? user?.email ?? auth0User?.email
-    const role = user?.rolUsuario ?? user?.role
-    const status = user?.estadoUsuario ?? 'Vinculado'
+    const firstName = loadedProfile?.primerNombre ?? user?.primerNombre
+    const lastName = loadedProfile?.apellidoPaterno ?? user?.apellidoPaterno
+    const email = loadedProfile?.email ?? user?.email
+    const role = loadedProfile?.rolUsuario ?? user?.rolUsuario
+    const status = loadedProfile?.estadoUsuario
 
     return {
       firstName,
@@ -56,11 +52,11 @@ export default function ProfilePage() {
       email,
       role,
       status,
-      rut: user?.rutUsuario,
+      rut: loadedProfile?.rutUsuario,
       picture: auth0User?.picture,
       initials: getInitials(firstName, lastName, email),
     }
-  }, [auth0User, user])
+  }, [auth0User, user, loadedProfile])
 
   useEffect(() => {
     if (pinStatus !== 'pending_acknowledgement' || visiblePin) return
@@ -138,6 +134,16 @@ export default function ProfilePage() {
           </h1>
         </header>
 
+        {profileError ? (
+          <div className="alert alert-danger" role="alert">
+            {profileError}{' '}
+            <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => {
+              setProfileError('')
+              setProfileAttempt((attempt) => attempt + 1)
+            }}>Reintentar</button>
+          </div>
+        ) : !loadedProfile && <p role="status">Cargando perfil...</p>}
+
         <section className={styles.profileGrid} aria-label="Datos del usuario">
           <aside className={styles.photoPanel}>
             {profile.picture ? (
@@ -152,19 +158,19 @@ export default function ProfilePage() {
           <div className={styles.infoPanel}>
             <div className={styles.infoHeader}>
               <div>
-                <span className={styles.sectionLabel}>Informacion ingresada</span>
+                <span className={styles.sectionLabel}>Información personal</span>
                 <h2>{getDisplayValue(`${getDisplayValue(profile.firstName, '')} ${getDisplayValue(profile.lastName, '')}`.trim(), 'Usuario sin nombre')}</h2>
               </div>
-              <span className={styles.statusBadge}>{getDisplayValue(profile.status, 'Vinculado')}</span>
+              <span className={styles.statusBadge}>{getDisplayValue(profile.status)}</span>
             </div>
 
             <dl className={styles.infoList}>
               <div>
-                <dt>Nombres</dt>
+                <dt>Primer nombre</dt>
                 <dd>{getDisplayValue(profile.firstName)}</dd>
               </div>
               <div>
-                <dt>Apellidos</dt>
+                <dt>Apellido paterno</dt>
                 <dd>{getDisplayValue(profile.lastName)}</dd>
               </div>
               <div>
@@ -172,7 +178,7 @@ export default function ProfilePage() {
                 <dd>{getDisplayValue(profile.rut)}</dd>
               </div>
               <div>
-                <dt>Correo electronico</dt>
+                <dt>Correo electrónico</dt>
                 <dd>{getDisplayValue(profile.email)}</dd>
               </div>
               <div>
@@ -183,7 +189,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <dt>Estado</dt>
-                <dd>{getDisplayValue(profile.status, 'Vinculado')}</dd>
+                <dd>{getDisplayValue(profile.status)}</dd>
               </div>
             </dl>
           </div>
@@ -216,19 +222,22 @@ export default function ProfilePage() {
         <section className={styles.movementsPanel} aria-labelledby="movements-title">
           <header className={styles.movementsHeader}>
             <span className={styles.sectionLabel}>Actividad</span>
-            <h2 id="movements-title">Ultimo movimiento</h2>
+            <h2 id="movements-title">Últimos diez registros</h2>
           </header>
 
-          <div className={styles.movementsTable} role="table" aria-label="Ultimos movimientos del usuario">
+          {loadedProfile?.records.length === 0 && <p role="status">Aún no tienes registros asociados.</p>}
+          <div className={styles.movementsTable} role="table" aria-label="Últimos registros del usuario">
             <div className={styles.movementsHead} role="row">
-              <span role="columnheader">Movimiento</span>
-              <span role="columnheader">Fecha y hora</span>
+              <span role="columnheader">Identificador</span>
+              <span role="columnheader">Detalle del movimiento</span>
+              <span role="columnheader">Fecha</span>
             </div>
-            {MOCK_MOVEMENTS.map((movement) => (
+            {(loadedProfile?.records ?? []).map((movement) => (
               <div className={styles.movementRow} key={movement.id} role="row">
-                <span role="cell">{movement.action}</span>
+                <span role="cell">{movement.id}</span>
+                <span role="cell">{movement.detail}</span>
                 <time dateTime={movement.dateTime} role="cell">
-                  {movement.dateTime}
+                  {formatProfileDate(movement.dateTime)}
                 </time>
               </div>
             ))}

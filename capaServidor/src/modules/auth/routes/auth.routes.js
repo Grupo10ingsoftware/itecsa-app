@@ -3,6 +3,7 @@ import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import pinService from "../service/pin.service.js";
 import {
+    createGetProfileHandler,
     createAcknowledgePinHandler,
     createConfirmPinRecoveryHandler,
     createPasswordResetRequestHandler,
@@ -65,6 +66,8 @@ export function createAuthRouter({
     pins = pinService,
 } = {}) {
     const router = Router();
+
+    router.get("/profile", authenticate, requireCapability(P.READ_PROFILE), createGetProfileHandler({ users }));
 
     router.get(
         "/verify",

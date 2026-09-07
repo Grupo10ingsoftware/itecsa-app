@@ -91,6 +91,44 @@ export class UserRepository {
         }
     }
 
+    async listRecentRecords(idUsuario) {
+        if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+            throw new UserRepositoryError("USER_NOT_FOUND", "Usuario no válido.");
+        }
+        const records = await this.client.registros.findMany({
+            where: { id_usuario: idUsuario },
+            orderBy: [{ FECHA_HORA: "desc" }, { ID_REGISTRO: "desc" }],
+            take: 10,
+            select: {
+                ID_REGISTRO: true,
+                FECHA_HORA: true,
+                observacion: true,
+                Registro_Pago: { select: {
+                    Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: {
+                        select: { nombre_estado_pago: true },
+                    },
+                } },
+                Registro_Etapas: { select: {
+                    Estado_Pedido: { select: { nombre_etapa: true } },
+                } },
+                registro_subprocesos: { select: {
+                    Estado_Subprocesos: { select: { nombre_estado: true } },
+                } },
+            },
+        });
+        return records.map((record) => ({
+            id: record.ID_REGISTRO,
+            dateTime: record.FECHA_HORA,
+            detail: record.Registro_Pago
+                ? `Estado de pago: ${record.Registro_Pago.Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago?.nombre_estado_pago ?? 'No informado'}`
+                : record.Registro_Etapas
+                    ? `Etapa del pedido: ${record.Registro_Etapas.Estado_Pedido?.nombre_etapa ?? 'No informada'}`
+                    : record.registro_subprocesos
+                        ? `Subproceso: ${record.registro_subprocesos.Estado_Subprocesos?.nombre_estado ?? 'No informado'}`
+                        : record.observacion?.trim() || 'Actividad del pedido',
+        }));
+    }
+
     buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {
         const where = {};
 

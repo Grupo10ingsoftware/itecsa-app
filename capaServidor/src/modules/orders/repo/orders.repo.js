@@ -105,6 +105,19 @@ function mapUntrackedItem(item) {
   };
 }
 
+function mapInitialOrderComments(order) {
+  const observation = String(order?.observacion_interna ?? "").trim();
+
+  if (!observation) return [];
+
+  return [
+    {
+      id: `pedido-${order.id_pedido}-observacion-inicial`,
+      text: observation,
+    },
+  ];
+}
+
 export function buildSalesNotePdfUrl(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
     return null;
@@ -165,6 +178,7 @@ function mapOrderRow(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(Pedido_Item_Sin_Seguimiento)
       ? Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
+    comments: mapInitialOrderComments(order),
     ruta_pdf: null,
     firmado: null,
     firma_pago: null,
@@ -233,25 +247,6 @@ class OrderRepository {
     return this.prisma;
   }
 
-  async getPaymentStatusNamesByIds(ids) {
-    const uniqueIds = [...new Set(ids.filter((id) => id !== null && id !== undefined))];
-
-    if (uniqueIds.length === 0) return new Map();
-
-    const statuses = await this.client.estado_Pago.findMany({
-      where: {
-        id_estado_pago: { in: uniqueIds.map(Number) },
-      },
-    });
-
-    return new Map(
-      statuses.map((status) => [
-        Number(status.id_estado_pago),
-        status.nombre_estado_pago,
-      ]),
-    );
-  }
-
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
@@ -259,18 +254,22 @@ class OrderRepository {
     });
   }
 
+  async existsBySalesNoteNumber(numeroNota) {
+    const order = await this.client.pedidos.findFirst({
+      where: { numero_nota_venta: String(numeroNota) },
+      select: { id_pedido: true },
+    });
+
+    return Boolean(order);
+  }
+
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
       include: orderReadInclude,
       orderBy: { id_pedido: "desc" },
     });
-    const paymentStatuses = await this.getPaymentStatusNamesByIds(
-      orders.map((order) => order.id_estado_pago),
-    );
 
-    return orders.map((order) =>
-      mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
-    );
+    return orders.map((order) => mapOrderRow(order));
   }
 
   async getPaymentOrders() {
@@ -330,15 +329,10 @@ class OrderRepository {
 
     if (!order) return null;
 
-    const paymentStatuses = await this.getPaymentStatusNamesByIds([order.id_estado_pago]);
-
-    return mapOrderRow(
-      order,
-      paymentStatuses.get(Number(order.id_estado_pago)) ?? null,
-    );
+    return mapOrderRow(order);
   }
 
-  async create(data) {
+  async create(data, { hydrate = true } = {}) {
     const {
       id_cliente,
       id_usuario,
@@ -371,7 +365,7 @@ class OrderRepository {
       },
     });
 
-    return this.get(order.id_pedido);
+    return hydrate ? this.get(order.id_pedido) : order;
   }
 
   async addLabels(orderId, labelIds = [], userId = null) {

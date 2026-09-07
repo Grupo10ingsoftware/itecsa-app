@@ -27,6 +27,9 @@ test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
               Cliente: null,
               Detalle_pedido: [],
               Estado_Pedido: null,
+              Estado_Pago: {
+                nombre_estado_pago: "Pendiente",
+              },
               Pedido_Etiqueta: [
                 {
                   etiqueta: {
@@ -35,16 +38,6 @@ test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
                   },
                 },
               ],
-            },
-          ];
-        },
-      },
-      estado_Pago: {
-        async findMany() {
-          return [
-            {
-              id_estado_pago: 1,
-              nombre_estado_pago: "Pendiente",
             },
           ];
         },
@@ -77,6 +70,7 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
               id_pedido: 2,
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               id_estado_pago: 2,
+              observacion_interna: "Coordinar entrega con el cliente.",
               Cliente: {
                 nombre_cliente: "Mall Plaza",
                 rut_cliente: "76.812.440-5",
@@ -108,17 +102,10 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
                 orden_kanban: 1,
                 nombre_etapa: "Listo para produccion",
               },
+              Estado_Pago: {
+                nombre_estado_pago: "Confirmado",
+              },
               Pedido_Etiqueta: [],
-            },
-          ];
-        },
-      },
-      estado_Pago: {
-        async findMany() {
-          return [
-            {
-              id_estado_pago: 2,
-              nombre_estado_pago: "Confirmado",
             },
           ];
         },
@@ -135,6 +122,12 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
   assert.equal(orders[0].cantidad, 250);
   assert.equal(orders[0].id_etapa_general, 1);
   assert.equal(orders[0].nombre_etapa_general, "Listo para produccion");
+  assert.deepEqual(orders[0].comments, [
+    {
+      id: "pedido-2-observacion-inicial",
+      text: "Coordinar entrega con el cliente.",
+    },
+  ]);
   assert.deepEqual(orders[0].detalles, [
     {
       id_detalle_pedido: 5,
@@ -160,4 +153,35 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
       ],
     },
   ]);
+});
+
+test("crea un pedido sin hidratar relaciones cuando el flujo no las necesita aun", async () => {
+  let reads = 0;
+  const repo = new OrderRepository({
+    prisma: {
+      pedidos: {
+        async create({ data }) {
+          return { id_pedido: 23, ...data };
+        },
+        async findUnique() {
+          reads += 1;
+          return null;
+        },
+      },
+    },
+  });
+
+  const order = await repo.create(
+    {
+      id_cliente: 3,
+      id_usuario: 8,
+      id_estado_pedido: 1,
+      id_estado_pago: 1,
+      numero_nota_venta: "24956",
+    },
+    { hydrate: false },
+  );
+
+  assert.equal(order.id_pedido, 23);
+  assert.equal(reads, 0);
 });

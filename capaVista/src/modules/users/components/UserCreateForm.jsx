@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, manageableRoles } from '../../../config/roles'
 import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
@@ -102,7 +102,7 @@ function buildCreatedUserMessage(user) {
 }
 
 export default function UserCreateForm({ onCreated } = {}) {
-  const { loginWithRedirect } = useAuth()
+  const { loginWithRedirect, user: actor } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const [values, setValues] = useState(INITIAL_VALUES)
   const [fieldErrors, setFieldErrors] = useState(INITIAL_ERRORS)
@@ -316,7 +316,7 @@ export default function UserCreateForm({ onCreated } = {}) {
           value={values.rolUsuario}
         >
           <option value="">Selecciona un rol</option>
-          {OFFICIAL_ROLES.map((role) => (
+          {manageableRoles(actor?.rolUsuario).map((role) => (
             <option key={role} value={role}>
               {getRoleLabel(role)}
             </option>

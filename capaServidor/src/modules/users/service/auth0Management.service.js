@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { OFFICIAL_ROLES } from "../../../config/roles.js";
+import { OFFICIAL_ROLES, FUNCTIONAL_ROLES } from "../../../config/roles.js";
 
 const MANAGEMENT_VARIABLES = [
     "AUTH0_DOMAIN",
@@ -330,6 +330,7 @@ async function replaceUserRole({ domain, accessToken, userId, roleName }) {
 }
 
 export async function createAuth0User({ email, rolUsuario }) {
+    if (!FUNCTIONAL_ROLES.includes(rolUsuario)) throw new Auth0ServiceError("INVALID_ROLE", "Rol no asignable mediante gestion funcional.");
     const normalizedUser = {
         email: assertNonEmptyString(email, "email"),
         role: assertNonEmptyString(rolUsuario, "rolUsuario"),
@@ -404,6 +405,7 @@ export async function updateAuth0User({
     correoUsuario,
     rolUsuario,
 }) {
+    if (!FUNCTIONAL_ROLES.includes(rolUsuario)) throw new Auth0ServiceError("INVALID_ROLE", "Rol no asignable mediante gestion funcional.");
     const normalizedUser = {
         userId: assertNonEmptyString(userId, "userId"),
         email: assertNonEmptyString(correoUsuario, "correoUsuario"),

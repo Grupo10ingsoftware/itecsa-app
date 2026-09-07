@@ -1,8 +1,8 @@
+import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
   KANBAN_EN_PRODUCCION_STEP,
   KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
   KANBAN_STAGE_SKIP_MESSAGE,
-  MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
   PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
   PAYMENT_STATUS,
 } from "../../../config/status.js";
@@ -19,10 +19,14 @@ import PaymentRecordService from "../../payments/service/paymentRecord.service.j
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
-import SalesNoteSourceService from "./salesNoteSource.service.js";
+import SalesNoteSourceService, {
+  normalizeSalesNoteNumber,
+} from "./salesNoteSource.service.js";
 
-export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
-  "No se puede cambiar el estado de un pago confirmado.";
+export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
+  "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
+export const DUPLICATE_SALES_NOTE_MESSAGE =
+  "Esta Nota de Venta ya fue registrada en el sistema y no puede volver a ingresarse.";
 
 function toPrismaDate(value) {
   if (!value) return null;
@@ -203,14 +207,17 @@ class OrderService {
       throw error;
     }
 
+    // Se permiten avances manuales consecutivos desde producción lista hasta entrega.
+    if (!((currentStep === 1 && nextStep === 2) || (currentStep === 2 && nextStep === 3) || (currentStep === 3 && nextStep === 4))) {
+      const error = new Error("Esta transicion no admite movimiento manual."); error.statusCode = 403; throw error;
+    }
     const isMoveToProduction =
       currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
     const permissions = options.permissions;
 
     if (
       isMoveToProduction &&
-      (!Array.isArray(permissions) ||
-        !permissions.includes(MOVE_KANBAN_TO_PRODUCTION_PERMISSION))
+      !can(options.role, permissions, P.START_PRODUCTION)
     ) {
       const error = new Error(KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
       error.statusCode = 403;
@@ -429,8 +436,32 @@ class OrderService {
     return this.repo.getAllOrders();
   }
 
+  async getPaymentWorkspace() {
+    const [orders, paymentStatuses] = await Promise.all([
+      this.repo.getPaymentOrders(),
+      this.paymentRepo.getAll(),
+    ]);
+
+    return { orders, paymentStatuses };
+  }
+
   async getSalesNoteByNumber(numeroNota) {
-    return this.salesNoteSourceService.getByNumber(numeroNota);
+    const normalizedNumber = normalizeSalesNoteNumber(numeroNota);
+    const duplicateCheck = normalizedNumber
+      ? this.repo.existsBySalesNoteNumber(normalizedNumber)
+      : Promise.resolve(false);
+    const [salesNote, isAlreadyRegistered] = await Promise.all([
+      this.salesNoteSourceService.getByNumber(numeroNota),
+      duplicateCheck,
+    ]);
+
+    if (isAlreadyRegistered) {
+      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    return salesNote;
   }
 
   async reevaluateOrder(orderId, { auth0UserId } = {}) {
@@ -504,7 +535,10 @@ class OrderService {
       throw error;
     }
 
-    const paymentStatus = await this.paymentRepo.get(paymentStatusId);
+    const [paymentStatus, currentOrder] = await Promise.all([
+      this.paymentRepo.get(paymentStatusId),
+      this.repo.getPaymentOrder(orderId),
+    ]);
 
     if (!paymentStatus) {
       const error = new Error("Estado de pago no encontrado.");
@@ -512,30 +546,48 @@ class OrderService {
       throw error;
     }
 
-    const currentOrder = await this.repo.get(orderId);
-
     if (!currentOrder) {
       const error = new Error("Pedido no encontrado");
       error.statusCode = 404;
       throw error;
     }
 
-    const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
-    const keepsConfirmedPayment =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+    const currentPaymentStatus = currentOrder.estado_pago;
+    const nextPaymentStatus = paymentStatus.nombre_estado_pago;
+    const isSamePaymentStatus =
+      Number(currentOrder.id_estado_pago) === paymentStatusId;
+    const isResolvedPayment = currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE;
 
-    if (isConfirmedPayment && !keepsConfirmedPayment) {
-      const error = new Error(CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE);
-      error.statusCode = 409;
-      throw error;
+    if (isSamePaymentStatus) {
+      return currentOrder;
     }
 
-    if (isConfirmedPayment && keepsConfirmedPayment) {
-      return currentOrder;
+    if (isResolvedPayment) {
+      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
+        const error = new Error(
+          "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
+      if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
+        const error = new Error(RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
+        error.statusCode = 409;
+        throw error;
+      }
+
+      if (!String(observacion ?? "").trim()) {
+        const error = new Error("El motivo del cambio de pago es obligatorio.");
+        error.statusCode = 400;
+        throw error;
+      }
     }
 
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
+    const KANBAN_EN_PRODUCCION = 2;
+    const KANBAN_CANCELADO = 5;
     const resolvedUserId =
       actor?.idUsuario ??
       await this.resolveInternalUserId({
@@ -543,10 +595,23 @@ class OrderService {
         id_usuario,
       });
 
+    const currentKanbanOrder = Number(currentOrder.id_etapa_general);
+    const isConfirmedToRejected =
+      currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+      nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
+    const cancelsReadyOrder =
+      isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
+    const requiresProductionCancellation =
+      isConfirmedToRejected &&
+      currentKanbanOrder === KANBAN_EN_PRODUCCION;
     const nextKanbanOrder =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
+      nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
         ? KANBAN_LISTO_PRODUCCION
-        : KANBAN_CONFIRMACION_PAGO;
+        : cancelsReadyOrder
+          ? KANBAN_CANCELADO
+          : isConfirmedToRejected
+            ? null
+            : KANBAN_CONFIRMACION_PAGO;
 
     // La transicion de pago es atomica: mueve Kanban y registra auditoria.
     return this.runInTransaction(async ({
@@ -557,6 +622,10 @@ class OrderService {
         orderId,
         paymentStatusId,
         nextKanbanOrder,
+        {
+          currentOrder,
+          paymentStatusName: nextPaymentStatus,
+        },
       );
 
       if (!updatedOrder) return null;
@@ -566,6 +635,33 @@ class OrderService {
         id_estado_pago: paymentStatusId,
         observacion,
       });
+
+      const salesNote =
+        updatedOrder.numero_nota_venta ?? currentOrder.numero_nota_venta ?? `#${orderId}`;
+      const normalizedObservation = String(observacion ?? "").trim();
+
+      if (cancelsReadyOrder) {
+        await repo.notifyProductionAdministrators({
+          orderId,
+          subject: "Pedido cancelado por rechazo de pago",
+          content: [
+            `El pedido ${salesNote} fue cancelado porque su pago cambió de Confirmado a Rechazado.`,
+            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
+          ].filter(Boolean).join("\n"),
+        });
+      }
+
+      if (requiresProductionCancellation) {
+        await repo.notifyProductionAdministrators({
+          orderId,
+          subject: "Cancelación de producción requerida",
+          content: [
+            `El pago del pedido ${salesNote} cambió de Confirmado a Rechazado.`,
+            "La producción de este pedido debe ser cancelada por un Administrador de Producción.",
+            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
+          ].filter(Boolean).join("\n"),
+        });
+      }
 
       return updatedOrder;
     });
@@ -581,10 +677,11 @@ class OrderService {
       nombre_cliente,
       razon_social,
       estado_cliente,
-      id_usuario,
       id_etiqueta,
       productos,
     } = data;
+
+    const id_usuario = await this.resolveInternalUserId({ auth0UserId: options.auth0UserId });
 
     if (
       !id_usuario ||
@@ -700,18 +797,13 @@ class OrderService {
       throw error;
     }
 
-    const existingOrder = await this.repo.getBySalesNoteNumber(numeroNota);
-
-    if (existingOrder) {
-      const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
-      error.statusCode = 409;
-      throw error;
-    }
-
     const resolvedUserId = await this.resolveInternalUserId({
       auth0UserId: options.auth0UserId,
       id_usuario: data.id_usuario,
     });
+    const estimatedCompletionDate = toPrismaDate(
+      data.fechaEntregaTentativaOrigen,
+    );
 
     return this.runInTransaction(async ({
       repo,
@@ -720,10 +812,10 @@ class OrderService {
       productTypeService,
       repoClient,
     }) => {
-      const duplicateOrder = await repo.getBySalesNoteNumber(numeroNota);
+      const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
 
       if (duplicateOrder) {
-        const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
+        const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
         error.statusCode = 409;
         throw error;
       }
@@ -758,12 +850,12 @@ class OrderService {
         id_estado_pedido: 1,
         id_estado_pago: 1,
         id_etiqueta: primaryLabelId,
-        fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+        fecha_estimada_termino: estimatedCompletionDate,
         numero_nota_venta: numeroNota,
         usuario_manager_origen: origen.usuarioManager ?? null,
         observacion_origen: data.observaciones ?? null,
         observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
-      });
+      }, { hydrate: false });
 
       if (!order?.id_pedido) {
         const error = new Error("No se pudo crear el pedido.");
@@ -780,21 +872,33 @@ class OrderService {
       }
 
       const details = [];
+      const productContextByName = new Map();
 
       for (const item of productionItems) {
-        const productType = await productTypeService.getProductTypeByName(
-          item.tipoProducto,
-        );
-        const subprocesses = await repo.getProductSubprocesses(
-          productType.id_tipo_producto,
-        );
-        const firstSubprocess = subprocesses[0] ?? null;
+        let productContext = productContextByName.get(item.tipoProducto);
+
+        if (!productContext) {
+          const productType = await productTypeService.getProductTypeByName(
+            item.tipoProducto,
+          );
+          const subprocesses = await repo.getProductSubprocesses(
+            productType.id_tipo_producto,
+          );
+
+          productContext = {
+            productType,
+            firstSubprocess: subprocesses[0] ?? null,
+          };
+          productContextByName.set(item.tipoProducto, productContext);
+        }
+
         const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productType.id_tipo_producto,
+          id_tipo_producto: productContext.productType.id_tipo_producto,
           cantidad: item.cantidad,
-          fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+          fecha_estimada_termino: estimatedCompletionDate,
           fecha_real_termino: null,
-          id_estado_subproceso: firstSubprocess?.id_estado_subproceso ?? null,
+          id_estado_subproceso:
+            productContext.firstSubprocess?.id_estado_subproceso ?? null,
         });
 
         details.push({

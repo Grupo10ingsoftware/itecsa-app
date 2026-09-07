@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -23,6 +24,9 @@ function createController(updatePaymentStatus) {
         getOrders(req, res) {
             return res.status(200).json([]);
         },
+        getPaymentWorkspace(req, res) {
+            return res.status(200).json({ orders: [], paymentStatuses: [] });
+        },
         getOrder(req, res) {
             return res.status(200).json({});
         },
@@ -45,11 +49,45 @@ function createController(updatePaymentStatus) {
     };
 }
 
+test("usa el endpoint liviano y protegido para cargar cobranzas", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate(req, _res, next) {
+                req.auth = { payload: payloadFor() };
+                calls.push("checkJwt");
+                next();
+            },
+            controller: {
+                ...createController(() => {}),
+                getPaymentWorkspace(_req, res) {
+                    calls.push("getPaymentWorkspace");
+                    return res.status(200).json({
+                        orders: [{ id_pedido: 1 }],
+                        paymentStatuses: [{ id_estado_pago: 1 }],
+                    });
+                },
+            },
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/payments`,
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, ["checkJwt", "getPaymentWorkspace"]);
+    assert.equal(body.orders[0].id_pedido, 1);
+});
+
 test("monta checkJwt antes de listar pedidos", async (t) => {
     const calls = [];
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -77,6 +115,7 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 req.auth = {
                     payload: { permissions: ["update:payment-status"] },
@@ -125,6 +164,7 @@ test("monta checkJwt y requirePin antes de completar subproceso", async (t) => {
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -159,6 +199,7 @@ test("monta autenticacion y rol administrativo antes de enviar a revision", asyn
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -191,6 +232,7 @@ test("exige autenticacion, rol Administrador Produccion y PIN antes de cancelar"
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
@@ -237,6 +279,7 @@ test("responde 403 si el token no contiene update:payment-status", async (t) => 
     const app = createTestApp(
         createOrderRouter({
             authenticate(req, res, next) {
+            req.auth = {payload:payloadFor()};
                 req.auth = { payload: { permissions: ["view:payments-module"] } };
                 next();
             },
@@ -261,6 +304,6 @@ test("responde 403 si el token no contiene update:payment-status", async (t) => 
     assert.equal(response.status, 403);
     assert.equal(updateCalled, false);
     assert.deepEqual(body, {
-        message: "El usuario autenticado no tiene el permiso requerido.",
+        message: "No tienes autorizacion para esta accion.",
     });
 });

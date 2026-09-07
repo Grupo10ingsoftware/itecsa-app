@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import requireAdministratorRole from "../src/middlewares/requireAdministratorRole.js";
@@ -6,16 +7,16 @@ import requireAdministrativeRole from "../src/middlewares/requireAdministrativeR
 import OrderRepository from "../src/modules/orders/repo/orders.repo.js";
 
 for (const [middleware, allowed] of [
-    [requireAdministratorRole, ["Administrador Produccion"]],
-    [requireSalesRole, ["Operario Ventas"]],
-    [requireAdministrativeRole, ["Administrador Produccion", "Soporte"]],
+    [requireAdministratorRole, ["Administrador Produccion", "Soporte"]],
+    [requireSalesRole, ["Operario Ventas", "Administrador Ventas", "Soporte"]],
+    [requireAdministrativeRole, ["Administrador Produccion", "Administrador Ventas", "Administrador Cobranzas", "Soporte"]],
 ]) {
     for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte", "Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas"]) {
         test(`${middleware.name}: acceso de ${role}`, () => {
             let accepted = false;
             let status;
             const res = { status(code) { status = code; return this; }, json() {} };
-            middleware({ auth: { payload: { "https://itecsa.local/roles": [role] } } }, res, () => { accepted = true; });
+            middleware({ auth: { payload: payloadFor(role) } }, res, () => { accepted = true; });
             assert.equal(accepted, allowed.includes(role));
             assert.equal(status, allowed.includes(role) ? undefined : 403);
         });

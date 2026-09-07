@@ -1,4 +1,4 @@
-import { OFFICIAL_ROLES } from "../../../config/roles.js";
+import { FUNCTIONAL_ROLES } from "../../../config/roles.js";
 
 const USER_FIELDS = new Set([
     "nombreUsuario",
@@ -75,7 +75,7 @@ export function validateAdminUserRequest(body) {
         return invalidRequest("El rutUsuario no tiene un formato valido.");
     }
 
-    if (!OFFICIAL_ROLES.has(user.rolUsuario)) {
+    if (!FUNCTIONAL_ROLES.includes(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -129,7 +129,7 @@ export function validateListUsersQuery(query = {}) {
         return invalidRequest("El estadoUsuario no es valido.");
     }
 
-    if (rolUsuario && !OFFICIAL_ROLES.has(rolUsuario)) {
+    if (rolUsuario && !FUNCTIONAL_ROLES.includes(rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -177,7 +177,7 @@ export function validateAdminUserUpdateRequest(body) {
         );
     }
 
-    if (!OFFICIAL_ROLES.has(user.rolUsuario)) {
+    if (!FUNCTIONAL_ROLES.includes(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 

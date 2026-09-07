@@ -30,12 +30,6 @@ function toDisplayRecord(salesNote) {
     seller: salesNote.origen?.usuarioManager ?? '-',
     dueDate: salesNote.fechaEntregaTentativaOrigen ?? '-',
     productType: productTypes.length > 1 ? 'Mixto' : productTypes[0] ?? '-',
-    quantity: items.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0),
-    productionData: items.map((item) => ({
-      ...item,
-      product: item.producto,
-      quantity: item.cantidad,
-    })),
   }
 }
 
@@ -64,7 +58,13 @@ export function useOrderCreateFlow({ navigate }) {
   const [isSearching, setIsSearching] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
 
-  const salesNoteIsValid = useMemo(() => canContinueFromSalesNote(draft), [draft])
+  const salesNoteIsValid = useMemo(
+    () => canContinueFromSalesNote({
+      managerRecord: draft.managerRecord,
+      salesNoteCode: draft.salesNoteCode,
+    }),
+    [draft.managerRecord, draft.salesNoteCode],
+  )
 
   function updateDraftField(field, value) {
     setDraft((previous) => {
@@ -77,19 +77,27 @@ export function useOrderCreateFlow({ navigate }) {
 
       return nextDraft
     })
-    setErrors((previous) => ({ ...previous, [field]: null }))
+    setErrors((previous) => {
+      if (!previous[field]) return previous
+
+      return { ...previous, [field]: null }
+    })
     setNotice(null)
   }
 
   async function handleSearchSalesNote() {
     const code = normalizeSalesNoteCode(draft.salesNoteCode)
 
+    setNotice(null)
+
     if (!code) {
       setErrors((previous) => ({ ...previous, salesNoteCode: 'Debe ingresar el codigo de Nota de Venta.' }))
-      setNotice({ type: 'error', message: 'Ingrese un codigo de Nota de Venta antes de buscar informacion.' })
       return
     }
 
+    if (draft.managerRecord) return
+
+    setErrors((previous) => ({ ...previous, salesNoteCode: null }))
     setIsSearching(true)
 
     try {
@@ -98,7 +106,6 @@ export function useOrderCreateFlow({ navigate }) {
 
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord }))
       setErrors((previous) => ({ ...previous, salesNoteCode: null }))
-      setNotice({ type: 'success', message: `Informacion de ${code} importada correctamente.` })
     } catch (error) {
       const message = getErrorMessage(error, `No se encontro informacion para ${code}.`)
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord: null }))
@@ -106,7 +113,6 @@ export function useOrderCreateFlow({ navigate }) {
         ...previous,
         salesNoteCode: message,
       }))
-      setNotice({ type: 'error', message })
     } finally {
       setIsSearching(false)
     }

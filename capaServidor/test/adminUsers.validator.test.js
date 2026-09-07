@@ -14,14 +14,14 @@ const SUPPORT_USER = {
     rolUsuario: "Soporte",
 };
 
-test("acepta Soporte al crear usuarios", () => {
+test("rechaza Soporte al crear usuarios", () => {
     const result = validateAdminUserRequest(SUPPORT_USER);
 
-    assert.equal(result.valid, true);
-    assert.equal(result.user.rolUsuario, "Soporte");
+    assert.equal(result.valid, false);
+
 });
 
-test("acepta Soporte al actualizar usuarios", () => {
+test("rechaza Soporte al actualizar usuarios", () => {
     const result = validateAdminUserUpdateRequest({
         nombreUsuario: SUPPORT_USER.nombreUsuario,
         apellidoUsuario: SUPPORT_USER.apellidoUsuario,
@@ -29,20 +29,20 @@ test("acepta Soporte al actualizar usuarios", () => {
         rolUsuario: SUPPORT_USER.rolUsuario,
     });
 
-    assert.equal(result.valid, true);
-    assert.equal(result.user.rolUsuario, "Soporte");
+    assert.equal(result.valid, false);
+
 });
 
-test("acepta Soporte al filtrar usuarios", () => {
+test("rechaza Soporte al filtrar usuarios", () => {
     const result = validateListUsersQuery({ rolUsuario: "Soporte" });
 
-    assert.equal(result.valid, true);
-    assert.equal(result.filters.rolUsuario, "Soporte");
+    assert.equal(result.valid, false);
+
 });
 
 for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte", "Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas", "Administración Cobranzas", "Administrador Ventas"]) {
     test(`valida vigencia de ${role} en creación, edición y filtros`, () => {
-        const valid = ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"].includes(role);
+        const valid = ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Administrador Ventas", "Administrador Cobranzas"].includes(role);
         assert.equal(validateAdminUserRequest({ ...SUPPORT_USER, rolUsuario: role }).valid, valid);
         assert.equal(validateAdminUserUpdateRequest({ nombreUsuario: SUPPORT_USER.nombreUsuario, apellidoUsuario: SUPPORT_USER.apellidoUsuario, correoUsuario: SUPPORT_USER.correoUsuario, rolUsuario: role }).valid, valid);
         assert.equal(validateListUsersQuery({ rolUsuario: role }).valid, valid);

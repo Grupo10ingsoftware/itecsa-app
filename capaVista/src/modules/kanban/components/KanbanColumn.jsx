@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import Toast from 'react-bootstrap/Toast'
+import ToastContainer from 'react-bootstrap/ToastContainer'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
-import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import { applyOrderStagePatch } from '../utils/orderStagePatch'
@@ -545,7 +546,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   const [moveError, setMoveError] = useState(null)
   const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
-  const { hasPermission, hasRole } = useAuth()
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -608,7 +609,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   }
 
   function handleDragEnd(event) {
-    if (event.canceled) return
+    if (event.canceled || !hasPermission(PERMISSIONS.MOVE_ORDERS)) return
 
     const { source, target } = event.operation
     if (!source || !target) return
@@ -620,6 +621,15 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
 
     const currentStep = Number(order.generalStepId)
     const targetStep = Number(targetColumn.generalStepId)
+    if (!((currentStep === 1 && targetStep === 2) || (currentStep === 2 && targetStep === 3) || (currentStep === 3 && targetStep === 4))) {
+      setMoveError('Esta transicion es automatica o no esta permitida.'); return
+    }
+    if (targetStep === 3 && (!order.items?.length || order.items.some((item) =>
+      !item.subProcesses?.length || item.subProcesses.some((process) => process.status !== 'done')
+    ))) {
+      setMoveError('Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.')
+      return
+    }
     const isForwardMove = targetStep > currentStep
 
     // Prechecks de UX; el backend vuelve a validar etapa, pago y permisos.
@@ -772,7 +782,15 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
-      {moveError && <div className={styles.kanbanError}>{moveError}</div>}
+      <ToastContainer position="top-end" className="position-fixed p-3" style={{ zIndex: 1090 }}>
+        <Toast show={Boolean(moveError)} onClose={() => setMoveError(null)} autohide delay={8000} role="alert" aria-live="assertive">
+          <Toast.Header closeLabel="Cerrar notificación">
+            <i className="bi bi-exclamation-triangle-fill text-warning me-2" aria-hidden="true" />
+            <strong className="me-auto">No se pudo realizar la acción</strong>
+          </Toast.Header>
+          <Toast.Body>{moveError}</Toast.Body>
+        </Toast>
+      </ToastContainer>
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {
@@ -800,7 +818,11 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
                         isCorrectionRequested={order.correctionRequested}
                         isPaymentDeconfirmationRequested={order.paymentDeconfirmationRequested}
                         isProducing={order.isProducing}
-                        canManageIndicators={hasPermission(PERMISSIONS.MOVE_KANBAN_TO_PRODUCTION)}
+                        canMove={hasPermission(PERMISSIONS.MOVE_ORDERS) && (
+                          [2, 3].includes(Number(order.generalStepId)) ||
+                          (Number(order.generalStepId) === 1 && hasPermission(PERMISSIONS.START_PRODUCTION))
+                        )}
+                        canManageIndicators={hasPermission(PERMISSIONS.MANAGE_TAGS)}
                         key={order.id}
                         onOpenDetail={() => setSelectedOrder(order)}
                         onToggleIndicator={(indicator) => handleToggleIndicator(order.id, indicator)}
@@ -817,8 +839,11 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
         onCompleteSubprocess={handleCompleteSubprocess}
-        canCancelProduction={hasRole(ROLES.ADMINISTRADOR)}
-        canReevaluate={hasRole(ROLES.VENTAS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
+        canCompleteSubprocess={hasPermission(PERMISSIONS.UPDATE_SUBPROCESSES)}
+        canReview={hasPermission(PERMISSIONS.REVIEW_ORDERS)}
+        canRollbackSubprocess={hasPermission(PERMISSIONS.ROLLBACK_SUBPROCESSES)}
+        canCancelProduction={hasPermission(PERMISSIONS.CANCEL_ORDERS)}
+        canReevaluate={hasPermission(PERMISSIONS.REEVALUATE_ORDERS) && Number(selectedOrder?.generalStepId) === KANBAN_REVISION_STEP}
         onCancelProduction={handleCancelProduction}
         onRollbackSubprocess={handleRollbackSubprocess}
         onReevaluate={handleReevaluate}

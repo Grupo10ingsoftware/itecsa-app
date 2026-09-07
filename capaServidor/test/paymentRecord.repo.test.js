@@ -54,3 +54,46 @@ test("create registra auditoria de pago enlazada a Registros", async () => {
     },
   });
 });
+
+test("consulta el detalle del modal en una sola lectura parametrizada", async () => {
+  let query;
+  let values;
+  const repo = new PaymentRecordRepo({
+    prisma: {
+      async $queryRaw(strings, ...parameters) {
+        query = strings.join("?");
+        values = parameters;
+        return [
+          {
+            id_pedido: 33,
+            numero_nota_venta: "23950",
+            nombre_cliente: "Cliente Demo 013",
+            razon_social: "Cliente Demo 013 SpA",
+            rut_cliente: "RUT-DEMO-013",
+            correo_usuario: "vendedor@itecsa.cl",
+            id_detalle_pedido: 38,
+            cantidad: 100,
+            nombre_producto: "Lanyard",
+            descripcion_producto: "Cordón porta credencial",
+          },
+        ];
+      },
+    },
+  });
+
+  const source = await repo.getConfirmationSource(33);
+
+  assert.match(query, /LEFT JOIN Detalle_pedido/);
+  assert.deepEqual(values, [33]);
+  assert.equal(source.Usuario.correo_usuario, "vendedor@itecsa.cl");
+  assert.deepEqual(source.Detalle_pedido, [
+    {
+      id_detalle_pedido: 38,
+      cantidad: 100,
+      Tipo_Producto: {
+        nombre_producto: "Lanyard",
+        descripcion_producto: "Cordón porta credencial",
+      },
+    },
+  ]);
+});

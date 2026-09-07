@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -50,7 +51,7 @@ function createController(calls) {
 function authenticate(calls) {
     return (req, res, next) => {
         calls.push("checkJwt");
-        req.auth = { payload: { sub: "auth0|test" } };
+        req.auth = { payload: payloadFor(undefined, {sub: "auth0|test"}) };
         next();
     };
 }

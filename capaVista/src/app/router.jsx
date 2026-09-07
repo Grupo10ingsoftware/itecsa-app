@@ -57,9 +57,9 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
-            <Route path="perfil" element={<ProfilePage />} />
-            <Route path="mensajes" element={<MessageInboxPage />} />
-            <Route path="mensajes/:messageId" element={<MessageDetailPage />} />
+            <Route path="perfil" element={<RoleGuard requiredPermission={PERMISSIONS.READ_PROFILE}><ProfilePage /></RoleGuard>} />
+            <Route path="mensajes" element={<RoleGuard requiredPermission={PERMISSIONS.READ_MESSAGES}><MessageInboxPage /></RoleGuard>} />
+            <Route path="mensajes/:messageId" element={<RoleGuard requiredPermission={PERMISSIONS.READ_MESSAGES}><MessageDetailPage /></RoleGuard>} />
             <Route
               path="pagos"
               element={
@@ -76,12 +76,12 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
-            <Route path="historial-pedidos" element={<OrderHistoryPage />} />
-            <Route path="historial-pedidos/:orderId" element={<OrderHistoryDetailPage />} />
+            <Route path="historial-pedidos" element={<RoleGuard requiredPermission={PERMISSIONS.READ_ORDERS}><OrderHistoryPage /></RoleGuard>} />
+            <Route path="historial-pedidos/:orderId" element={<RoleGuard requiredPermission={PERMISSIONS.READ_ORDERS}><OrderHistoryDetailPage /></RoleGuard>} />
             <Route
               path="calendario-produccion"
               element={
-                <RoleGuard requiredRoles={ADMINISTRATIVE_ROLES}>
+                <RoleGuard requiredPermission={PERMISSIONS.READ_CALENDAR}>
                   <ProductionCalendarPage />
                 </RoleGuard>
               }

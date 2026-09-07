@@ -1,4 +1,5 @@
-import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
+import { useAuth } from "../../../hooks/useAuth";
+import { getRoleLabel, manageableRoles } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
@@ -23,6 +24,7 @@ export default function UserManagementFilters({
 }) {
   const hasActiveFilters = Boolean(activeRole || activeStatus || searchTerm.trim())
 
+  const { user: actor } = useAuth()
   return (
     <section className={styles.filtersShell} aria-label="Busqueda y filtros de usuarios">
       <div className={styles.filtersTopbar}>
@@ -85,7 +87,7 @@ export default function UserManagementFilters({
               >
                 <span>Todos</span>
               </button>
-              {OFFICIAL_ROLES.map((role) => (
+              {manageableRoles(actor?.rolUsuario).map((role) => (
                 <button
                   aria-pressed={activeRole === role}
                   className={`${styles.filterChip} ${activeRole === role ? styles.filterChipActive : ''}`}

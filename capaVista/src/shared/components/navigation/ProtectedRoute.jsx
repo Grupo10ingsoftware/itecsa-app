@@ -48,6 +48,8 @@ export default function ProtectedRoute({ children, fallback }) {
     )
   }
 
+  if (authStatus === 'access-denied') return <Navigate replace to={APP_ROUTES.ACCESS_DENIED} />
+
   if (authStatus === 'error') {
     return (
       <div className="alert alert-danger m-4" role="alert">
@@ -61,5 +63,6 @@ export default function ProtectedRoute({ children, fallback }) {
     return <Navigate replace to={APP_ROUTES.PROFILE} />
   }
 
+  if (authStatus !== 'authenticated') return <Navigate replace to={APP_ROUTES.ACCESS_DENIED} />
   return children ?? <Outlet />
 }

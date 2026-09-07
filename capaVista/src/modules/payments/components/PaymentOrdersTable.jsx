@@ -1,7 +1,6 @@
-import { formatPaymentDateTime } from '../utils/paymentDocuments'
+import { formatPaymentDate } from '../utils/paymentDocuments'
 import PaymentRowActions from './PaymentRowActions'
 import PaymentStatusBadge from './PaymentStatusBadge'
-import SalesNoteButton from './SalesNoteButton'
 import styles from './PaymentOrdersTable.module.css'
 
 export default function PaymentOrdersTable({
@@ -10,10 +9,10 @@ export default function PaymentOrdersTable({
   isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
-  onOpenSalesNote,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
 }) {
   return (
     <section
@@ -23,10 +22,9 @@ export default function PaymentOrdersTable({
       <table className={`table table-hover align-middle mb-0 ${styles.paymentTable}`}>
         <colgroup>
           <col className={styles.colOrder} />
-          <col className={styles.colDate} />
           <col className={styles.colClient} />
           <col className={styles.colRut} />
-          <col className={styles.colSalesNote} />
+          <col className={styles.colDate} />
           <col className={styles.colPaymentStatus} />
           <col className={styles.colActions} />
         </colgroup>
@@ -34,11 +32,10 @@ export default function PaymentOrdersTable({
         <thead>
           <tr>
             <th>Pedido</th>
-            <th>Fecha</th>
             <th>Cliente</th>
             <th className={styles.rutColumn}>RUT</th>
-            <th>Ver Nota de Venta</th>
-            <th>Estado pago</th>
+            <th>Fecha</th>
+            <th>Estado</th>
             <th className={styles.actionsColumn}>Acciones</th>
           </tr>
         </thead>
@@ -48,13 +45,10 @@ export default function PaymentOrdersTable({
             orders.map((order) => (
               <tr key={order.id}>
                 <td className={styles.orderCell}>{order.nvNumber}</td>
-                <td className={styles.dateCell}>
-                  {formatPaymentDateTime(order.createdAt)}
-                </td>
                 <td className={styles.clientCell}>{order.companyName}</td>
                 <td className={styles.rutCell}>{order.rut}</td>
-                <td>
-                  <SalesNoteButton order={order} onOpen={onOpenSalesNote} />
+                <td className={styles.dateCell}>
+                  {formatPaymentDate(order.createdAt)}
                 </td>
                 <td>
                   <PaymentStatusBadge status={order.paymentStatus} />
@@ -65,9 +59,10 @@ export default function PaymentOrdersTable({
                     editingStatus={editingStatus}
                     isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                     onCloseEditor={onCloseEditor}
+                    onPrefetchDetails={onPrefetchDetails}
                     onSelectStatus={onSelectStatus}
                     onToggleEditor={onToggleEditor}
-                    onViewSignedDetail={onViewSignedDetail}
+                    onViewDetail={onViewDetail}
                     order={order}
                   />
                 </td>
@@ -75,7 +70,7 @@ export default function PaymentOrdersTable({
             ))
           ) : (
             <tr>
-              <td className={styles.emptyState} colSpan="7">
+              <td className={styles.emptyState} colSpan="6">
                 No hay pedidos que coincidan con los filtros aplicados.
               </td>
             </tr>

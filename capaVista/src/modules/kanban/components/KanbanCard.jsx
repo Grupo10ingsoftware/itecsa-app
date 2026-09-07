@@ -36,12 +36,13 @@ function KanbanCard({
   hasContractPriority,
   isProducing,
   canManageIndicators,
+  canMove = false,
   onToggleIndicator,
   onOpenDetail,
 }) {
   const { ref } = useDraggable({
     id: nv,
-    disabled: isMoveBlocked,
+    disabled: isMoveBlocked || !canMove,
   })
   const summaryItems = buildSummaryItems({ dueDate, items, product, quantity })
 

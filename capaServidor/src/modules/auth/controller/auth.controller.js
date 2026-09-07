@@ -61,16 +61,7 @@ function logPasswordResetAttempt(logger, { email, status }) {
     });
 }
 
-async function syncInternalRole({ users, auth0UserId, rolUsuario }) {
-    const internalUser = await users.findByAuth0Id(auth0UserId);
-
-    if (internalUser && internalUser.rolUsuario !== rolUsuario) {
-        await users.updateRoleByAuth0Id(auth0UserId, rolUsuario);
-    }
-}
-
 export function createVerifyAuthSessionHandler({
-    users = userRepository,
     pins = { async ensureProvisioned() { return "active"; } },
     logger = console,
 } = {}) {
@@ -106,15 +97,14 @@ export function createVerifyAuthSessionHandler({
         );
 
         try {
-            await syncInternalRole({
-                users,
-                auth0UserId: payload.sub,
-                rolUsuario,
-            });
             const pinStatus = await pins.ensureProvisioned(payload.sub);
 
             return res.status(200).json({
                 sub: payload.sub,
+                ...(req.currentUser ? {
+                    primerNombre: req.currentUser.nombreUsuario,
+                    apellidoPaterno: req.currentUser.apellidoUsuario,
+                } : {}),
                 email,
                 rolUsuario,
                 isAdministrador: rolUsuario === ROLES.ADMINISTRADOR,
@@ -261,6 +251,29 @@ export function createPasswordResetRequestHandler({
             }
 
             return res.status(500).json({ message: PASSWORD_RESET_ERROR_MESSAGE });
+        }
+    };
+}
+
+export function createGetProfileHandler({ users = userRepository } = {}) {
+    return async function getProfileHandler(req, res) {
+        const user = req.currentUser;
+        if (!user || user.idAuth0 !== req.auth?.payload?.sub) {
+            return res.status(401).json({ message: "Sesión no válida." });
+        }
+        try {
+            const records = await users.listRecentRecords(user.idUsuario);
+            return res.status(200).json({
+                primerNombre: user.nombreUsuario,
+                apellidoPaterno: user.apellidoUsuario,
+                email: user.correoUsuario,
+                rolUsuario: user.rolUsuario,
+                rutUsuario: user.rutUsuario,
+                estadoUsuario: user.estadoUsuario,
+                records,
+            });
+        } catch {
+            return res.status(503).json({ message: "No fue posible cargar tu perfil. Intenta nuevamente." });
         }
     };
 }

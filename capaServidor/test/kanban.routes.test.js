@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -41,7 +42,8 @@ async function listen(app, t) {
 }
 
 function authenticate(req, res, next) {
-    req.auth = { payload: { sub: "auth0|test-user" } };
+            req.auth = {payload:payloadFor()};
+    req.auth = { payload: payloadFor() };
     next();
 }
 

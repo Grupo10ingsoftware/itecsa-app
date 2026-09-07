@@ -1,3 +1,5 @@
+import { useAuth } from "../../../hooks/useAuth";
+import { PERMISSIONS } from "../../../config/permissions";
 import { useMemo, useState } from 'react'
 import { WEEK_DAYS, buildMonthGrid, groupItemsByDate } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
@@ -13,12 +15,13 @@ function formatDayTitle(dateKey) {
 }
 
 function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
+  const { hasPermission } = useAuth()
   return (
     <button
       className={[styles.calendarEvent, isDragging ? styles.draggingEvent : '']
         .filter(Boolean)
         .join(' ')}
-      draggable
+      draggable={hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)}
       onDragEnd={onDragEnd}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move'
@@ -152,6 +155,7 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
 }
 
 function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onDragStart }) {
+  const { hasPermission } = useAuth()
   if (!dateKey) return null
 
   function handleModalItemDragStart(event, itemId) {
@@ -190,7 +194,7 @@ function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onD
               ]
                 .filter(Boolean)
                 .join(' ')}
-              draggable
+              draggable={hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)}
               key={item.id}
               onDragEnd={onDragEnd}
               onDragStart={(event) => handleModalItemDragStart(event, item.id)}
@@ -297,7 +301,9 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
   const itemsByDate = useMemo(() => groupItemsByDate(items), [items])
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
 
+  const { hasPermission } = useAuth()
   function handleDropItem(itemId, targetDate) {
+    if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
     setDraggedItemId(null)
     setDropTargetDate(null)
     const item = items.find((currentItem) => String(currentItem.id) === String(itemId))

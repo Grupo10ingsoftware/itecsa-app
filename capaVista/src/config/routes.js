@@ -31,11 +31,13 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
     label: 'Mi perfil',
     path: APP_ROUTES.PROFILE,
+    permission: PERMISSIONS.READ_PROFILE,
     requirementIds: Object.freeze(['UR 1.7']),
   },
   {
     label: 'Bandeja de mensajes',
     path: APP_ROUTES.MESSAGES,
+    permission: PERMISSIONS.READ_MESSAGES,
     requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
   },
   {
@@ -60,12 +62,13 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
     label: 'Historial de pedidos',
     path: APP_ROUTES.ORDER_HISTORY,
+    permission: PERMISSIONS.READ_ORDERS,
     requirementIds: Object.freeze(['RF64', 'RF65', 'RF66', 'RF67', 'RF68']),
   },
   {
     label: 'Calendario',
     path: APP_ROUTES.PRODUCTION_CALENDAR,
-    requiredRoles: ADMINISTRATIVE_ROLES,
-    requirementIds: Object.freeze(['PROTOTIPO']),
+    permission: PERMISSIONS.READ_CALENDAR,
+    requirementIds: Object.freeze(['RF49']),
   },
 ])

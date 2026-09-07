@@ -3,13 +3,13 @@ import KanbanColumn from '../components/KanbanColumn'
 import KanbanFilters from '../components/KanbanFilters'
 import styles from './KanbanBoardPage.module.css'
 import { useAuth } from '../../../hooks/useAuth'
-import { ROLES } from '../../../config/roles'
+import { PERMISSIONS } from '../../../config/permissions'
 import { useKanbanApi } from '../hooks/useKanbanApi'
 import { useEffect } from 'react'
 
 export default function KanbanBoardPage() {
   const api = useKanbanApi()
-  const { hasRole } = useAuth()
+  const { hasPermission } = useAuth()
   const [capacities, setCapacities] = useState([])
   const [isCapacityOpen, setIsCapacityOpen] = useState(false)
   const [capacityError, setCapacityError] = useState('')
@@ -72,7 +72,7 @@ export default function KanbanBoardPage() {
                 <span>Carga Operativa</span>
                 <div className={styles.capacityHeaderActions}>
                   <strong>{operationalLoad.percentage}%</strong>
-                  {hasRole(ROLES.ADMINISTRADOR) && (
+                  {hasPermission(PERMISSIONS.MANAGE_CAPACITY) && (
                     <button aria-label="Configurar capacidad productiva" onClick={() => setIsCapacityOpen(true)} title="Configurar capacidad productiva" type="button">
                       <i className="bi bi-sliders" aria-hidden="true" />
                     </button>

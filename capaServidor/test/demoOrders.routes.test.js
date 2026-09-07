@@ -1,3 +1,4 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -6,14 +7,14 @@ import express from "express";
 import { createDemoOrdersRouter } from "../src/modules/demoOrders/routes/demoOrders.routes.js";
 
 function authenticate(req, res, next) {
-  req.auth = { payload: { sub: "auth0|test-user" } };
+  req.auth = { payload: payloadFor() };
   next();
 }
 
 function createTestApp() {
   const app = express();
   app.use(express.json());
-  app.use("/api/demo-orders", createDemoOrdersRouter({ authenticate }));
+  app.use("/api/demo-orders", createDemoOrdersRouter({ authenticate, validatePin(req,res,next) { req.pinActor = {idUsuario:10}; next(); } }));
   return app;
 }
 

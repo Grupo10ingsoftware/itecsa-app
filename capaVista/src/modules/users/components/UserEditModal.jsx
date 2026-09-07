@@ -1,5 +1,6 @@
+import { useAuth } from "../../../hooks/useAuth";
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getRoleLabel, OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, manageableRoles } from '../../../config/roles'
 import UserButton from './UserButton'
 import styles from '../pages/UserManagementPage.module.css'
 
@@ -16,6 +17,7 @@ function createFormState(user) {
 
 export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, onUnlink, user }) {
   const [values, setValues] = useState(() => (user ? createFormState(user) : null))
+  const { user: actor } = useAuth()
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -26,8 +28,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
       return undefined
     }
 
-    setPin('')
-    setPinError('')
+    const resetTimer = window.setTimeout(() => { setPin(''); setPinError('') }, 0)
     const previousBodyOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 0)
@@ -40,6 +41,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
 
     document.addEventListener('keydown', handleEscape)
     return () => {
+      window.clearTimeout(resetTimer)
       window.clearTimeout(focusTimer)
       document.body.style.overflow = previousBodyOverflow
       document.removeEventListener('keydown', handleEscape)
@@ -197,7 +199,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
                 value={values.rolUsuario}
               >
                 <option value="">Selecciona un rol</option>
-                {OFFICIAL_ROLES.map((role) => (
+                {manageableRoles(actor?.rolUsuario).map((role) => (
                   <option key={role} value={role}>
                     {getRoleLabel(role)}
                   </option>

@@ -7,6 +7,7 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
     const now = new Date("2026-09-04T12:00:00Z");
     const repo = new OrderRepository({
         prisma: {
+            async $queryRaw() { return []; },
             estado_Pedido: {
                 async findFirst() { return { id_estado_pedido: 3, orden_kanban: 2, nombre_etapa: "En producción" }; },
             },
@@ -65,6 +66,7 @@ test("subproceso usa la salida anterior como inicio y no genera duración cero",
     const previousExit = new Date("2020-09-04T10:00:00Z");
     const repo = new OrderRepository({
         prisma: {
+            async $queryRaw() { return []; },
             detalle_pedido: {
                 async findFirst() {
                     return {
@@ -95,7 +97,7 @@ test("subproceso usa la salida anterior como inicio y no genera duración cero",
             registros: { async create() { return { ID_REGISTRO: 30 }; } },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
 
     await repo.completeSubprocess({
         orderId: 6,
@@ -113,6 +115,7 @@ test("subproceso duplicado se rechaza antes de crear un segundo registro", async
     let registryCreates = 0;
     const repo = new OrderRepository({
         prisma: {
+            async $queryRaw() { return []; },
             detalle_pedido: {
                 async findFirst() {
                     return {
@@ -143,7 +146,7 @@ test("subproceso duplicado se rechaza antes de crear un segundo registro", async
             },
         },
     });
-    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2 });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
 
     await assert.rejects(
         repo.completeSubprocess({
@@ -161,6 +164,7 @@ test("enviar a revision notifica al usuario de Ventas responsable", async () => 
     const assignments = [];
     const repo = new OrderRepository({
         prisma: {
+            async $queryRaw() { return []; },
             mensaje: {
                 async create({ data }) {
                     assert.equal(data.id_pedido, 6);
@@ -217,4 +221,260 @@ test("lectura de validacion conserva etapa y pago sin cargar detalles", async ()
     assert.equal(result.id_etapa_general, 1);
     assert.equal(result.estado_pago, "Confirmado");
     assert.equal(result.detalles, undefined);
+});
+
+test("actualiza solo el pago cuando la etapa debe mantenerse", async () => {
+    const updates = [];
+    let statusQueries = 0;
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw() { return []; },
+            estado_Pedido: {
+                async findFirst() {
+                    statusQueries += 1;
+                    return { id_estado_pedido: 1 };
+                },
+            },
+            pedidos: {
+                async update(payload) {
+                    updates.push(payload);
+                    return {};
+                },
+            },
+        },
+    });
+    repo.getPaymentOrder = async () => ({
+        id_pedido: 7,
+        estado_pago: "Rechazado",
+        id_etapa_general: 2,
+    });
+
+    await repo.updatePaymentStatus(7, 3, null);
+
+    assert.equal(statusQueries, 0);
+    assert.deepEqual(updates[0].data, { id_estado_pago: 3 });
+});
+
+test("reutiliza el pedido validado despues de actualizar el pago", async () => {
+    let paymentReads = 0;
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw() { return []; },
+            estado_Pedido: {
+                async findFirst() {
+                    return {
+                        id_estado_pedido: 2,
+                        nombre_etapa: "Listo para produccion",
+                        orden_kanban: 1,
+                    };
+                },
+            },
+            pedidos: {
+                async update() {
+                    return {};
+                },
+            },
+        },
+    });
+    repo.getPaymentOrder = async () => {
+        paymentReads += 1;
+        return null;
+    };
+
+    const updated = await repo.updatePaymentStatus(7, 2, 1, {
+        currentOrder: {
+            id_pedido: 7,
+            id_estado_pago: 1,
+            id_estado_pedido: 1,
+            id_etapa_general: 0,
+            estado_pago: "Pendiente",
+        },
+        paymentStatusName: "Confirmado",
+    });
+
+    assert.equal(paymentReads, 0);
+    assert.equal(updated.estado_pago, "Confirmado");
+    assert.equal(updated.id_estado_pedido, 2);
+    assert.equal(updated.id_etapa_general, 1);
+});
+
+test("lista cobranzas sin cargar relaciones productivas", async () => {
+    let query;
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw() { return []; },
+            async $queryRaw(strings) {
+                query = strings.join("?");
+                return [{
+                    id_pedido: 8,
+                    numero_nota_venta: "24101",
+                    fecha_creacion: new Date("2026-09-07T00:00:00Z"),
+                    id_estado_pago: 1,
+                    id_estado_pedido: 1,
+                    nombre_cliente: "Cliente",
+                    razon_social: "Cliente SpA",
+                    rut_cliente: "11.111.111-1",
+                    nombre_etapa_general: "Confirmacion de pago",
+                    id_etapa_general: 0,
+                    estado_pago: "Pendiente",
+                }];
+            },
+        },
+    });
+
+    const orders = await repo.getPaymentOrders();
+
+    assert.doesNotMatch(query, /Detalle_pedido|Pedido_Etiqueta/);
+    assert.match(query, /LEFT JOIN Cliente/);
+    assert.match(query, /LEFT JOIN Estado_Pago/);
+    assert.deepEqual(orders[0], {
+        id_pedido: 8,
+        numero_nota_venta: "24101",
+        fecha_creacion: new Date("2026-09-07T00:00:00Z"),
+        id_estado_pago: 1,
+        id_estado_pedido: 1,
+        nombre_cliente: "Cliente",
+        razon_social: "Cliente SpA",
+        rut_cliente: "11.111.111-1",
+        id_etapa_general: 0,
+        generalStepId: 0,
+        nombre_etapa_general: "Confirmacion de pago",
+        estado_pago: "Pendiente",
+        paymentStatus: "Pendiente",
+    });
+});
+
+test("notifica a todos los administradores de Produccion activos", async () => {
+    const assignments = [];
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw() { return []; },
+            usuario: {
+                async findMany() {
+                    return [{ id_usuario: 2 }, { id_usuario: 9 }];
+                },
+            },
+            mensaje: {
+                async create({ data }) {
+                    assert.equal(data.Asunto, "Cancelación de producción requerida");
+                    assert.equal(data.id_pedido, 7);
+                    return { id_mensaje: 51 };
+                },
+            },
+            mENSAJE_USUARIO: {
+                async createMany({ data }) {
+                    assignments.push(...data);
+                },
+            },
+        },
+    });
+
+    await repo.notifyProductionAdministrators({
+        orderId: 7,
+        subject: "Cancelación de producción requerida",
+        content: "El pedido debe cancelarse.",
+    });
+
+    assert.deepEqual(assignments, [
+        { id_usuario: 2, id_mensaje: 51, leido_: false, oculto_: false },
+        { id_usuario: 9, id_mensaje: 51, leido_: false, oculto_: false },
+    ]);
+});
+
+function completionFixture({ pending = false, intermediate = false, stageExists = true, recipient = 21, notifyFails = false } = {}) {
+    const calls = [];
+    let stage = 2;
+    const repo = new OrderRepository({ prisma: {
+        async $queryRaw() { calls.push('lock'); return [{ id_pedido: 6 }]; },
+        detalle_pedido: {
+            async findMany() { return [{ fecha_real_termino: pending ? null : new Date() }]; },
+            async findFirst(query) {
+                if (query.select) {
+                    calls.push('pending');
+                    assert.deepEqual(query.where, { id_pedido: 6, fecha_real_termino: null });
+                    return pending ? { id_detalle_pedido: 3 } : null;
+                }
+                calls.push('detail');
+                return { id_estado_subproceso: 4, fecha_real_termino: null,
+                    Tipo_Producto: { Producto_Subproceso: [{ id_estado_subproceso: 4 }, ...(intermediate ? [{ id_estado_subproceso: 5 }] : [])] } };
+            },
+            async updateMany() { return { count: 1 }; },
+        },
+        registro_subprocesos: { async findFirst() { return null; }, async create() {} },
+        registro_Etapas: { async findFirst() { return null; }, async updateMany() {}, async create() { calls.push('stage-history'); } },
+        registros: { async create() { return { ID_REGISTRO: 100 }; } },
+        estado_Pedido: { async findFirst() { return stageExists ? { id_estado_pedido: 4, orden_kanban: 3 } : null; } },
+        pedidos: {
+            async findUnique() { return { id_pedido: 6, id_usuario: recipient, numero_nota_venta: 'NV-100' }; },
+            async updateMany() {
+            if (stage === 3) return { count: 0 };
+            stage = 3; return { count: 1 };
+        } },
+        mensaje: { async create({ data }) {
+            calls.push('notification');
+            assert.equal(data.MENSAJE_USUARIO.create.id_usuario, 21);
+            assert.equal(data.MENSAJE_USUARIO.create.leido_, false);
+            assert.equal(data.MENSAJE_USUARIO.create.oculto_, false);
+            assert.match(data.contenido, /NV-100.*Listo para Entrega/);
+            if (notifyFails) throw new Error('notification failed');
+            return { id_mensaje: 10 };
+        } },
+    } });
+    repo.get = async () => ({ id_pedido: 6, id_usuario: recipient, numero_nota_venta: 'NV-100', id_etapa_general: stage, estado_pago: 'Confirmado' });
+    const complete = () => repo.completeSubprocess({ orderId: 6, detailId: 2, subprocessId: 4, userId: 99 });
+    return { repo, complete, calls };
+}
+
+test('terminar incluso el último detalle mantiene producción sin notificar', async () => {
+    for (const options of [{}, { pending: true }, { intermediate: true }]) {
+        const { complete, calls } = completionFixture(options);
+        assert.equal((await complete()).id_etapa_general, 2);
+        assert.deepEqual(calls, ['lock', 'detail']);
+    }
+});
+test('mover manualmente a entrega notifica una sola vez al responsable', async () => {
+    const { repo, calls } = completionFixture();
+    repo.get = async () => { assert.fail('No debe recargar el pedido completo para notificar'); };
+    assert.equal((await repo.updateGeneralStep(6, 3, { userId: 99 })).id_etapa_general, 3);
+    assert.equal(await repo.updateGeneralStep(6, 3, { userId: 99 }), null);
+    assert.equal(calls.filter((call) => call === 'notification').length, 1);
+});
+test('fallo de notificación manual se propaga para revertir la transacción', async () => {
+    const { repo } = completionFixture({ notifyFails: true });
+    await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), /notification failed/);
+});
+
+test('permite devolver el último subproceso de un detalle terminado mientras el pedido sigue en producción', async () => {
+    let updated;
+    const repo = new OrderRepository({ prisma: {
+        async $queryRaw() { return []; },
+        detalle_pedido: {
+            async findFirst() { return {
+                id_estado_subproceso: 4, fecha_real_termino: new Date(),
+                Tipo_Producto: { Producto_Subproceso: [{ id_estado_subproceso: 4 }] },
+            }; },
+            async updateMany({ data }) { updated = data; return { count: 1 }; },
+        },
+        registros: { async create() { return { ID_REGISTRO: 101 }; } },
+        registro_subprocesos: { async create() {} },
+    } });
+    repo.getTransitionState = async () => ({ id_etapa_general: 2, estado_pago: 'Confirmado' });
+    repo.get = repo.getTransitionState;
+    await repo.rollbackSubprocess({ orderId: 6, detailId: 2, subprocessId: 4, userId: 10, comment: 'Rehacer' });
+    assert.deepEqual(updated, { id_estado_subproceso: 4, fecha_real_termino: null });
+});
+
+test('impide mover a entrega cuando queda cualquier detalle pendiente', async () => {
+    const { repo, calls } = completionFixture({ pending: true });
+    await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), { statusCode: 409 });
+    assert.deepEqual(calls, ['lock']);
+});
+test('valida todos los detalles y rechaza pedidos sin detalles', async () => {
+    for (const details of [[], [{ fecha_real_termino: new Date() }, { fecha_real_termino: null }]]) {
+        const repo = new OrderRepository({ prisma: {
+            async $queryRaw() { return []; },
+            detalle_pedido: { async findMany() { return details; } },
+        } });
+        await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), { statusCode: 409 });
+    }
 });

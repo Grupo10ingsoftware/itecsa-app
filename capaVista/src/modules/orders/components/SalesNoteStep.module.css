@@ -1,21 +1,26 @@
 .mainPanelClean {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .sectionCardClean,
 .detailsPanel {
   background: #fff;
-  border: 1px solid var(--orders-border);
+  border: 1px solid #dfe5ec;
   border-radius: 0.85rem;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
-  padding: 1.15rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+  min-width: 0;
+  padding: 1.35rem 1.4rem;
+}
+
+.sectionCardClean {
+  border-top: 3px solid var(--orders-orange);
 }
 
 .sectionIntro {
   border-bottom: 1px solid #edf2f7;
-  margin-bottom: 1rem;
-  padding-bottom: 0.95rem;
+  margin-bottom: 1.15rem;
+  padding-bottom: 1rem;
 }
 
 .stepBadge {
@@ -33,7 +38,7 @@
   align-items: center;
   color: var(--orders-text);
   display: flex;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 900;
   gap: 0.55rem;
   letter-spacing: 0.035em;
@@ -43,7 +48,17 @@
 }
 
 .sectionHeader i {
+  align-items: center;
+  background: var(--orders-orange-soft);
+  border: 1px solid var(--orders-orange-border);
+  border-radius: 0.5rem;
   color: var(--orders-orange);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1rem;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
 }
 
 .sectionIntro p,
@@ -55,8 +70,12 @@
 }
 
 .formBlock {
+  background: var(--orders-soft);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
   display: grid;
-  gap: 0.55rem;
+  gap: 0.65rem;
+  padding: 1rem;
 }
 
 .label {
@@ -83,11 +102,12 @@
 }
 
 .input {
+  background: #fff;
   border: 1px solid #dbe3ef;
   border-radius: 0.65rem;
   color: var(--orders-text);
   font-size: 0.95rem;
-  min-height: 3rem;
+  min-height: 3.15rem;
   padding: 0.75rem 2.8rem 0.75rem 0.95rem;
   width: 100%;
 }
@@ -122,19 +142,33 @@
   align-items: center;
   background: #000;
   border: 1px solid #000;
-  border-radius: 0.65rem;
+  border-radius: 0.6rem;
   color: #fff;
   display: inline-flex;
   font-weight: 850;
   gap: 0.55rem;
   justify-content: center;
-  min-height: 3rem;
-  padding: 0 1.15rem;
+  min-height: 3.15rem;
+  padding: 0 1.25rem;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
   white-space: nowrap;
 }
 
-.searchButton:hover {
+.searchButton:hover:not(:disabled) {
   background: #1f2937;
+  border-color: #1f2937;
+  transform: translateY(-1px);
+}
+
+.searchButton:focus-visible {
+  box-shadow: 0 0 0 0.2rem var(--orders-orange-soft);
+  outline: 2px solid var(--orders-orange);
+  outline-offset: 2px;
+}
+
+.searchButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .errorText {
@@ -148,8 +182,8 @@
   border-top: 1px solid #edf2f7;
   display: grid;
   gap: 0.75rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
 }
 
 .priorityBlock h3,
@@ -181,13 +215,21 @@
   min-height: 3.25rem;
   padding: 0.65rem 0.8rem;
   text-align: left;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .priorityOption:hover {
+  background: rgba(var(--orders-orange-rgb), 0.035);
   border-color: var(--orders-orange-border);
 }
 
+.priorityOption:focus-visible {
+  outline: 2px solid var(--orders-orange);
+  outline-offset: 2px;
+}
+
 .priorityOptionSelected {
+  background: rgba(var(--orders-orange-rgb), 0.055);
   border-color: var(--orders-orange);
   box-shadow: 0 0 0 0.18rem var(--orders-orange-soft);
 }
@@ -237,7 +279,7 @@
 }
 
 .detailsPanel {
-  min-height: 18rem;
+  min-height: 19rem;
 }
 
 .detailsHeader,
@@ -274,13 +316,15 @@
 }
 
 .detailsTitle {
+  border-bottom: 1px solid #edf2f7;
   margin-top: 1rem;
+  padding-bottom: 0.9rem;
 }
 
 .dataGrid {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   margin-top: 1rem;
 }
 
@@ -291,7 +335,7 @@
   display: grid;
   gap: 0.3rem;
   min-width: 0;
-  padding: 0.75rem;
+  padding: 0.85rem;
 }
 
 .dataItem span,
@@ -334,7 +378,7 @@
 .productsGrid {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   margin-top: 0.75rem;
 }
 
@@ -388,7 +432,7 @@
   border: 1px solid #dbe3ef;
   border-radius: 0.75rem;
   margin-top: 0.75rem;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .accessoryHead,
@@ -397,6 +441,7 @@
   gap: 0.65rem;
   grid-template-columns: minmax(7rem, 0.75fr) minmax(12rem, 1.5fr) minmax(5rem, 0.5fr) minmax(8rem, 0.75fr);
   padding: 0.7rem 0.8rem;
+  min-width: 41rem;
 }
 
 .accessoryHead {
@@ -457,7 +502,6 @@
 }
 
 @media (max-width: 900px) {
-  .dataGrid,
   .priorityGrid {
     grid-template-columns: 1fr;
   }
@@ -468,6 +512,7 @@
 
   .accessoryRow {
     grid-template-columns: 1fr;
+    min-width: 0;
   }
 }
 
@@ -478,5 +523,31 @@
 
   .searchButton {
     width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .sectionCardClean,
+  .detailsPanel {
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .formBlock {
+    padding: 0.8rem;
+  }
+
+  .detailsHeader,
+  .subsectionHeader {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .productGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .productGrid div:nth-child(odd) {
+    border-right: 0;
   }
 }

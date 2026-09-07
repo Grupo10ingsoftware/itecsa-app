@@ -19,7 +19,7 @@
   color: var(--orders-text);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0 auto;
-  max-width: 1780px;
+  max-width: 1760px;
   padding: 1.25rem;
 }
 
@@ -27,52 +27,54 @@
   background: #fff;
   border: 1px solid var(--orders-border);
   border-radius: 1rem;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  overflow: visible;
 }
 
 .content {
-  background: #fff;
-  padding: 1.45rem 1.55rem 1.55rem;
-}
-
-.createGrid {
-  align-items: stretch;
-  display: grid;
-  gap: 1.2rem;
-  grid-template-columns: minmax(0, 9fr) minmax(18rem, 3fr);
-}
-
-.createMainColumn {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  background: var(--orders-soft);
+  border-radius: 0 0 1rem 1rem;
+  padding: 1.5rem 2.5rem 1.75rem;
 }
 
 .footerActions {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--orders-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
   display: flex;
   justify-content: flex-end;
-  margin-top: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem 1.15rem;
 }
 
 .registerButton {
   align-items: center;
-  background: var(--orders-orange);
-  border: 1px solid var(--orders-orange);
-  border-radius: 0.65rem;
+  background: #000;
+  border: 1px solid #000;
+  border-radius: 0.6rem;
   color: #fff;
   display: inline-flex;
   font-weight: 900;
   gap: 0.55rem;
   justify-content: center;
-  min-height: 3rem;
-  min-width: 13rem;
-  padding: 0 1.25rem;
+  min-height: 3.15rem;
+  min-width: 14rem;
+  padding: 0 1.4rem;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .registerButton:hover:not(:disabled) {
-  background: #ea580c;
-  border-color: #ea580c;
+  background: #1f2937;
+  border-color: #1f2937;
+  transform: translateY(-1px);
+}
+
+.registerButton:focus-visible {
+  box-shadow: 0 0 0 0.2rem var(--orders-orange-soft);
+  outline: 2px solid var(--orders-orange);
+  outline-offset: 2px;
 }
 
 .registerButton:disabled {
@@ -82,23 +84,40 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 992px) {
-  .createGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 1199.98px) {
   .page {
-    padding: 0.75rem;
+    padding: 1rem;
   }
 
   .content {
-    padding: 1rem;
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .dashboardShell {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page {
+    padding: 0.65rem;
+  }
+
+  .dashboardShell {
+    border-radius: 0.75rem;
+  }
+
+  .content {
+    border-radius: 0 0 0.75rem 0.75rem;
+    padding: 0.85rem;
   }
 
   .footerActions {
     justify-content: stretch;
+    margin-top: 0.85rem;
+    padding: 0.75rem;
   }
 
   .registerButton {

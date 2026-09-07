@@ -19,7 +19,9 @@ import PaymentRecordService from "../../payments/service/paymentRecord.service.j
 import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
 import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
-import SalesNoteSourceService from "./salesNoteSource.service.js";
+import SalesNoteSourceService, {
+  normalizeSalesNoteNumber,
+} from "./salesNoteSource.service.js";
 
 export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
   "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
@@ -440,10 +442,14 @@ class OrderService {
   }
 
   async getSalesNoteByNumber(numeroNota) {
-    const salesNote = await this.salesNoteSourceService.getByNumber(numeroNota);
-    const isAlreadyRegistered = await this.repo.existsBySalesNoteNumber(
-      salesNote.numeroNota,
-    );
+    const normalizedNumber = normalizeSalesNoteNumber(numeroNota);
+    const duplicateCheck = normalizedNumber
+      ? this.repo.existsBySalesNoteNumber(normalizedNumber)
+      : Promise.resolve(false);
+    const [salesNote, isAlreadyRegistered] = await Promise.all([
+      this.salesNoteSourceService.getByNumber(numeroNota),
+      duplicateCheck,
+    ]);
 
     if (isAlreadyRegistered) {
       const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
@@ -787,18 +793,13 @@ class OrderService {
       throw error;
     }
 
-    const existingOrder = await this.repo.getBySalesNoteNumber(numeroNota);
-
-    if (existingOrder) {
-      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
-      error.statusCode = 409;
-      throw error;
-    }
-
     const resolvedUserId = await this.resolveInternalUserId({
       auth0UserId: options.auth0UserId,
       id_usuario: data.id_usuario,
     });
+    const estimatedCompletionDate = toPrismaDate(
+      data.fechaEntregaTentativaOrigen,
+    );
 
     return this.runInTransaction(async ({
       repo,
@@ -807,7 +808,7 @@ class OrderService {
       productTypeService,
       repoClient,
     }) => {
-      const duplicateOrder = await repo.getBySalesNoteNumber(numeroNota);
+      const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
 
       if (duplicateOrder) {
         const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
@@ -845,12 +846,12 @@ class OrderService {
         id_estado_pedido: 1,
         id_estado_pago: 1,
         id_etiqueta: primaryLabelId,
-        fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+        fecha_estimada_termino: estimatedCompletionDate,
         numero_nota_venta: numeroNota,
         usuario_manager_origen: origen.usuarioManager ?? null,
         observacion_origen: data.observaciones ?? null,
         observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
-      });
+      }, { hydrate: false });
 
       if (!order?.id_pedido) {
         const error = new Error("No se pudo crear el pedido.");
@@ -867,21 +868,33 @@ class OrderService {
       }
 
       const details = [];
+      const productContextByName = new Map();
 
       for (const item of productionItems) {
-        const productType = await productTypeService.getProductTypeByName(
-          item.tipoProducto,
-        );
-        const subprocesses = await repo.getProductSubprocesses(
-          productType.id_tipo_producto,
-        );
-        const firstSubprocess = subprocesses[0] ?? null;
+        let productContext = productContextByName.get(item.tipoProducto);
+
+        if (!productContext) {
+          const productType = await productTypeService.getProductTypeByName(
+            item.tipoProducto,
+          );
+          const subprocesses = await repo.getProductSubprocesses(
+            productType.id_tipo_producto,
+          );
+
+          productContext = {
+            productType,
+            firstSubprocess: subprocesses[0] ?? null,
+          };
+          productContextByName.set(item.tipoProducto, productContext);
+        }
+
         const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productType.id_tipo_producto,
+          id_tipo_producto: productContext.productType.id_tipo_producto,
           cantidad: item.cantidad,
-          fecha_estimada_termino: toPrismaDate(data.fechaEntregaTentativaOrigen),
+          fecha_estimada_termino: estimatedCompletionDate,
           fecha_real_termino: null,
-          id_estado_subproceso: firstSubprocess?.id_estado_subproceso ?? null,
+          id_estado_subproceso:
+            productContext.firstSubprocess?.id_estado_subproceso ?? null,
         });
 
         details.push({

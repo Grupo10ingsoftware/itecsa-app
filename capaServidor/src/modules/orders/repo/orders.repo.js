@@ -247,25 +247,6 @@ class OrderRepository {
     return this.prisma;
   }
 
-  async getPaymentStatusNamesByIds(ids) {
-    const uniqueIds = [...new Set(ids.filter((id) => id !== null && id !== undefined))];
-
-    if (uniqueIds.length === 0) return new Map();
-
-    const statuses = await this.client.estado_Pago.findMany({
-      where: {
-        id_estado_pago: { in: uniqueIds.map(Number) },
-      },
-    });
-
-    return new Map(
-      statuses.map((status) => [
-        Number(status.id_estado_pago),
-        status.nombre_estado_pago,
-      ]),
-    );
-  }
-
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
@@ -287,13 +268,8 @@ class OrderRepository {
       include: orderReadInclude,
       orderBy: { id_pedido: "desc" },
     });
-    const paymentStatuses = await this.getPaymentStatusNamesByIds(
-      orders.map((order) => order.id_estado_pago),
-    );
 
-    return orders.map((order) =>
-      mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
-    );
+    return orders.map((order) => mapOrderRow(order));
   }
 
   async getPaymentOrders() {
@@ -353,15 +329,10 @@ class OrderRepository {
 
     if (!order) return null;
 
-    const paymentStatuses = await this.getPaymentStatusNamesByIds([order.id_estado_pago]);
-
-    return mapOrderRow(
-      order,
-      paymentStatuses.get(Number(order.id_estado_pago)) ?? null,
-    );
+    return mapOrderRow(order);
   }
 
-  async create(data) {
+  async create(data, { hydrate = true } = {}) {
     const {
       id_cliente,
       id_usuario,
@@ -394,7 +365,7 @@ class OrderRepository {
       },
     });
 
-    return this.get(order.id_pedido);
+    return hydrate ? this.get(order.id_pedido) : order;
   }
 
   async addLabels(orderId, labelIds = [], userId = null) {

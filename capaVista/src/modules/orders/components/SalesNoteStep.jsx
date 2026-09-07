@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import styles from './SalesNoteStep.module.css'
 
 const PRIORITY_OPTIONS = Object.freeze([
@@ -16,27 +17,17 @@ const PRIORITY_OPTIONS = Object.freeze([
 ])
 
 function getProductRows(record) {
-  if (Array.isArray(record.productionData) && record.productionData.length > 0) {
-    return record.productionData.map((item, index) => ({
+  if (Array.isArray(record.items) && record.items.length > 0) {
+    return record.items.map((item, index) => ({
       codigo: item.codigo ?? `ITEM-${index + 1}`,
-      producto: item.product ?? item.producto ?? record.productType,
-      cantidad: item.quantity ?? item.cantidad ?? record.quantity,
-      familia: item.familia ?? item.product ?? record.productType,
-      subfamilia: item.subfamilia ?? item.product ?? record.productType,
+      producto: item.producto ?? record.productType,
+      cantidad: item.cantidad,
+      familia: item.familia ?? item.producto ?? record.productType,
+      subfamilia: item.subfamilia ?? item.producto ?? record.productType,
     }))
   }
 
-  if (!record.productType && !record.quantity) return []
-
-  return [
-    {
-      codigo: record.codigo ?? 'Pendiente',
-      producto: record.productType,
-      cantidad: record.quantity,
-      familia: record.productType,
-      subfamilia: record.productType,
-    },
-  ]
+  return []
 }
 
 function getAccessoryRows(record) {
@@ -87,7 +78,7 @@ function PriorityOption({ option, selected, onSelect }) {
   )
 }
 
-function ProductCard({ item, index }) {
+const ProductCard = memo(function ProductCard({ item, index }) {
   return (
     <article className={styles.productCard}>
       <header>
@@ -114,9 +105,9 @@ function ProductCard({ item, index }) {
       </dl>
     </article>
   )
-}
+})
 
-function AccessoryRow({ item }) {
+const AccessoryRow = memo(function AccessoryRow({ item }) {
   return (
     <div className={styles.accessoryRow}>
       <span>{item.codigo}</span>
@@ -125,7 +116,7 @@ function AccessoryRow({ item }) {
       <span>{item.subfamilia}</span>
     </div>
   )
-}
+})
 
 export default function SalesNoteStep({
   draft,
@@ -139,8 +130,8 @@ export default function SalesNoteStep({
   const hasCode = Boolean(draft.salesNoteCode?.trim())
   const record = draft.managerRecord
   const isVerified = Boolean(record)
-  const productRows = getProductRows(record ?? {})
-  const accessoryRows = getAccessoryRows(record ?? {})
+  const productRows = useMemo(() => getProductRows(record ?? {}), [record])
+  const accessoryRows = useMemo(() => getAccessoryRows(record ?? {}), [record])
 
   function handleSearchSubmit(event) {
     event.preventDefault()

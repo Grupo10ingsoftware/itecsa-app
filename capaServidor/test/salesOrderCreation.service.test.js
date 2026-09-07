@@ -48,16 +48,23 @@ test("advierte durante la busqueda cuando la Nota de Venta ya fue registrada", a
 
 test("persiste la observacion interna al crear el pedido", async () => {
   let persistedOrderData = null;
+  let duplicateChecks = 0;
+  let productTypeQueries = 0;
+  let subprocessQueries = 0;
+  let createdDetails = 0;
   const service = new OrderService({
     repo: {
-      async getBySalesNoteNumber() {
+      async existsBySalesNoteNumber() {
+        duplicateChecks += 1;
         return null;
       },
-      async create(data) {
+      async create(data, options) {
+        assert.deepEqual(options, { hydrate: false });
         persistedOrderData = data;
         return { id_pedido: 101 };
       },
       async getProductSubprocesses() {
+        subprocessQueries += 1;
         return [];
       },
       async createUntrackedItems() {
@@ -77,11 +84,13 @@ test("persiste la observacion interna al crear el pedido", async () => {
     },
     orderDetailService: {
       async createOrderDetail() {
-        return { id_detalle_pedido: 201 };
+        createdDetails += 1;
+        return { id_detalle_pedido: 200 + createdDetails };
       },
     },
     productTypeService: {
       async getProductTypeByName() {
+        productTypeQueries += 1;
         return { id_tipo_producto: 2 };
       },
     },
@@ -107,6 +116,12 @@ test("persiste la observacion interna al crear el pedido", async () => {
           cantidad: 100,
           tipoProducto: "Tarjeta",
         },
+        {
+          codigo: "2100010060009",
+          producto: "TARJETA HID PROXCARD IMPRESA",
+          cantidad: 50,
+          tipoProducto: "Tarjeta",
+        },
       ],
     },
     { auth0UserId: "auth0|sales-user" },
@@ -117,4 +132,8 @@ test("persiste la observacion interna al crear el pedido", async () => {
     "Coordinar entrega con el cliente.",
   );
   assert.equal(order.observacion_interna, "Coordinar entrega con el cliente.");
+  assert.equal(duplicateChecks, 1);
+  assert.equal(productTypeQueries, 1);
+  assert.equal(subprocessQueries, 1);
+  assert.equal(createdDetails, 2);
 });

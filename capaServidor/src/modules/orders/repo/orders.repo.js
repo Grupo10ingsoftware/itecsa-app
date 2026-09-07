@@ -531,6 +531,18 @@ class OrderRepository {
   }
 
   async updateGeneralStep(id, ordenKanban, audit = {}) {
+    if (Number(ordenKanban) === 3) {
+      await this.lockProductionOrder(id);
+      const details = await this.client.detalle_pedido.findMany({
+        where: { id_pedido: Number(id) },
+        select: { fecha_real_termino: true },
+      });
+      if (details.length === 0 || details.some((detail) => !detail.fecha_real_termino)) {
+        const error = new Error("Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
     return this.transitionGeneralStage({
       id,
       ordenKanban,
@@ -930,25 +942,6 @@ class OrderRepository {
         id_estado_subproceso: Number(subprocessId),
       },
     });
-    if (!nextSubprocess) {
-      const pendingDetail = await this.client.detalle_pedido.findFirst({
-        where: { id_pedido: Number(orderId), fecha_real_termino: null },
-        select: { id_detalle_pedido: true },
-      });
-      if (!pendingDetail) {
-        const readyOrder = await this.transitionGeneralStage({
-          id: orderId,
-          ordenKanban: 3,
-          userId,
-          comment: "Todos los detalles del pedido completaron sus subprocesos.",
-          now,
-        });
-        if (!readyOrder) {
-          throw new Error("No fue posible avanzar el pedido a Listo para Entrega.");
-        }
-        return readyOrder;
-      }
-    }
     return this.get(orderId);
   }
 
@@ -969,7 +962,8 @@ class OrderRepository {
       Number(item.id_estado_subproceso) === Number(detail.id_estado_subproceso));
     const targetIndex = subprocesses.findIndex((item) =>
       Number(item.id_estado_subproceso) === Number(subprocessId));
-    if (currentIndex < 1 || targetIndex !== currentIndex - 1) {
+    const rollbackIndex = detail.fecha_real_termino ? currentIndex : currentIndex - 1;
+    if (currentIndex < 0 || rollbackIndex < 0 || targetIndex !== rollbackIndex) {
       const error = new Error("Solo se puede retroceder al subproceso inmediatamente anterior.");
       error.statusCode = 409;
       throw error;

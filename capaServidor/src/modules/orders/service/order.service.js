@@ -203,8 +203,8 @@ class OrderService {
       throw error;
     }
 
-    // Las etapas automaticas no se pueden forzar mediante /move (tampoco Soporte).
-    if (!((currentStep === 1 && nextStep === 2) || (currentStep === 3 && nextStep === 4))) {
+    // Se permiten avances manuales consecutivos desde producción lista hasta entrega.
+    if (!((currentStep === 1 && nextStep === 2) || (currentStep === 2 && nextStep === 3) || (currentStep === 3 && nextStep === 4))) {
       const error = new Error("Esta transicion no admite movimiento manual."); error.statusCode = 403; throw error;
     }
     const isMoveToProduction =

@@ -592,7 +592,8 @@ export default function KanbanOffCanvas({
             )}
             <div className={styles.stepperStack}>
               {orderItems.map((item) => {
-                const currentProcessIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
+                const firstPendingIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
+                const currentProcessIndex = firstPendingIndex < 0 ? item.subProcesses.length : firstPendingIndex
 
                 return (
                   <article className={styles.stepperGroup} key={item.id}>

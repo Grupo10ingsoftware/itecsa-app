@@ -429,7 +429,8 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
     );
 });
 
-test("rechaza forzar manualmente la salida automatica de produccion", async () => {
+test("permite mover manualmente de producción a listo para entrega con PIN", async () => {
     const service = createService();
-    await assert.rejects(() => service.updGeneralStep(7, 3, { actor: PIN_ACTOR }), {statusCode:403});
+    const order = await service.updGeneralStep(7, 3, { actor: PIN_ACTOR });
+    assert.equal(order.id_etapa_general, 3);
 });

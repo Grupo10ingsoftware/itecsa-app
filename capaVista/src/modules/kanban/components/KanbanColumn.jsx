@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import Toast from 'react-bootstrap/Toast'
+import ToastContainer from 'react-bootstrap/ToastContainer'
 import { DragDropProvider, useDroppable } from '@dnd-kit/react'
 import { PERMISSIONS } from '../../../config/permissions'
 import { useAuth } from '../../../hooks/useAuth'
@@ -623,8 +625,14 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
 
     const currentStep = Number(order.generalStepId)
     const targetStep = Number(targetColumn.generalStepId)
-    if (!((currentStep === 1 && targetStep === 2) || (currentStep === 3 && targetStep === 4))) {
+    if (!((currentStep === 1 && targetStep === 2) || (currentStep === 2 && targetStep === 3) || (currentStep === 3 && targetStep === 4))) {
       setMoveError('Esta transicion es automatica o no esta permitida.'); return
+    }
+    if (targetStep === 3 && (!order.items?.length || order.items.some((item) =>
+      !item.subProcesses?.length || item.subProcesses.some((process) => process.status !== 'done')
+    ))) {
+      setMoveError('Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.')
+      return
     }
     const isForwardMove = targetStep > currentStep
 
@@ -778,7 +786,15 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
   return (
     <>
       {loadError && <div className={styles.kanbanError}>{loadError}</div>}
-      {moveError && <div className={styles.kanbanError}>{moveError}</div>}
+      <ToastContainer position="top-end" className="position-fixed p-3" style={{ zIndex: 1090 }}>
+        <Toast show={Boolean(moveError)} onClose={() => setMoveError(null)} autohide delay={8000} role="alert" aria-live="assertive">
+          <Toast.Header closeLabel="Cerrar notificación">
+            <i className="bi bi-exclamation-triangle-fill text-warning me-2" aria-hidden="true" />
+            <strong className="me-auto">No se pudo realizar la acción</strong>
+          </Toast.Header>
+          <Toast.Body>{moveError}</Toast.Body>
+        </Toast>
+      </ToastContainer>
       <DragDropProvider onDragEnd={handleDragEnd}>
         <div className={styles.kanbanWrapper}>
           {columns.map((column) => {
@@ -807,7 +823,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
                         isPaymentDeconfirmationRequested={order.paymentDeconfirmationRequested}
                         isProducing={order.isProducing}
                         canMove={hasPermission(PERMISSIONS.MOVE_ORDERS) && (
-                          Number(order.generalStepId) === 3 ||
+                          [2, 3].includes(Number(order.generalStepId)) ||
                           (Number(order.generalStepId) === 1 && hasPermission(PERMISSIONS.START_PRODUCTION))
                         )}
                         canManageIndicators={hasPermission(PERMISSIONS.MANAGE_TAGS)}

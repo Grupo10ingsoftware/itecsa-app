@@ -350,6 +350,7 @@ function completionFixture({ pending = false, intermediate = false, stageExists 
     const repo = new OrderRepository({ prisma: {
         async $queryRaw() { calls.push('lock'); return [{ id_pedido: 6 }]; },
         detalle_pedido: {
+            async findMany() { return [{ fecha_real_termino: pending ? null : new Date() }]; },
             async findFirst(query) {
                 if (query.select) {
                     calls.push('pending');
@@ -385,33 +386,54 @@ function completionFixture({ pending = false, intermediate = false, stageExists 
     return { repo, complete, calls };
 }
 
-test('último detalle terminado avanza a entrega y notifica al creador, no al operario', async () => {
-    const { complete, calls } = completionFixture();
-    assert.equal((await complete()).id_etapa_general, 3);
-    assert.deepEqual(calls, ['lock', 'detail', 'pending', 'stage-history', 'notification']);
+test('terminar incluso el último detalle mantiene producción sin notificar', async () => {
+    for (const options of [{}, { pending: true }, { intermediate: true }]) {
+        const { complete, calls } = completionFixture(options);
+        assert.equal((await complete()).id_etapa_general, 2);
+        assert.deepEqual(calls, ['lock', 'detail']);
+    }
 });
-test('otro detalle pendiente impide el avance y la notificación', async () => {
-    const { complete, calls } = completionFixture({ pending: true });
-    assert.equal((await complete()).id_etapa_general, 2);
-    assert.deepEqual(calls, ['lock', 'detail', 'pending']);
-});
-test('subproceso intermedio no consulta otros detalles ni notifica', async () => {
-    const { complete, calls } = completionFixture({ intermediate: true });
-    assert.equal((await complete()).id_etapa_general, 2);
-    assert.deepEqual(calls, ['lock', 'detail']);
-});
-test('transición repetida a entrega no duplica la notificación', async () => {
-    const { repo, complete, calls } = completionFixture();
-    await complete();
-    assert.equal(await repo.transitionGeneralStage({ id: 6, ordenKanban: 3, userId: 99 }), null);
+test('mover manualmente a entrega notifica una sola vez al responsable', async () => {
+    const { repo, calls } = completionFixture();
+    assert.equal((await repo.updateGeneralStep(6, 3, { userId: 99 })).id_etapa_general, 3);
+    assert.equal(await repo.updateGeneralStep(6, 3, { userId: 99 }), null);
     assert.equal(calls.filter((call) => call === 'notification').length, 1);
 });
-test('sin responsable no se atribuye la notificación al operario', async () => {
-    const { complete, calls } = completionFixture({ recipient: null });
-    assert.equal((await complete()).id_etapa_general, 3);
-    assert.ok(!calls.includes('notification'));
+test('fallo de notificación manual se propaga para revertir la transacción', async () => {
+    const { repo } = completionFixture({ notifyFails: true });
+    await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), /notification failed/);
 });
-test('fallos de etapa o notificación se propagan para revertir la transacción', async () => {
-    await assert.rejects(completionFixture({ stageExists: false }).complete(), /No fue posible avanzar/);
-    await assert.rejects(completionFixture({ notifyFails: true }).complete(), /notification failed/);
+
+test('permite devolver el último subproceso de un detalle terminado mientras el pedido sigue en producción', async () => {
+    let updated;
+    const repo = new OrderRepository({ prisma: {
+        async $queryRaw() { return []; },
+        detalle_pedido: {
+            async findFirst() { return {
+                id_estado_subproceso: 4, fecha_real_termino: new Date(),
+                Tipo_Producto: { Producto_Subproceso: [{ id_estado_subproceso: 4 }] },
+            }; },
+            async updateMany({ data }) { updated = data; return { count: 1 }; },
+        },
+        registros: { async create() { return { ID_REGISTRO: 101 }; } },
+        registro_subprocesos: { async create() {} },
+    } });
+    repo.get = async () => ({ id_etapa_general: 2, estado_pago: 'Confirmado' });
+    await repo.rollbackSubprocess({ orderId: 6, detailId: 2, subprocessId: 4, userId: 10, comment: 'Rehacer' });
+    assert.deepEqual(updated, { id_estado_subproceso: 4, fecha_real_termino: null });
+});
+
+test('impide mover a entrega cuando queda cualquier detalle pendiente', async () => {
+    const { repo, calls } = completionFixture({ pending: true });
+    await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), { statusCode: 409 });
+    assert.deepEqual(calls, ['lock']);
+});
+test('valida todos los detalles y rechaza pedidos sin detalles', async () => {
+    for (const details of [[], [{ fecha_real_termino: new Date() }, { fecha_real_termino: null }]]) {
+        const repo = new OrderRepository({ prisma: {
+            async $queryRaw() { return []; },
+            detalle_pedido: { async findMany() { return details; } },
+        } });
+        await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), { statusCode: 409 });
+    }
 });

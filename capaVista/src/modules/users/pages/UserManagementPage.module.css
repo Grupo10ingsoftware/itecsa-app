@@ -589,10 +589,12 @@
 
 .modalLayer {
   align-items: center;
-  background: rgb(15 23 42 / 52%);
+  background: rgba(15, 23, 42, 0.62);
   display: flex;
   inset: 0;
   justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1rem;
   position: fixed;
   z-index: 1050;
@@ -610,6 +612,17 @@
 .editModal,
 .confirmModal {
   max-width: 680px;
+}
+
+.createModal {
+  display: flex;
+  flex-direction: column;
+  height: min(56rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  max-width: min(86rem, calc(100vw - 2rem));
+  min-height: 0;
+  overflow: hidden;
+  width: 86rem;
 }
 
 .modalHeader,
@@ -637,8 +650,76 @@
   text-transform: uppercase;
 }
 
+.createModalHeader {
+  align-items: flex-start;
+  background: #000;
+  border-bottom: 0;
+  color: #fff;
+  flex: 0 0 auto;
+  min-height: 9rem;
+  padding: 1.7rem 2.25rem;
+}
+
+.createModalHeader > div {
+  min-width: 0;
+}
+
+.createModalHeader .modalKicker {
+  color: var(--users-orange);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+}
+
+.createModalHeader h2 {
+  color: #fff;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.createModalHeader p {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0.65rem 0 0;
+}
+
+.createModal .modalCloseButton {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  color: #fff;
+  flex: 0 0 auto;
+  height: 2.5rem;
+  padding: 0;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  width: 2.5rem;
+}
+
+.createModal .modalCloseButton:hover,
+.createModal .modalCloseButton:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.7);
+  outline: none;
+}
+
 .modalBody {
   padding: 1.25rem;
+}
+
+.createModalBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
 }
 
 .modalFooter {
@@ -862,6 +943,23 @@
     align-items: stretch;
     justify-content: space-between;
   }
+
+  .modalLayer {
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .createModal {
+    height: calc(100dvh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    width: 100%;
+  }
+
+  .createModalHeader {
+    min-height: auto;
+    padding: 1.25rem 1.35rem;
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -969,5 +1067,36 @@
 
   .modalLayer {
     padding: 0.5rem;
+  }
+
+  .createModal {
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .createModalHeader {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .createModalHeader .modalKicker {
+    font-size: 0.68rem;
+  }
+
+  .createModalHeader h2 {
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+  }
+
+  .createModalHeader p {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+
+  .createModal .modalCloseButton {
+    height: 2.25rem;
+    width: 2.25rem;
   }
 }

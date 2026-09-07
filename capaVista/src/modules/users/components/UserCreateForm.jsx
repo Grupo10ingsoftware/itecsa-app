@@ -4,6 +4,7 @@ import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import { hasValidationErrors, validateUserCreateForm } from '../utils/userValidation'
+import styles from './UserCreateForm.module.css'
 
 const INITIAL_VALUES = Object.freeze({
   nombreUsuario: '',
@@ -34,9 +35,9 @@ function FieldErrors({ errors, id }) {
   }
 
   return (
-    <div className="invalid-feedback d-block" id={id}>
+    <div className={styles.fieldErrors} id={id}>
       {errors.map((error) => (
-        <p className="mb-0" key={error}>
+        <p key={error}>
           {error}
         </p>
       ))}
@@ -101,7 +102,7 @@ function buildCreatedUserMessage(user) {
   }
 }
 
-export default function UserCreateForm({ onCreated } = {}) {
+export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = {}) {
   const { loginWithRedirect, user: actor } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const [values, setValues] = useState(INITIAL_VALUES)
@@ -207,149 +208,170 @@ export default function UserCreateForm({ onCreated } = {}) {
   const rutUsuarioErrors = fieldErrors.rutUsuario ?? []
   const correoUsuarioErrors = fieldErrors.correoUsuario ?? []
   const rolUsuarioErrors = fieldErrors.rolUsuario ?? []
+  const isModalMode = mode === 'modal'
 
   return (
-    <form className="row g-3" noValidate onSubmit={handleSubmit}>
-      {message && (
-        <div className="col-12">
-          <div className={`alert alert-${message.type} mb-0`} role="status">
-            <p className="mb-0">{message.text}</p>
+    <form
+      className={`${styles.form} ${isModalMode ? styles.modalForm : ''}`}
+      noValidate
+      onSubmit={handleSubmit}
+    >
+      <div className={styles.formContent}>
+        {message && (
+          <div className={`${styles.messageBox} ${styles[`message${message.type}`]}`} role="status">
+            <p>{message.text}</p>
             {isSessionInvalid && (
-              <button
-                className="btn btn-sm btn-outline-dark mt-2"
-                onClick={() => loginWithRedirect()}
-                type="button"
-              >
+              <button className={styles.messageButton} onClick={() => loginWithRedirect()} type="button">
                 Iniciar sesion
               </button>
             )}
           </div>
+        )}
+
+        <div className={`${styles.fieldCard} ${nombreUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-person" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-first-name">Nombres <span>*</span></label>
+            <input
+              aria-describedby="user-first-name-errors"
+              aria-invalid={nombreUsuarioErrors.length > 0}
+              autoComplete="given-name"
+              id="user-first-name"
+              name="nombreUsuario"
+              onChange={handleFieldChange}
+              placeholder="Ingresa los nombres"
+              type="text"
+              value={values.nombreUsuario}
+            />
+            <FieldErrors errors={nombreUsuarioErrors} id="user-first-name-errors" />
+          </div>
         </div>
-      )}
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-first-name">
-          Nombres
-        </label>
-        <input
-          aria-describedby="user-first-name-errors"
-          aria-invalid={nombreUsuarioErrors.length > 0}
-          className={`form-control ${
-            nombreUsuarioErrors.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-first-name"
-          name="nombreUsuario"
-          onChange={handleFieldChange}
-          type="text"
-          value={values.nombreUsuario}
-        />
-        <FieldErrors errors={nombreUsuarioErrors} id="user-first-name-errors" />
+        <div className={`${styles.fieldCard} ${apellidoUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-person" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-last-name">Apellidos <span>*</span></label>
+            <input
+              aria-describedby="user-last-name-errors"
+              aria-invalid={apellidoUsuarioErrors.length > 0}
+              autoComplete="family-name"
+              id="user-last-name"
+              name="apellidoUsuario"
+              onChange={handleFieldChange}
+              placeholder="Ingresa los apellidos"
+              type="text"
+              value={values.apellidoUsuario}
+            />
+            <FieldErrors errors={apellidoUsuarioErrors} id="user-last-name-errors" />
+          </div>
+        </div>
+
+        <div className={`${styles.fieldCard} ${rutUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-card-heading" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-rut">RUT <span>*</span></label>
+            <input
+              aria-describedby="user-rut-errors"
+              aria-invalid={rutUsuarioErrors.length > 0}
+              autoComplete="off"
+              id="user-rut"
+              name="rutUsuario"
+              onChange={handleFieldChange}
+              placeholder="Ej: 12.345.678-9"
+              type="text"
+              value={values.rutUsuario}
+            />
+            <FieldErrors errors={rutUsuarioErrors} id="user-rut-errors" />
+          </div>
+        </div>
+
+        <div className={`${styles.fieldCard} ${correoUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-envelope" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-email">Correo electronico <span>*</span></label>
+            <input
+              aria-describedby="user-email-errors"
+              aria-invalid={correoUsuarioErrors.length > 0}
+              autoComplete="email"
+              id="user-email"
+              name="correoUsuario"
+              onChange={handleFieldChange}
+              placeholder="nombre@correo.cl"
+              type="email"
+              value={values.correoUsuario}
+            />
+            <FieldErrors errors={correoUsuarioErrors} id="user-email-errors" />
+          </div>
+        </div>
+
+        <div className={`${styles.fieldCard} ${styles.fieldCardWide} ${rolUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-people" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-role">Rol <span>*</span></label>
+            <select
+              aria-describedby="user-role-errors"
+              aria-invalid={rolUsuarioErrors.length > 0}
+              id="user-role"
+              name="rolUsuario"
+              onChange={handleFieldChange}
+              value={values.rolUsuario}
+            >
+              <option value="">Selecciona un rol</option>
+              {manageableRoles(actor?.rolUsuario).map((role) => (
+                <option key={role} value={role}>
+                  {getRoleLabel(role)}
+                </option>
+              ))}
+            </select>
+            <FieldErrors errors={rolUsuarioErrors} id="user-role-errors" />
+          </div>
+        </div>
+
+        <div className={`${styles.fieldCard} ${styles.fieldCardWide}`}>
+          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-lock" /></span>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-password">Contrasena</label>
+            <input
+              aria-describedby="user-password-help"
+              disabled
+              id="user-password"
+              name="password"
+              placeholder="Gestionada por Auth0"
+              type="password"
+            />
+            <p className={styles.fieldHelp} id="user-password-help">
+              El usuario establecera su contrasena mediante un correo enviado por Auth0.
+            </p>
+          </div>
+        </div>
+
+        {createdUser && (
+          <section className={styles.creationResult}>
+            <h2>Resultado de creacion</h2>
+            <dl>
+              <div><dt>Nombre</dt><dd>{createdUser.nombreUsuario} {createdUser.apellidoUsuario}</dd></div>
+              <div><dt>RUT</dt><dd>{createdUser.rutUsuario}</dd></div>
+              <div><dt>Correo electronico</dt><dd>{createdUser.correoUsuario}</dd></div>
+              <div><dt>Rol</dt><dd>{getRoleLabel(createdUser.rolUsuario)}</dd></div>
+              <div>
+                <dt>Correo de contrasena</dt>
+                <dd>{createdUser.passwordSetupEmailRequested ? 'Solicitado' : 'Pendiente'}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
       </div>
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-last-name">
-          Apellidos
-        </label>
-        <input
-          aria-describedby="user-last-name-errors"
-          aria-invalid={apellidoUsuarioErrors.length > 0}
-          className={`form-control ${
-            apellidoUsuarioErrors.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-last-name"
-          name="apellidoUsuario"
-          onChange={handleFieldChange}
-          type="text"
-          value={values.apellidoUsuario}
-        />
-        <FieldErrors errors={apellidoUsuarioErrors} id="user-last-name-errors" />
-      </div>
+      <footer className={styles.actions}>
+        {onCancel && (
+          <button className={styles.cancelButton} disabled={isSubmitting} onClick={onCancel} type="button">
+            Cancelar
+          </button>
+        )}
 
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-rut">
-          RUT
-        </label>
-        <input
-          aria-describedby="user-rut-errors"
-          aria-invalid={rutUsuarioErrors.length > 0}
-          className={`form-control ${rutUsuarioErrors.length > 0 ? 'is-invalid' : ''}`}
-          id="user-rut"
-          name="rutUsuario"
-          onChange={handleFieldChange}
-          placeholder="12.345.678-9"
-          type="text"
-          value={values.rutUsuario}
-        />
-        <FieldErrors errors={rutUsuarioErrors} id="user-rut-errors" />
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-email">
-          Correo electronico
-        </label>
-        <input
-          aria-describedby="user-email-errors"
-          aria-invalid={correoUsuarioErrors.length > 0}
-          className={`form-control ${
-            correoUsuarioErrors.length > 0 ? 'is-invalid' : ''
-          }`}
-          id="user-email"
-          name="correoUsuario"
-          onChange={handleFieldChange}
-          type="email"
-          value={values.correoUsuario}
-        />
-        <FieldErrors errors={correoUsuarioErrors} id="user-email-errors" />
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label" htmlFor="user-role">
-          Rol
-        </label>
-        <select
-          aria-describedby="user-role-errors"
-          aria-invalid={rolUsuarioErrors.length > 0}
-          className={`form-select ${rolUsuarioErrors.length > 0 ? 'is-invalid' : ''}`}
-          id="user-role"
-          name="rolUsuario"
-          onChange={handleFieldChange}
-          value={values.rolUsuario}
-        >
-          <option value="">Selecciona un rol</option>
-          {manageableRoles(actor?.rolUsuario).map((role) => (
-            <option key={role} value={role}>
-              {getRoleLabel(role)}
-            </option>
-          ))}
-        </select>
-        <FieldErrors errors={rolUsuarioErrors} id="user-role-errors" />
-      </div>
-
-      <div className="col-12">
-        <label className="form-label" htmlFor="user-password">
-          Contrasena
-        </label>
-        <input
-          aria-describedby="user-password-help"
-          className="form-control"
-          disabled
-          id="user-password"
-          name="password"
-          placeholder="Gestionada por Auth0"
-          type="password"
-        />
-        <p className="form-text mb-0" id="user-password-help">
-          El usuario establecera su contrasena mediante un correo enviado por Auth0.
-        </p>
-      </div>
-
-      <div className="col-12 d-flex gap-2">
-        <button className="btn btn-primary" disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Creando usuario...' : 'Crear usuario'}
-        </button>
         {canRequestPasswordSetupEmail && (
           <button
-            className="btn btn-outline-primary"
+            className={styles.secondaryButton}
             disabled={isRequestingPasswordEmail}
             onClick={handlePasswordSetupEmailRequest}
             type="button"
@@ -357,37 +379,12 @@ export default function UserCreateForm({ onCreated } = {}) {
             {isRequestingPasswordEmail ? 'Solicitando correo...' : 'Solicitar correo'}
           </button>
         )}
-      </div>
 
-      {createdUser && (
-        <div className="col-12">
-          <div className="border rounded p-3 bg-light">
-            <h2 className="h6 mb-3">Resultado de creacion</h2>
-            <dl className="row mb-0 small">
-              <div className="col-md-6">
-                <dt className="text-secondary">Nombre</dt>
-                <dd>{createdUser.nombreUsuario} {createdUser.apellidoUsuario}</dd>
-              </div>
-              <div className="col-md-6">
-                <dt className="text-secondary">RUT</dt>
-                <dd>{createdUser.rutUsuario}</dd>
-              </div>
-              <div className="col-md-6">
-                <dt className="text-secondary">Correo electronico</dt>
-                <dd>{createdUser.correoUsuario}</dd>
-              </div>
-              <div className="col-md-6">
-                <dt className="text-secondary">Rol</dt>
-                <dd>{getRoleLabel(createdUser.rolUsuario)}</dd>
-              </div>
-              <div className="col-md-6">
-                <dt className="text-secondary">Correo de contrasena</dt>
-                <dd>{createdUser.passwordSetupEmailRequested ? 'Solicitado' : 'Pendiente'}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      )}
+        <button className={styles.submitButton} disabled={isSubmitting} type="submit">
+          <i className="bi bi-plus-circle" aria-hidden="true" />
+          {isSubmitting ? 'Creando usuario...' : 'Crear usuario'}
+        </button>
+      </footer>
     </form>
   )
 }

@@ -1,0 +1,368 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.modalForm {
+  height: 100%;
+}
+
+.formContent {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.modalForm .formContent {
+  align-content: start;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.35rem 1.5rem;
+  scrollbar-color: #aeb7c4 #eeeeef;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modalForm .formContent::-webkit-scrollbar {
+  width: 0.65rem;
+}
+
+.modalForm .formContent::-webkit-scrollbar-track {
+  background: #eeeeef;
+}
+
+.modalForm .formContent::-webkit-scrollbar-thumb {
+  background: #aeb7c4;
+  border: 2px solid #eeeeef;
+  border-radius: 999px;
+}
+
+.fieldCard {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dfe5ec;
+  border-radius: 0.7rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 7rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.fieldCard:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 0.18rem rgba(249, 115, 22, 0.12);
+}
+
+.fieldCardInvalid {
+  border-color: #dc2626;
+}
+
+.fieldCardWide,
+.messageBox,
+.creationResult {
+  grid-column: 1 / -1;
+}
+
+.fieldIcon {
+  align-items: center;
+  background: #f1f2f4;
+  border-radius: 0.6rem;
+  color: #64748b;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  height: 3.3rem;
+  justify-content: center;
+  width: 3.3rem;
+}
+
+.fieldContent {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.fieldContent label {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.fieldContent label span {
+  color: #dc2626;
+}
+
+.fieldContent input,
+.fieldContent select {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  color: #111827;
+  font-size: 0.94rem;
+  min-height: 3.05rem;
+  min-width: 0;
+  outline: none;
+  padding: 0.65rem 0.8rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  width: 100%;
+}
+
+.fieldContent input::placeholder {
+  color: #7b8799;
+  opacity: 1;
+}
+
+.fieldContent input:focus,
+.fieldContent select:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.14);
+}
+
+.fieldContent input[aria-invalid='true'],
+.fieldContent select[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.fieldContent input:disabled {
+  background: #eeeeef;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.fieldHelp {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.fieldErrors {
+  color: #b91c1c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fieldErrors p {
+  margin: 0;
+}
+
+.messageBox {
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.messageBox p {
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.messagesuccess {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.messagewarning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.messagedanger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.messageinfo {
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+  color: #3f3f46;
+}
+
+.messageButton,
+.cancelButton,
+.secondaryButton,
+.submitButton {
+  align-items: center;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 850;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 2.8rem;
+  padding: 0.55rem 1rem;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.messageButton,
+.cancelButton,
+.secondaryButton {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #111827;
+}
+
+.messageButton {
+  justify-self: start;
+  min-height: 2.35rem;
+}
+
+.messageButton:hover:not(:disabled),
+.cancelButton:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled) {
+  background: #f4f4f5;
+  border-color: #94a3b8;
+}
+
+.submitButton {
+  background: #000;
+  border: 1px solid #000;
+  color: #fff;
+  min-width: 13rem;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+.messageButton:focus-visible,
+.cancelButton:focus-visible,
+.secondaryButton:focus-visible,
+.submitButton:focus-visible {
+  box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.14);
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+.messageButton:disabled,
+.cancelButton:disabled,
+.secondaryButton:disabled,
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.actions {
+  align-items: center;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.modalForm .actions {
+  background: #fff;
+  margin-top: 0;
+  padding: 1rem 1.5rem;
+}
+
+.creationResult {
+  background: #f4f4f5;
+  border: 1px solid #d4d4d8;
+  border-radius: 0.7rem;
+  padding: 1rem;
+}
+
+.creationResult h2 {
+  color: #111827;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  margin: 0 0 0.8rem;
+  text-transform: uppercase;
+}
+
+.creationResult dl {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.creationResult dt {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.creationResult dd {
+  color: #111827;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767.98px) {
+  .formContent,
+  .creationResult dl {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldCardWide,
+  .messageBox,
+  .creationResult {
+    grid-column: auto;
+  }
+
+  .modalForm .formContent {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .fieldCard {
+    gap: 0.65rem;
+    min-height: auto;
+    padding: 0.75rem;
+  }
+
+  .fieldIcon {
+    font-size: 1.1rem;
+    height: 2.8rem;
+    width: 2.8rem;
+  }
+
+  .fieldContent input,
+  .fieldContent select {
+    min-height: 2.8rem;
+  }
+
+  .actions,
+  .modalForm .actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    padding: 0.85rem;
+  }
+
+  .cancelButton,
+  .secondaryButton,
+  .submitButton {
+    width: 100%;
+  }
+}

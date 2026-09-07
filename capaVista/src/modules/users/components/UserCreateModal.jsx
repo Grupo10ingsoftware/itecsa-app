@@ -41,10 +41,11 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
   return (
     <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
       <section aria-labelledby="user-create-modal-title" aria-modal="true" className={styles.createModal} role="dialog">
-        <header className={styles.modalHeader}>
+        <header className={`${styles.modalHeader} ${styles.createModalHeader}`}>
           <div>
-            <span className={styles.modalKicker}>Usuario</span>
+            <span className={styles.modalKicker}>Administracion</span>
             <h2 id="user-create-modal-title">Crear usuario</h2>
+            <p>Completa la informacion para registrar un nuevo usuario en el sistema.</p>
           </div>
           <button
             aria-label="Cerrar modal de creacion"
@@ -56,8 +57,8 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
             <i className="bi bi-x-lg" aria-hidden="true" />
           </button>
         </header>
-        <div className={styles.modalBody}>
-          <UserCreateForm onCreated={onCreated} />
+        <div className={`${styles.modalBody} ${styles.createModalBody}`}>
+          <UserCreateForm mode="modal" onCancel={onClose} onCreated={onCreated} />
         </div>
       </section>
     </div>

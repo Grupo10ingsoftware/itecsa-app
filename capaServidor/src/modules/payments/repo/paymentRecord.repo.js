@@ -85,38 +85,53 @@ class PaymentRecordRepo {
   }
 
   async getConfirmationSource(orderId) {
-    return this.client.pedidos.findUnique({
-      where: { id_pedido: Number(orderId) },
-      select: {
-        id_pedido: true,
-        numero_nota_venta: true,
-        Cliente: {
-          select: {
-            nombre_cliente: true,
-            razon_social: true,
-            rut_cliente: true,
-          },
-        },
-        Usuario: {
-          select: {
-            correo_usuario: true,
-          },
-        },
-        Detalle_pedido: {
-          orderBy: { id_detalle_pedido: "asc" },
-          select: {
-            id_detalle_pedido: true,
-            cantidad: true,
-            Tipo_Producto: {
-              select: {
-                nombre_producto: true,
-                descripcion_producto: true,
-              },
-            },
-          },
-        },
+    const rows = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        u.correo_usuario,
+        dp.id_detalle_pedido,
+        dp.cantidad,
+        tp.nombre_producto,
+        tp.descripcion_producto
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Usuario u ON u.id_usuario = p.id_usuario
+      LEFT JOIN Detalle_pedido dp ON dp.id_pedido = p.id_pedido
+      LEFT JOIN Tipo_Producto tp ON tp.id_tipo_producto = dp.id_tipo_producto
+      WHERE p.id_pedido = ${Number(orderId)}
+      ORDER BY dp.id_detalle_pedido ASC
+    `;
+
+    if (rows.length === 0) return null;
+
+    const order = rows[0];
+
+    return {
+      id_pedido: order.id_pedido,
+      numero_nota_venta: order.numero_nota_venta,
+      Cliente: {
+        nombre_cliente: order.nombre_cliente ?? null,
+        razon_social: order.razon_social ?? null,
+        rut_cliente: order.rut_cliente ?? null,
       },
-    });
+      Usuario: order.correo_usuario
+        ? { correo_usuario: order.correo_usuario }
+        : null,
+      Detalle_pedido: rows
+        .filter((row) => row.id_detalle_pedido !== null)
+        .map((row) => ({
+          id_detalle_pedido: row.id_detalle_pedido,
+          cantidad: row.cantidad,
+          Tipo_Producto: {
+            nombre_producto: row.nombre_producto ?? null,
+            descripcion_producto: row.descripcion_producto ?? null,
+          },
+        })),
+    };
   }
 }
 

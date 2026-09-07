@@ -1,31 +1,42 @@
 import { PAYMENT_STATUS } from '@/config/status'
 
-export function formatPaymentDate(value) {
+export function getPaymentDateKey(value) {
+  if (!value) return null
+
+  if (typeof value === 'string') {
+    const datePrefix = value.match(/^(\d{4}-\d{2}-\d{2})/)
+    if (datePrefix) return datePrefix[1]
+  }
+
   const date = value instanceof Date ? value : new Date(value)
 
-  if (Number.isNaN(date.getTime())) return 'Fecha no disponible'
+  if (Number.isNaN(date.getTime())) return null
 
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+export function formatPaymentDate(value) {
+  const dateKey = getPaymentDateKey(value)
+
+  if (!dateKey) return 'Fecha no disponible'
+
+  const [year, month, day] = dateKey.split('-')
 
   return `${day}-${month}-${year}`
 }
 
-export function formatPaymentDateTime(value) {
-  const date = value instanceof Date ? value : new Date(value)
+export function isPaymentDateInRange(value, dateFrom, dateTo) {
+  const dateKey = getPaymentDateKey(value)
 
-  if (Number.isNaN(date.getTime())) return 'Fecha no disponible'
+  if (!dateKey) return !dateFrom && !dateTo
+  if (dateFrom && dateKey < dateFrom) return false
+  if (dateTo && dateKey > dateTo) return false
 
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  const hours = date.getHours()
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const displayHour = String(hours % 12 || 12).padStart(2, '0')
-  const meridiem = hours < 12 ? 'a. m.' : 'p. m.'
-
-  return `${day}-${month}-${year}, ${displayHour}:${minutes} ${meridiem}`
+  return true
 }
 
 export function getPaymentActionMeta(targetStatus) {

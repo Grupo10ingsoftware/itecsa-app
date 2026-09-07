@@ -171,6 +171,26 @@ function mapOrderRow(order, paymentStatusName = null) {
   };
 }
 
+function mapPaymentOrderRow(order) {
+  if (!order) return null;
+
+  return {
+    id_pedido: order.id_pedido,
+    numero_nota_venta: order.numero_nota_venta,
+    fecha_creacion: order.fecha_creacion,
+    id_estado_pago: order.id_estado_pago,
+    id_estado_pedido: order.id_estado_pedido,
+    nombre_cliente: order.nombre_cliente ?? null,
+    razon_social: order.razon_social ?? null,
+    rut_cliente: order.rut_cliente ?? null,
+    id_etapa_general: order.id_etapa_general ?? null,
+    generalStepId: order.id_etapa_general ?? null,
+    nombre_etapa_general: order.nombre_etapa_general ?? null,
+    estado_pago: order.estado_pago ?? null,
+    paymentStatus: order.estado_pago ?? null,
+  };
+}
+
 const orderReadInclude = {
   Cliente: true,
   Detalle_pedido: {
@@ -251,6 +271,55 @@ class OrderRepository {
     return orders.map((order) =>
       mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
     );
+  }
+
+  async getPaymentOrders() {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      ORDER BY p.id_pedido DESC
+    `;
+
+    return orders.map(mapPaymentOrderRow);
+  }
+
+  async getPaymentOrder(id) {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      WHERE p.id_pedido = ${Number(id)}
+      LIMIT 1
+    `;
+
+    return mapPaymentOrderRow(orders[0]);
   }
 
   async get(id) {
@@ -610,13 +679,22 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async updatePaymentStatus(id, paymentStatusId, nextKanbanOrder) {
+  async updatePaymentStatus(
+    id,
+    paymentStatusId,
+    nextKanbanOrder,
+    { currentOrder, paymentStatusName } = {},
+  ) {
     const shouldUpdateOrderStage =
       nextKanbanOrder !== null && nextKanbanOrder !== undefined;
     const status = shouldUpdateOrderStage
       ? await this.client.estado_Pedido.findFirst({
           where: { orden_kanban: Number(nextKanbanOrder) },
-          select: { id_estado_pedido: true },
+          select: {
+            id_estado_pedido: true,
+            nombre_etapa: true,
+            orden_kanban: true,
+          },
         })
       : null;
 
@@ -637,7 +715,28 @@ class OrderRepository {
       throw error;
     }
 
-    return this.get(id);
+    if (!currentOrder) return this.getPaymentOrder(id);
+
+    const normalizedPaymentStatus =
+      paymentStatusName ?? currentOrder.estado_pago ?? null;
+    const normalizedKanbanOrder = shouldUpdateOrderStage
+      ? Number(status.orden_kanban ?? nextKanbanOrder)
+      : currentOrder.id_etapa_general;
+
+    return {
+      ...currentOrder,
+      id_estado_pago: Number(paymentStatusId),
+      estado_pago: normalizedPaymentStatus,
+      paymentStatus: normalizedPaymentStatus,
+      id_estado_pedido: shouldUpdateOrderStage
+        ? status.id_estado_pedido
+        : currentOrder.id_estado_pedido,
+      id_etapa_general: normalizedKanbanOrder,
+      generalStepId: normalizedKanbanOrder,
+      nombre_etapa_general: shouldUpdateOrderStage
+        ? status.nombre_etapa
+        : currentOrder.nombre_etapa_general,
+    };
   }
 
   async notifyProductionAdministrators({

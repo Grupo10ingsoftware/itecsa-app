@@ -201,7 +201,7 @@ test("actualiza solo el pago cuando la etapa debe mantenerse", async () => {
             },
         },
     });
-    repo.get = async () => ({
+    repo.getPaymentOrder = async () => ({
         id_pedido: 7,
         estado_pago: "Rechazado",
         id_etapa_general: 2,
@@ -211,6 +211,93 @@ test("actualiza solo el pago cuando la etapa debe mantenerse", async () => {
 
     assert.equal(statusQueries, 0);
     assert.deepEqual(updates[0].data, { id_estado_pago: 3 });
+});
+
+test("reutiliza el pedido validado despues de actualizar el pago", async () => {
+    let paymentReads = 0;
+    const repo = new OrderRepository({
+        prisma: {
+            estado_Pedido: {
+                async findFirst() {
+                    return {
+                        id_estado_pedido: 2,
+                        nombre_etapa: "Listo para produccion",
+                        orden_kanban: 1,
+                    };
+                },
+            },
+            pedidos: {
+                async update() {
+                    return {};
+                },
+            },
+        },
+    });
+    repo.getPaymentOrder = async () => {
+        paymentReads += 1;
+        return null;
+    };
+
+    const updated = await repo.updatePaymentStatus(7, 2, 1, {
+        currentOrder: {
+            id_pedido: 7,
+            id_estado_pago: 1,
+            id_estado_pedido: 1,
+            id_etapa_general: 0,
+            estado_pago: "Pendiente",
+        },
+        paymentStatusName: "Confirmado",
+    });
+
+    assert.equal(paymentReads, 0);
+    assert.equal(updated.estado_pago, "Confirmado");
+    assert.equal(updated.id_estado_pedido, 2);
+    assert.equal(updated.id_etapa_general, 1);
+});
+
+test("lista cobranzas sin cargar relaciones productivas", async () => {
+    let query;
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw(strings) {
+                query = strings.join("?");
+                return [{
+                    id_pedido: 8,
+                    numero_nota_venta: "24101",
+                    fecha_creacion: new Date("2026-09-07T00:00:00Z"),
+                    id_estado_pago: 1,
+                    id_estado_pedido: 1,
+                    nombre_cliente: "Cliente",
+                    razon_social: "Cliente SpA",
+                    rut_cliente: "11.111.111-1",
+                    nombre_etapa_general: "Confirmacion de pago",
+                    id_etapa_general: 0,
+                    estado_pago: "Pendiente",
+                }];
+            },
+        },
+    });
+
+    const orders = await repo.getPaymentOrders();
+
+    assert.doesNotMatch(query, /Detalle_pedido|Pedido_Etiqueta/);
+    assert.match(query, /LEFT JOIN Cliente/);
+    assert.match(query, /LEFT JOIN Estado_Pago/);
+    assert.deepEqual(orders[0], {
+        id_pedido: 8,
+        numero_nota_venta: "24101",
+        fecha_creacion: new Date("2026-09-07T00:00:00Z"),
+        id_estado_pago: 1,
+        id_estado_pedido: 1,
+        nombre_cliente: "Cliente",
+        razon_social: "Cliente SpA",
+        rut_cliente: "11.111.111-1",
+        id_etapa_general: 0,
+        generalStepId: 0,
+        nombre_etapa_general: "Confirmacion de pago",
+        estado_pago: "Pendiente",
+        paymentStatus: "Pendiente",
+    });
 });
 
 test("notifica a todos los administradores de Produccion activos", async () => {

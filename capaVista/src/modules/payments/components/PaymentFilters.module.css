@@ -4,7 +4,10 @@
   border-top: 1px solid #eef2f7;
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: minmax(28rem, 34rem) minmax(0, 1fr);
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 38rem), 1fr)
+  );
   padding: 1.25rem 2.55rem 1.05rem;
 }
 
@@ -12,8 +15,7 @@
   display: grid;
   gap: 0.85rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-width: 34rem;
-  width: min(100%, 34rem);
+  width: 100%;
 }
 
 .filterButton {
@@ -89,25 +91,31 @@
 .filterControls {
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: minmax(22rem, 24rem) minmax(17rem, 20rem);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
   justify-content: end;
   justify-self: end;
   min-width: 0;
-  width: min(100%, 44.85rem);
+  width: 100%;
 }
 
 .dateRangeGroup {
   align-items: center;
-  background: #fff;
-  border: 1px solid #d7dee8;
-  border-radius: 0.55rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 0.22rem solid var(--payment-orange);
+  border-radius: 0.65rem;
   display: grid;
   gap: 0.6rem;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: 3.35rem;
   min-width: 0;
   padding: 0.38rem 0.65rem;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dateRangeGroupActive {
+  background: #fff;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
 }
 
 .dateRangeGroup:focus-within {
@@ -115,12 +123,8 @@
   box-shadow: 0 0 0 0.22rem rgba(var(--payment-orange-rgb), 0.14);
 }
 
-.dateRangeIcon {
-  color: var(--payment-orange);
-  font-size: 1.1rem;
-}
-
 .dateField {
+  cursor: pointer;
   display: grid;
   gap: 0.08rem;
   min-width: 0;
@@ -146,6 +150,7 @@
   border: 0;
   color: var(--payment-text);
   color-scheme: light;
+  cursor: pointer;
   font-size: 0.78rem;
   font-weight: 750;
   line-height: 1.25;
@@ -162,29 +167,27 @@
 
 .dateRangeClearButton {
   align-items: center;
-  background: rgba(var(--payment-orange-rgb), 0.1);
+  background: transparent;
   border: 0;
-  border-radius: 999px;
-  color: var(--payment-orange);
+  border-left: 1px solid var(--payment-border);
+  border-radius: 0;
+  color: var(--payment-muted);
   display: inline-flex;
   flex: 0 0 auto;
-  height: 1.75rem;
+  height: 2rem;
   justify-content: center;
   padding: 0;
   transition: background-color 150ms ease, color 150ms ease;
-  width: 1.75rem;
+  width: 2rem;
 }
 
 .dateRangeClearButton:hover:not(:disabled),
 .dateRangeClearButton:focus-visible:not(:disabled) {
   background: var(--payment-orange);
+  border-left-color: var(--payment-orange);
+  border-radius: 0.4rem;
   color: #111;
   outline: none;
-}
-
-.dateRangeClearButton:disabled {
-  pointer-events: none;
-  visibility: hidden;
 }
 
 .searchBox {
@@ -226,7 +229,6 @@
 
 @media (max-width: 1399.98px) {
   .toolbar {
-    grid-template-columns: 1fr;
     padding-left: 1.35rem;
     padding-right: 1.35rem;
   }
@@ -237,7 +239,6 @@
   }
 
   .filterControls {
-    grid-template-columns: minmax(22rem, 1fr) minmax(17rem, 22rem);
     justify-self: stretch;
     width: 100%;
   }
@@ -288,12 +289,16 @@
 
 @media (max-width: 399.98px) {
   .dateRangeGroup {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.6rem 0.7rem;
   }
 
-  .dateRangeIcon {
-    display: none;
+  .dateRangeGroupActive {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dateRangeGroupActive .dateField {
+    grid-column: 1;
   }
 
   .dateField + .dateField {

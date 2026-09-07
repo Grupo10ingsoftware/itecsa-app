@@ -57,6 +57,12 @@ function createService(overrides = {}) {
             async get(orderId) {
                 return findOrder(orderId) ?? null;
             },
+            async getPaymentOrder(orderId) {
+                return findOrder(orderId) ?? null;
+            },
+            async getPaymentOrders() {
+                return orders.map((order) => ({ ...order }));
+            },
             async updatePaymentStatus(orderId, paymentStatusId, nextKanbanOrder) {
                 const order = findOrder(orderId);
 
@@ -105,6 +111,13 @@ function createService(overrides = {}) {
             },
         },
         paymentRepo: {
+            async getAll() {
+                return [
+                    { id_estado_pago: 1, nombre_estado_pago: PAYMENT_STATUS.PENDIENTE },
+                    { id_estado_pago: 2, nombre_estado_pago: PAYMENT_STATUS.CONFIRMADO },
+                    { id_estado_pago: 3, nombre_estado_pago: PAYMENT_STATUS.RECHAZADO },
+                ];
+            },
             async get(paymentStatusId) {
                 if (Number(paymentStatusId) === 1) {
                     return { id_estado_Pago: 1, nombre_estado_pago: PAYMENT_STATUS.PENDIENTE };
@@ -138,6 +151,21 @@ function createService(overrides = {}) {
         },
     });
 }
+
+test("carga pedidos y estados del espacio de cobranzas en paralelo", async () => {
+    const service = createService();
+    const workspace = await service.getPaymentWorkspace();
+
+    assert.equal(workspace.orders.length, INITIAL_ORDERS.length);
+    assert.deepEqual(
+        workspace.paymentStatuses.map((status) => status.nombre_estado_pago),
+        [
+            PAYMENT_STATUS.PENDIENTE,
+            PAYMENT_STATUS.CONFIRMADO,
+            PAYMENT_STATUS.RECHAZADO,
+        ],
+    );
+});
 
 test("al confirmar pago mueve la orden a Listo para produccion", async () => {
     const service = createService();

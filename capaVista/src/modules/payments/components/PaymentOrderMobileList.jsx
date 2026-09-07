@@ -16,6 +16,7 @@ export default function PaymentOrderMobileList({
   isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
   onViewDetail,
@@ -68,6 +69,7 @@ export default function PaymentOrderMobileList({
                 isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                 isMobile
                 onCloseEditor={onCloseEditor}
+                onPrefetchDetails={onPrefetchDetails}
                 onSelectStatus={onSelectStatus}
                 onToggleEditor={onToggleEditor}
                 onViewDetail={onViewDetail}

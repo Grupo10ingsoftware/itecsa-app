@@ -26,6 +26,8 @@ export function createOrderRouter({
     const fallbackController = new OrderController();
     const routeController = {
         getOrders: controller.getOrders ?? fallbackController.getOrders,
+        getPaymentWorkspace:
+            controller.getPaymentWorkspace ?? fallbackController.getPaymentWorkspace,
         getOrder: controller.getOrder ?? fallbackController.getOrder,
         getSalesNote: controller.getSalesNote ?? fallbackController.getSalesNote,
         createOrder: controller.createOrder ?? fallbackController.createOrder,
@@ -48,6 +50,7 @@ export function createOrderRouter({
 
     router.get("/", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
     router.get("/kanban", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
+    router.get("/payments", authenticate, requireCapability(P.READ_PAYMENTS), routeController.getPaymentWorkspace);
     router.get("/sales-notes/:numeroNota", authenticate, requireCapability(P.READ_SALES_NOTES), routeController.getSalesNote);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);

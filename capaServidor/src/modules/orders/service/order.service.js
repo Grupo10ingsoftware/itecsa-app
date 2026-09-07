@@ -428,6 +428,15 @@ class OrderService {
     return this.repo.getAllOrders();
   }
 
+  async getPaymentWorkspace() {
+    const [orders, paymentStatuses] = await Promise.all([
+      this.repo.getPaymentOrders(),
+      this.paymentRepo.getAll(),
+    ]);
+
+    return { orders, paymentStatuses };
+  }
+
   async getSalesNoteByNumber(numeroNota) {
     return this.salesNoteSourceService.getByNumber(numeroNota);
   }
@@ -503,15 +512,16 @@ class OrderService {
       throw error;
     }
 
-    const paymentStatus = await this.paymentRepo.get(paymentStatusId);
+    const [paymentStatus, currentOrder] = await Promise.all([
+      this.paymentRepo.get(paymentStatusId),
+      this.repo.getPaymentOrder(orderId),
+    ]);
 
     if (!paymentStatus) {
       const error = new Error("Estado de pago no encontrado.");
       error.statusCode = 404;
       throw error;
     }
-
-    const currentOrder = await this.repo.get(orderId);
 
     if (!currentOrder) {
       const error = new Error("Pedido no encontrado");
@@ -589,6 +599,10 @@ class OrderService {
         orderId,
         paymentStatusId,
         nextKanbanOrder,
+        {
+          currentOrder,
+          paymentStatusName: nextPaymentStatus,
+        },
       );
 
       if (!updatedOrder) return null;

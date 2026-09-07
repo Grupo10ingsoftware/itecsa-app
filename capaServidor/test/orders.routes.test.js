@@ -24,6 +24,9 @@ function createController(updatePaymentStatus) {
         getOrders(req, res) {
             return res.status(200).json([]);
         },
+        getPaymentWorkspace(req, res) {
+            return res.status(200).json({ orders: [], paymentStatuses: [] });
+        },
         getOrder(req, res) {
             return res.status(200).json({});
         },
@@ -45,6 +48,39 @@ function createController(updatePaymentStatus) {
         updatePaymentStatus,
     };
 }
+
+test("usa el endpoint liviano y protegido para cargar cobranzas", async (t) => {
+    const calls = [];
+    const app = createTestApp(
+        createOrderRouter({
+            authenticate(req, _res, next) {
+                req.auth = { payload: payloadFor() };
+                calls.push("checkJwt");
+                next();
+            },
+            controller: {
+                ...createController(() => {}),
+                getPaymentWorkspace(_req, res) {
+                    calls.push("getPaymentWorkspace");
+                    return res.status(200).json({
+                        orders: [{ id_pedido: 1 }],
+                        paymentStatuses: [{ id_estado_pago: 1 }],
+                    });
+                },
+            },
+        }),
+    );
+    const server = await listen(app, t);
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/orders/payments`,
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, ["checkJwt", "getPaymentWorkspace"]);
+    assert.equal(body.orders[0].id_pedido, 1);
+});
 
 test("monta checkJwt antes de listar pedidos", async (t) => {
     const calls = [];

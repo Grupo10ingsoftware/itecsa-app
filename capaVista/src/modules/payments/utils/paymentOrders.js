@@ -48,56 +48,6 @@ function normalizeStatusName(status) {
     : PAYMENT_STATUS.PENDIENTE
 }
 
-function getFileNameFromPath(filePath) {
-  if (!hasText(filePath)) return null
-
-  const normalizedPath = filePath.replace(/\\/g, '/')
-  const fileName = normalizedPath.split('/').filter(Boolean).at(-1)
-
-  return fileName || null
-}
-
-function getSalesNoteFileName(order, nvNumber) {
-  const fileNameFromPath = getFileNameFromPath(order.ruta_pdf)
-
-  if (fileNameFromPath) return fileNameFromPath
-  if (hasText(order.numero_nota_venta)) return `${nvNumber}.pdf`
-
-  return null
-}
-
-export function resolveApiAssetUrl(filePath, baseUrl = import.meta.env.VITE_API_BASE_URL) {
-  if (!hasText(filePath)) return null
-
-  const trimmedPath = filePath.trim()
-
-  if (/^https?:\/\//i.test(trimmedPath)) {
-    return trimmedPath
-  }
-
-  if (!trimmedPath.startsWith('/api/')) {
-    return trimmedPath
-  }
-
-  if (!hasText(baseUrl)) {
-    return trimmedPath
-  }
-
-  try {
-    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
-    const base = new URL(normalizedBaseUrl)
-    const apiBasePath = base.pathname.replace(/\/+$/, '')
-
-    if (apiBasePath && trimmedPath.startsWith(`${apiBasePath}/`)) {
-      return new URL(trimmedPath, base.origin).toString()
-    }
-
-    return new URL(trimmedPath.replace(/^\/+/, ''), normalizedBaseUrl).toString()
-  } catch {
-    return trimmedPath
-  }
-}
-
 export function normalizePaymentOrder(order) {
   const id = order?.id_pedido ?? order?.id
   const nvNumber = hasText(order?.numero_nota_venta)
@@ -108,30 +58,10 @@ export function normalizePaymentOrder(order) {
     : hasText(order?.nombre_cliente)
       ? order.nombre_cliente.trim()
       : 'Cliente sin nombre'
-  const productName = hasText(order?.nombre_producto)
-    ? order.nombre_producto.trim()
-    : null
   const trackedProducts = normalizeTrackedProducts(order?.detalles)
-  const nvFilePath = resolveApiAssetUrl(order?.ruta_pdf)
-  const isSigned =
-    Number(order?.firmado) === 1 ||
-    order?.firmado === true ||
-    Boolean(order?.firma_pago)
-  const signature = order?.firma_pago
-    ? {
-        timestamp: order.firma_pago.fecha_firma ?? 'Fecha no disponible',
-        userId: order.firma_pago.id_usuario
-          ? `Usuario #${order.firma_pago.id_usuario}`
-          : 'Usuario no disponible',
-        note: 'Firma de pago registrada',
-        evidenceFileName: order.firma_pago.evidenceFileName ?? null,
-        evidenceUrl: resolveApiAssetUrl(order.firma_pago.evidenceUrl),
-      }
-    : null
 
   return {
     id,
-    raw: order,
     nvNumber,
     companyName,
     rut: hasText(order?.rut_cliente)
@@ -140,30 +70,11 @@ export function normalizePaymentOrder(order) {
     sellerEmail: hasText(order?.correo_vendedor)
       ? order.correo_vendedor.trim()
       : null,
-    productDescription: hasText(order?.descripcion_producto)
-      ? order.descripcion_producto.trim()
-      : productName || 'Producto no disponible',
-    quantity: order?.cantidad ?? null,
-    manufacturingData: hasText(order?.descripcion_producto)
-      ? order.descripcion_producto.trim()
-      : '',
-    productType: productName || 'Producto',
     trackedProducts,
-    nvFileName: getSalesNoteFileName(order ?? {}, nvNumber),
-    nvFilePath,
-    isSigned,
-    orderStatus: order?.nombre_etapa_general ?? null,
     paymentStatus: normalizeStatusName(
       order?.estado_pago ?? order?.nombre_estado_pago,
     ),
-    paymentStatusId: order?.id_estado_pago ?? null,
     createdAt: order?.fecha_creacion ?? null,
-    updatedAt: order?.fecha_registro ?? null,
-    paymentConfirmedAt: order?.paymentConfirmedAt ?? null,
-    paymentDeconfirmationRequested: Boolean(order?.paymentDeconfirmationRequested),
-    paymentDeconfirmationRequestedAt: order?.paymentDeconfirmationRequestedAt ?? null,
-    paymentDeconfirmationRequestedBy: order?.paymentDeconfirmationRequestedBy ?? null,
-    signature,
   }
 }
 

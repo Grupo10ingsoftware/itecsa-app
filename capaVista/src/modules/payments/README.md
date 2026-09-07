@@ -4,8 +4,7 @@ La vista `/pagos` carga pedidos reales desde backend y permite gestionar el esta
 
 ## Contratos backend usados
 
-- `GET /api/orders`: lista pedidos reales con cliente, RUT, razon social, producto, etapa, estado de pago y datos documentales disponibles.
-- `GET /api/payment-status`: lista estados reales de pago.
+- `GET /api/orders/payments`: carga en una sola solicitud la lista liviana de cobranzas y los estados reales de pago.
 - `GET /api/orders/:orderId/payment-records/preview`: obtiene vendedor y detalle completo de productos para los modales de pago.
 - `PATCH /api/orders/:orderId/payment-status`: actualiza el estado de pago del pedido con PIN y registra auditoria en `Registro_Pago`.
 - `GET /api/orders/:orderId/payment-records`: consulta registros de auditoria del pedido cuando se requiera.
@@ -38,12 +37,6 @@ payments/
     ├── paymentDocuments.js
     └── paymentOrders.js
 ```
-
-## Mocks conservados
-
-- `mocks/paymentOrders.mock.js`: fixture historico con el shape UI esperado.
-- `mocks/paymentTransitions.mock.js`: referencia de la transicion visual antigua; no debe controlar el flujo real.
-- `mocks/paymentDocuments.mock.js` y `mocks/documents/*`: PDFs demo para desarrollo aislado; no se usan como fallback automatico productivo.
 
 ## Reglas de UI
 

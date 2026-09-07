@@ -86,13 +86,33 @@ function normalizeSalesNote(record) {
 class SalesNoteSourceService {
   constructor({ fixturePath = DEFAULT_FIXTURE_PATH } = {}) {
     this.fixturePath = fixturePath;
+    this.cache = null;
   }
 
   async getSalesNotes() {
+    const stats = await fs.stat(this.fixturePath);
+    const version = `${stats.mtimeMs}:${stats.size}`;
+
+    if (this.cache?.version === version) {
+      return this.cache.salesNotes;
+    }
+
     const raw = await fs.readFile(this.fixturePath, "utf8");
     const parsed = JSON.parse(raw);
+    const salesNotes = Array.isArray(parsed) ? parsed : [];
 
-    return Array.isArray(parsed) ? parsed : [];
+    this.cache = {
+      version,
+      salesNotes,
+      byNumber: new Map(
+        salesNotes.map((item) => [
+          normalizeSalesNoteNumber(item.numeroNota),
+          item,
+        ]),
+      ),
+    };
+
+    return salesNotes;
   }
 
   async getByNumber(numeroNota) {
@@ -104,10 +124,8 @@ class SalesNoteSourceService {
       throw error;
     }
 
-    const salesNotes = await this.getSalesNotes();
-    const record = salesNotes.find(
-      (item) => normalizeSalesNoteNumber(item.numeroNota) === normalizedNumber,
-    );
+    await this.getSalesNotes();
+    const record = this.cache.byNumber.get(normalizedNumber);
 
     if (!record) {
       const error = new Error("Nota de Venta no encontrada.");

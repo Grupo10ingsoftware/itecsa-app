@@ -58,6 +58,7 @@ function ManageButton({
   isMobile,
   isOpen,
   onClose,
+  onPrefetch,
   onSelect,
   onToggle,
   order,
@@ -146,8 +147,11 @@ function ManageButton({
           isMobile ? 'w-100' : ''
         }`}
         disabled={disabled}
+        onFocus={() => onPrefetch?.(order)}
+        onMouseEnter={() => onPrefetch?.(order)}
         onClick={() => {
           if (disabled) return
+          onPrefetch?.(order)
           onToggle(order.id)
         }}
         type="button"
@@ -191,6 +195,7 @@ export default function PaymentRowActions({
   isMobile = false,
   isUpdatingPaymentStatus = false,
   onCloseEditor,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
   onViewDetail,
@@ -217,6 +222,7 @@ export default function PaymentRowActions({
         isMobile={isMobile}
         isOpen={Boolean(editingStatus[order.id])}
         onClose={onCloseEditor}
+        onPrefetch={onPrefetchDetails}
         onSelect={onSelectStatus}
         onToggle={onToggleEditor}
         order={order}
@@ -228,6 +234,8 @@ export default function PaymentRowActions({
             isMobile ? 'w-100' : ''
           }`}
           onClick={() => onViewDetail(order)}
+          onFocus={() => onPrefetchDetails?.(order)}
+          onMouseEnter={() => onPrefetchDetails?.(order)}
           type="button"
         >
           Ver detalle

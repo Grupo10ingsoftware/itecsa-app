@@ -9,6 +9,7 @@ export default function PaymentOrdersTable({
   isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
   onViewDetail,
@@ -58,6 +59,7 @@ export default function PaymentOrdersTable({
                     editingStatus={editingStatus}
                     isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                     onCloseEditor={onCloseEditor}
+                    onPrefetchDetails={onPrefetchDetails}
                     onSelectStatus={onSelectStatus}
                     onToggleEditor={onToggleEditor}
                     onViewDetail={onViewDetail}

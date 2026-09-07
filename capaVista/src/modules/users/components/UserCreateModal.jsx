@@ -43,9 +43,7 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
       <section aria-labelledby="user-create-modal-title" aria-modal="true" className={styles.createModal} role="dialog">
         <header className={`${styles.modalHeader} ${styles.createModalHeader}`}>
           <div>
-            <span className={styles.modalKicker}>Administracion</span>
-            <h2 id="user-create-modal-title">Crear usuario</h2>
-            <p>Completa la informacion para registrar un nuevo usuario en el sistema.</p>
+            <h2 id="user-create-modal-title">Creacion de usuario</h2>
           </div>
           <button
             aria-label="Cerrar modal de creacion"

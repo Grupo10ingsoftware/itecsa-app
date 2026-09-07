@@ -85,14 +85,14 @@ function buildCreatedUserMessage(user) {
   if (user.passwordSetupEmailRequested) {
     return {
       type: MESSAGE_TYPES.SUCCESS,
-      text: 'Usuario creado correctamente. Auth0 solicitara el correo para establecer contrasena.',
+      text: 'Usuario creado correctamente. Auth0 solicitara el correo para establecer contraseña.',
     }
   }
 
   if (user.roleAssignmentCompleted === false) {
     return {
       type: MESSAGE_TYPES.WARNING,
-      text: 'La cuenta fue creada, pero no se pudo asignar el rol de acceso. Requiere gestion manual antes de solicitar el correo de contrasena.',
+      text: 'La cuenta fue creada, pero no se pudo asignar el rol de acceso. Requiere gestion manual antes de solicitar el correo de contraseña.',
     }
   }
 
@@ -179,7 +179,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
       }))
       setMessage({
         type: MESSAGE_TYPES.SUCCESS,
-        text: 'Correo de establecimiento de contrasena solicitado correctamente.',
+        text: 'Correo de establecimiento de contraseña solicitado correctamente.',
       })
     } catch (error) {
       const nextMessage = getErrorMessage(error)
@@ -192,7 +192,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
         ...nextMessage,
         text: shouldKeepMappedMessage
           ? nextMessage.text
-          : 'No fue posible solicitar el correo de establecimiento de contrasena. Intenta nuevamente.',
+          : 'No fue posible solicitar el correo de establecimiento de contraseña. Intenta nuevamente.',
       })
     } finally {
       setIsRequestingPasswordEmail(false)
@@ -229,7 +229,6 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
         )}
 
         <div className={`${styles.fieldCard} ${nombreUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-person" /></span>
           <div className={styles.fieldContent}>
             <label htmlFor="user-first-name">Nombres <span>*</span></label>
             <input
@@ -248,7 +247,6 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
         </div>
 
         <div className={`${styles.fieldCard} ${apellidoUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-person" /></span>
           <div className={styles.fieldContent}>
             <label htmlFor="user-last-name">Apellidos <span>*</span></label>
             <input
@@ -266,27 +264,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
           </div>
         </div>
 
-        <div className={`${styles.fieldCard} ${rutUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-card-heading" /></span>
-          <div className={styles.fieldContent}>
-            <label htmlFor="user-rut">RUT <span>*</span></label>
-            <input
-              aria-describedby="user-rut-errors"
-              aria-invalid={rutUsuarioErrors.length > 0}
-              autoComplete="off"
-              id="user-rut"
-              name="rutUsuario"
-              onChange={handleFieldChange}
-              placeholder="Ej: 12.345.678-9"
-              type="text"
-              value={values.rutUsuario}
-            />
-            <FieldErrors errors={rutUsuarioErrors} id="user-rut-errors" />
-          </div>
-        </div>
-
         <div className={`${styles.fieldCard} ${correoUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-envelope" /></span>
           <div className={styles.fieldContent}>
             <label htmlFor="user-email">Correo electronico <span>*</span></label>
             <input
@@ -304,8 +282,25 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
           </div>
         </div>
 
+        <div className={`${styles.fieldCard} ${rutUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
+          <div className={styles.fieldContent}>
+            <label htmlFor="user-rut">RUT <span>*</span></label>
+            <input
+              aria-describedby="user-rut-errors"
+              aria-invalid={rutUsuarioErrors.length > 0}
+              autoComplete="off"
+              id="user-rut"
+              name="rutUsuario"
+              onChange={handleFieldChange}
+              placeholder="Ej: 12.345.678-9"
+              type="text"
+              value={values.rutUsuario}
+            />
+            <FieldErrors errors={rutUsuarioErrors} id="user-rut-errors" />
+          </div>
+        </div>
+
         <div className={`${styles.fieldCard} ${styles.fieldCardWide} ${rolUsuarioErrors.length > 0 ? styles.fieldCardInvalid : ''}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-people" /></span>
           <div className={styles.fieldContent}>
             <label htmlFor="user-role">Rol <span>*</span></label>
             <select
@@ -328,9 +323,8 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
         </div>
 
         <div className={`${styles.fieldCard} ${styles.fieldCardWide}`}>
-          <span className={styles.fieldIcon} aria-hidden="true"><i className="bi bi-lock" /></span>
           <div className={styles.fieldContent}>
-            <label htmlFor="user-password">Contrasena</label>
+            <label htmlFor="user-password">Contraseña</label>
             <input
               aria-describedby="user-password-help"
               disabled
@@ -340,7 +334,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
               type="password"
             />
             <p className={styles.fieldHelp} id="user-password-help">
-              El usuario establecera su contrasena mediante un correo enviado por Auth0.
+              El usuario establecera su contraseña mediante un correo enviado por Auth0.
             </p>
           </div>
         </div>
@@ -354,7 +348,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
               <div><dt>Correo electronico</dt><dd>{createdUser.correoUsuario}</dd></div>
               <div><dt>Rol</dt><dd>{getRoleLabel(createdUser.rolUsuario)}</dd></div>
               <div>
-                <dt>Correo de contrasena</dt>
+                <dt>Correo de contraseña</dt>
                 <dd>{createdUser.passwordSetupEmailRequested ? 'Solicitado' : 'Pendiente'}</dd>
               </div>
             </dl>

@@ -614,12 +614,13 @@
 .createModal {
   display: flex;
   flex-direction: column;
-  height: min(56rem, calc(100dvh - 2rem));
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: auto;
   max-height: calc(100dvh - 2rem);
   max-width: min(86rem, calc(100vw - 2rem));
   min-height: 0;
   overflow: hidden;
-  width: 86rem;
+  width: min(100%, 36rem);
 }
 
 .modalHeader,
@@ -648,13 +649,13 @@
 }
 
 .createModalHeader {
-  align-items: flex-start;
+  align-items: center;
   background: #000;
   border-bottom: 0;
   color: #fff;
   flex: 0 0 auto;
-  min-height: 9rem;
-  padding: 1.7rem 2.25rem;
+  min-height: 4.6rem;
+  padding: 1.15rem 1.35rem;
 }
 
 .createModalHeader > div {
@@ -674,19 +675,16 @@
 
 .createModalHeader h2 {
   color: #fff;
-  font-size: clamp(1.75rem, 3vw, 2.35rem);
-  font-weight: 850;
-  letter-spacing: 0.08em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0;
   line-height: 1;
   margin: 0;
   text-transform: uppercase;
 }
 
 .createModalHeader p {
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 0.95rem;
-  line-height: 1.4;
-  margin: 0.65rem 0 0;
+  display: none;
 }
 
 .createModal .modalCloseButton {

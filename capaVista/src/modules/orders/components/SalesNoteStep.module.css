@@ -1,36 +1,36 @@
 .mainPanelClean {
   display: grid;
-  gap: 1.25rem;
+  gap: 0.9rem;
+}
+
+.topControlsGrid {
+  align-items: stretch;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(24rem, 0.95fr);
 }
 
 .sectionCardClean,
+.priorityCard,
 .detailsPanel {
   background: #fff;
   border: 1px solid #dfe5ec;
-  border-radius: 0.85rem;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+  border-radius: 0.7rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
   min-width: 0;
-  padding: 1.35rem 1.4rem;
+  padding: 1.1rem 1.15rem;
 }
 
-.sectionCardClean {
-  border-top: 3px solid var(--orders-orange);
+.priorityCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .sectionIntro {
-  border-bottom: 1px solid #edf2f7;
-  margin-bottom: 1.15rem;
-  padding-bottom: 1rem;
-}
-
-.stepBadge {
-  color: var(--orders-orange);
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.25rem;
-  text-transform: uppercase;
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
 .sectionHeader,
@@ -38,7 +38,7 @@
   align-items: center;
   color: var(--orders-text);
   display: flex;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 900;
   gap: 0.55rem;
   letter-spacing: 0.035em;
@@ -47,35 +47,35 @@
   text-transform: uppercase;
 }
 
-.sectionHeader i {
+.sectionIcon {
   align-items: center;
   background: var(--orders-orange-soft);
   border: 1px solid var(--orders-orange-border);
-  border-radius: 0.5rem;
+  border-radius: 0.6rem;
   color: var(--orders-orange);
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 1rem;
-  height: 2rem;
+  font-size: 1.15rem;
+  height: 2.6rem;
   justify-content: center;
-  width: 2rem;
+  width: 2.6rem;
 }
 
 .sectionIntro p,
-.priorityBlock p {
+.priorityIntro p {
   color: var(--orders-muted);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 0.2rem 0 0;
+}
+
+.priorityIntro {
+  margin-bottom: 0.9rem;
 }
 
 .formBlock {
-  background: var(--orders-soft);
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
   display: grid;
-  gap: 0.65rem;
-  padding: 1rem;
+  gap: 0.5rem;
 }
 
 .label {
@@ -178,15 +178,6 @@
   margin: 0.25rem 0 0;
 }
 
-.priorityBlock {
-  border-top: 1px solid #edf2f7;
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1.15rem;
-  padding-top: 1.15rem;
-}
-
-.priorityBlock h3,
 .subsectionHeader h3,
 .observationsOrigin h3 {
   color: var(--orders-text);
@@ -198,6 +189,7 @@
 }
 
 .priorityGrid {
+  align-self: end;
   display: grid;
   gap: 0.7rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -212,8 +204,8 @@
   display: grid;
   gap: 0.7rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  min-height: 3.25rem;
-  padding: 0.65rem 0.8rem;
+  min-height: 3.65rem;
+  padding: 0.7rem 0.85rem;
   text-align: left;
   transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
@@ -280,9 +272,10 @@
 
 .detailsPanel {
   min-height: 19rem;
+  padding: 1.15rem;
 }
 
-.detailsHeader,
+.detailsTitleRow,
 .subsectionHeader {
   align-items: center;
   display: flex;
@@ -292,6 +285,7 @@
 
 .successBadge,
 .noteBadge,
+.deliveryBadge,
 .subsectionHeader span {
   align-items: center;
   border-radius: 999px;
@@ -305,26 +299,65 @@
 }
 
 .successBadge {
-  background: var(--orders-green-soft);
   color: var(--orders-green);
+  font-size: 0.82rem;
+  padding: 0;
 }
 
-.noteBadge,
+.noteBadge {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(36, 143, 85, 0.16);
+  color: #166534;
+}
+
 .subsectionHeader span {
   background: var(--orders-soft);
   color: #334155;
 }
 
+.verificationBanner {
+  align-items: center;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.65rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+}
+
+.deliveryBadge {
+  align-items: flex-end;
+  background: var(--orders-soft);
+  color: #334155;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.05rem;
+  text-align: right;
+}
+
+.deliveryBadge small {
+  color: var(--orders-muted);
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.deliveryBadge strong {
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
 .detailsTitle {
-  border-bottom: 1px solid #edf2f7;
-  margin-top: 1rem;
-  padding-bottom: 0.9rem;
+  margin: 0;
 }
 
 .dataGrid {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 1rem;
 }
 
@@ -378,7 +411,7 @@
 .productsGrid {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   margin-top: 0.75rem;
 }
 
@@ -501,6 +534,16 @@
   margin: 0.35rem 0 0;
 }
 
+@media (max-width: 1199.98px) {
+  .topControlsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dataGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .priorityGrid {
     grid-template-columns: 1fr;
@@ -513,6 +556,20 @@
   .accessoryRow {
     grid-template-columns: 1fr;
     min-width: 0;
+  }
+
+  .accessoryRow > * {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .accessoryRow > *::before {
+    color: var(--orders-muted);
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 }
 
@@ -528,19 +585,34 @@
 
 @media (max-width: 575.98px) {
   .sectionCardClean,
+  .priorityCard,
   .detailsPanel {
     border-radius: 0.75rem;
-    padding: 1rem;
+    padding: 0.9rem;
   }
 
-  .formBlock {
-    padding: 0.8rem;
-  }
-
-  .detailsHeader,
+  .detailsTitleRow,
   .subsectionHeader {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+
+  .deliveryBadge {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .verificationBanner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .noteBadge {
+    align-self: flex-start;
+  }
+
+  .dataGrid {
+    grid-template-columns: 1fr;
   }
 
   .productGrid {

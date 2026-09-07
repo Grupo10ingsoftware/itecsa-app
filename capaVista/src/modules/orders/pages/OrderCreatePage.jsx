@@ -54,6 +54,14 @@ export default function OrderCreatePage() {
 
           <div className={styles.footerActions}>
             <button
+              className={styles.cancelButton}
+              disabled={flow.isRegistering}
+              onClick={actions.resetFlow}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
               className={styles.registerButton}
               disabled={!flow.salesNoteIsValid || flow.isRegistering}
               onClick={actions.handleOpenConfirmModal}

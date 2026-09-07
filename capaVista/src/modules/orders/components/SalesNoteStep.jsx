@@ -110,10 +110,10 @@ const ProductCard = memo(function ProductCard({ item, index }) {
 const AccessoryRow = memo(function AccessoryRow({ item }) {
   return (
     <div className={styles.accessoryRow}>
-      <span>{item.codigo}</span>
-      <strong>{item.producto}</strong>
-      <span>{item.cantidad}</span>
-      <span>{item.subfamilia}</span>
+      <span data-label="Codigo">{item.codigo}</span>
+      <strong data-label="Producto">{item.producto}</strong>
+      <span data-label="Cantidad">{item.cantidad}</span>
+      <span data-label="Subfamilia">{item.subfamilia}</span>
     </div>
   )
 })
@@ -143,56 +143,61 @@ export default function SalesNoteStep({
 
   return (
     <div className={styles.mainPanelClean}>
-      <section className={styles.sectionCardClean} aria-labelledby="sales-note-data-title">
-        <div className={styles.sectionIntro}>
-          <span className={styles.stepBadge}>Paso unico</span>
-          <h2 className={styles.sectionHeader} id="sales-note-data-title">
-            <i className="bi bi-cloud-arrow-down" aria-hidden="true" />
-            Datos del pedido
-          </h2>
-          <p>Ingresa el codigo de Nota de Venta para importar la informacion del pedido.</p>
-        </div>
-
-        <form className={styles.formBlock} onSubmit={handleSearchSubmit}>
-          <label className={styles.label} htmlFor="sales-note-code">
-            Codigo de Nota de Venta <span className={styles.requiredMark}>*</span>
-          </label>
-
-          <div className={styles.codeFieldRow}>
-            <span className={styles.inputWrapper}>
-              <input
-                aria-describedby={errors.salesNoteCode ? 'sales-note-code-error' : undefined}
-                aria-invalid={Boolean(errors.salesNoteCode)}
-                className={`${styles.input} ${isVerified ? styles.inputValid : ''}`}
-                id="sales-note-code"
-                onChange={(event) => onChange('salesNoteCode', event.target.value)}
-                placeholder="Ej: NV-2026-3001"
-                type="text"
-                value={draft.salesNoteCode}
-              />
-              {isVerified && (
-                <span className={styles.inlineCheck} aria-label="Nota de Venta verificada">
-                  <i className="bi bi-check-lg" aria-hidden="true" />
-                </span>
-              )}
+      <div className={styles.topControlsGrid}>
+        <section className={styles.sectionCardClean} aria-labelledby="sales-note-data-title">
+          <div className={styles.sectionIntro}>
+            <span className={styles.sectionIcon} aria-hidden="true">
+              <i className="bi bi-file-earmark-text" />
             </span>
-
-            <button className={styles.searchButton} disabled={isSearching || !hasCode} type="submit">
-              <i className="bi bi-search" aria-hidden="true" />
-              {isSearching ? 'Buscando...' : 'Buscar informacion'}
-            </button>
+            <div>
+              <h2 className={styles.sectionHeader} id="sales-note-data-title">
+                Datos del pedido
+              </h2>
+              <p>Ingresa el codigo de Nota de Venta para importar la informacion del pedido.</p>
+            </div>
           </div>
 
-          {errors.salesNoteCode && (
-            <p className={styles.errorText} id="sales-note-code-error" role="alert">
-              {errors.salesNoteCode}
-            </p>
-          )}
-        </form>
+          <form className={styles.formBlock} onSubmit={handleSearchSubmit}>
+            <label className={styles.label} htmlFor="sales-note-code">
+              Codigo de Nota de Venta <span className={styles.requiredMark}>*</span>
+            </label>
 
-        <div className={styles.priorityBlock} aria-labelledby="order-priority-title">
-          <div>
-            <h3 id="order-priority-title">Etiquetas del pedido</h3>
+            <div className={styles.codeFieldRow}>
+              <span className={styles.inputWrapper}>
+                <input
+                  aria-describedby={errors.salesNoteCode ? 'sales-note-code-error' : undefined}
+                  aria-invalid={Boolean(errors.salesNoteCode)}
+                  className={`${styles.input} ${isVerified ? styles.inputValid : ''}`}
+                  id="sales-note-code"
+                  onChange={(event) => onChange('salesNoteCode', event.target.value)}
+                  placeholder="Ej: NV-2026-3001"
+                  type="text"
+                  value={draft.salesNoteCode}
+                />
+                {isVerified && (
+                  <span className={styles.inlineCheck} aria-label="Nota de Venta verificada">
+                    <i className="bi bi-check-lg" aria-hidden="true" />
+                  </span>
+                )}
+              </span>
+
+              <button className={styles.searchButton} disabled={isSearching || !hasCode} type="submit">
+                <i className="bi bi-search" aria-hidden="true" />
+                {isSearching ? 'Buscando...' : 'Buscar informacion'}
+              </button>
+            </div>
+
+            {errors.salesNoteCode && (
+              <p className={styles.errorText} id="sales-note-code-error" role="alert">
+                {errors.salesNoteCode}
+              </p>
+            )}
+          </form>
+        </section>
+
+        <section className={styles.priorityCard} aria-labelledby="order-priority-title">
+          <div className={styles.priorityIntro}>
+            <h2 className={styles.sectionHeader} id="order-priority-title">Etiquetas del pedido</h2>
             <p>Selecciona una etiqueta solo si el pedido requiere trato especial.</p>
           </div>
           <div className={styles.priorityGrid}>
@@ -205,34 +210,36 @@ export default function SalesNoteStep({
               />
             ))}
           </div>
+        </section>
+      </div>
+
+      {record && (
+        <div className={styles.verificationBanner} role="status">
+          <span className={styles.successBadge}>
+            <i className="bi bi-check-circle" aria-hidden="true" />
+            Informacion encontrada
+          </span>
+          <span className={styles.noteBadge}>{draft.salesNoteCode}</span>
         </div>
-      </section>
+      )}
 
       <section className={styles.detailsPanel} aria-labelledby="order-details-title">
         {record ? (
           <>
-            <div className={styles.detailsHeader}>
-              <span className={styles.successBadge}>
-                <i className="bi bi-check-circle" aria-hidden="true" />
-                Informacion encontrada
+            <div className={styles.detailsTitleRow}>
+              <h2 className={styles.detailsTitle} id="order-details-title">Detalle de la Nota de Venta</h2>
+              <span className={styles.deliveryBadge}>
+                <small>Entrega tentativa</small>
+                <strong>{record.dueDate || '-'}</strong>
               </span>
-              <span className={styles.noteBadge}>{draft.salesNoteCode}</span>
             </div>
 
-            <h2 className={styles.detailsTitle} id="order-details-title">Detalle de la Nota de Venta</h2>
-
             <div className={styles.dataGrid}>
+              <DataItem label="Codigo de Nota de Venta" value={draft.salesNoteCode} />
               <DataItem label="Cliente" value={record.client} />
               <DataItem label="RUT" value={record.rut} />
               <DataItem label="Responsable del registro" value={responsibleUserName} />
-              <DataItem label="Entrega tentativa" value={record.dueDate} />
-              <DataItem label="Tipo de producto" value={record.productType} />
             </div>
-
-            <section className={styles.observationsOrigin}>
-              <h3>Observaciones de origen</h3>
-              <p>{record.observaciones || 'Este pedido no tiene observaciones asociadas.'}</p>
-            </section>
 
             <section className={styles.productsSection}>
               <div className={styles.subsectionHeader}>
@@ -266,6 +273,11 @@ export default function SalesNoteStep({
               ) : (
                 <p className={styles.emptyText}>Esta Nota de Venta no incluye accesorios fuera del flujo productivo actual.</p>
               )}
+            </section>
+
+            <section className={styles.observationsOrigin}>
+              <h3>Observaciones de origen</h3>
+              <p>{record.observaciones || 'Este pedido no tiene observaciones asociadas.'}</p>
             </section>
 
             <section className={styles.internalObservation}>

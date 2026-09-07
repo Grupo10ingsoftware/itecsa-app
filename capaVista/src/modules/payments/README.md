@@ -50,6 +50,7 @@ payments/
 - `view:payments-module` protege el acceso a la ruta.
 - `update:payment-status` habilita acciones de cambio de estado.
 - La vista cubre loading, error con reintento y estado vacio.
+- La fecha de creacion se filtra mediante un rango inclusivo `Desde` / `Hasta`; la busqueda textual cubre RUT, Nota de Venta y cliente.
 - Los modales de confirmacion y detalle usan informacion registrada y no dependen de PDFs.
 - El backend vuelve a validar permisos y transiciones aunque la opcion no sea visible en la interfaz.
 

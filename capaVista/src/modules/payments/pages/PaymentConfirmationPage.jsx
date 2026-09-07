@@ -15,7 +15,6 @@ import {
   normalizePaymentOrder,
   normalizePaymentOrders,
 } from '../utils/paymentOrders'
-import { formatPaymentDate } from '../utils/paymentDocuments'
 import styles from './PaymentConfirmationPage.module.css'
 
 const FILTERS = [
@@ -23,6 +22,24 @@ const FILTERS = [
   { key: PAYMENT_STATUS.RECHAZADO, label: 'Rechazados' },
   { key: PAYMENT_STATUS.CONFIRMADO, label: 'Confirmados' },
 ]
+
+function getPaymentDateKey(value) {
+  if (!value) return null
+
+  if (typeof value === 'string') {
+    const datePrefix = value.match(/^(\d{4}-\d{2}-\d{2})/)
+    if (datePrefix) return datePrefix[1]
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
 
 export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
@@ -37,6 +54,8 @@ export default function PaymentConfirmationPage() {
   const [credentialsTransition, setCredentialsTransition] = useState(null)
   const [previewState, setPreviewState] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [updateError, setUpdateError] = useState(null)
@@ -114,13 +133,14 @@ export default function PaymentConfirmationPage() {
 
     return orders.filter((order) => {
       const matchesFilter = order.paymentStatus === activeFilter
+      const orderDate = getPaymentDateKey(order.createdAt)
+      const matchesDateFrom = !dateFrom || (orderDate && orderDate >= dateFrom)
+      const matchesDateTo = !dateTo || (orderDate && orderDate <= dateTo)
 
       const searchableText = [
         order.nvNumber,
         order.companyName,
         order.rut,
-        order.paymentStatus,
-        formatPaymentDate(order.createdAt),
       ]
         .join(' ')
         .toLowerCase()
@@ -128,9 +148,9 @@ export default function PaymentConfirmationPage() {
       const matchesSearch =
         normalizedSearch.length === 0 || searchableText.includes(normalizedSearch)
 
-      return matchesFilter && matchesSearch
+      return matchesFilter && matchesDateFrom && matchesDateTo && matchesSearch
     })
-  }, [activeFilter, orders, searchTerm])
+  }, [activeFilter, dateFrom, dateTo, orders, searchTerm])
 
   const getFilterCount = useCallback(
     (filterKey) => {
@@ -204,6 +224,22 @@ export default function PaymentConfirmationPage() {
 
   const handleSearchChange = useCallback((nextSearchTerm) => {
     setSearchTerm(nextSearchTerm)
+    setEditingStatus({})
+  }, [])
+
+  const handleDateFromChange = useCallback((nextDate) => {
+    setDateFrom(nextDate)
+    setEditingStatus({})
+  }, [])
+
+  const handleDateToChange = useCallback((nextDate) => {
+    setDateTo(nextDate)
+    setEditingStatus({})
+  }, [])
+
+  const clearDateRange = useCallback(() => {
+    setDateFrom('')
+    setDateTo('')
     setEditingStatus({})
   }, [])
 
@@ -399,8 +435,13 @@ export default function PaymentConfirmationPage() {
 
         <PaymentFilters
           activeFilter={activeFilter}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
           filters={FILTERS}
           getFilterCount={getFilterCount}
+          onClearDateRange={clearDateRange}
+          onDateFromChange={handleDateFromChange}
+          onDateToChange={handleDateToChange}
           onFilterChange={handleFilterChange}
           onSearchChange={handleSearchChange}
           searchTerm={searchTerm}

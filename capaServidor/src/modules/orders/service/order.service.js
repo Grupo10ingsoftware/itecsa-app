@@ -23,6 +23,8 @@ import SalesNoteSourceService from "./salesNoteSource.service.js";
 
 export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
   "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
+export const DUPLICATE_SALES_NOTE_MESSAGE =
+  "Esta Nota de Venta ya fue registrada en el sistema y no puede volver a ingresarse.";
 
 function toPrismaDate(value) {
   if (!value) return null;
@@ -438,7 +440,18 @@ class OrderService {
   }
 
   async getSalesNoteByNumber(numeroNota) {
-    return this.salesNoteSourceService.getByNumber(numeroNota);
+    const salesNote = await this.salesNoteSourceService.getByNumber(numeroNota);
+    const isAlreadyRegistered = await this.repo.existsBySalesNoteNumber(
+      salesNote.numeroNota,
+    );
+
+    if (isAlreadyRegistered) {
+      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    return salesNote;
   }
 
   async reevaluateOrder(orderId, { auth0UserId } = {}) {
@@ -777,7 +790,7 @@ class OrderService {
     const existingOrder = await this.repo.getBySalesNoteNumber(numeroNota);
 
     if (existingOrder) {
-      const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
+      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
       error.statusCode = 409;
       throw error;
     }
@@ -797,7 +810,7 @@ class OrderService {
       const duplicateOrder = await repo.getBySalesNoteNumber(numeroNota);
 
       if (duplicateOrder) {
-        const error = new Error("Esta Nota de Venta ya fue registrada en el sistema.");
+        const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
         error.statusCode = 409;
         throw error;
       }

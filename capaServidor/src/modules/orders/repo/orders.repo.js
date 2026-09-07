@@ -105,6 +105,19 @@ function mapUntrackedItem(item) {
   };
 }
 
+function mapInitialOrderComments(order) {
+  const observation = String(order?.observacion_interna ?? "").trim();
+
+  if (!observation) return [];
+
+  return [
+    {
+      id: `pedido-${order.id_pedido}-observacion-inicial`,
+      text: observation,
+    },
+  ];
+}
+
 export function buildSalesNotePdfUrl(storedPath) {
   if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
     return null;
@@ -165,6 +178,7 @@ function mapOrderRow(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(Pedido_Item_Sin_Seguimiento)
       ? Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
+    comments: mapInitialOrderComments(order),
     ruta_pdf: null,
     firmado: null,
     firma_pago: null,
@@ -257,6 +271,15 @@ class OrderRepository {
       where: { numero_nota_venta: String(numeroNota) },
       include: orderReadInclude,
     });
+  }
+
+  async existsBySalesNoteNumber(numeroNota) {
+    const order = await this.client.pedidos.findFirst({
+      where: { numero_nota_venta: String(numeroNota) },
+      select: { id_pedido: true },
+    });
+
+    return Boolean(order);
   }
 
   async getAllOrders() {

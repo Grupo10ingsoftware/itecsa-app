@@ -125,6 +125,16 @@
   white-space: nowrap;
 }
 
+.observationRow {
+  align-items: start;
+}
+
+.observationRow span:last-child {
+  max-width: 15rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .modalActions {
   align-items: center;
   display: flex;
@@ -185,6 +195,7 @@
 
   .modalSummaryRow span:last-child {
     grid-column: 2;
+    max-width: none;
     text-align: left;
   }
 

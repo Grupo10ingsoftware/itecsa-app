@@ -77,6 +77,7 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
               id_pedido: 2,
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               id_estado_pago: 2,
+              observacion_interna: "Coordinar entrega con el cliente.",
               Cliente: {
                 nombre_cliente: "Mall Plaza",
                 rut_cliente: "76.812.440-5",
@@ -135,6 +136,12 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
   assert.equal(orders[0].cantidad, 250);
   assert.equal(orders[0].id_etapa_general, 1);
   assert.equal(orders[0].nombre_etapa_general, "Listo para produccion");
+  assert.deepEqual(orders[0].comments, [
+    {
+      id: "pedido-2-observacion-inicial",
+      text: "Coordinar entrega con el cliente.",
+    },
+  ]);
   assert.deepEqual(orders[0].detalles, [
     {
       id_detalle_pedido: 5,

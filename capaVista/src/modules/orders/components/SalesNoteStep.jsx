@@ -138,8 +138,17 @@ export default function SalesNoteStep({
 }) {
   const hasCode = Boolean(draft.salesNoteCode?.trim())
   const record = draft.managerRecord
+  const isVerified = Boolean(record)
   const productRows = getProductRows(record ?? {})
   const accessoryRows = getAccessoryRows(record ?? {})
+
+  function handleSearchSubmit(event) {
+    event.preventDefault()
+
+    if (!isSearching) {
+      onSearch()
+    }
+  }
 
   return (
     <div className={styles.mainPanelClean}>
@@ -153,7 +162,7 @@ export default function SalesNoteStep({
           <p>Ingresa el codigo de Nota de Venta para importar la informacion del pedido.</p>
         </div>
 
-        <div className={styles.formBlock}>
+        <form className={styles.formBlock} onSubmit={handleSearchSubmit}>
           <label className={styles.label} htmlFor="sales-note-code">
             Codigo de Nota de Venta <span className={styles.requiredMark}>*</span>
           </label>
@@ -161,28 +170,34 @@ export default function SalesNoteStep({
           <div className={styles.codeFieldRow}>
             <span className={styles.inputWrapper}>
               <input
-                className={`${styles.input} ${hasCode && !errors.salesNoteCode ? styles.inputValid : ''}`}
+                aria-describedby={errors.salesNoteCode ? 'sales-note-code-error' : undefined}
+                aria-invalid={Boolean(errors.salesNoteCode)}
+                className={`${styles.input} ${isVerified ? styles.inputValid : ''}`}
                 id="sales-note-code"
                 onChange={(event) => onChange('salesNoteCode', event.target.value)}
                 placeholder="Ej: NV-2026-3001"
                 type="text"
                 value={draft.salesNoteCode}
               />
-              {hasCode && !errors.salesNoteCode && (
-                <span className={styles.inlineCheck} aria-label="Codigo ingresado">
+              {isVerified && (
+                <span className={styles.inlineCheck} aria-label="Nota de Venta verificada">
                   <i className="bi bi-check-lg" aria-hidden="true" />
                 </span>
               )}
             </span>
 
-            <button className={styles.searchButton} disabled={isSearching} onClick={onSearch} type="button">
+            <button className={styles.searchButton} disabled={isSearching || !hasCode} type="submit">
               <i className="bi bi-search" aria-hidden="true" />
               {isSearching ? 'Buscando...' : 'Buscar informacion'}
             </button>
           </div>
 
-          {errors.salesNoteCode && <p className={styles.errorText}>{errors.salesNoteCode}</p>}
-        </div>
+          {errors.salesNoteCode && (
+            <p className={styles.errorText} id="sales-note-code-error" role="alert">
+              {errors.salesNoteCode}
+            </p>
+          )}
+        </form>
 
         <div className={styles.priorityBlock} aria-labelledby="order-priority-title">
           <div>

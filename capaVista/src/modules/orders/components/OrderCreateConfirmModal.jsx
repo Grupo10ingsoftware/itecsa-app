@@ -47,6 +47,14 @@ export default function OrderCreateConfirmModal({ draft, isRegistering = false, 
               <strong>Etiqueta</strong>
               <span>{priorityLabel}</span>
             </div>
+
+            <div className={`${styles.modalSummaryRow} ${styles.observationRow}`}>
+              <span className={styles.summaryIcon}>
+                <i className="bi bi-chat-left-text" aria-hidden="true" />
+              </span>
+              <strong>Observaciones</strong>
+              <span>{draft.comments?.trim() || 'Sin observaciones'}</span>
+            </div>
           </div>
 
           <footer className={styles.modalActions}>

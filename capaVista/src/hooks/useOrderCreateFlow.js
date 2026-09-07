@@ -84,12 +84,14 @@ export function useOrderCreateFlow({ navigate }) {
   async function handleSearchSalesNote() {
     const code = normalizeSalesNoteCode(draft.salesNoteCode)
 
+    setNotice(null)
+
     if (!code) {
       setErrors((previous) => ({ ...previous, salesNoteCode: 'Debe ingresar el codigo de Nota de Venta.' }))
-      setNotice({ type: 'error', message: 'Ingrese un codigo de Nota de Venta antes de buscar informacion.' })
       return
     }
 
+    setErrors((previous) => ({ ...previous, salesNoteCode: null }))
     setIsSearching(true)
 
     try {
@@ -98,7 +100,6 @@ export function useOrderCreateFlow({ navigate }) {
 
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord }))
       setErrors((previous) => ({ ...previous, salesNoteCode: null }))
-      setNotice({ type: 'success', message: `Informacion de ${code} importada correctamente.` })
     } catch (error) {
       const message = getErrorMessage(error, `No se encontro informacion para ${code}.`)
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord: null }))
@@ -106,7 +107,6 @@ export function useOrderCreateFlow({ navigate }) {
         ...previous,
         salesNoteCode: message,
       }))
-      setNotice({ type: 'error', message })
     } finally {
       setIsSearching(false)
     }

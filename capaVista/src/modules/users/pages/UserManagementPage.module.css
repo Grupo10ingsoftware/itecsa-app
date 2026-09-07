@@ -66,7 +66,6 @@
 .filtersShell,
 .tableCard,
 .createModal,
-.editModal,
 .confirmModal {
   background: #fff;
   border: 1px solid var(--users-border);
@@ -601,7 +600,6 @@
 }
 
 .createModal,
-.editModal,
 .confirmModal {
   max-height: min(92vh, 860px);
   max-width: 840px;
@@ -609,7 +607,6 @@
   width: min(100%, 840px);
 }
 
-.editModal,
 .confirmModal {
   max-width: 680px;
 }
@@ -726,43 +723,6 @@
   border-top: 1px solid #edf0f3;
 }
 
-.editIdentityCard {
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #edf0f3;
-  border-radius: 8px;
-  display: flex;
-  gap: 0.85rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-}
-
-.editIdentityAvatar {
-  align-items: center;
-  background: #e8f1ff;
-  border-radius: 8px;
-  color: #1f5fbf;
-  display: inline-flex;
-  height: 2.8rem;
-  justify-content: center;
-  width: 2.8rem;
-}
-
-.editIdentityCard h3,
-.editIdentityCard p {
-  margin: 0;
-}
-
-.editIdentityCard p {
-  color: #5f6b76;
-}
-
-.editFieldsGrid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .editField {
   display: grid;
   gap: 0.35rem;
@@ -771,13 +731,6 @@
 .editField span {
   color: #4f5f6f;
   font-weight: 700;
-}
-
-.fieldHelpText {
-  color: #8a6100;
-  font-size: 0.82rem;
-  font-weight: 650;
-  line-height: 1.35;
 }
 
 .formControl {
@@ -920,8 +873,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .summaryGrid,
-  .editFieldsGrid {
+  .summaryGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1060,7 +1012,6 @@
   }
 
   .createModal,
-  .editModal,
   .confirmModal {
     border-radius: 0.75rem;
   }

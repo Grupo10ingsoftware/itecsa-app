@@ -20,6 +20,17 @@ class OrderController {
         }
     }
 
+    getPaymentWorkspace = async (req = request, res = response) => {
+        try {
+            const workspace = await this.service.getPaymentWorkspace();
+            res.status(200).json(workspace);
+        } catch (error) {
+            res.status(error.statusCode ?? 500).json({
+                message: error.message || 'Error al obtener pedidos de cobranza',
+            });
+        }
+    }
+
     getOrder = async ( req = request, res = response) => {
         try {
             const { orderId } = req.params;

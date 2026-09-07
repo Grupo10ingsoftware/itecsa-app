@@ -171,6 +171,26 @@ function mapOrderRow(order, paymentStatusName = null) {
   };
 }
 
+function mapPaymentOrderRow(order) {
+  if (!order) return null;
+
+  return {
+    id_pedido: order.id_pedido,
+    numero_nota_venta: order.numero_nota_venta,
+    fecha_creacion: order.fecha_creacion,
+    id_estado_pago: order.id_estado_pago,
+    id_estado_pedido: order.id_estado_pedido,
+    nombre_cliente: order.nombre_cliente ?? null,
+    razon_social: order.razon_social ?? null,
+    rut_cliente: order.rut_cliente ?? null,
+    id_etapa_general: order.id_etapa_general ?? null,
+    generalStepId: order.id_etapa_general ?? null,
+    nombre_etapa_general: order.nombre_etapa_general ?? null,
+    estado_pago: order.estado_pago ?? null,
+    paymentStatus: order.estado_pago ?? null,
+  };
+}
+
 const orderReadInclude = {
   Cliente: true,
   Detalle_pedido: {
@@ -251,6 +271,55 @@ class OrderRepository {
     return orders.map((order) =>
       mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
     );
+  }
+
+  async getPaymentOrders() {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      ORDER BY p.id_pedido DESC
+    `;
+
+    return orders.map(mapPaymentOrderRow);
+  }
+
+  async getPaymentOrder(id) {
+    const orders = await this.client.$queryRaw`
+      SELECT
+        p.id_pedido,
+        p.numero_nota_venta,
+        p.fecha_creacion,
+        p.id_estado_pago,
+        p.id_estado_pedido,
+        c.nombre_cliente,
+        c.razon_social,
+        c.rut_cliente,
+        ep.nombre_etapa AS nombre_etapa_general,
+        ep.orden_kanban AS id_etapa_general,
+        epa.nombre_estado_pago AS estado_pago
+      FROM Pedidos p
+      LEFT JOIN Cliente c ON c.id_cliente = p.id_cliente
+      LEFT JOIN Estado_Pedido ep ON ep.id_estado_pedido = p.id_estado_pedido
+      LEFT JOIN Estado_Pago epa ON epa.id_estado_pago = p.id_estado_pago
+      WHERE p.id_pedido = ${Number(id)}
+      LIMIT 1
+    `;
+
+    return mapPaymentOrderRow(orders[0]);
   }
 
   async get(id) {
@@ -610,18 +679,35 @@ class OrderRepository {
     return this.get(id);
   }
 
-  async updatePaymentStatus(id, paymentStatusId, nextKanbanOrder) {
-    const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(nextKanbanOrder) },
-      select: { id_estado_pedido: true },
-    });
+  async updatePaymentStatus(
+    id,
+    paymentStatusId,
+    nextKanbanOrder,
+    { currentOrder, paymentStatusName } = {},
+  ) {
+    const shouldUpdateOrderStage =
+      nextKanbanOrder !== null && nextKanbanOrder !== undefined;
+    const status = shouldUpdateOrderStage
+      ? await this.client.estado_Pedido.findFirst({
+          where: { orden_kanban: Number(nextKanbanOrder) },
+          select: {
+            id_estado_pedido: true,
+            nombre_etapa: true,
+            orden_kanban: true,
+          },
+        })
+      : null;
+
+    if (shouldUpdateOrderStage && !status) return null;
 
     try {
       await this.client.pedidos.update({
         where: { id_pedido: Number(id) },
         data: {
           id_estado_pago: Number(paymentStatusId),
-          id_estado_pedido: status?.id_estado_pedido ?? null,
+          ...(shouldUpdateOrderStage
+            ? { id_estado_pedido: status.id_estado_pedido }
+            : {}),
         },
       });
     } catch (error) {
@@ -629,7 +715,66 @@ class OrderRepository {
       throw error;
     }
 
-    return this.get(id);
+    if (!currentOrder) return this.getPaymentOrder(id);
+
+    const normalizedPaymentStatus =
+      paymentStatusName ?? currentOrder.estado_pago ?? null;
+    const normalizedKanbanOrder = shouldUpdateOrderStage
+      ? Number(status.orden_kanban ?? nextKanbanOrder)
+      : currentOrder.id_etapa_general;
+
+    return {
+      ...currentOrder,
+      id_estado_pago: Number(paymentStatusId),
+      estado_pago: normalizedPaymentStatus,
+      paymentStatus: normalizedPaymentStatus,
+      id_estado_pedido: shouldUpdateOrderStage
+        ? status.id_estado_pedido
+        : currentOrder.id_estado_pedido,
+      id_etapa_general: normalizedKanbanOrder,
+      generalStepId: normalizedKanbanOrder,
+      nombre_etapa_general: shouldUpdateOrderStage
+        ? status.nombre_etapa
+        : currentOrder.nombre_etapa_general,
+    };
+  }
+
+  async notifyProductionAdministrators({
+    orderId,
+    subject,
+    content,
+    now = new Date(),
+  }) {
+    const administrators = await this.client.usuario.findMany({
+      where: {
+        rol_usuario: ROLES.ADMINISTRADOR,
+        NOT: { estado_usuario: "Desvinculado" },
+      },
+      select: { id_usuario: true },
+    });
+
+    if (administrators.length === 0) return null;
+
+    const message = await this.client.mensaje.create({
+      data: {
+        id_pedido: Number(orderId),
+        fecha_publicacion: now,
+        Asunto: subject,
+        contenido: content,
+      },
+    });
+
+    await this.client.mENSAJE_USUARIO.createMany({
+      data: administrators.map(({ id_usuario }) => ({
+        id_usuario,
+        id_mensaje: message.id_mensaje,
+        leido_: false,
+        oculto_: false,
+      })),
+      skipDuplicates: true,
+    });
+
+    return message;
   }
 
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {

@@ -21,8 +21,8 @@ import defaultUserRepository from "../../users/repo/users.repo.js";
 import getPrismaClient from "../../../database/prisma.js";
 import SalesNoteSourceService from "./salesNoteSource.service.js";
 
-export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
-  "No se puede cambiar el estado de un pago confirmado.";
+export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
+  "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
 
 function toPrismaDate(value) {
   if (!value) return null;
@@ -428,6 +428,15 @@ class OrderService {
     return this.repo.getAllOrders();
   }
 
+  async getPaymentWorkspace() {
+    const [orders, paymentStatuses] = await Promise.all([
+      this.repo.getPaymentOrders(),
+      this.paymentRepo.getAll(),
+    ]);
+
+    return { orders, paymentStatuses };
+  }
+
   async getSalesNoteByNumber(numeroNota) {
     return this.salesNoteSourceService.getByNumber(numeroNota);
   }
@@ -503,7 +512,10 @@ class OrderService {
       throw error;
     }
 
-    const paymentStatus = await this.paymentRepo.get(paymentStatusId);
+    const [paymentStatus, currentOrder] = await Promise.all([
+      this.paymentRepo.get(paymentStatusId),
+      this.repo.getPaymentOrder(orderId),
+    ]);
 
     if (!paymentStatus) {
       const error = new Error("Estado de pago no encontrado.");
@@ -511,42 +523,48 @@ class OrderService {
       throw error;
     }
 
-    const currentOrder = await this.repo.get(orderId);
-
     if (!currentOrder) {
       const error = new Error("Pedido no encontrado");
       error.statusCode = 404;
       throw error;
     }
 
-    if (currentOrder.estado_pago !== PAYMENT_STATUS.PENDIENTE &&
-        Number(currentOrder.id_estado_pago) !== paymentStatusId) {
-      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
-        const error = new Error("Solo Administrador Cobranzas puede modificar una decision de pago."); error.statusCode = 403; throw error;
-      }
-      if (!String(observacion ?? '').trim()) {
-        const error = new Error("El motivo del cambio de pago es obligatorio."); error.statusCode = 400; throw error;
-      }
-      if (Number(currentOrder.id_etapa_general) >= 2) {
-        const error = new Error("Se requiere el flujo de aprobacion de Produccion, pendiente de implementar."); error.statusCode = 403; throw error;
-      }
-    }
-    const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
-    const keepsConfirmedPayment =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
+    const currentPaymentStatus = currentOrder.estado_pago;
+    const nextPaymentStatus = paymentStatus.nombre_estado_pago;
+    const isSamePaymentStatus =
+      Number(currentOrder.id_estado_pago) === paymentStatusId;
+    const isResolvedPayment = currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE;
 
-    if (isConfirmedPayment && !keepsConfirmedPayment) {
-      const error = new Error(CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE);
-      error.statusCode = 409;
-      throw error;
-    }
-
-    if (isConfirmedPayment && keepsConfirmedPayment) {
+    if (isSamePaymentStatus) {
       return currentOrder;
+    }
+
+    if (isResolvedPayment) {
+      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
+        const error = new Error(
+          "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
+      if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
+        const error = new Error(RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
+        error.statusCode = 409;
+        throw error;
+      }
+
+      if (!String(observacion ?? "").trim()) {
+        const error = new Error("El motivo del cambio de pago es obligatorio.");
+        error.statusCode = 400;
+        throw error;
+      }
     }
 
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
+    const KANBAN_EN_PRODUCCION = 2;
+    const KANBAN_CANCELADO = 5;
     const resolvedUserId =
       actor?.idUsuario ??
       await this.resolveInternalUserId({
@@ -554,10 +572,23 @@ class OrderService {
         id_usuario,
       });
 
+    const currentKanbanOrder = Number(currentOrder.id_etapa_general);
+    const isConfirmedToRejected =
+      currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+      nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
+    const cancelsReadyOrder =
+      isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
+    const requiresProductionCancellation =
+      isConfirmedToRejected &&
+      currentKanbanOrder === KANBAN_EN_PRODUCCION;
     const nextKanbanOrder =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
+      nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
         ? KANBAN_LISTO_PRODUCCION
-        : KANBAN_CONFIRMACION_PAGO;
+        : cancelsReadyOrder
+          ? KANBAN_CANCELADO
+          : isConfirmedToRejected
+            ? null
+            : KANBAN_CONFIRMACION_PAGO;
 
     // La transicion de pago es atomica: mueve Kanban y registra auditoria.
     return this.runInTransaction(async ({
@@ -568,6 +599,10 @@ class OrderService {
         orderId,
         paymentStatusId,
         nextKanbanOrder,
+        {
+          currentOrder,
+          paymentStatusName: nextPaymentStatus,
+        },
       );
 
       if (!updatedOrder) return null;
@@ -577,6 +612,33 @@ class OrderService {
         id_estado_pago: paymentStatusId,
         observacion,
       });
+
+      const salesNote =
+        updatedOrder.numero_nota_venta ?? currentOrder.numero_nota_venta ?? `#${orderId}`;
+      const normalizedObservation = String(observacion ?? "").trim();
+
+      if (cancelsReadyOrder) {
+        await repo.notifyProductionAdministrators({
+          orderId,
+          subject: "Pedido cancelado por rechazo de pago",
+          content: [
+            `El pedido ${salesNote} fue cancelado porque su pago cambió de Confirmado a Rechazado.`,
+            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
+          ].filter(Boolean).join("\n"),
+        });
+      }
+
+      if (requiresProductionCancellation) {
+        await repo.notifyProductionAdministrators({
+          orderId,
+          subject: "Cancelación de producción requerida",
+          content: [
+            `El pago del pedido ${salesNote} cambió de Confirmado a Rechazado.`,
+            "La producción de este pedido debe ser cancelada por un Administrador de Producción.",
+            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
+          ].filter(Boolean).join("\n"),
+        });
+      }
 
       return updatedOrder;
     });

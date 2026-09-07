@@ -1,8 +1,51 @@
 import PaymentRecordRepo from "../repo/paymentRecord.repo.js";
+import SalesNoteSourceService from "../../orders/service/salesNoteSource.service.js";
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim().toLocaleLowerCase("es") : "";
+}
+
+function resolveSalesNoteItems(details = [], salesNoteItems = []) {
+  const availableItems = salesNoteItems.map((item, index) => ({ item, index }));
+  const usedIndexes = new Set();
+
+  return details.map((detail, detailIndex) => {
+    const productType = detail.Tipo_Producto?.nombre_producto;
+    const normalizedType = normalizeText(productType);
+    const quantity = Number(detail.cantidad);
+    const matchesType = ({ item, index }) =>
+      !usedIndexes.has(index) &&
+      normalizeText(item.tipoProducto) === normalizedType;
+    const matchesTypeAndQuantity = (entry) =>
+      matchesType(entry) && Number(entry.item.cantidad) === quantity;
+
+    const match =
+      availableItems.find(matchesTypeAndQuantity) ??
+      availableItems.find(matchesType) ??
+      availableItems.find(({ index }) =>
+        index === detailIndex && !usedIndexes.has(index),
+      );
+
+    if (match) usedIndexes.add(match.index);
+
+    return {
+      id: detail.id_detalle_pedido,
+      productType: productType ?? match?.item?.tipoProducto ?? null,
+      code: match?.item?.codigo ?? null,
+      product:
+        match?.item?.producto ??
+        detail.Tipo_Producto?.descripcion_producto ??
+        null,
+      quantity: detail.cantidad ?? match?.item?.cantidad ?? null,
+    };
+  });
+}
 
 class PaymentRecordService {
-  constructor({ repo } = {}) {
+  constructor({ repo, salesNoteSourceService } = {}) {
     this.repo = repo ?? new PaymentRecordRepo();
+    this.salesNoteSourceService =
+      salesNoteSourceService ?? new SalesNoteSourceService();
   }
 
   async createPaymentRecord(orderId, data) {
@@ -59,6 +102,49 @@ class PaymentRecordService {
     }
 
     return this.repo.getByOrderId(orderId);
+  }
+
+  async getConfirmationDetails(orderId) {
+    const parsedOrderId = Number(orderId);
+
+    if (!Number.isInteger(parsedOrderId) || parsedOrderId <= 0) {
+      const error = new Error("El ID del pedido no es valido");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const order = await this.repo.getConfirmationSource(parsedOrderId);
+
+    if (!order) {
+      const error = new Error("Pedido no encontrado");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let salesNote = null;
+
+    if (order.numero_nota_venta) {
+      try {
+        salesNote = await this.salesNoteSourceService.getByNumber(
+          order.numero_nota_venta,
+        );
+      } catch (error) {
+        if (error.statusCode !== 404) throw error;
+      }
+    }
+
+    return {
+      id: order.id_pedido,
+      nvNumber: order.numero_nota_venta,
+      companyName:
+        order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
+      rut: order.Cliente?.rut_cliente ?? null,
+      sellerEmail: order.Usuario?.correo_usuario ?? null,
+      products: resolveSalesNoteItems(
+        order.Detalle_pedido,
+        salesNote?.items ?? [],
+      ),
+    };
   }
 }
 

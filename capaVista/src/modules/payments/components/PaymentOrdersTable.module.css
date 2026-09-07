@@ -1,5 +1,7 @@
 .desktopTableWrap {
+  max-width: 100%;
   overflow: visible;
+  width: 100%;
 }
 
 .paymentTable {
@@ -13,6 +15,7 @@
   background-color: transparent;
   border-bottom: 1px solid var(--payment-border);
   padding: 0.95rem 0.75rem;
+  text-align: center;
   vertical-align: middle;
 }
 
@@ -22,7 +25,7 @@
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  text-align: left;
+  text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -32,31 +35,27 @@
 }
 
 .colOrder {
-  width: 11%;
+  width: 16.6667%;
 }
 
 .colDate {
-  width: 14%;
+  width: 16.6667%;
 }
 
 .colClient {
-  width: 19%;
+  width: 16.6667%;
 }
 
 .colRut {
-  width: 12%;
-}
-
-.colSalesNote {
-  width: 16%;
+  width: 16.6667%;
 }
 
 .colPaymentStatus {
-  width: 13%;
+  width: 16.6667%;
 }
 
 .colActions {
-  width: 15%;
+  width: 16.6667%;
 }
 
 .orderCell {
@@ -70,16 +69,15 @@
 .dateCell {
   color: var(--payment-text);
   font-size: 0.88rem;
-  white-space: nowrap;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .clientCell {
   color: #111;
   font-size: 1rem;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .paymentTable th.rutColumn,
@@ -122,7 +120,17 @@
 }
 
 @media (max-width: 1199.98px) {
+  .paymentTable > :not(caption) > * > * {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+  }
+
   .paymentTable thead th {
     font-size: 0.78rem;
+  }
+
+  .clientCell,
+  .orderCell {
+    font-size: 0.92rem;
   }
 }

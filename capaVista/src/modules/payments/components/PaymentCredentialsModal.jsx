@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 
 export default function PaymentCredentialsModal({
@@ -9,21 +10,30 @@ export default function PaymentCredentialsModal({
   targetStatus,
 }) {
   const [pin, setPin] = useState('')
+  const [comment, setComment] = useState('')
   const [error, setError] = useState('')
 
-  const canSubmit = /^\d{6}$/.test(pin)
+  const requiresComment =
+    order?.paymentStatus !== undefined &&
+    order.paymentStatus !== PAYMENT_STATUS.PENDIENTE
+  const canSubmit =
+    /^\d{6}$/.test(pin) && (!requiresComment || comment.trim().length > 0)
 
   if (!order || !targetStatus) return null
 
   const handleSubmit = (event) => {
     event.preventDefault()
     if (!canSubmit) {
-      setError('Ingrese su PIN de seis digitos.')
+      setError(
+        !/^\d{6}$/.test(pin)
+          ? 'Ingrese su PIN de seis digitos.'
+          : 'Ingrese el motivo del cambio de estado.',
+      )
       return
     }
 
     setError('')
-    onConfirm({ pin })
+    onConfirm({ comment: comment.trim(), pin })
   }
 
   return (
@@ -32,12 +42,15 @@ export default function PaymentCredentialsModal({
         aria-labelledby="payment-credentials-modal-title"
         aria-modal="true"
         className={styles.credentialsModal}
+        noValidate
         onSubmit={handleSubmit}
         role="dialog"
       >
         <header className={styles.credentialsModalHeader}>
           <div>
-            <span>Validacion de pago</span>
+            <span className={styles.credentialsModalKicker}>
+              Validación de pago
+            </span>
             <h3 id="payment-credentials-modal-title">Ingrese su PIN</h3>
           </div>
           <button
@@ -52,15 +65,16 @@ export default function PaymentCredentialsModal({
         </header>
 
         <div className={styles.credentialsModalBody}>
-          <p>
+          <p className={styles.credentialsIntro}>
             Ingrese su PIN personal para hacer efectivo el cambio de pago
             de {order.nvNumber} a {targetStatus}.
           </p>
 
-          <label>
+          <label className={styles.credentialsField}>
             <span>PIN personal</span>
             <input
-              autoComplete="off"
+              autoComplete="one-time-code"
+              className={styles.credentialsPinInput}
               disabled={isSubmitting}
               inputMode="numeric"
               maxLength={6}
@@ -74,12 +88,30 @@ export default function PaymentCredentialsModal({
             />
           </label>
 
+          {requiresComment && (
+            <label className={styles.credentialsField}>
+              <span>Motivo del cambio</span>
+              <textarea
+                className={styles.credentialsCommentInput}
+                disabled={isSubmitting}
+                maxLength={2000}
+                onChange={(event) => {
+                  setComment(event.target.value)
+                  setError('')
+                }}
+                placeholder="Explique por qué se modifica la decisión de pago"
+                rows={4}
+                value={comment}
+              />
+            </label>
+          )}
+
           {error && <p className={styles.credentialsError}>{error}</p>}
         </div>
 
         <footer className={styles.credentialsModalFooter}>
           <button
-            className="btn btn-outline-secondary"
+            className={styles.credentialsSecondaryButton}
             disabled={isSubmitting}
             onClick={onCancel}
             type="button"
@@ -87,7 +119,7 @@ export default function PaymentCredentialsModal({
             Cancelar
           </button>
           <button
-            className="btn btn-dark"
+            className={styles.credentialsPrimaryButton}
             disabled={isSubmitting || !canSubmit}
             type="submit"
           >

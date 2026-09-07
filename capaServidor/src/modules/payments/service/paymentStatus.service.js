@@ -5,21 +5,6 @@ class PaymentStatusService {
         this.repo = repo ?? new PaymentStatusRepo();
     }
 
-    async createPaymentStatus(data) {
-        const { nombre_estado_pago, descripcion_estado_pago } = data;
-
-        if (!nombre_estado_pago || !descripcion_estado_pago) {
-            const error = new Error("Faltan datos obligatorios");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        return this.repo.create({
-            nombre_estado_pago,
-            descripcion_estado_pago,
-        });
-    }
-
     async getPaymentStatus(id) {
         const paymentStatus = await this.repo.get(id);
 

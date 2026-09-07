@@ -300,6 +300,7 @@ export default function UserManagementPage() {
             onEditUser={setEditingUser}
             onPageChange={setPage}
             totalPages={totalPages}
+            totalUsers={totalUsers}
             users={users}
           />
         </div>

@@ -35,6 +35,7 @@ export default function UserManagementTable({
   onEditUser,
   onPageChange,
   totalPages,
+  totalUsers,
   users,
 }) {
   const pageItems = buildNearbyPages(currentPage, totalPages)
@@ -80,7 +81,12 @@ export default function UserManagementTable({
                     <UserStatusBadge status={user.estadoUsuario} />
                   </td>
                   <td className={styles.actionsCell}>
-                    <UserButton className={styles.actionButton} onClick={() => onEditUser(user)} variant="secondary">
+                    <UserButton
+                      className={styles.actionButton}
+                      icon="bi-pencil-fill"
+                      onClick={() => onEditUser(user)}
+                      variant="secondary"
+                    >
                       Editar
                     </UserButton>
                   </td>
@@ -96,40 +102,48 @@ export default function UserManagementTable({
         users={users}
       />
 
-      <footer className={styles.paginationFooter} aria-label="Paginacion de usuarios">
-        <UserButton disabled={!canGoPrevious} onClick={() => onPageChange(currentPage - 1)} variant="secondary">
-          Anterior
-        </UserButton>
+      <footer className={styles.paginationFooter} aria-label="Resumen y paginacion de usuarios">
+        <span className={styles.resultsSummary}>
+          Mostrando {users.length} de {totalUsers} usuarios
+        </span>
 
-        <div className={styles.paginationCenter}>
-          <span className={styles.pageSummary}>
-            Pagina {currentPage} de {totalPages}
-          </span>
-          <nav className={styles.pageButtons} aria-label="Paginas cercanas">
-            {pageItems.map((pageItem, index) =>
-              pageItem === 'ellipsis' ? (
-                <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>
-                  ...
-                </span>
-              ) : (
-                <button
-                  aria-current={pageItem === currentPage ? 'page' : undefined}
-                  className={`${styles.pageButton} ${pageItem === currentPage ? styles.pageButtonActive : ''}`}
-                  disabled={isLoading}
-                  key={pageItem}
-                  onClick={() => onPageChange(pageItem)}
-                  type="button"
-                >
-                  {pageItem}
-                </button>
-              ),
-            )}
-          </nav>
-        </div>
+        {totalPages > 1 && (
+          <div className={styles.paginationControls}>
+            <UserButton disabled={!canGoPrevious} onClick={() => onPageChange(currentPage - 1)} variant="secondary">
+              Anterior
+            </UserButton>
 
-        <UserButton disabled={!canGoNext} onClick={() => onPageChange(currentPage + 1)} variant="secondary">
-          Siguiente
-        </UserButton>
+            <div className={styles.paginationCenter}>
+              <span className={styles.pageSummary}>
+                Pagina {currentPage} de {totalPages}
+              </span>
+              <nav className={styles.pageButtons} aria-label="Paginas cercanas">
+                {pageItems.map((pageItem, index) =>
+                  pageItem === 'ellipsis' ? (
+                    <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      aria-current={pageItem === currentPage ? 'page' : undefined}
+                      className={`${styles.pageButton} ${pageItem === currentPage ? styles.pageButtonActive : ''}`}
+                      disabled={isLoading}
+                      key={pageItem}
+                      onClick={() => onPageChange(pageItem)}
+                      type="button"
+                    >
+                      {pageItem}
+                    </button>
+                  ),
+                )}
+              </nav>
+            </div>
+
+            <UserButton disabled={!canGoNext} onClick={() => onPageChange(currentPage + 1)} variant="secondary">
+              Siguiente
+            </UserButton>
+          </div>
+        )}
       </footer>
     </div>
   )

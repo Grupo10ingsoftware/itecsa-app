@@ -1,0 +1,13 @@
+.liveRegion { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: min(19rem, 100%); z-index: 1065; }
+.popup { display: flex; position: relative; border: 1px solid rgba(255,255,255,.8); border-radius: 1.25rem; background: rgba(248,250,252,.96); backdrop-filter: blur(20px); box-shadow: 0 8px 30px rgba(0,0,0,.18); color: #17212b; animation: arrive .22s ease-out; }
+.main { display: flex; align-items: center; gap: .7rem; width: 100%; min-width: 0; padding: .7rem 1.7rem .7rem .8rem; border: 0; border-radius: inherit; background: transparent; text-align: left; color: inherit; }
+.icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: .7rem; background: linear-gradient(#52df78, #20b952); color: #fff; font-size: 1.4rem; }
+.copy { display: grid; gap: .1rem; min-width: 0; flex: 1; font-size: .8rem; overflow-wrap: anywhere; }
+.copy strong { font-size: .87rem; }
+.meta { display: flex; justify-content: space-between; font-size: .59rem; color: #59636d; letter-spacing: .04em; }
+.meta span { text-transform: none; letter-spacing: 0; }
+.close { position: absolute; right: .2rem; top: .2rem; border: 0; background: transparent; color: #59636d; border-radius: 50%; }
+.main:focus-visible, .close:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+@keyframes arrive { from { opacity: 0; translate: 10px 0; } to { opacity: 1; translate: 0 0; } }
+@media (max-width: 991.98px) { .liveRegion { position: fixed; top: 4.5rem; left: .75rem; right: .75rem; width: auto; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .popup { animation: none; } }

@@ -640,6 +640,14 @@ class OrderService {
         updatedOrder.numero_nota_venta ?? currentOrder.numero_nota_venta ?? `#${orderId}`;
       const normalizedObservation = String(observacion ?? "").trim();
 
+      if (nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO) {
+        await repo.notifyProductionAdministrators({
+          orderId,
+          subject: "Pago confirmado: pedido listo para producción",
+          content: `Se confirmó el pago del pedido ${salesNote}. El pedido está listo para producción.`,
+        });
+      }
+
       if (cancelsReadyOrder) {
         await repo.notifyProductionAdministrators({
           orderId,
@@ -764,6 +772,12 @@ class OrderService {
 
         details.push(detail);
       }
+
+      await repo.notifyCollectionsAdministrators({
+        orderId: order.id_pedido,
+        subject: "Nuevo pedido pendiente de confirmación de pago",
+        content: `Se registró el pedido ${order.numero_nota_venta ?? `#${order.id_pedido}`}. Está pendiente de confirmación de pago.`,
+      });
 
       return {
         ...order,
@@ -915,6 +929,12 @@ class OrderService {
         order.id_pedido,
         untrackedItems,
       );
+
+      await repo.notifyCollectionsAdministrators({
+        orderId: order.id_pedido,
+        subject: "Nuevo pedido pendiente de confirmación de pago",
+        content: `Se registró el pedido ${numeroNota}. Está pendiente de confirmación de pago.`,
+      });
 
       const fullOrder = await repo.get(order.id_pedido);
 

@@ -4,8 +4,20 @@ import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
 
 export default function UserManagementMobileList({ isLoading, onEditUser, users }) {
-  if (isLoading || users.length === 0) {
-    return null
+  if (isLoading) {
+    return (
+      <div className={styles.mobileList}>
+        <p className={styles.mobileState} role="status">Cargando usuarios...</p>
+      </div>
+    )
+  }
+
+  if (users.length === 0) {
+    return (
+      <div className={styles.mobileList}>
+        <p className={styles.mobileState}>No se encontraron usuarios para los filtros seleccionados.</p>
+      </div>
+    )
   }
 
   return (
@@ -31,7 +43,7 @@ export default function UserManagementMobileList({ isLoading, onEditUser, users 
             </div>
           </dl>
           <footer>
-            <UserButton onClick={() => onEditUser(user)} variant="secondary">
+            <UserButton icon="bi-pencil-fill" onClick={() => onEditUser(user)} variant="secondary">
               Editar
             </UserButton>
           </footer>

@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { APP_ROUTES } from '../config/routes'
 import { PERMISSIONS } from '../config/permissions'
-import { ADMINISTRATIVE_ROLES } from '../config/roles'
+import { ADMINISTRATIVE_ROLES, ROLES } from '../config/roles'
 import { useAuth } from '../hooks/useAuth'
 import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
@@ -21,6 +21,7 @@ const OrderHistoryDetailPage = lazy(() => import('../modules/orderHistory/pages/
 const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
 const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
 const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
+const MetricsPage = lazy(() => import('../modules/metrics/pages/MetricsPage'))
 
 function RouteLoadingState() {
   return (
@@ -99,6 +100,17 @@ export default function AppRouter() {
               }
             />
             <Route path="admin/usuarios/nuevo" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS} />} />
+            <Route
+              path="metricas"
+              element={
+                <RoleGuard
+                  requiredPermission={PERMISSIONS.VIEW_METRICS}
+                  requiredRoles={[ROLES.ADMINISTRADOR, ROLES.GERENCIA]}
+                >
+                  <MetricsPage />
+                </RoleGuard>
+              }
+            />
           </Route>
         </Route>
 

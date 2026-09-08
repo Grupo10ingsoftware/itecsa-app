@@ -47,6 +47,7 @@ test("advierte durante la busqueda cuando la Nota de Venta ya fue registrada", a
 });
 
 test("persiste la observacion interna al crear el pedido", async () => {
+  const notifications = [];
   let persistedOrderData = null;
   let duplicateChecks = 0;
   let productTypeQueries = 0;
@@ -58,6 +59,7 @@ test("persiste la observacion interna al crear el pedido", async () => {
         duplicateChecks += 1;
         return null;
       },
+      async notifyCollectionsAdministrators(notification) { notifications.push(notification); },
       async create(data, options) {
         assert.deepEqual(options, { hydrate: false });
         persistedOrderData = data;
@@ -136,4 +138,8 @@ test("persiste la observacion interna al crear el pedido", async () => {
   assert.equal(productTypeQueries, 1);
   assert.equal(subprocessQueries, 1);
   assert.equal(createdDetails, 2);
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].orderId, 101);
+  assert.match(notifications[0].content, /24226/);
+  assert.match(notifications[0].subject, /pendiente de confirmación de pago/);
 });

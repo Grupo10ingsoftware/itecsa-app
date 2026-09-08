@@ -175,6 +175,9 @@ test("al confirmar pago mueve la orden a Listo para produccion", async () => {
     const service = createService();
     const order = await service.updPaymentState(1, 2, { id_usuario: 10 });
 
+    assert.equal(productionNotifications.length, 1);
+    assert.equal(productionNotifications[0].orderId, 1);
+    assert.match(productionNotifications[0].subject, /Pago confirmado/);
     assert.equal(order.estado_pago, "Confirmado");
     assert.equal(order.id_etapa_general, 1);
     assert.deepEqual(paymentRecords, [
@@ -293,12 +296,14 @@ test("confirmar un pago rechazado sigue el flujo normal a Listo para produccion"
 
     assert.equal(order.estado_pago, PAYMENT_STATUS.CONFIRMADO);
     assert.equal(order.id_etapa_general, 1);
-    assert.deepEqual(productionNotifications, []);
+    assert.equal(productionNotifications.length, 1);
+    assert.match(productionNotifications[0].subject, /Pago confirmado/);
 });
 
 test("no registra auditoria si el pago ya estaba confirmado", async () => {
     const service = createService();
     const order = await service.updPaymentState(6, 2, { id_usuario: 10 });
+    assert.deepEqual(productionNotifications, []);
 
     assert.equal(order.estado_pago, PAYMENT_STATUS.CONFIRMADO);
     assert.deepEqual(paymentRecords, []);

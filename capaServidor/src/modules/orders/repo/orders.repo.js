@@ -800,7 +800,15 @@ class OrderRepository {
     };
   }
 
-  async notifyProductionAdministrators({
+  async notifyProductionAdministrators(notification) {
+    return this.notifyAdministratorsByRole(ROLES.ADMINISTRADOR, notification);
+  }
+
+  async notifyCollectionsAdministrators(notification) {
+    return this.notifyAdministratorsByRole(ROLES.ADMIN_COBRANZAS, notification);
+  }
+
+  async notifyAdministratorsByRole(role, {
     orderId,
     subject,
     content,
@@ -808,7 +816,7 @@ class OrderRepository {
   }) {
     const administrators = await this.client.usuario.findMany({
       where: {
-        rol_usuario: ROLES.ADMINISTRADOR,
+        rol_usuario: role,
         NOT: { estado_usuario: "Desvinculado" },
       },
       select: { id_usuario: true },

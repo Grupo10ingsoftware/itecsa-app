@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { APP_ROUTES } from '../../../config/routes'
 import { useMessagesApi } from '../hooks/useMessagesApi'
 import { formatMessageDate, messagePreview, notifyMessagesChanged } from '../utils/messageFormatters'
 import styles from './NotificationBell.module.css'
+import MessagePopup from './MessagePopup'
+import { collectNewNotifications } from '../utils/popupNotifications'
 
-const REFRESH_INTERVAL_MS = 60_000
+const REFRESH_INTERVAL_MS = 5_000
 
-export default function NotificationBell() {
+export default function NotificationBell({ popupContainer }) {
   const api = useMessagesApi()
   const navigate = useNavigate()
   const rootRef = useRef(null)
+  const latestIdRef = useRef(null)
+  const loadingRef = useRef(false)
+  const [popupQueue, setPopupQueue] = useState([])
+  const dismissPopup = useCallback(() => setPopupQueue((queue) => queue.slice(1)), [])
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -18,32 +25,48 @@ export default function NotificationBell() {
   const [error, setError] = useState('')
 
   const loadNotifications = useCallback(async ({ quiet = false } = {}) => {
+    if (loadingRef.current) return
+    loadingRef.current = true
     if (!quiet) setIsLoading(true)
 
     try {
-      const result = await api.getNotifications(10)
-      setNotifications(result.notifications ?? [])
+      const result = await api.getNotifications(50)
+      const incoming = result.notifications ?? []
+      const { latestId, messages } = collectNewNotifications(incoming, latestIdRef.current)
+      latestIdRef.current = latestId
+      if (messages.length) setPopupQueue((queue) => [...queue, ...messages])
+      setNotifications(incoming)
       setUnreadCount(result.unreadCount ?? 0)
       setError('')
     } catch {
       setError('No fue posible cargar las notificaciones.')
     } finally {
+      loadingRef.current = false
       if (!quiet) setIsLoading(false)
     }
   }, [api])
 
+  const refreshNotifications = useEffectEvent((options) => loadNotifications(options))
+
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => loadNotifications(), 0)
-    const interval = window.setInterval(() => loadNotifications({ quiet: true }), REFRESH_INTERVAL_MS)
-    const handleMessagesChanged = () => loadNotifications({ quiet: true })
+    const initialLoad = window.setTimeout(() => refreshNotifications(), 0)
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') refreshNotifications({ quiet: true })
+    }
+    const interval = window.setInterval(refreshVisible, REFRESH_INTERVAL_MS)
+    document.addEventListener('visibilitychange', refreshVisible)
+    window.addEventListener('focus', refreshVisible)
+    const handleMessagesChanged = () => refreshNotifications({ quiet: true })
     window.addEventListener('messages:changed', handleMessagesChanged)
 
     return () => {
       window.clearTimeout(initialLoad)
       window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', refreshVisible)
+      window.removeEventListener('focus', refreshVisible)
       window.removeEventListener('messages:changed', handleMessagesChanged)
     }
-  }, [loadNotifications])
+  }, [])
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -92,6 +115,10 @@ export default function NotificationBell() {
 
   return (
     <div className={styles.root} ref={rootRef}>
+      {popupContainer && createPortal(
+        <MessagePopup message={popupQueue[0]} onDismiss={dismissPopup} />,
+        popupContainer,
+      )}
       <button
         aria-expanded={isOpen}
         aria-haspopup="dialog"

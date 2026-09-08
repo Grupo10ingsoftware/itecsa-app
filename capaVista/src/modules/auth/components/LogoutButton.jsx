@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react'
 import Modal from 'react-bootstrap/Modal'
 import { useAuth } from '../../../hooks/useAuth'
 import styles from './LogoutButton.module.css'
+import modalStyles from '../../../shared/styles/ConfirmationModal.module.css'
 
 export default function LogoutButton() {
   const { logout } = useAuth()
@@ -40,6 +41,7 @@ export default function LogoutButton() {
       </button>
 
       <Modal
+        contentClassName={modalStyles.content}
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         centered
@@ -63,7 +65,7 @@ export default function LogoutButton() {
           >
             Cancelar
           </button>
-          <button className="btn btn-danger" onClick={handleLogout} type="button">
+          <button className="btn btn-primary" onClick={handleLogout} type="button">
             Cerrar sesión
           </button>
         </Modal.Footer>

@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { APP_ROUTES } from '../../../config/routes'
 import { popupPreview } from '../utils/popupNotifications'
 import styles from './MessagePopup.module.css'
+import modalStyles from '../../../shared/styles/ConfirmationModal.module.css'
 
 export default function MessagePopup({ message, onDismiss }) {
   const navigate = useNavigate()
   const [confirming, setConfirming] = useState(false)
   const [paused, setPaused] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const soundRef = useRef(null)
 
   useEffect(() => {
@@ -50,27 +52,34 @@ export default function MessagePopup({ message, onDismiss }) {
     oscillator.onended = () => { oscillator.disconnect(); gain.disconnect() }
   }, [message])
 
-  useEffect(() => {
-    if (!message || confirming || paused) return
-    const timer = window.setTimeout(onDismiss, 8000)
-    return () => window.clearTimeout(timer)
-  }, [message, confirming, paused, onDismiss])
-
   return <>
     <div aria-live="polite" aria-atomic="true" className={styles.liveRegion}>
-      {message && <aside className={styles.popup} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}>
-        <button className={styles.main} onClick={() => setConfirming(true)} type="button">
+      {message && <aside key={message.id_mensaje} className={`${styles.popup} ${exiting ? styles.exiting : ''}`} onAnimationEnd={(event) => {
+        if (event.target !== event.currentTarget || !exiting) return
+        setExiting(false)
+        setPaused(false)
+        onDismiss()
+      }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}>
+        <button className={styles.main} disabled={exiting} onClick={() => setConfirming(true)} type="button">
           <span className={styles.icon}><i className="bi bi-chat-dots-fill" aria-hidden="true" /></span>
           <span className={styles.copy}>
-            <span className={styles.meta}>MENSAJES <span>ahora</span></span>
+            <span className={styles.meta}>MENSAJES</span>
             <strong>Nuevo mensaje</strong>
             <span>{popupPreview(message.contenido)}</span>
           </span>
         </button>
-        <button aria-label="Cerrar aviso" className={styles.close} onClick={onDismiss} type="button"><i className="bi bi-x" aria-hidden="true" /></button>
+        <button aria-label="Cerrar aviso" className={styles.close} disabled={exiting} onClick={() => setExiting(true)} type="button"><i className="bi bi-x" aria-hidden="true" /></button>
+        <span className={styles.progressTrack} aria-hidden="true">
+          <span
+            key={message.id_mensaje}
+            className={styles.progress}
+            style={{ animationPlayState: confirming || paused || exiting ? 'paused' : 'running' }}
+            onAnimationEnd={(event) => { event.stopPropagation(); setExiting(true) }}
+          />
+        </span>
       </aside>}
     </div>
-    <Modal show={confirming} onHide={() => setConfirming(false)} centered aria-labelledby="message-popup-title">
+    <Modal contentClassName={modalStyles.content} show={confirming} onHide={() => setConfirming(false)} centered aria-labelledby="message-popup-title">
       <Modal.Header closeButton><Modal.Title id="message-popup-title">Abrir bandeja de mensajes</Modal.Title></Modal.Header>
       <Modal.Body>¿Quieres ir a la bandeja de mensajes para leer el mensaje completo?</Modal.Body>
       <Modal.Footer>

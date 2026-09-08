@@ -1,300 +1,124 @@
-import { useMemo, useState } from 'react'
-import { PRODUCTION_STATUSES } from '../../productionCalendar/mocks/productionCalendar.mock'
+import { useEffect, useMemo, useState } from 'react'
+import { useMetricsApi } from '../hooks/useMetricsApi'
 import styles from './MetricsPage.module.css'
 
-const MOCK_ORDERS = [
-  {
-    id: 1,
-    orderNumber: 'NV-2026-1001',
-    clientName: 'Cliente Demo',
-    productType: 'Lanyard',
-    quantity: 420,
-    status: PRODUCTION_STATUSES.IN_PRODUCTION,
-    dueDate: '2026-09-04',
-  },
-  {
-    id: 2,
-    orderNumber: 'NV-2026-1002',
-    clientName: 'TOTALPACK',
-    productType: 'Tarjeta',
-    quantity: 820,
-    status: PRODUCTION_STATUSES.READY_DELIVERY,
-    dueDate: '2026-09-08',
-  },
-  {
-    id: 3,
-    orderNumber: 'NV-2026-1003',
-    clientName: 'Cliente ABC',
-    productType: 'Lanyard',
-    quantity: 300,
-    status: PRODUCTION_STATUSES.PAYMENT_CONFIRMATION,
-    dueDate: '2026-09-12',
-  },
-]
+const PRODUCT_COLORS = ['#f97316', '#2563eb', '#248f55']
+const INITIAL_PERIOD = { mode: 'month', month: getCurrentMonth(), from: '', to: '' }
+
+function getCurrentMonth() {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+}
+
+function getMonthOptions() {
+  const today = new Date()
+  return Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth() - index, 1)
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    return { value, label: new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric' }).format(date) }
+  })
+}
+
+function getPeriodDates(period) {
+  if (period.mode === 'month') {
+    const [year, month] = period.month.split('-').map(Number)
+    const lastDay = new Date(year, month, 0).getDate()
+    return { from: `${period.month}-01`, to: `${period.month}-${String(lastDay).padStart(2, '0')}` }
+  }
+  return { from: period.from, to: period.to }
+}
+
+function formatDuration(seconds) {
+  const totalMinutes = Math.round(Number(seconds ?? 0) / 60)
+  if (totalMinutes < 60) return `${totalMinutes} min`
+  const hours = totalMinutes / 60
+  if (hours < 24) return `${hours.toFixed(1)} h`
+  return `${(hours / 24).toFixed(1)} días`
+}
 
 function SummaryCard({ icon, label, value, subtitle }) {
-  return (
-    <article className={styles.summaryCard}>
-      <div className={styles.summaryIcon}>
-        <i className={`bi ${icon}`} aria-hidden="true" />
-      </div>
-
-      <div>
-        <span className={styles.summaryLabel}>{label}</span>
-        <strong className={styles.summaryValue}>{value}</strong>
-        <span className={styles.summarySubtitle}>{subtitle}</span>
-      </div>
-    </article>
-  )
+  return <article className={styles.summaryCard}><div className={styles.summaryIcon}><i className={`bi ${icon}`} aria-hidden="true" /></div><div><span className={styles.summaryLabel}>{label}</span><strong className={styles.summaryValue}>{value}</strong><span className={styles.summarySubtitle}>{subtitle}</span></div></article>
 }
 
 export default function MetricsPage() {
-  const [dateRange, setDateRange] = useState({
-    from: '',
-    to: '',
-  })
+  const api = useMetricsApi()
+  const [period, setPeriod] = useState(INITIAL_PERIOD)
+  const [summary, setSummary] = useState({ production: { total: 0, products: [] }, dwellTime: { stages: [], subprocesses: [] } })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const queryPeriod = getPeriodDates(period)
+  const canQuery = Boolean(queryPeriod.from && queryPeriod.to)
 
-  const filteredOrders = useMemo(() => {
-    return MOCK_ORDERS.filter((order) => {
-      const matchesFromDate =
-        !dateRange.from || order.dueDate >= dateRange.from
+  useEffect(() => {
+    if (!canQuery) return undefined
+    let active = true
+    setLoading(true)
+    setError('')
+    api.getSummary(queryPeriod)
+      .then((result) => active && setSummary(result))
+      .catch((requestError) => active && setError(requestError?.payload?.message ?? 'No fue posible cargar las métricas.'))
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [api, queryPeriod.from, queryPeriod.to, canQuery])
 
-      const matchesToDate =
-        !dateRange.to || order.dueDate <= dateRange.to
-
-      return matchesFromDate && matchesToDate
+  const chart = useMemo(() => {
+    const total = Number(summary.production?.total ?? 0)
+    let currentPercentage = 0
+    const segments = (summary.production?.products ?? []).map((product, index) => {
+      const percentage = total ? (Number(product.quantity) / total) * 100 : 0
+      const segment = { ...product, percentage, start: currentPercentage, end: currentPercentage + percentage, color: PRODUCT_COLORS[index % PRODUCT_COLORS.length] }
+      currentPercentage += percentage
+      return segment
     })
-  }, [dateRange])
+    return { total, segments }
+  }, [summary.production])
 
-  const metrics = useMemo(() => {
-    const totalOrders = filteredOrders.length
+  const dwellGroups = [
+    { key: 'stages', title: 'Etapas generales', items: summary.dwellTime?.stages ?? [] },
+    { key: 'subprocesses', title: 'Subprocesos', items: summary.dwellTime?.subprocesses ?? [] },
+  ]
+  const dwellItems = dwellGroups.flatMap((group) => group.items)
+  const pieGradient = chart.segments.length ? `conic-gradient(${chart.segments.map((item) => `${item.color} ${item.start}% ${item.end}%`).join(', ')})` : '#e5e7eb'
 
-    const totalUnits = filteredOrders.reduce(
-      (sum, order) => sum + order.quantity,
-      0,
-    )
-
-    const completedOrders = filteredOrders.filter(
-      (order) => order.status === PRODUCTION_STATUSES.READY_DELIVERY,
-    ).length
-
-    const compliance = totalOrders
-      ? Math.round((completedOrders / totalOrders) * 100)
-      : 0
-
-    return {
-      totalOrders,
-      totalUnits,
-      completedOrders,
-      compliance,
-    }
-  }, [filteredOrders])
-
-  function updateDate(name, value) {
-    setDateRange((currentRange) => ({
-      ...currentRange,
-      [name]: value,
-    }))
+  function updatePeriod(name, value) {
+    setPeriod((current) => ({ ...current, [name]: value }))
   }
 
-  function clearDates() {
-    setDateRange({
-      from: '',
-      to: '',
-    })
-  }
-
-  return (
-    <main className={`container-fluid ${styles.page}`}>
-      <section className={styles.dashboardShell}>
-        <header className={styles.hero}>
-          <div>
-            <span className={styles.sectionLabel}>Producción</span>
-
-            <h1 className={styles.pageTitle}>Métricas</h1>
-
-            <p className={styles.pageSubtitle}>
-              Indicadores generales de producción y cumplimiento.
-            </p>
+  return <main className={`container-fluid ${styles.page}`}>
+    <section className={styles.dashboardShell}>
+      <header className={styles.hero}><div><span className={styles.sectionLabel}>Producción</span><h1 className={styles.pageTitle}>Métricas</h1><p className={styles.pageSubtitle}>Indicadores calculados sobre el periodo seleccionado.</p></div></header>
+      <div className={styles.content}>
+        <section className={styles.periodFilters} aria-label="Periodo de métricas">
+          <div className={styles.periodModes}>
+            <button className={period.mode === 'month' ? styles.activeMode : ''} onClick={() => updatePeriod('mode', 'month')} type="button">Mes específico</button>
+            <button className={period.mode === 'range' ? styles.activeMode : ''} onClick={() => updatePeriod('mode', 'range')} type="button">Rango de fechas</button>
           </div>
+          {period.mode === 'month' ? <label><span>Mes</span><input onChange={(event) => updatePeriod('month', event.target.value)} type="month" value={period.month} /></label> : <><label><span>Desde</span><input onChange={(event) => updatePeriod('from', event.target.value)} type="date" value={period.from} /></label><label><span>Hasta</span><input min={period.from || undefined} onChange={(event) => updatePeriod('to', event.target.value)} type="date" value={period.to} /></label></>}
+        </section>
 
-          <button className={styles.exportButton} type="button">
-            <i className="bi bi-download" aria-hidden="true" />
-            Exportar reporte
-          </button>
-        </header>
-
-        <div className={styles.content}>
-          <section className={styles.dateFilters} aria-label="Rango de fechas">
-            <label>
-              <span>Desde</span>
-
-              <input
-                max={dateRange.to || undefined}
-                onChange={(event) => updateDate('from', event.target.value)}
-                type="date"
-                value={dateRange.from}
-              />
-            </label>
-
-            <label>
-              <span>Hasta</span>
-
-              <input
-                min={dateRange.from || undefined}
-                onChange={(event) => updateDate('to', event.target.value)}
-                type="date"
-                value={dateRange.to}
-              />
-            </label>
-
-            <button onClick={clearDates} type="button">
-              <i className="bi bi-arrow-counterclockwise" aria-hidden="true" />
-              Restablecer fechas
-            </button>
+        {loading ? <div className={styles.emptyState}>Cargando métricas...</div> : error ? <div className={styles.emptyState} role="alert">{error}</div> : <>
+          <section className={styles.productionSection} aria-labelledby="production-title">
+            <header className={styles.productionHeader}><div><span className={styles.panelEyebrow}>RF75 · Métrica 1</span><h2 id="production-title">Cantidad de producción generada</h2><p>Unidades producidas agrupadas por tipo de producto.</p></div></header>
+            <div className={styles.productionChart}><div aria-label={`Producción total: ${chart.total} unidades`} className={styles.pieChart} role="img" style={{ '--pie-gradient': pieGradient }}><div className={styles.pieChartCenter}><strong>{chart.total.toLocaleString('es-CL')}</strong><span>unidades</span></div></div><div className={styles.chartLegend}>{chart.segments.length === 0 ? <p className={styles.emptyState}>No hay producción registrada.</p> : chart.segments.map((item) => <div className={styles.legendItem} key={item.productType}><span className={styles.legendColor} style={{ background: item.color }} /><div><strong>{item.productType}</strong><span>{Number(item.quantity).toLocaleString('es-CL')} unidades · {Math.round(item.percentage)}%</span></div></div>)}</div></div>
           </section>
 
-          <section className={styles.summaryGrid} aria-label="Resumen de métricas">
-            <SummaryCard
-              icon="bi-receipt"
-              label="Órdenes totales"
-              value={metrics.totalOrders}
-              subtitle="Pedidos filtrados"
-            />
+          <section className={styles.dwellSection} aria-labelledby="dwell-title">
+            <header className={styles.productionHeader}><div><span className={styles.panelEyebrow}>RF74 · Métrica 2</span><h2 id="dwell-title">Estadía por estado o subproceso</h2><p>Promedio de tiempo registrado dentro del periodo seleccionado.</p></div></header>
+            <div className={styles.dwellPanels}>
+              {dwellGroups.map((group) => {
+                const maxDwell = Math.max(...group.items.map((item) => Number(item.averageSeconds)), 1)
 
-            <SummaryCard
-              icon="bi-box-seam"
-              label="Unidades"
-              value={metrics.totalUnits.toLocaleString('es-CL')}
-              subtitle="Cantidad total"
-            />
-
-            <SummaryCard
-              icon="bi-check2-circle"
-              label="Entregadas"
-              value={metrics.completedOrders}
-              subtitle="Órdenes finalizadas"
-            />
-
-            <SummaryCard
-              icon="bi-graph-up-arrow"
-              label="Cumplimiento"
-              value={`${metrics.compliance}%`}
-              subtitle="Sobre órdenes filtradas"
-            />
-          </section>
-
-          <section className={styles.panelsGrid}>
-            <article className={styles.panel}>
-              <header className={styles.panelHeader}>
-                <div>
-                  <span className={styles.panelEyebrow}>Distribución</span>
-                  <h2>Órdenes por estado</h2>
-                </div>
-
-                <i className="bi bi-bar-chart" aria-hidden="true" />
-              </header>
-
-              <div className={styles.statusList}>
-                {Object.values(PRODUCTION_STATUSES).map((status) => {
-                  const count = filteredOrders.filter(
-                    (order) => order.status === status,
-                  ).length
-
-                  return (
-                    <div className={styles.statusRow} key={status}>
-                      <span>{status}</span>
-                      <strong>{count}</strong>
-                    </div>
-                  )
-                })}
-              </div>
-            </article>
-
-            <article className={styles.panel}>
-              <header className={styles.panelHeader}>
-                <div>
-                  <span className={styles.panelEyebrow}>Producción</span>
-                  <h2>Volumen por producto</h2>
-                </div>
-
-                <i className="bi bi-boxes" aria-hidden="true" />
-              </header>
-
-              <div className={styles.productList}>
-                {['Lanyard', 'Tarjeta'].map((productType) => {
-                  const quantity = filteredOrders
-                    .filter((order) => order.productType === productType)
-                    .reduce((sum, order) => sum + order.quantity, 0)
-
-                  return (
-                    <div className={styles.productRow} key={productType}>
-                      <span>{productType}</span>
-                      <strong>{quantity.toLocaleString('es-CL')}</strong>
-                    </div>
-                  )
-                })}
-              </div>
-            </article>
-          </section>
-
-          <section className={styles.tablePanel}>
-            <header className={styles.panelHeader}>
-              <div>
-                <span className={styles.panelEyebrow}>Detalle</span>
-                <h2>Pedidos considerados</h2>
-              </div>
-
-              <span className={styles.resultCount}>
-                {filteredOrders.length} resultados
-              </span>
-            </header>
-
-            <div className={styles.tableWrapper}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nota de venta</th>
-                    <th>Cliente</th>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Estado</th>
-                    <th>Entrega</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id}>
-                      <td>
-                        <strong>{order.orderNumber}</strong>
-                      </td>
-
-                      <td>{order.clientName}</td>
-                      <td>{order.productType}</td>
-                      <td>{order.quantity.toLocaleString('es-CL')}</td>
-
-                      <td>
-                        <span className={styles.statusBadge}>
-                          {order.status}
-                        </span>
-                      </td>
-
-                      <td>{order.dueDate}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {filteredOrders.length === 0 && (
-                <p className={styles.emptyState}>
-                  No existen pedidos para el rango seleccionado.
-                </p>
-              )}
+                return <article className={styles.dwellPanel} key={group.key}>
+                  <header className={styles.dwellPanelHeader}><h3>{group.title}</h3><span>{group.items.length} indicadores</span></header>
+                  {group.items.length === 0 ? <p className={styles.emptyState}>Sin registros en este periodo.</p> : <div className={styles.dwellChart}>{group.items.map((item) => <div className={styles.dwellRow} key={`${group.key}-${item.name}`}><div className={styles.dwellLabel}><span>{item.name}</span><small>{item.sampleSize} registros</small></div><div className={styles.dwellTrack}><span className={styles.dwellBar} style={{ width: `${Math.max((item.averageSeconds / maxDwell) * 100, 3)}%` }} /></div><strong>{formatDuration(item.averageSeconds)}</strong></div>)}</div>}
+                </article>
+              })}
             </div>
           </section>
-        </div>
-      </section>
-    </main>
-  )
+
+          <section className={styles.summaryGrid} aria-label="Resumen de métricas"><SummaryCard icon="bi-box-seam" label="Producción total" value={chart.total.toLocaleString('es-CL')} subtitle="Unidades terminadas" /><SummaryCard icon="bi-bar-chart" label="Tipos de producto" value={chart.segments.length} subtitle="En el periodo" /><SummaryCard icon="bi-clock-history" label="Registros de estadía" value={dwellItems.reduce((sum, item) => sum + item.sampleSize, 0)} subtitle="Etapas y subprocesos" /></section>
+        </>}
+      </div>
+    </section>
+  </main>
 }

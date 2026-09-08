@@ -368,3 +368,316 @@
   border-color: var(--itexsa-orange);
   color: #c2410c;
 }
+
+.productionSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.dwellSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.periodFilters {
+  align-items: end;
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.periodModes {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.periodModes button,
+.periodFilters label input {
+  border: 1px solid #dbe1e8;
+  border-radius: 0.65rem;
+  min-height: 2.55rem;
+}
+
+.periodModes button {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.5rem 0.8rem;
+}
+
+.periodModes button.activeMode {
+  background: var(--itexsa-text);
+  border-color: var(--itexsa-text);
+  color: #fff;
+}
+
+.periodFilters label {
+  color: #475569;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.3rem;
+}
+
+.periodFilters label input {
+  background: #fff;
+  color: var(--itexsa-text);
+  padding: 0 0.7rem;
+}
+
+.dwellChart {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.dwellPanels {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dwellPanel {
+  background: #f8fafc;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.65rem;
+  padding: 1rem;
+}
+
+.dwellPanelHeader {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.dwellPanelHeader h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dwellPanelHeader span {
+  color: var(--itexsa-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.dwellRow {
+  align-items: center;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(8rem, 11rem) minmax(5rem, 1fr) 4rem;
+}
+
+.dwellLabel {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dwellLabel span {
+  color: var(--itexsa-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dwellLabel small {
+  color: var(--itexsa-muted);
+  font-size: 0.72rem;
+}
+
+.dwellTrack {
+  background: #f1f5f9;
+  border-radius: 999px;
+  height: 0.8rem;
+  overflow: hidden;
+}
+
+.dwellBar {
+  background: var(--itexsa-orange);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  min-width: 0.4rem;
+}
+
+.dwellRow > strong {
+  color: var(--itexsa-text);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.productionHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.productionHeader h2 {
+  font-size: 1.15rem;
+  margin: 0.25rem 0 0.35rem;
+}
+
+.productionHeader p {
+  color: var(--itexsa-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.monthSelector {
+  color: #475569;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.35rem;
+  min-width: 11rem;
+}
+
+.monthSelector select {
+  background: #fff;
+  border: 1px solid #dbe1e8;
+  border-radius: 0.65rem;
+  color: var(--itexsa-text);
+  min-height: 2.55rem;
+  padding: 0 0.7rem;
+}
+
+.productionChart {
+  align-items: center;
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+}
+
+.pieChart {
+  align-items: center;
+  background: var(--pie-gradient);
+  border-radius: 50%;
+  display: flex;
+  height: 14rem;
+  justify-content: center;
+  position: relative;
+  width: 14rem;
+}
+
+.pieChart::after {
+  background: #fff;
+  border-radius: 50%;
+  content: '';
+  height: 8rem;
+  position: absolute;
+  width: 8rem;
+}
+
+.pieChartCenter {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.pieChartCenter strong {
+  font-size: 1.5rem;
+}
+
+.pieChartCenter span,
+.legendItem span:last-child {
+  color: var(--itexsa-muted);
+  font-size: 0.78rem;
+}
+
+.chartLegend {
+  display: grid;
+  gap: 1rem;
+  min-width: 15rem;
+}
+
+.legendItem {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.legendItem > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.legendItem strong {
+  color: var(--itexsa-text);
+  font-size: 0.9rem;
+}
+
+.legendColor {
+  border-radius: 50%;
+  flex: 0 0 0.8rem;
+  height: 0.8rem;
+  width: 0.8rem;
+}
+
+.emptyState {
+  color: var(--itexsa-muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+@media (max-width: 620px) {
+  .productionHeader,
+  .productionChart {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .monthSelector {
+    width: 100%;
+  }
+
+  .pieChart {
+    height: 12rem;
+    margin: 0 auto;
+    width: 12rem;
+  }
+
+  .periodFilters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .periodModes,
+  .periodModes button,
+  .periodFilters label,
+  .periodFilters label input {
+    width: 100%;
+  }
+
+  .periodModes button {
+    flex: 1;
+  }
+
+  .dwellRow {
+    gap: 0.45rem;
+    grid-template-columns: 1fr auto;
+  }
+
+  .dwellPanels {
+    grid-template-columns: 1fr;
+  }
+
+  .dwellTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

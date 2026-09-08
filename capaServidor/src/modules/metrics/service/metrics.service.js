@@ -23,6 +23,73 @@ function dateRange(from, to) {
     return { start, end: new Date(selectedEnd.getTime() + 24 * 60 * 60 * 1000) };
 }
 
+function sellerName(user) {
+    return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ") || user?.correo_usuario || "Sin vendedor";
+}
+
+function latestDate(values) {
+    return values.filter(Boolean).map((value) => new Date(value)).sort((left, right) => right - left)[0] ?? null;
+}
+
+function buildSellerCompliance(orders) {
+    const highLoadByDate = new Map();
+    for (const order of orders) {
+        const dueDate = order.fecha_estimada_termino?.toISOString().slice(0, 10);
+        const lanyardQuantity = order.Detalle_pedido
+            .filter((detail) => String(detail.Tipo_Producto?.nombre_producto ?? "").toLowerCase().includes("lanyard"))
+            .reduce((sum, detail) => sum + Number(detail.cantidad ?? 0), 0);
+        if (dueDate) highLoadByDate.set(dueDate, (highLoadByDate.get(dueDate) ?? 0) + lanyardQuantity);
+    }
+
+    const sellers = new Map();
+    for (const order of orders) {
+        const name = sellerName(order.Usuario);
+        const current = sellers.get(name) ?? {
+            seller: name,
+            salesNotes: 0,
+            deliveredOnTime: 0,
+            deliveredLate: 0,
+            enteredDuringHighLoad: 0,
+        };
+        const completedAt = latestDate(order.Detalle_pedido.map((detail) => detail.fecha_real_termino));
+        const expectedAt = latestDate([
+            order.fecha_estimada_termino,
+            ...order.Detalle_pedido.map((detail) => detail.fecha_estimada_termino),
+        ]);
+        const delivered = order.Detalle_pedido.length > 0 && order.Detalle_pedido.every((detail) => detail.fecha_real_termino);
+        const dueDate = expectedAt?.toISOString().slice(0, 10);
+
+        current.salesNotes += 1;
+        if (delivered && completedAt && expectedAt) {
+            if (completedAt <= expectedAt) current.deliveredOnTime += 1;
+            else current.deliveredLate += 1;
+        }
+        if (dueDate && (highLoadByDate.get(dueDate) ?? 0) > 900) current.enteredDuringHighLoad += 1;
+        sellers.set(name, current);
+    }
+
+    return [...sellers.values()];
+}
+
+function buildFlowTime(orders) {
+    return orders.map((order) => {
+        const readyEvent = order.Registros.find((record) => record.Registro_Etapas?.Estado_Pedido?.nombre_etapa === "Listo para entrega");
+        const start = order.fecha_creacion ? new Date(order.fecha_creacion) : null;
+        const end = readyEvent?.Registro_Etapas?.fecha_hora_entrada
+            ? new Date(readyEvent.Registro_Etapas.fecha_hora_entrada)
+            : null;
+
+        return {
+            orderId: order.id_pedido,
+            salesNoteNumber: order.numero_nota_venta,
+            seller: sellerName(order.Usuario),
+            createdAt: order.fecha_creacion,
+            readyForDeliveryAt: end,
+            durationSeconds: start && end ? Math.max(0, Math.round((end - start) / 1000)) : null,
+        };
+    });
+}
+
 export default class MetricsService {
     constructor({ repo } = {}) {
         this.repo = repo ?? new MetricsRepository();
@@ -30,9 +97,10 @@ export default class MetricsService {
 
     async summary({ from, to }) {
         const range = dateRange(from, to);
-        const [totals, dwellTime] = await Promise.all([
+        const [totals, dwellTime, orders] = await Promise.all([
             this.repo.production(range),
             this.repo.dwellTime(range),
+            this.repo.reportOrders(range),
         ]);
         const products = Object.entries(totals).map(([productType, quantity]) => ({
             productType,
@@ -46,6 +114,8 @@ export default class MetricsService {
                 products,
             },
             dwellTime,
+            sellerCompliance: buildSellerCompliance(orders),
+            flowTime: buildFlowTime(orders),
         };
     }
 }

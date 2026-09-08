@@ -23,6 +23,42 @@
   padding: 2rem 2.25rem;
 }
 
+.exportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.exportActions button,
+.generateButton {
+  align-items: center;
+  background: #050505;
+  border: 1px solid rgba(17, 24, 39, 0.18);
+  border-radius: 0.55rem;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 2.35rem;
+  overflow: hidden;
+  padding: 0.5rem 0.7rem;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.exportActions button:hover,
+.generateButton:hover {
+  background: var(--itexsa-orange);
+  border-color: var(--itexsa-orange);
+  color: #111827;
+  transform: translateY(-1px);
+}
+
 .sectionLabel,
 .panelEyebrow {
   color: var(--itexsa-orange);
@@ -382,7 +418,46 @@
   border: 1px solid var(--itexsa-border);
   border-radius: 0.75rem;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 0;
+}
+
+.dwellToggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--itexsa-text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 1rem;
+  justify-content: space-between;
   padding: 1.25rem;
+  text-align: left;
+  width: 100%;
+}
+
+.dwellToggle:hover {
+  background: #fffaf5;
+}
+
+.dwellToggle > span {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dwellToggle strong {
+  font-size: 1.2rem;
+}
+
+.dwellToggle small {
+  color: var(--itexsa-muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.dwellToggle > i {
+  color: var(--itexsa-orange);
+  font-size: 1.2rem;
 }
 
 .periodFilters {
@@ -445,6 +520,7 @@
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 1.25rem 1.25rem;
 }
 
 .dwellPanel {
@@ -463,13 +539,33 @@
 }
 
 .dwellPanelHeader h3 {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   margin: 0;
 }
 
 .dwellPanelHeader span {
   color: var(--itexsa-muted);
-  font-size: 0.7rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.productSelector select {
+  background: #fff;
+  border: 1px solid #dbe1e8;
+  border-radius: 0.55rem;
+  color: var(--itexsa-text);
+  font-size: 0.78rem;
+  min-height: 2.1rem;
+  padding: 0 0.5rem;
+}
+
+.visuallyHidden {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
@@ -487,13 +583,13 @@
 
 .dwellLabel span {
   color: var(--itexsa-text);
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
 .dwellLabel small {
   color: var(--itexsa-muted);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 .dwellTrack {
@@ -513,7 +609,7 @@
 
 .dwellRow > strong {
   color: var(--itexsa-text);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   text-align: right;
 }
 
@@ -527,6 +623,7 @@
 
 .productionHeader h2 {
   font-size: 1.15rem;
+  font-weight: 800;
   margin: 0.25rem 0 0.35rem;
 }
 
@@ -634,6 +731,131 @@
   text-align: center;
 }
 
+.sellerSection,
+.flowSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.sellerSection {
+  padding: 0;
+}
+
+.sellerContent {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.flowSection {
+  margin-top: 1rem;
+}
+
+.sellerHeader {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+}
+
+.sellerActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.exportMenu {
+  position: relative;
+}
+
+.exportOptions {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.55rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 0.2rem;
+  min-width: 8rem;
+  padding: 0.35rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 2;
+}
+
+.exportOptions button {
+  background: #fff;
+  border: 0;
+  border-radius: 0.35rem;
+  color: var(--itexsa-text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+}
+
+.exportOptions button:hover {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.sellerHeader h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0.25rem 0 0.35rem;
+}
+
+.sellerHeader p {
+  color: var(--itexsa-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.generateButton {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.sellerTableWrapper,
+.flowTableWrapper {
+  overflow-x: auto;
+}
+
+.sellerTable {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+
+.sellerTable th {
+  background: #f8fafc;
+  color: var(--itexsa-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  padding: 0.75rem;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.sellerTable td {
+  border-top: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+  padding: 0.8rem 0.75rem;
+}
+
+.sellerTable td strong {
+  color: var(--itexsa-text);
+}
+
 @media (max-width: 620px) {
   .productionHeader,
   .productionChart {
@@ -654,6 +876,26 @@
   .periodFilters {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .sellerHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sellerActions {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .sellerActions .generateButton,
+  .sellerActions .exportActions,
+  .sellerActions .exportActions button {
+    flex: 1;
+  }
+
+  .generateButton {
+    justify-content: center;
   }
 
   .periodModes,

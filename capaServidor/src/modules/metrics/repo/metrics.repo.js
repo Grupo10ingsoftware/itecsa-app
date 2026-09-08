@@ -50,34 +50,83 @@ export default class MetricsRepository {
                     fecha_hora_entrada: true,
                     fecha_hora_salida: true,
                     Estado_Subprocesos: { select: { nombre_estado: true } },
+                    Detalle_pedido: {
+                        select: { Tipo_Producto: { select: { nombre_producto: true } } },
+                    },
                 },
             }),
         ]);
 
         return {
             stages: this.averageDurations(stages, (item) => item.Estado_Pedido?.nombre_etapa),
-            subprocesses: this.averageDurations(subprocesses, (item) => item.Estado_Subprocesos?.nombre_estado),
+            subprocesses: this.averageDurations(
+                subprocesses,
+                (item) => item.Estado_Subprocesos?.nombre_estado,
+                (item) => item.Detalle_pedido?.Tipo_Producto?.nombre_producto,
+            ),
         };
     }
 
-    averageDurations(items, getName) {
+    async reportOrders({ start, end }) {
+        return this.client.pedidos.findMany({
+            where: { fecha_creacion: { gte: start, lt: end } },
+            select: {
+                id_pedido: true,
+                numero_nota_venta: true,
+                fecha_creacion: true,
+                fecha_estimada_termino: true,
+                Usuario: {
+                    select: { nombre_usuario: true, apellido_usuario: true, correo_usuario: true },
+                },
+                Detalle_pedido: {
+                    select: {
+                        cantidad: true,
+                        fecha_estimada_termino: true,
+                        fecha_real_termino: true,
+                        Tipo_Producto: { select: { nombre_producto: true } },
+                    },
+                },
+                Registros: {
+                    select: {
+                        FECHA_HORA: true,
+                        Registro_Etapas: {
+                            select: {
+                                fecha_hora_entrada: true,
+                                Estado_Pedido: { select: { nombre_etapa: true } },
+                            },
+                        },
+                    },
+                    orderBy: { FECHA_HORA: "asc" },
+                },
+            },
+            orderBy: { fecha_creacion: "asc" },
+        });
+    }
+
+    averageDurations(items, getName, getProductType = () => null) {
         const grouped = items.reduce((result, item) => {
             const name = getName(item);
+            const productType = getProductType(item);
             if (!name || !item.fecha_hora_entrada || !item.fecha_hora_salida) return result;
+
+            const groupKey = `${name}::${productType ?? ""}`;
 
             const seconds = Math.max(0, Math.round(
                 (new Date(item.fecha_hora_salida) - new Date(item.fecha_hora_entrada)) / 1000,
             ));
-            const current = result[name] ?? { totalSeconds: 0, sampleSize: 0 };
-            result[name] = {
+            const current = result[groupKey] ?? { name, productType, totalSeconds: 0, sampleSize: 0 };
+            result[groupKey] = {
+                name: current.name,
+                productType: current.productType,
                 totalSeconds: current.totalSeconds + seconds,
                 sampleSize: current.sampleSize + 1,
             };
             return result;
         }, {});
 
-        return Object.entries(grouped).map(([name, value]) => ({
-            name,
+        return Object.values(grouped).map((value) => ({
+            name: value.name,
+            productType: value.productType,
             averageSeconds: Math.round(value.totalSeconds / value.sampleSize),
             sampleSize: value.sampleSize,
         }));

@@ -23,8 +23,22 @@ function formatScheduleState(item) {
   return item.status
 }
 
+function getProductSummary(item) {
+  const sourceItems = Array.isArray(item.items) ? item.items : []
+  const productNames = sourceItems
+    .map((detail) => detail.productType ?? detail.product ?? detail.nombre_producto ?? detail.producto)
+    .filter(Boolean)
+  const uniqueProductNames = [...new Set(productNames)]
+
+  return uniqueProductNames.length > 0
+    ? uniqueProductNames.join(', ')
+    : item.productType
+}
+
 function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
   const { hasPermission } = useAuth()
+  const productSummary = getProductSummary(item)
+
   return (
     <button
       className={[styles.calendarEvent, isDragging ? styles.draggingEvent : '']
@@ -40,10 +54,22 @@ function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
       title="Arrastrar para cambiar fecha de entrega"
       type="button"
     >
-      <strong>{item.orderNumber}</strong>
-      <span>{item.clientName}</span>
-      <em>{item.productType}</em>
-      <small>{formatScheduleState(item)}</small>
+      <span className={styles.eventLine}>
+        <b>Pedido N°:</b>
+        <strong>{item.orderNumber}</strong>
+      </span>
+      <span className={styles.eventLine}>
+        <b>Cliente:</b>
+        <span>{item.clientName}</span>
+      </span>
+      <span className={styles.eventLine}>
+        <b>Productos:</b>
+        <em>{productSummary}</em>
+      </span>
+      <span className={styles.eventLine}>
+        <b>Etapa:</b>
+        <small>{formatScheduleState(item)}</small>
+      </span>
     </button>
   )
 }

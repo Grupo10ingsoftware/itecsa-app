@@ -6,7 +6,7 @@ import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
-import { isSameMonth } from '../utils/calendarUtils'
+import { isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -90,15 +90,10 @@ export default function ProductionCalendarPage() {
     }
   }, [ordersCalendarApi])
 
-  const visibleMonthItems = useMemo(
-    () => calendarItems.filter((item) => isSameMonth(item.dueDate, monthDate)),
-    [calendarItems, monthDate],
-  )
-
   const filteredItems = useMemo(() => {
     const normalizedSearch = filters.search.trim().toLowerCase()
 
-    return visibleMonthItems.filter((item) => {
+    return calendarItems.filter((item) => {
       const matchesSearch =
         normalizedSearch.length === 0 ||
         [item.orderNumber, item.clientName, item.productType].join(' ').toLowerCase().includes(normalizedSearch)
@@ -107,7 +102,12 @@ export default function ProductionCalendarPage() {
 
       return matchesSearch && matchesStatus && matchesProduct
     })
-  }, [filters, visibleMonthItems])
+  }, [calendarItems, filters])
+
+  const scheduledMonthItems = useMemo(
+    () => filteredItems.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
+    [filteredItems, monthDate],
+  )
 
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
@@ -153,7 +153,7 @@ export default function ProductionCalendarPage() {
 
           {loadError && <div className="alert alert-warning mb-0">{loadError}</div>}
 
-          <CalendarSummaryCards items={filteredItems} />
+          <CalendarSummaryCards items={scheduledMonthItems} />
 
           <section className={styles.calendarPanel}>
             <CalendarToolbar

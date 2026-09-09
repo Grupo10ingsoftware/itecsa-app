@@ -23,6 +23,12 @@ function isLanyardItem(item) {
   return String(item.product ?? '').toLowerCase().includes('lanyard')
 }
 
+function displayValue(value, fallback = 'No definido') {
+  if (typeof value === 'string') return value.trim() || fallback
+
+  return value ?? fallback
+}
+
 function getOrderItems(order) {
   const items = Array.isArray(order.items) && order.items.length > 0
     ? order.items
@@ -70,7 +76,7 @@ function getManufacturingDetails(item, order) {
     endings: details.endings ?? 'No definido',
     cardType: details.cardType ?? 'Plastificada',
     seller: details.seller ?? order.seller ?? 'Ventas ITECSA',
-    dueDate: details.dueDate ?? item.dueDate ?? order.dueDate ?? 'Sin fecha definida',
+    dueDate: displayValue(details.dueDate ?? item.dueDate ?? order.dueDate, 'Por definir'),
   }
 }
 
@@ -438,7 +444,7 @@ export default function KanbanOffCanvas({
                     <h4>{item.product}</h4>
                     <dl className={styles.detailList}>
                       <div>
-                        <dt>Fecha</dt>
+                        <dt>Fecha de Entrega</dt>
                         <dd>{manufacturingDetails.dueDate}</dd>
                       </div>
                       <div>

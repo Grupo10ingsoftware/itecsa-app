@@ -10,6 +10,7 @@ const EVENT_TYPES = [
   ['stage', 'Etapas generales'],
   ['payment', 'Pagos'],
   ['subprocess', 'Subprocesos'],
+  ['calendar', 'Calendarizacion'],
   ['general', 'Generales'],
 ]
 

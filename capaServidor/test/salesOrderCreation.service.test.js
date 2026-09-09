@@ -5,6 +5,32 @@ import OrderService, {
   DUPLICATE_SALES_NOTE_MESSAGE,
 } from "../src/modules/orders/service/order.service.js";
 
+test("programa fecha de produccion solo en dias habiles y registra actor", async () => {
+  let auditPayload = null;
+  const service = new OrderService({
+    repo: {
+      async updateDeliveryDate(orderId, date, audit) {
+        auditPayload = { orderId, date, audit };
+        return { id_pedido: Number(orderId), fecha_estimada_termino: date };
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => service.updateDeliveryDate(101, "2026-09-19", { actor: { idUsuario: 8 } }),
+    { statusCode: 400 },
+  );
+
+  const updatedOrder = await service.updateDeliveryDate(101, "2026-09-21", {
+    actor: { idUsuario: 8 },
+  });
+
+  assert.equal(updatedOrder.id_pedido, 101);
+  assert.equal(auditPayload.orderId, 101);
+  assert.equal(auditPayload.audit.userId, 8);
+  assert.equal(auditPayload.audit.comment, "Fecha de termino definida para 21-09-2026.");
+});
+
 function createSalesNoteLookupService({ registered = false } = {}) {
   return new OrderService({
     repo: {
@@ -59,7 +85,8 @@ test("persiste la observacion interna al crear el pedido", async () => {
         duplicateChecks += 1;
         return null;
       },
-      async notifyCollectionsAdministrators(notification) { notifications.push(notification); },
+      async notifyCollectionsAdministrators(notification) { notifications.push({ ...notification, target: "collections" }); },
+      async notifyProductionAdministrators(notification) { notifications.push({ ...notification, target: "production" }); },
       async create(data, options) {
         assert.deepEqual(options, { hydrate: false });
         persistedOrderData = data;
@@ -85,7 +112,8 @@ test("persiste la observacion interna al crear el pedido", async () => {
       },
     },
     orderDetailService: {
-      async createOrderDetail() {
+      async createOrderDetail(_orderId, detail) {
+        assert.equal(detail.fecha_estimada_termino, null);
         createdDetails += 1;
         return { id_detalle_pedido: 200 + createdDetails };
       },
@@ -133,13 +161,19 @@ test("persiste la observacion interna al crear el pedido", async () => {
     persistedOrderData.observacion_interna,
     "Coordinar entrega con el cliente.",
   );
+  assert.equal(persistedOrderData.fecha_estimada_termino, null);
   assert.equal(order.observacion_interna, "Coordinar entrega con el cliente.");
   assert.equal(duplicateChecks, 1);
   assert.equal(productTypeQueries, 1);
   assert.equal(subprocessQueries, 1);
   assert.equal(createdDetails, 2);
-  assert.equal(notifications.length, 1);
+  assert.equal(notifications.length, 2);
+  assert.equal(notifications[0].target, "collections");
   assert.equal(notifications[0].orderId, 101);
   assert.match(notifications[0].content, /24226/);
+  assert.equal(notifications[1].target, "production");
+  assert.equal(notifications[1].orderId, 101);
+  assert.match(notifications[1].content, /24226/);
+  assert.match(notifications[1].subject, /pendiente de programacion/);
   assert.match(notifications[0].subject, /pendiente de confirmación de pago/);
 });

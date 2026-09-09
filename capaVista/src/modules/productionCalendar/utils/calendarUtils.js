@@ -1,4 +1,4 @@
-export const WEEK_DAYS = Object.freeze(['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'])
+export const WEEK_DAYS = Object.freeze(['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'])
 
 export function formatMonthTitle(date) {
   return new Intl.DateTimeFormat('es-CL', {
@@ -23,6 +23,14 @@ export function isBusinessDay(date) {
   return day !== 0 && day !== 6
 }
 
+export function isBusinessDateKey(dateKey) {
+  if (!dateKey) return false
+
+  const date = new Date(`${dateKey}T00:00:00`)
+
+  return !Number.isNaN(date.getTime()) && isBusinessDay(date)
+}
+
 function getMondayBasedDayIndex(date) {
   return (date.getDay() + 6) % 7
 }
@@ -34,18 +42,22 @@ export function buildMonthGrid(monthDate) {
   const startDate = new Date(firstDay)
   startDate.setDate(firstDay.getDate() - getMondayBasedDayIndex(firstDay))
 
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(startDate)
-    date.setDate(startDate.getDate() + index)
+  const weeks = Array.from({ length: 6 }, (_, weekIndex) =>
+    Array.from({ length: 5 }, (_, dayIndex) => {
+      const date = new Date(startDate)
+      date.setDate(startDate.getDate() + (weekIndex * 7) + dayIndex)
 
-    return {
-      date,
-      dateKey: toDateKey(date),
-      dayNumber: date.getDate(),
-      isBusinessDay: isBusinessDay(date),
-      isCurrentMonth: date.getMonth() === month,
-    }
-  })
+      return {
+        date,
+        dateKey: toDateKey(date),
+        dayNumber: date.getDate(),
+        isBusinessDay: true,
+        isCurrentMonth: date.getMonth() === month,
+      }
+    }),
+  )
+
+  return weeks.flat()
 }
 
 export function groupItemsByDate(items) {
@@ -59,7 +71,11 @@ export function groupItemsByDate(items) {
 }
 
 export function isSameMonth(dateKey, monthDate) {
+  if (!dateKey) return false
+
   const date = new Date(`${dateKey}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) return false
 
   return date.getFullYear() === monthDate.getFullYear() && date.getMonth() === monthDate.getMonth()
 }

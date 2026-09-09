@@ -718,7 +718,7 @@ class OrderRepository {
     return updated;
   }
 
-  async updateDeliveryDate(id, dueDate) {
+  async updateDeliveryDate(id, dueDate, audit = {}) {
     try {
       await this.client.pedidos.update({
         where: { id_pedido: Number(id) },
@@ -732,6 +732,17 @@ class OrderRepository {
           },
         },
       });
+
+      if (audit.userId) {
+        await this.client.registros.create({
+          data: {
+            FECHA_HORA: audit.now ?? new Date(),
+            id_pedido: Number(id),
+            id_usuario: Number(audit.userId),
+            observacion: audit.comment ?? null,
+          },
+        });
+      }
     } catch (error) {
       if (error?.code === "P2025") return null;
       throw error;

@@ -1,6 +1,7 @@
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
 
-const EVENT_TYPES = new Set(["all", "stage", "payment", "subprocess", "general"]);
+const EVENT_TYPES = new Set(["all", "stage", "payment", "subprocess", "calendar", "general"]);
+const CALENDARIZATION_DESCRIPTION_PREFIX = "Fecha de termino definida para ";
 
 function httpError(statusCode, message) {
     const error = new Error(message);
@@ -134,6 +135,15 @@ function mapEvent(record) {
         };
     }
 
+    if (base.description?.startsWith(CALENDARIZATION_DESCRIPTION_PREFIX)) {
+        return {
+            ...base,
+            type: "calendar",
+            typeLabel: "Calendarizacion",
+            title: "Fecha de termino definida",
+        };
+    }
+
     return { ...base, type: "general", typeLabel: "General", title: "Actividad del pedido" };
 }
 
@@ -220,7 +230,7 @@ export default class OrderHistoryService {
         const parsedId = positiveInteger(orderId, null, "orderId");
         const type = String(query.type ?? "all").trim().toLowerCase();
         if (!EVENT_TYPES.has(type)) {
-            throw httpError(400, "type debe ser all, stage, payment, subprocess o general.");
+            throw httpError(400, "type debe ser all, stage, payment, subprocess, calendar o general.");
         }
 
         const order = await this.repo.getById(parsedId);

@@ -34,6 +34,12 @@ function toPrismaDate(value) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+function isBusinessDate(date) {
+  const day = date.getUTCDay();
+
+  return day !== 0 && day !== 6;
+}
+
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -337,7 +343,7 @@ class OrderService {
     });
   }
 
-  async updateDeliveryDate(orderId, dueDate) {
+  async updateDeliveryDate(orderId, dueDate, { actor } = {}) {
     if (!orderId) {
       const error = new Error("El ID del pedido es obligatorio");
       error.statusCode = 400;
@@ -358,7 +364,23 @@ class OrderService {
       throw error;
     }
 
-    const updatedOrder = await this.repo.updateDeliveryDate(orderId, parsedDate);
+    if (!isBusinessDate(parsedDate)) {
+      const error = new Error("La fecha de produccion debe ser un dia habil.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!actor?.idUsuario) {
+      const error = new Error("El usuario validado por PIN es obligatorio.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const formattedDate = dueDate.split("-").reverse().join("-");
+    const updatedOrder = await this.repo.updateDeliveryDate(orderId, parsedDate, {
+      userId: actor.idUsuario,
+      comment: `Fecha de termino definida para ${formattedDate}.`,
+    });
 
     if (!updatedOrder) {
       const error = new Error("Pedido no encontrado");
@@ -815,9 +837,7 @@ class OrderService {
       auth0UserId: options.auth0UserId,
       id_usuario: data.id_usuario,
     });
-    const estimatedCompletionDate = toPrismaDate(
-      data.fechaEntregaTentativaOrigen,
-    );
+    const estimatedCompletionDate = null;
 
     return this.runInTransaction(async ({
       repo,
@@ -934,6 +954,12 @@ class OrderService {
         orderId: order.id_pedido,
         subject: "Nuevo pedido pendiente de confirmación de pago",
         content: `Se registró el pedido ${numeroNota}. Está pendiente de confirmación de pago.`,
+      });
+
+      await repo.notifyProductionAdministrators({
+        orderId: order.id_pedido,
+        subject: "Pedido pendiente de programacion",
+        content: `Se registro el pedido ${numeroNota}. Debe asignarse una fecha habil en el calendario de produccion.`,
       });
 
       const fullOrder = await repo.get(order.id_pedido);

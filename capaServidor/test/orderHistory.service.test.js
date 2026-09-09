@@ -87,6 +87,14 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
                             },
                             registro_subprocesos: null,
                         },
+                        {
+                            ...baseRecord,
+                            ID_REGISTRO: 3,
+                            observacion: "Fecha de termino definida para 21-09-2026.",
+                            Registro_Etapas: null,
+                            Registro_Pago: null,
+                            registro_subprocesos: null,
+                        },
                     ],
                 };
             },
@@ -99,6 +107,12 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
     assert.equal(result.events[0].responsible, "Ana Perez");
     assert.equal(result.events[0].previousStatus, "Pendiente");
     assert.equal(result.events[0].nextStatus, "Confirmado");
+
+    const calendarResult = await service.getOrderHistory("8", { type: "calendar" });
+    assert.equal(calendarResult.events.length, 1);
+    assert.equal(calendarResult.events[0].type, "calendar");
+    assert.equal(calendarResult.events[0].typeLabel, "Calendarizacion");
+    assert.equal(calendarResult.events[0].title, "Fecha de termino definida");
 });
 
 test("rechaza IDs y tipos de evento invalidos", async () => {

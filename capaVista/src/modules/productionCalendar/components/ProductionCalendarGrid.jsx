@@ -1,17 +1,26 @@
 import { useAuth } from "../../../hooks/useAuth";
 import { PERMISSIONS } from "../../../config/permissions";
 import { useMemo, useState } from 'react'
-import { WEEK_DAYS, buildMonthGrid, groupItemsByDate } from '../utils/calendarUtils'
+import { WEEK_DAYS, buildMonthGrid, groupItemsByDate, isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
 
 const MAX_VISIBLE_EVENTS = 1
 
 function formatDayTitle(dateKey) {
+  if (!dateKey) return 'Sin fecha programada'
+
   return new Intl.DateTimeFormat('es-CL', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   }).format(new Date(`${dateKey}T00:00:00`))
+}
+
+function formatScheduleState(item) {
+  if (!item.dueDate) return 'Sin fecha programada'
+  if (!isBusinessDateKey(item.dueDate)) return 'Fecha no habil'
+
+  return item.status
 }
 
 function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
@@ -34,7 +43,7 @@ function CalendarEvent({ isDragging, item, onDragEnd, onDragStart }) {
       <strong>{item.orderNumber}</strong>
       <span>{item.clientName}</span>
       <em>{item.productType}</em>
-      <small>{item.status}</small>
+      <small>{formatScheduleState(item)}</small>
     </button>
   )
 }
@@ -226,6 +235,67 @@ function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onD
   )
 }
 
+function PendingOrdersTray({ draggedItemId, items, onDragEnd, onDragStart }) {
+  const { hasPermission } = useAuth()
+
+  function handleDragStart(event, itemId) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', itemId)
+    onDragStart(itemId)
+  }
+
+  return (
+    <aside className={styles.pendingTray} aria-label="Pedidos pendientes de programar">
+      <header className={styles.pendingTrayHeader}>
+        <div>
+          <span>Produccion</span>
+          <h2>Pendientes de programar</h2>
+        </div>
+        <strong>{items.length}</strong>
+      </header>
+
+      <div className={styles.pendingTrayBody}>
+        {items.length === 0 ? (
+          <p className={styles.emptyPendingState}>No hay pedidos pendientes de fecha.</p>
+        ) : items.map((item) => (
+          <article
+            className={[
+              styles.pendingOrderCard,
+              draggedItemId === item.id ? styles.draggingEvent : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            draggable={hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)}
+            key={item.id}
+            onDragEnd={onDragEnd}
+            onDragStart={(event) => handleDragStart(event, item.id)}
+            title="Arrastrar a un dia habil del calendario"
+          >
+            <div className={styles.pendingOrderTitle}>
+              <strong>{item.orderNumber}</strong>
+              <span>{formatScheduleState(item)}</span>
+            </div>
+            <dl>
+              <div>
+                <dt>Cliente</dt>
+                <dd>{item.clientName}</dd>
+              </div>
+              <div>
+                <dt>Producto</dt>
+                <dd>{item.productType}</dd>
+              </div>
+              <div>
+                <dt>Cantidad</dt>
+                <dd>{item.quantity}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
 function CalendarDayCell({
   day,
   draggedItemId,
@@ -240,7 +310,7 @@ function CalendarDayCell({
   const visibleItems = items.slice(0, MAX_VISIBLE_EVENTS)
   const hiddenItemsCount = items.length - visibleItems.length
   const isDropTarget = dropTargetDate === day.dateKey
-  const canScheduleProduction = day.isCurrentMonth && day.isBusinessDay
+  const canScheduleProduction = day.isCurrentMonth
 
   return (
     <article
@@ -298,7 +368,15 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
   const [draggedItemId, setDraggedItemId] = useState(null)
   const [dropTargetDate, setDropTargetDate] = useState(null)
   const days = buildMonthGrid(monthDate)
-  const itemsByDate = useMemo(() => groupItemsByDate(items), [items])
+  const scheduledMonthItems = useMemo(
+    () => items.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
+    [items, monthDate],
+  )
+  const pendingItems = useMemo(
+    () => items.filter((item) => !isBusinessDateKey(item.dueDate)),
+    [items],
+  )
+  const itemsByDate = useMemo(() => groupItemsByDate(scheduledMonthItems), [scheduledMonthItems])
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
 
   const { hasPermission } = useAuth()
@@ -338,27 +416,38 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
   return (
     <>
       <section className={styles.calendarShell} aria-label="Calendario mensual de produccion">
-        <div className={styles.weekHeader}>
-          {WEEK_DAYS.map((day) => (
-            <span key={day}>{day}</span>
-          ))}
-        </div>
+        <div className={styles.calendarLayout}>
+          <div className={styles.businessCalendar}>
+            <div className={styles.weekHeader}>
+              {WEEK_DAYS.map((day) => (
+                <span key={day}>{day}</span>
+              ))}
+            </div>
 
-        <div className={styles.monthGrid}>
-          {days.map((day) => (
-            <CalendarDayCell
-              day={day}
-              draggedItemId={draggedItemId}
-              dropTargetDate={dropTargetDate}
-              items={itemsByDate.get(day.dateKey) ?? []}
-              key={day.dateKey}
-              onDragEnd={handleDragEnd}
-              onDragStart={setDraggedItemId}
-              onDropItem={handleDropItem}
-              onOpenDay={setSelectedDayKey}
-              onSetDropTarget={setDropTargetDate}
-            />
-          ))}
+            <div className={styles.monthGrid}>
+              {days.map((day) => (
+                <CalendarDayCell
+                  day={day}
+                  draggedItemId={draggedItemId}
+                  dropTargetDate={dropTargetDate}
+                  items={itemsByDate.get(day.dateKey) ?? []}
+                  key={day.dateKey}
+                  onDragEnd={handleDragEnd}
+                  onDragStart={setDraggedItemId}
+                  onDropItem={handleDropItem}
+                  onOpenDay={setSelectedDayKey}
+                  onSetDropTarget={setDropTargetDate}
+                />
+              ))}
+            </div>
+          </div>
+
+          <PendingOrdersTray
+            draggedItemId={draggedItemId}
+            items={pendingItems}
+            onDragEnd={handleDragEnd}
+            onDragStart={setDraggedItemId}
+          />
         </div>
 
         <DayOrdersModal

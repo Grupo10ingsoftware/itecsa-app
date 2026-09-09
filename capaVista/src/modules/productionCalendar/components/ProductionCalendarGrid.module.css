@@ -266,6 +266,89 @@
   width: 34rem;
 }
 
+.orderDetailModal {
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(44rem, calc(100vh - 2rem));
+  max-width: min(100%, 42rem);
+  overflow: hidden;
+  width: 42rem;
+}
+
+.orderDetailBody {
+  display: grid;
+  gap: 0.9rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.orderOverview {
+  background: #f8fafc;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0.85rem;
+}
+
+.orderOverview div,
+.detailProductCard dl div {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.orderOverview dt,
+.detailProductCard dt {
+  color: var(--calendar-muted);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.orderOverview dd,
+.detailProductCard dd {
+  color: var(--calendar-text);
+  font-size: 0.86rem;
+  font-weight: 850;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.detailProducts {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.detailProductCard {
+  background: #fff;
+  border: 1px solid #d7dee8;
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+}
+
+.detailProductCard h3 {
+  color: var(--calendar-text);
+  font-size: 1rem;
+  font-weight: 950;
+  margin: 0;
+}
+
+.detailProductCard dl {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
 .confirmText {
   color: var(--calendar-text);
   font-size: 0.95rem;
@@ -561,6 +644,11 @@
 }
 
 @media (max-width: 640px) {
+  .orderOverview,
+  .detailProductCard dl {
+    grid-template-columns: 1fr;
+  }
+
   .dayOrderRow dl {
     grid-template-columns: 1fr;
   }

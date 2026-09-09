@@ -30,6 +30,10 @@ function displayValue(value, fallback = 'No definido') {
 }
 
 function getProductSummary(item) {
+  if (Array.isArray(item.productTypes) && item.productTypes.length > 0) {
+    return item.productTypes.join(', ')
+  }
+
   const sourceItems = Array.isArray(item.items) ? item.items : []
   const productNames = sourceItems
     .map((detail) => detail.productType ?? detail.product ?? detail.nombre_producto ?? detail.producto)
@@ -580,12 +584,18 @@ function CalendarDayCell({
   )
 }
 
-export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliveryDate }) {
+export default function ProductionCalendarGrid({
+  draggedItemId,
+  items,
+  monthDate,
+  onChangeDeliveryDate,
+  onDragEnd,
+  onDragStart,
+}) {
   const [selectedDayKey, setSelectedDayKey] = useState(null)
   const [selectedDetailOrder, setSelectedDetailOrder] = useState(null)
   const [pendingChange, setPendingChange] = useState(null)
   const [isCredentialStepOpen, setIsCredentialStepOpen] = useState(false)
-  const [draggedItemId, setDraggedItemId] = useState(null)
   const [dropTargetDate, setDropTargetDate] = useState(null)
   const days = buildMonthGrid(monthDate)
   const scheduledMonthItems = useMemo(
@@ -602,7 +612,7 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
   const { hasPermission } = useAuth()
   function handleDropItem(itemId, targetDate) {
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
-    setDraggedItemId(null)
+    onDragEnd?.()
     setDropTargetDate(null)
     const item = items.find((currentItem) => String(currentItem.id) === String(itemId))
 
@@ -617,7 +627,7 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
   }
 
   function handleDragEnd() {
-    setDraggedItemId(null)
+    onDragEnd?.()
     setDropTargetDate(null)
   }
 
@@ -653,7 +663,7 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
                   items={itemsByDate.get(day.dateKey) ?? []}
                   key={day.dateKey}
                   onDragEnd={handleDragEnd}
-                  onDragStart={setDraggedItemId}
+                  onDragStart={onDragStart}
                   onDropItem={handleDropItem}
                   onOpenDay={setSelectedDayKey}
                   onOpenDetail={setSelectedDetailOrder}
@@ -667,7 +677,7 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
             draggedItemId={draggedItemId}
             items={pendingItems}
             onDragEnd={handleDragEnd}
-            onDragStart={setDraggedItemId}
+            onDragStart={onDragStart}
             onOpenDetail={setSelectedDetailOrder}
           />
         </div>
@@ -678,7 +688,7 @@ export default function ProductionCalendarGrid({ items, monthDate, onChangeDeliv
           items={selectedDayItems}
           onClose={() => setSelectedDayKey(null)}
           onDragEnd={handleDragEnd}
-          onDragStart={setDraggedItemId}
+          onDragStart={onDragStart}
           onOpenDetail={setSelectedDetailOrder}
         />
         <OrderDetailModal

@@ -1,5 +1,5 @@
 import { PERMISSIONS } from './permissions'
-import { ADMINISTRATIVE_ROLES } from './roles'
+import { ADMINISTRATIVE_ROLES, ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
@@ -19,6 +19,7 @@ export const APP_ROUTES = Object.freeze({
   PRODUCTION_CALENDAR: '/calendario-produccion',
   MESSAGES: '/mensajes',
   MESSAGE_DETAIL: '/mensajes/:messageId',
+  METRICS: '/metricas',
 })
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
@@ -71,4 +72,11 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     permission: PERMISSIONS.READ_CALENDAR,
     requirementIds: Object.freeze(['RF49']),
   },
+  {
+    label: 'Métricas',
+    path: APP_ROUTES.METRICS,
+    permission: PERMISSIONS.VIEW_METRICS,
+    requiredRoles: [ROLES.ADMINISTRADOR,ROLES.GERENCIA],
+    requirementIds: Object.freeze(['RF71']),
+  }
 ])

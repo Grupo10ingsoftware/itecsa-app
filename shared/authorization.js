@@ -16,6 +16,7 @@ export const PERMISSIONS = Object.freeze({
   UPDATE_SUBPROCESSES: 'update:production-subprocesses', ROLLBACK_SUBPROCESSES: 'rollback:production-subprocesses',
   MANAGE_CAPACITY: 'manage:production-capacity', MANAGE_TAGS: 'manage:order-tags', REVIEW_ORDERS: 'review:orders',
   CANCEL_ORDERS: 'cancel:orders', READ_CALENDAR: 'read:production-calendar', UPDATE_DELIVERY_DATE: 'update:order-delivery-date',
+  VIEW_METRICS: 'view:metrics', VIEW_KANBAN_MODULE: 'view:kanban-module', VIEW_PAYMENTS_MODULE: 'view:payments-module',
 });
 export const BUSINESS_PERMISSIONS = Object.freeze(Object.values(PERMISSIONS));
 const P = PERMISSIONS;
@@ -24,11 +25,11 @@ const sales = [P.READ_SALES_NOTES,P.CREATE_ORDERS,P.REEVALUATE_ORDERS,P.READ_CAL
 const collections = [P.READ_PAYMENTS,P.UPDATE_PAYMENT_STATUS];
 const production = [P.MOVE_ORDERS,P.UPDATE_SUBPROCESSES];
 export const ROLE_PERMISSIONS = Object.freeze(Object.fromEntries(Object.entries({
-  [ROLES.ADMINISTRADOR]: [...common,P.MANAGE_USERS,...production,P.START_PRODUCTION,P.ROLLBACK_SUBPROCESSES,P.MANAGE_CAPACITY,P.MANAGE_TAGS,P.REVIEW_ORDERS,P.CANCEL_ORDERS,P.READ_CALENDAR,P.UPDATE_DELIVERY_DATE],
+  [ROLES.ADMINISTRADOR]: [...common,P.MANAGE_USERS,...production,P.START_PRODUCTION,P.ROLLBACK_SUBPROCESSES,P.MANAGE_CAPACITY,P.MANAGE_TAGS,P.REVIEW_ORDERS,P.CANCEL_ORDERS,P.READ_CALENDAR,P.UPDATE_DELIVERY_DATE, P.VIEW_METRICS],
   [ROLES.ADMIN_VENTAS]: [...common,P.MANAGE_USERS,...sales],
   [ROLES.ADMIN_COBRANZAS]: [...common,P.MANAGE_USERS,...collections,P.REVISE_PAYMENT_STATUS],
   [ROLES.PRODUCCION]: [...common,...production], [ROLES.VENTAS]: [...common,...sales],
-  [ROLES.COBRANZAS]: [...common,...collections], [ROLES.GERENCIA]: common,
+  [ROLES.COBRANZAS]: [...common,...collections], [ROLES.GERENCIA]: [...common,P.VIEW_METRICS],
   [ROLES.SOPORTE]: BUSINESS_PERMISSIONS,
 }).map(([role,permissions]) => [role,Object.freeze(permissions)])));
 export const ROLES_CLAIM = 'https://itecsa.local/roles';

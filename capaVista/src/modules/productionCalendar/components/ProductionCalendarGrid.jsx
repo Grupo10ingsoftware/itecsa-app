@@ -86,13 +86,37 @@ function getManufacturingDetails(item, order) {
   }
 }
 
+function normalizeLabelName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function hasOrderLabel(order, expectedNames = []) {
+  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+  const normalizedExpectedNames = expectedNames.map(normalizeLabelName)
+
+  return labels.some((label) =>
+    normalizedExpectedNames.includes(normalizeLabelName(label?.nombre_etiqueta ?? label?.name ?? label)),
+  )
+}
+
+function getOrderToneClass(order) {
+  if (hasOrderLabel(order, ['Prioridad por contrato', 'Cliente con contrato'])) return styles.contractPriorityEvent
+  if (hasOrderLabel(order, ['Urgencia'])) return styles.urgentEvent
+
+  return ''
+}
+
 function CalendarEvent({ isDragging, item, onDragEnd, onDragStart, onOpenDetail }) {
   const { hasPermission } = useAuth()
   const productSummary = getProductSummary(item)
 
   return (
     <button
-      className={[styles.calendarEvent, isDragging ? styles.draggingEvent : '']
+      className={[styles.calendarEvent, getOrderToneClass(item), isDragging ? styles.draggingEvent : '']
         .filter(Boolean)
         .join(' ')}
       draggable={hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)}
@@ -390,6 +414,7 @@ function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onD
               className={[
                 styles.dayOrderRow,
                 styles.draggableDayOrderRow,
+                getOrderToneClass(item),
                 draggedItemId === item.id ? styles.draggingEvent : '',
               ]
                 .filter(Boolean)
@@ -453,6 +478,7 @@ function PendingOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onOpe
           <article
             className={[
               styles.pendingOrderCard,
+              getOrderToneClass(item),
               draggedItemId === item.id ? styles.draggingEvent : '',
             ]
               .filter(Boolean)
@@ -464,24 +490,22 @@ function PendingOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onOpe
             onDragStart={(event) => handleDragStart(event, item.id)}
             title="Doble click para ver detalle. Arrastrar a un dia habil del calendario"
           >
-            <div className={styles.pendingOrderTitle}>
+            <span className={styles.eventLine}>
+              <b>Pedido N°:</b>
               <strong>{item.orderNumber}</strong>
-              <span>{formatScheduleState(item)}</span>
-            </div>
-            <dl>
-              <div>
-                <dt>Cliente</dt>
-                <dd>{item.clientName}</dd>
-              </div>
-              <div>
-                <dt>Producto</dt>
-                <dd>{item.productType}</dd>
-              </div>
-              <div>
-                <dt>Cantidad</dt>
-                <dd>{item.quantity}</dd>
-              </div>
-            </dl>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Cliente:</b>
+              <span>{item.clientName}</span>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Productos:</b>
+              <em>{getProductSummary(item)}</em>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Etapa:</b>
+              <small>{formatScheduleState(item)}</small>
+            </span>
           </article>
         ))}
       </div>

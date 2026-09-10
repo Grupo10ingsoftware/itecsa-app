@@ -4,7 +4,6 @@ import styles from '../styles/Kanban.module.css'
 const EMPTY_FILTERS = Object.freeze({
   clientName: '',
   nv: '',
-  op: '',
   productType: '',
   seller: '',
 })
@@ -51,24 +50,13 @@ export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
         <div className={styles.filterCard}>
           <div className={styles.filterGrid}>
             <label>
-              <span>Numero de nota de venta</span>
+              <span>Numero de pedido</span>
               <input
                 className="form-control"
                 onChange={(event) => updateFilter('nv', event.target.value)}
-                placeholder="Ej. NV-6767"
+                placeholder="Ej. 24038"
                 type="text"
                 value={draftFilters.nv}
-              />
-            </label>
-
-            <label>
-              <span>Numero de orden de produccion</span>
-              <input
-                className="form-control"
-                onChange={(event) => updateFilter('op', event.target.value)}
-                placeholder="Ej. OP-2026-001"
-                type="text"
-                value={draftFilters.op}
               />
             </label>
 
@@ -104,6 +92,7 @@ export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
                 <option value="">Todos</option>
                 <option value="lanyard">Lanyard</option>
                 <option value="tarjeta">Tarjeta</option>
+                <option value="yoyo">Yoyo</option>
                 <option value="mixto">Mixto</option>
               </select>
             </label>

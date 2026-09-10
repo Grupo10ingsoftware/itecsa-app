@@ -570,3 +570,16 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 - `GET /api/clients/:clientId`, `GET /api/clients/rut/:rutCliente` y `POST /api/clients`: clientes.
 - `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
 - `GET /api/documents/nvs/:filename`: PDF de Nota de Venta local, publico para renderizar documentos; rechaza path traversal y archivos no PDF.
+
+### PIN debug para Soporte (desarrollo)
+
+Para habilitar el botón **Generar nuevo PIN (debug)** en el perfil, inicia la SPA
+con `npm run dev` y el backend con `NODE_ENV=development npm run dev`.
+`POST /api/auth/pin/debug-reset` exige sesión activa, rol Soporte coincidente
+con la BD y permiso `manage:own-pin`; opera solo sobre el usuario autenticado.
+Reemplaza el PIN anterior e invalida códigos de recuperación pendientes. El nuevo
+PIN se muestra con el flujo habitual de entrega y su copia cifrada se elimina al
+aceptarlo. No requiere cambios en Auth0 ni en el esquema de BD.
+El endpoint rechaza cualquier entorno distinto de `development`, incluido uno
+sin `NODE_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
+ese entorno; las compilaciones de producción de la SPA no muestran el botón.

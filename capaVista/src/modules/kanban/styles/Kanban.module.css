@@ -1275,7 +1275,27 @@
   resize: vertical;
 }
 
-.commentList {
+.commentGroups {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.commentGroup {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.commentGroup h4 {
+  color: var(--kanban-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.commentList,
+.subprocessCommentList {
   display: grid;
   gap: 0.45rem;
   list-style: none;
@@ -1283,11 +1303,45 @@
   padding: 0;
 }
 
-.commentList li {
+.commentList li,
+.subprocessCommentList li {
   background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 0.55rem;
   color: var(--kanban-text);
+  display: grid;
+  gap: 0.22rem;
   padding: 0.55rem 0.65rem;
+}
+
+.commentList p,
+.subprocessCommentList p {
+  margin: 0;
+}
+
+.commentList time,
+.subprocessCommentList time {
+  color: var(--kanban-muted);
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.subprocessCommentList li {
+  grid-template-columns: minmax(7rem, 0.42fr) minmax(0, 1fr);
+}
+
+.subprocessCommentList strong {
+  color: var(--kanban-text);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.subprocessCommentList div {
+  border-left: 1px solid #d7dee8;
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+  padding-left: 0.65rem;
 }
 
 .emptyComment {

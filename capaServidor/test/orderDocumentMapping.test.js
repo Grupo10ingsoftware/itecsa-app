@@ -72,6 +72,7 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
               fecha_creacion: new Date("2026-06-10T00:00:00.000Z"),
               id_estado_pago: 2,
               Estado_Pago: { nombre_estado_pago: "Confirmado" },
+              observacion_origen: "Observacion desde Manager.",
               observacion_interna: "Coordinar entrega con el cliente.",
               Cliente: {
                 nombre_cliente: "Mall Plaza",
@@ -108,6 +109,28 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
                 nombre_estado_pago: "Confirmado",
               },
               Pedido_Etiqueta: [],
+              Registros: [
+                {
+                  ID_REGISTRO: 9,
+                  FECHA_HORA: new Date("2026-06-11T10:30:00.000Z"),
+                  observacion: "Subproceso terminado sin observaciones adicionales.",
+                  Usuario: {
+                    nombre_usuario: "Ana",
+                    apellido_usuario: "Perez",
+                    correo_usuario: "ana@example.com",
+                  },
+                  registro_subprocesos: {
+                    Estado_Subprocesos: {
+                      nombre_estado: "Impresion",
+                    },
+                    Detalle_pedido: {
+                      Tipo_Producto: {
+                        nombre_producto: "Lanyard",
+                      },
+                    },
+                  },
+                },
+              ],
             },
           ];
         },
@@ -126,10 +149,37 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
   assert.equal(orders[0].nombre_etapa_general, "Listo para produccion");
   assert.deepEqual(orders[0].comments, [
     {
-      id: "pedido-2-observacion-inicial",
+      createdAt: new Date("2026-06-10T00:00:00.000Z"),
+      id: "pedido-2-observacion-origen",
+      text: "Observacion desde Manager.",
+      type: "source",
+    },
+    {
+      createdAt: new Date("2026-06-10T00:00:00.000Z"),
+      id: "pedido-2-observacion-interna",
       text: "Coordinar entrega con el cliente.",
+      type: "system",
+    },
+    {
+      createdAt: new Date("2026-06-11T10:30:00.000Z"),
+      id: "registro-9",
+      productType: "Lanyard",
+      responsible: "Ana Perez",
+      subprocessName: "Impresion",
+      text: "Subproceso terminado sin observaciones adicionales.",
+      type: "subprocess",
     },
   ]);
+  assert.deepEqual(orders[0].commentGroups.source, [
+    {
+      createdAt: new Date("2026-06-10T00:00:00.000Z"),
+      id: "pedido-2-observacion-origen",
+      text: "Observacion desde Manager.",
+      type: "source",
+    },
+  ]);
+  assert.equal(orders[0].commentGroups.system.length, 1);
+  assert.equal(orders[0].commentGroups.subprocesses[0].subprocessName, "Impresion");
   assert.deepEqual(orders[0].detalles, [
     {
       id_detalle_pedido: 5,

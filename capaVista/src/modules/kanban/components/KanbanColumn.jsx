@@ -254,6 +254,7 @@ function normalizeOrder(order) {
       : Array.isArray(order.comentarios)
         ? order.comentarios
         : [],
+    commentGroups: order.commentGroups ?? null,
     correctionRequested: Boolean(order.correctionRequested),
     correctionComment: order.correctionComment ?? '',
     correctionRequestedAt: order.correctionRequestedAt ?? null,

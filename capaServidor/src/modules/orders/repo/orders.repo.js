@@ -106,17 +106,62 @@ function mapUntrackedItem(item) {
   };
 }
 
-function mapInitialOrderComments(order) {
-  const observation = String(order?.observacion_interna ?? "").trim();
+function personName(user) {
+  return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ").trim();
+}
 
-  if (!observation) return [];
+function mapOrderComments(order) {
+  const originObservation = String(order?.observacion_origen ?? "").trim();
+  const internalObservation = String(order?.observacion_interna ?? "").trim();
+  const source = originObservation
+    ? [
+        {
+          id: `pedido-${order.id_pedido}-observacion-origen`,
+          text: originObservation,
+          createdAt: order.fecha_creacion ?? null,
+          type: "source",
+        },
+      ]
+    : [];
+  const system = internalObservation
+    ? [
+        {
+          id: `pedido-${order.id_pedido}-observacion-interna`,
+          text: internalObservation,
+          createdAt: order.fecha_creacion ?? null,
+          type: "system",
+        },
+      ]
+    : [];
+  const subprocesses = Array.isArray(order?.Registros)
+    ? order.Registros
+        .filter((record) => record?.registro_subprocesos && String(record?.observacion ?? "").trim())
+        .map((record) => {
+          const subprocess = record.registro_subprocesos;
 
-  return [
-    {
-      id: `pedido-${order.id_pedido}-observacion-inicial`,
-      text: observation,
-    },
-  ];
+          return {
+            id: `registro-${record.ID_REGISTRO}`,
+            text: String(record.observacion ?? "").trim(),
+            createdAt: record.FECHA_HORA ?? null,
+            productType: subprocess.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
+            responsible: personName(record.Usuario) || record.Usuario?.correo_usuario || null,
+            subprocessName: subprocess.Estado_Subprocesos?.nombre_estado ?? "Subproceso",
+            type: "subprocess",
+          };
+        })
+        .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0))
+    : [];
+
+  const all = [...source, ...system, ...subprocesses]
+    .filter((comment) => String(comment.text ?? "").trim())
+    .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0));
+
+  return {
+    all,
+    source,
+    subprocesses,
+    system,
+  };
 }
 
 export function buildSalesNotePdfUrl(storedPath) {
@@ -142,6 +187,7 @@ export function buildSalesNotePdfUrl(storedPath) {
 
 function mapOrderRow(order, paymentStatusName = null) {
   if (!order) return null;
+  const mappedComments = mapOrderComments(order);
 
   const {
     Cliente,
@@ -179,7 +225,8 @@ function mapOrderRow(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(Pedido_Item_Sin_Seguimiento)
       ? Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
-    comments: mapInitialOrderComments(order),
+    comments: mappedComments.all,
+    commentGroups: mappedComments,
     ruta_pdf: null,
     firmado: null,
     firma_pago: null,
@@ -233,6 +280,35 @@ const orderReadInclude = {
     },
   },
   Pedido_Item_Sin_Seguimiento: true,
+  Registros: {
+    where: {
+      observacion: { not: null },
+      registro_subprocesos: { isNot: null },
+    },
+    include: {
+      Usuario: {
+        select: {
+          nombre_usuario: true,
+          apellido_usuario: true,
+          correo_usuario: true,
+        },
+      },
+      registro_subprocesos: {
+        include: {
+          Estado_Subprocesos: true,
+          Detalle_pedido: {
+            include: {
+              Tipo_Producto: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [
+      { FECHA_HORA: "asc" },
+      { ID_REGISTRO: "asc" },
+    ],
+  },
 };
 
 class OrderRepository {

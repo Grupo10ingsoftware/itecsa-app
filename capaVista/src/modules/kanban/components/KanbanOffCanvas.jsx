@@ -29,6 +29,53 @@ function displayValue(value, fallback = 'No definido') {
   return value ?? fallback
 }
 
+function formatCommentDate(value) {
+  if (!value) return 'Fecha no definida'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return 'Fecha no definida'
+
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function normalizeCommentItem(item, index, type = 'system') {
+  return {
+    ...item,
+    id: item?.id ?? `${type}-${index}`,
+    text: item?.text ?? item?.comentario ?? item?.observacion ?? '',
+    createdAt: item?.createdAt ?? item?.fecha_comentario ?? item?.FECHA_HORA ?? null,
+    subprocessName: item?.subprocessName ?? item?.subproceso ?? item?.nombre_estado ?? 'Subproceso',
+  }
+}
+
+function sortCommentsByDate(comments = []) {
+  return [...comments].sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0))
+}
+
+function getCommentGroups(order) {
+  const groups = order.commentGroups
+  const legacyComments = Array.isArray(order.comments)
+    ? order.comments.map((item, index) => normalizeCommentItem(item, index, 'system'))
+    : []
+
+  return {
+    source: sortCommentsByDate((groups?.source ?? []).map((item, index) => normalizeCommentItem(item, index, 'source'))),
+    system: sortCommentsByDate(
+      (groups?.system ?? legacyComments).map((item, index) => normalizeCommentItem(item, index, 'system')),
+    ),
+    subprocesses: sortCommentsByDate(
+      (groups?.subprocesses ?? []).map((item, index) => normalizeCommentItem(item, index, 'subprocess')),
+    ),
+  }
+}
+
 function getOrderItems(order) {
   const items = Array.isArray(order.items) && order.items.length > 0
     ? order.items
@@ -121,7 +168,7 @@ export default function KanbanOffCanvas({
   }
 
   const orderItems = getOrderItems(order)
-  const comments = Array.isArray(order.comments) ? order.comments : []
+  const commentGroups = getCommentGroups(order)
   const isInProduction = Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP
   const canRequestCorrection = canReview && Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
   const hasCorrectionRequest = Boolean(order.correctionRequested)
@@ -537,12 +584,50 @@ export default function KanbanOffCanvas({
 
           <section className={styles.detailSection}>
             <h3>Comentarios</h3>
-            <ul className={styles.commentList}>
-              {comments.map((item) => (
-                <li key={item.id}>{item.text}</li>
-              ))}
-              {comments.length === 0 && <li className={styles.emptyComment}>Sin comentarios.</li>}
-            </ul>
+            <div className={styles.commentGroups}>
+              <section className={styles.commentGroup} aria-label="Observaciones de Manager">
+                <h4>Observaciones de Manager</h4>
+                <ul className={styles.commentList}>
+                  {commentGroups.source.map((item) => (
+                    <li key={item.id}>
+                      <p>{item.text}</p>
+                    </li>
+                  ))}
+                  {commentGroups.source.length === 0 && (
+                    <li className={styles.emptyComment}>Esta produccion no tenia observaciones asociadas.</li>
+                  )}
+                </ul>
+              </section>
+
+              <section className={styles.commentGroup} aria-label="Observaciones del sistema">
+                <h4>Observaciones del sistema</h4>
+                <ul className={styles.commentList}>
+                  {commentGroups.system.map((item) => (
+                    <li key={item.id}>
+                      <p>{item.text}</p>
+                      <time>{formatCommentDate(item.createdAt)}</time>
+                    </li>
+                  ))}
+                  {commentGroups.system.length === 0 && <li className={styles.emptyComment}>Sin observaciones del sistema.</li>}
+                </ul>
+              </section>
+
+              <section className={styles.commentGroup} aria-label="Comentarios subprocesos">
+                <h4>Comentarios subprocesos</h4>
+                <ul className={styles.subprocessCommentList}>
+                  {commentGroups.subprocesses.map((item) => (
+                    <li key={item.id}>
+                      <strong>{item.subprocessName}</strong>
+                      <div>
+                        <p>{item.text}</p>
+                        <time>{formatCommentDate(item.createdAt)}</time>
+                      </div>
+                    </li>
+                  ))}
+                  {commentGroups.subprocesses.length === 0 && <li className={styles.emptyComment}>Sin comentarios de subprocesos.</li>}
+                </ul>
+              </section>
+            </div>
           </section>
         </div>
       </aside>

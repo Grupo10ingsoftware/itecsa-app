@@ -210,3 +210,16 @@ export function validateAdminUserStatusRequest(body) {
 
     return { valid: true, estadoUsuario: normalizeUserStatus(estadoUsuario) };
 }
+
+export function validateUserMovementsQuery(query = {}) {
+    const page = Number(query.page ?? 1);
+    const perPage = Number(query.perPage ?? 10);
+    if (
+        !Number.isSafeInteger(page) || page < 1 ||
+        !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 50 ||
+        !Number.isSafeInteger(page * perPage) ||
+        (query.page !== undefined && typeof query.page !== "string") ||
+        (query.perPage !== undefined && typeof query.perPage !== "string")
+    ) return invalidRequest("La paginación de movimientos no es válida.");
+    return { valid: true, filters: { page, perPage } };
+}

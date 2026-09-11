@@ -1049,3 +1049,55 @@
     width: 2.25rem;
   }
 }
+
+.userActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.movementsModal {
+  background: #fff;
+  border: 0;
+  border-radius: 1rem;
+  color: var(--users-text, #111827);
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  width: min(42rem, calc(100vw - 2rem));
+}
+
+.movementsModal::backdrop {
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.movementsUser {
+  margin: 0.4rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.movementsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.movementsList li {
+  border-bottom: 1px solid #edf0f3;
+  padding: 0.75rem 0;
+  overflow-wrap: anywhere;
+}
+
+.movementsList time {
+  color: var(--users-muted, #64748b);
+  font-size: 0.875rem;
+}
+
+.movementsList p {
+  margin: 0.35rem 0 0;
+}
+
+.movementsModal .modalFooter {
+  flex-wrap: wrap;
+}

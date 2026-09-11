@@ -91,14 +91,15 @@ export class UserRepository {
         }
     }
 
-    async listRecentRecords(idUsuario) {
+    async listRecentRecords(idUsuario, { page = 1, perPage = 10 } = {}) {
         if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
             throw new UserRepositoryError("USER_NOT_FOUND", "Usuario no válido.");
         }
         const records = await this.client.registros.findMany({
             where: { id_usuario: idUsuario },
             orderBy: [{ FECHA_HORA: "desc" }, { ID_REGISTRO: "desc" }],
-            take: 10,
+            skip: (page - 1) * perPage,
+            take: perPage,
             select: {
                 ID_REGISTRO: true,
                 FECHA_HORA: true,
@@ -127,6 +128,14 @@ export class UserRepository {
                         ? `Subproceso: ${record.registro_subprocesos.Estado_Subprocesos?.nombre_estado ?? 'No informado'}`
                         : record.observacion?.trim() || 'Actividad del pedido',
         }));
+    }
+
+    async listMovements(idUsuario, { page, perPage }) {
+        const [records, total] = await Promise.all([
+            this.listRecentRecords(idUsuario, { page, perPage }),
+            this.client.registros.count({ where: { id_usuario: idUsuario } }),
+        ]);
+        return { records, total, page, perPage };
     }
 
     buildListWhere({ search = "", estadoUsuario = "", rolUsuario = "", allowedRoles } = {}) {

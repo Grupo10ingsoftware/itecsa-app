@@ -33,6 +33,8 @@ export default function UserManagementTable({
   currentPage,
   isLoading,
   onEditUser,
+  onViewMovements,
+  onPrefetchMovements,
   onPageChange,
   totalPages,
   totalUsers,
@@ -81,6 +83,7 @@ export default function UserManagementTable({
                     <UserStatusBadge status={user.estadoUsuario} />
                   </td>
                   <td className={styles.actionsCell}>
+                    <div className={styles.userActions}>
                     <UserButton
                       className={styles.actionButton}
                       icon="bi-pencil-fill"
@@ -89,6 +92,10 @@ export default function UserManagementTable({
                     >
                       Editar
                     </UserButton>
+                    <UserButton className={styles.actionButton} icon="bi-clock-history" onMouseEnter={() => onPrefetchMovements?.(user)} onFocus={() => onPrefetchMovements?.(user)} onClick={() => onViewMovements(user)} variant="secondary">
+                      Movimientos
+                    </UserButton>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -99,6 +106,8 @@ export default function UserManagementTable({
       <UserManagementMobileList
         isLoading={isLoading}
         onEditUser={onEditUser}
+        onViewMovements={onViewMovements}
+        onPrefetchMovements={onPrefetchMovements}
         users={users}
       />
 

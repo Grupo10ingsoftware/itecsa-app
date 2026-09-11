@@ -3,7 +3,7 @@ import UserButton from './UserButton'
 import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
 
-export default function UserManagementMobileList({ isLoading, onEditUser, users }) {
+export default function UserManagementMobileList({ isLoading, onEditUser, onViewMovements, onPrefetchMovements, users }) {
   if (isLoading) {
     return (
       <div className={styles.mobileList}>
@@ -42,9 +42,12 @@ export default function UserManagementMobileList({ isLoading, onEditUser, users 
               <dd>{getRoleLabel(user.rolUsuario)}</dd>
             </div>
           </dl>
-          <footer>
+          <footer className={styles.userActions}>
             <UserButton icon="bi-pencil-fill" onClick={() => onEditUser(user)} variant="secondary">
               Editar
+            </UserButton>
+            <UserButton icon="bi-clock-history" onMouseEnter={() => onPrefetchMovements?.(user)} onFocus={() => onPrefetchMovements?.(user)} onClick={() => onViewMovements(user)} variant="secondary">
+              Movimientos
             </UserButton>
           </footer>
         </article>

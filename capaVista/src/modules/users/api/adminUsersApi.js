@@ -23,6 +23,8 @@ export function createAdminUsersApi(apiClient) {
           rolUsuario,
         })}`,
       ),
+    getMovements: (userId, { page = 1, perPage = 10 } = {}) =>
+      apiClient.get(`/admin/users/${encodeURIComponent(userId)}/movements${buildQueryString({ page, perPage })}`),
     getSummary: () => apiClient.get('/admin/users/summary'),
     createUser: ({ nombreUsuario, apellidoUsuario, rutUsuario, correoUsuario, rolUsuario }) =>
       apiClient.post('/admin/users', {

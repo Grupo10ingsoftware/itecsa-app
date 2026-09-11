@@ -5,6 +5,7 @@ import requirePin from "../../../middlewares/requirePin.js";
 import pinService from "../../auth/service/pin.service.js";
 import {
     createAdminUserHandler,
+    createAdminUserMovementsHandler,
     createAdminUsersSummaryHandler,
     createListAdminUsersHandler,
     createPasswordSetupEmailHandler,
@@ -35,6 +36,12 @@ export function createAdminUsersRouter({
         authenticate,
         authorize,
         createAdminUsersSummaryHandler({ users }),
+    );
+    router.get(
+        "/users/:userId/movements",
+        authenticate,
+        authorize,
+        createAdminUserMovementsHandler({ users }),
     );
     router.post(
         "/users",

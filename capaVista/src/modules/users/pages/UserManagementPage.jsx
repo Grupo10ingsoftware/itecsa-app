@@ -8,6 +8,7 @@ import UserEditModal from '../components/UserEditModal'
 import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
 import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
+import UserMovementsModal from '../components/UserMovementsModal'
 import UserSummaryCards from '../components/UserSummaryCards'
 import styles from './UserManagementPage.module.css'
 
@@ -103,6 +104,7 @@ export default function UserManagementPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [movementsUser, setMovementsUser] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
   const [unlinkingUser, setUnlinkingUser] = useState(null)
   const currentAuth0UserId = auth0User?.sub ?? null
@@ -299,6 +301,7 @@ export default function UserManagementPage() {
             currentPage={page}
             isLoading={isLoading}
             onEditUser={setEditingUser}
+            onViewMovements={setMovementsUser}
             onPageChange={setPage}
             totalPages={totalPages}
             totalUsers={totalUsers}
@@ -307,6 +310,14 @@ export default function UserManagementPage() {
         </div>
       </section>
 
+      {movementsUser && (
+        <UserMovementsModal
+          key={movementsUser.id}
+          user={movementsUser}
+          api={adminUsersApi}
+          onClose={() => setMovementsUser(null)}
+        />
+      )}
       <UserCreateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

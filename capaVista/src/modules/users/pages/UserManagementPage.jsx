@@ -302,6 +302,7 @@ export default function UserManagementPage() {
             isLoading={isLoading}
             onEditUser={setEditingUser}
             onViewMovements={setMovementsUser}
+            onPrefetchMovements={(user) => adminUsersApi.prefetchMovements(user.idUsuarioAutenticacionExterna)}
             onPageChange={setPage}
             totalPages={totalPages}
             totalUsers={totalUsers}

@@ -57,7 +57,7 @@ function getErrorText(error) {
   }
 
   if (error?.status === 403) {
-    return 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
+    return error?.payload?.message || 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
   }
 
   if (error?.code === API_ERROR_CODES.NETWORK_ERROR) {
@@ -233,6 +233,7 @@ export default function UserManagementPage() {
       await refreshAfterMutation({ type: 'success', text: 'Usuario actualizado correctamente.' })
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
+      throw new Error(getErrorText(error), { cause: error })
     }
   }
 

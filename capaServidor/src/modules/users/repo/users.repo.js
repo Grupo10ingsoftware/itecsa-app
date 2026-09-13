@@ -288,6 +288,23 @@ export class UserRepository {
             throw mapRepositoryError(error);
         }
     }
+
+    async updateRoleIfCurrent(auth0UserId, currentRole, nextRole) {
+        try {
+            await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    rol_usuario: currentRole,
+                    estado_usuario: { in: ["Activo", "Vinculado"] },
+                },
+                data: { rol_usuario: nextRole },
+            });
+            return this.findByAuth0Id(auth0UserId);
+        } catch (error) {
+            if (error instanceof UserRepositoryError) throw error;
+            throw mapRepositoryError(error);
+        }
+    }
 }
 
 export default new UserRepository();

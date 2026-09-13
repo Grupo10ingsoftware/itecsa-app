@@ -442,6 +442,27 @@ export async function updateAuth0User({
     };
 }
 
+export async function getAuth0UserRole(userId) {
+    const { domain, accessToken } = await requestManagementToken();
+    const result = await fetchAuth0Json({
+        domain,
+        accessToken,
+        path: `users/${encodeURIComponent(assertNonEmptyString(userId, "userId"))}/roles?per_page=100&page=0&include_totals=true`,
+        errorCode: "AUTH0_GET_USER_ROLES_FAILED",
+        errorMessage: "No fue posible consultar el rol del usuario en Auth0.",
+    });
+
+    if (!Array.isArray(result?.roles) || !Number.isInteger(result.total) || result.total !== result.roles.length) {
+        throw new Auth0ServiceError("AUTH0_INVALID_RESPONSE", "Auth0 no entrego una lista completa de roles valida.");
+    }
+
+    const officialRoles = result.roles
+        .map((role) => role?.name)
+        .filter((name) => OFFICIAL_ROLES.has(name));
+
+    return officialRoles.length === 1 ? officialRoles[0] : null;
+}
+
 export async function setAuth0UserStatus({ userId, estadoUsuario }) {
     const normalizedUserId = assertNonEmptyString(userId, "userId");
     const normalizedStatus = assertNonEmptyString(estadoUsuario, "estadoUsuario");

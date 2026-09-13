@@ -100,7 +100,7 @@ test('contrato de identidad: denegacion antes de ejecutar operaciones',async()=>
   ['sin permisos',{...valid,permissions:undefined},null,403],['desvinculado',valid,{estadoUsuario:'Desvinculado',rolUsuario:AP},403],
   ['token de rol anterior',valid,{estadoUsuario:'Activo',rolUsuario:OP},403],['sin usuario',valid,null,403],
  ]) {
-  let actual;const middleware=createRequireActiveIdentity({repository:{async findByAuth0Id(){return user;}}});
+  let actual;const middleware=createRequireActiveIdentity({repository:{async findByAuth0Id(){return user;}},resolveAuth0Role:async()=>OP});
   const res={status(s){actual=s;return this;},json(){}};
   await middleware({auth:{payload}},res,()=>{actual=204;});assert.equal(actual,status,name);
  }

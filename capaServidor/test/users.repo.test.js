@@ -62,3 +62,21 @@ test("updateRoleByAuth0Id normaliza usuario inexistente", async () => {
             error.code === "USER_NOT_FOUND",
     );
 });
+
+test('updateRoleIfCurrent condiciona el cambio al rol y estado previos', async () => {
+    let where;
+    const repository = new UserRepository({ prisma: { usuario: {
+        async updateMany(payload) { where = payload; return { count: 1 }; },
+        async findUnique() { return { ...DATABASE_USER, rol_usuario: 'Administrador Ventas' }; },
+    } } });
+    const user = await repository.updateRoleIfCurrent('auth0|user-id', 'Operario Ventas', 'Administrador Ventas');
+    assert.deepEqual(where, {
+        where: {
+            id_auth0: 'auth0|user-id',
+            rol_usuario: 'Operario Ventas',
+            estado_usuario: { in: ['Activo', 'Vinculado'] },
+        },
+        data: { rol_usuario: 'Administrador Ventas' },
+    });
+    assert.equal(user.rolUsuario, 'Administrador Ventas');
+});

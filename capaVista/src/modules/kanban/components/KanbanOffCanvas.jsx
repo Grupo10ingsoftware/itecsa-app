@@ -29,6 +29,53 @@ function displayValue(value, fallback = 'No definido') {
   return value ?? fallback
 }
 
+function formatCommentDate(value) {
+  if (!value) return 'Fecha no definida'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return 'Fecha no definida'
+
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function normalizeCommentItem(item, index, type = 'system') {
+  return {
+    ...item,
+    id: item?.id ?? `${type}-${index}`,
+    text: item?.text ?? item?.comentario ?? item?.observacion ?? '',
+    createdAt: item?.createdAt ?? item?.fecha_comentario ?? item?.FECHA_HORA ?? null,
+    subprocessName: item?.subprocessName ?? item?.subproceso ?? item?.nombre_estado ?? 'Subproceso',
+  }
+}
+
+function sortCommentsByDate(comments = []) {
+  return [...comments].sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0))
+}
+
+function getCommentGroups(order) {
+  const groups = order.commentGroups
+  const legacyComments = Array.isArray(order.comments)
+    ? order.comments.map((item, index) => normalizeCommentItem(item, index, 'system'))
+    : []
+
+  return {
+    source: sortCommentsByDate((groups?.source ?? []).map((item, index) => normalizeCommentItem(item, index, 'source'))),
+    system: sortCommentsByDate(
+      (groups?.system ?? legacyComments).map((item, index) => normalizeCommentItem(item, index, 'system')),
+    ),
+    subprocesses: sortCommentsByDate(
+      (groups?.subprocesses ?? []).map((item, index) => normalizeCommentItem(item, index, 'subprocess')),
+    ),
+  }
+}
+
 function getOrderItems(order) {
   const items = Array.isArray(order.items) && order.items.length > 0
     ? order.items
@@ -80,147 +127,6 @@ function getManufacturingDetails(item, order) {
   }
 }
 
-function getInitialDocumentLookup(order) {
-  return {
-    clientSheetCode: order.productionDocuments?.clientSheetCode ?? order.clientSheetCode ?? '',
-    clientSheetError: '',
-    clientSheetSearched: Boolean(order.productionDocuments?.clientSheetCode ?? order.clientSheetCode),
-    opCode: order.productionDocuments?.opCode ?? order.opCode ?? '',
-    opError: '',
-    opSearched: Boolean(order.productionDocuments?.opCode ?? order.opCode),
-  }
-}
-
-function ProductionDocumentLookup({ onUpdateOrder, order }) {
-  const [documentLookup, setDocumentLookup] = useState(() => getInitialDocumentLookup(order))
-
-  function updateDocumentLookup(field, value) {
-    setDocumentLookup((currentLookup) => ({
-      ...currentLookup,
-      [field]: value,
-      [`${field.replace('Code', '')}Error`]: '',
-      [`${field.replace('Code', '')}Searched`]: false,
-    }))
-  }
-
-  function searchProductionDocument(kind) {
-    const codeField = kind === 'op' ? 'opCode' : 'clientSheetCode'
-    const errorField = kind === 'op' ? 'opError' : 'clientSheetError'
-    const searchedField = kind === 'op' ? 'opSearched' : 'clientSheetSearched'
-    const trimmedCode = documentLookup[codeField].trim()
-
-    if (!trimmedCode) {
-      setDocumentLookup((currentLookup) => ({
-        ...currentLookup,
-        [errorField]: kind === 'op' ? 'Debe ingresar el codigo de OP.' : 'Debe ingresar el codigo de ficha de cliente.',
-        [searchedField]: false,
-      }))
-      return
-    }
-
-    const nextProductionDocuments = {
-      ...(order.productionDocuments ?? {}),
-      [codeField]: trimmedCode,
-      [`${kind}ExportedAt`]: new Date().toISOString(),
-    }
-
-    setDocumentLookup((currentLookup) => ({
-      ...currentLookup,
-      [codeField]: trimmedCode,
-      [errorField]: '',
-      [searchedField]: true,
-    }))
-
-    onUpdateOrder({
-      ...order,
-      productionDocuments: nextProductionDocuments,
-    })
-  }
-
-  return (
-    <section className={styles.documentLookupSection} aria-labelledby="production-documents-title">
-      <h3 className={styles.documentLookupHeader} id="production-documents-title">
-        <i className="bi bi-file-earmark-text" aria-hidden="true" />
-        Documentos para produccion
-      </h3>
-
-      <div className={styles.documentLookupGrid}>
-        <div className={styles.documentLookupBlock}>
-          <label className={styles.documentLookupLabel} htmlFor="op-code">
-            Codigo de OP <span className={styles.documentRequiredMark}>*</span>
-          </label>
-          <div className={styles.documentLookupRow}>
-            <span className={styles.documentInputWrapper}>
-              <input
-                className={[
-                  styles.documentLookupInput,
-                  documentLookup.opSearched && !documentLookup.opError ? styles.documentLookupInputValid : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                id="op-code"
-                onChange={(event) => updateDocumentLookup('opCode', event.target.value)}
-                placeholder="Ingrese el codigo de OP"
-                type="text"
-                value={documentLookup.opCode}
-              />
-              {documentLookup.opSearched && !documentLookup.opError && (
-                <span className={styles.documentInlineCheck} aria-label="OP encontrada">
-                  <i className="bi bi-check-lg" aria-hidden="true" />
-                </span>
-              )}
-            </span>
-            <button className={styles.documentSearchButton} onClick={() => searchProductionDocument('op')} type="button">
-              <i className="bi bi-search" aria-hidden="true" />
-              Buscar / Exportar informacion
-            </button>
-          </div>
-          {documentLookup.opError && <p className={styles.documentErrorText}>{documentLookup.opError}</p>}
-        </div>
-
-        <div className={styles.documentLookupBlock}>
-          <label className={styles.documentLookupLabel} htmlFor="client-sheet-code">
-            Codigo de ficha de cliente <span className={styles.documentRequiredMark}>*</span>
-          </label>
-          <div className={styles.documentLookupRow}>
-            <span className={styles.documentInputWrapper}>
-              <input
-                className={[
-                  styles.documentLookupInput,
-                  documentLookup.clientSheetSearched && !documentLookup.clientSheetError
-                    ? styles.documentLookupInputValid
-                    : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                id="client-sheet-code"
-                onChange={(event) => updateDocumentLookup('clientSheetCode', event.target.value)}
-                placeholder="Ingrese el codigo de ficha de cliente"
-                type="text"
-                value={documentLookup.clientSheetCode}
-              />
-              {documentLookup.clientSheetSearched && !documentLookup.clientSheetError && (
-                <span className={styles.documentInlineCheck} aria-label="Ficha de cliente encontrada">
-                  <i className="bi bi-check-lg" aria-hidden="true" />
-                </span>
-              )}
-            </span>
-            <button
-              className={styles.documentSearchButton}
-              onClick={() => searchProductionDocument('clientSheet')}
-              type="button"
-            >
-              <i className="bi bi-search" aria-hidden="true" />
-              Buscar / Exportar informacion
-            </button>
-          </div>
-          {documentLookup.clientSheetError && <p className={styles.documentErrorText}>{documentLookup.clientSheetError}</p>}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export default function KanbanOffCanvas({
   canCancelProduction = false,
   canRollbackSubprocess = false,
@@ -262,7 +168,7 @@ export default function KanbanOffCanvas({
   }
 
   const orderItems = getOrderItems(order)
-  const comments = Array.isArray(order.comments) ? order.comments : []
+  const commentGroups = getCommentGroups(order)
   const isInProduction = Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP
   const canRequestCorrection = canReview && Number(order.generalStepId) === KANBAN_LISTO_PRODUCCION_STEP
   const hasCorrectionRequest = Boolean(order.correctionRequested)
@@ -584,10 +490,6 @@ export default function KanbanOffCanvas({
             </section>
           )}
 
-          {canRequestCorrection && (
-            <ProductionDocumentLookup key={order.id} onUpdateOrder={onUpdateOrder} order={order} />
-          )}
-
           <section className={styles.detailSection}>
             <h3>Subprocesos</h3>
             {!isInProduction && (
@@ -682,12 +584,50 @@ export default function KanbanOffCanvas({
 
           <section className={styles.detailSection}>
             <h3>Comentarios</h3>
-            <ul className={styles.commentList}>
-              {comments.map((item) => (
-                <li key={item.id}>{item.text}</li>
-              ))}
-              {comments.length === 0 && <li className={styles.emptyComment}>Sin comentarios.</li>}
-            </ul>
+            <div className={styles.commentGroups}>
+              <section className={styles.commentGroup} aria-label="Observaciones de Manager">
+                <h4>Observaciones de Manager</h4>
+                <ul className={styles.commentList}>
+                  {commentGroups.source.map((item) => (
+                    <li key={item.id}>
+                      <p>{item.text}</p>
+                    </li>
+                  ))}
+                  {commentGroups.source.length === 0 && (
+                    <li className={styles.emptyComment}>Esta produccion no tenia observaciones asociadas.</li>
+                  )}
+                </ul>
+              </section>
+
+              <section className={styles.commentGroup} aria-label="Observaciones del sistema">
+                <h4>Observaciones del sistema</h4>
+                <ul className={styles.commentList}>
+                  {commentGroups.system.map((item) => (
+                    <li key={item.id}>
+                      <p>{item.text}</p>
+                      <time>{formatCommentDate(item.createdAt)}</time>
+                    </li>
+                  ))}
+                  {commentGroups.system.length === 0 && <li className={styles.emptyComment}>Sin observaciones del sistema.</li>}
+                </ul>
+              </section>
+
+              <section className={styles.commentGroup} aria-label="Comentarios subprocesos">
+                <h4>Comentarios subprocesos</h4>
+                <ul className={styles.subprocessCommentList}>
+                  {commentGroups.subprocesses.map((item) => (
+                    <li key={item.id}>
+                      <strong>{item.subprocessName}</strong>
+                      <div>
+                        <p>{item.text}</p>
+                        <time>{formatCommentDate(item.createdAt)}</time>
+                      </div>
+                    </li>
+                  ))}
+                  {commentGroups.subprocesses.length === 0 && <li className={styles.emptyComment}>Sin comentarios de subprocesos.</li>}
+                </ul>
+              </section>
+            </div>
           </section>
         </div>
       </aside>

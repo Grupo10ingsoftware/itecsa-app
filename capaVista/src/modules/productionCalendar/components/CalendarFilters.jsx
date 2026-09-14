@@ -30,6 +30,7 @@ export default function CalendarFilters({ filters, onChange, onClear }) {
           <option value="">Todos</option>
           <option value="Lanyard">Lanyard</option>
           <option value="Tarjeta">Tarjeta</option>
+          <option value="Yoyo">Yoyo</option>
         </select>
       </label>
       <button className={styles.clearButton} onClick={onClear} type="button">

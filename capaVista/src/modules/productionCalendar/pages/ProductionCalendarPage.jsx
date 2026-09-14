@@ -30,13 +30,41 @@ function toCalendarDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
 }
 
+function normalizeText(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function getOrderProductNames(order) {
+  const sourceItems = Array.isArray(order.items) && order.items.length > 0
+    ? order.items
+    : Array.isArray(order.detalles)
+      ? order.detalles
+      : []
+
+  const productNames = sourceItems
+    .map((item) => item.productType ?? item.product ?? item.nombre_producto ?? item.producto)
+    .filter(Boolean)
+
+  return [...new Set([
+    order.productType ?? order.product ?? order.producto ?? order.nombre_producto,
+    ...productNames,
+  ].filter(Boolean))]
+}
+
 function normalizeCalendarOrder(order) {
+  const productNames = getOrderProductNames(order)
+
   return {
     ...order,
     id: order.id ?? order.id_pedido,
     orderNumber: order.orderNumber ?? order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta,
     clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
-    productType: order.productType ?? order.product ?? order.producto ?? 'Producto no definido',
+    productType: productNames[0] ?? 'Producto no definido',
+    productTypes: productNames,
     quantity: order.quantity ?? order.cantidad ?? 0,
     items: Array.isArray(order.items) && order.items.length > 0
       ? order.items
@@ -59,6 +87,7 @@ export default function ProductionCalendarPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const [draggedItemId, setDraggedItemId] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -90,15 +119,35 @@ export default function ProductionCalendarPage() {
     }
   }, [ordersCalendarApi])
 
+  useEffect(() => {
+    if (!draggedItemId) return undefined
+
+    function clearDraggedItem() {
+      setDraggedItemId(null)
+    }
+
+    window.addEventListener('dragend', clearDraggedItem)
+    window.addEventListener('drop', clearDraggedItem)
+
+    return () => {
+      window.removeEventListener('dragend', clearDraggedItem)
+      window.removeEventListener('drop', clearDraggedItem)
+    }
+  }, [draggedItemId])
+
   const filteredItems = useMemo(() => {
-    const normalizedSearch = filters.search.trim().toLowerCase()
+    const normalizedSearch = normalizeText(filters.search)
+    const normalizedProductType = normalizeText(filters.productType)
 
     return calendarItems.filter((item) => {
+      const searchableProductNames = Array.isArray(item.productTypes) ? item.productTypes : [item.productType]
       const matchesSearch =
         normalizedSearch.length === 0 ||
-        [item.orderNumber, item.clientName, item.productType].join(' ').toLowerCase().includes(normalizedSearch)
+        normalizeText([item.orderNumber, item.clientName, ...searchableProductNames].join(' ')).includes(normalizedSearch)
       const matchesStatus = !filters.status || item.status === filters.status
-      const matchesProduct = !filters.productType || item.productType === filters.productType
+      const matchesProduct =
+        !normalizedProductType ||
+        searchableProductNames.some((productName) => normalizeText(productName) === normalizedProductType)
 
       return matchesSearch && matchesStatus && matchesProduct
     })
@@ -111,11 +160,6 @@ export default function ProductionCalendarPage() {
 
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
-  }
-
-  function goToday() {
-    const today = new Date()
-    setMonthDate(new Date(today.getFullYear(), today.getMonth(), 1))
   }
 
   function updateFilters(nextFilters) {
@@ -157,15 +201,19 @@ export default function ProductionCalendarPage() {
 
           <section className={styles.calendarPanel}>
             <CalendarToolbar
+              isDraggingOrder={Boolean(draggedItemId)}
               monthDate={monthDate}
-              onGoToday={goToday}
+              onNavigateNextDuringDrag={() => changeMonth(1)}
               onNextMonth={() => changeMonth(1)}
               onPreviousMonth={() => changeMonth(-1)}
             />
             <ProductionCalendarGrid
+              draggedItemId={draggedItemId}
               items={filteredItems}
               monthDate={monthDate}
               onChangeDeliveryDate={updateItemDeliveryDate}
+              onDragEnd={() => setDraggedItemId(null)}
+              onDragStart={setDraggedItemId}
             />
           </section>
         </div>

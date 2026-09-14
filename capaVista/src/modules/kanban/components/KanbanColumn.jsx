@@ -254,6 +254,7 @@ function normalizeOrder(order) {
       : Array.isArray(order.comentarios)
         ? order.comentarios
         : [],
+    commentGroups: order.commentGroups ?? null,
     correctionRequested: Boolean(order.correctionRequested),
     correctionComment: order.correctionComment ?? '',
     correctionRequestedAt: order.correctionRequestedAt ?? null,
@@ -300,6 +301,25 @@ function hasOrderLabel(order, expectedNames = []) {
   )
 }
 
+function getCoreProductType(value) {
+  const normalizedValue = normalizeText(value)
+
+  if (normalizedValue.includes('lanyard')) return 'lanyard'
+  if (normalizedValue.includes('tarjeta')) return 'tarjeta'
+  if (normalizedValue.includes('yoyo')) return 'yoyo'
+
+  return ''
+}
+
+function getOrderCoreProductTypes(order) {
+  const productValues = [
+    order.product,
+    ...(Array.isArray(order.items) ? order.items.map((item) => item.product) : []),
+  ]
+
+  return [...new Set(productValues.map(getCoreProductType).filter(Boolean))]
+}
+
 function hasActiveFilters(filters = {}) {
   return Object.values(filters).some((value) => normalizeText(value).length > 0)
 }
@@ -308,17 +328,13 @@ function orderMatchesFilters(order, filters = {}) {
   const normalizedFilters = {
     clientName: normalizeText(filters.clientName),
     nv: normalizeText(filters.nv),
-    op: normalizeText(filters.op),
     productType: normalizeText(filters.productType),
     seller: normalizeText(filters.seller),
   }
 
   if (!Object.values(normalizedFilters).some(Boolean)) return false
 
-  const productValues = [
-    order.product,
-    ...(Array.isArray(order.items) ? order.items.map((item) => item.product) : []),
-  ].map(normalizeText)
+  const coreProductTypes = getOrderCoreProductTypes(order)
   const sellerValues = [
     order.seller,
     order.vendedorResponsable,
@@ -327,7 +343,6 @@ function orderMatchesFilters(order, filters = {}) {
       ? order.items.map((item) => item.seller ?? item.vendedorResponsable ?? item.vendedor_responsable)
       : []),
   ].map(normalizeText)
-  const opValues = [order.opCode, order.productionDocuments?.opCode].map(normalizeText)
 
   if (normalizedFilters.clientName && !normalizeText(order.clientName).includes(normalizedFilters.clientName)) {
     return false
@@ -337,15 +352,19 @@ function orderMatchesFilters(order, filters = {}) {
     return false
   }
 
-  if (normalizedFilters.op && !opValues.some((value) => value.includes(normalizedFilters.op))) {
-    return false
-  }
-
   if (normalizedFilters.seller && !sellerValues.some((value) => value.includes(normalizedFilters.seller))) {
     return false
   }
 
-  if (normalizedFilters.productType && !productValues.some((value) => value.includes(normalizedFilters.productType))) {
+  if (normalizedFilters.productType === 'mixto' && coreProductTypes.length < 2) {
+    return false
+  }
+
+  if (
+    normalizedFilters.productType &&
+    normalizedFilters.productType !== 'mixto' &&
+    (coreProductTypes.length !== 1 || coreProductTypes[0] !== normalizedFilters.productType)
+  ) {
     return false
   }
 
@@ -374,20 +393,7 @@ function sortOrdersForColumn(orders, column, filters) {
     return baseSortedOrders
   }
 
-  return baseSortedOrders
-    .map((order, index) => ({
-      index,
-      matchesFilters: orderMatchesFilters(order, filters),
-      order,
-    }))
-    .sort((left, right) => {
-      if (left.matchesFilters !== right.matchesFilters) {
-        return left.matchesFilters ? -1 : 1
-      }
-
-      return left.index - right.index
-    })
-    .map(({ order }) => order)
+  return baseSortedOrders.filter((order) => orderMatchesFilters(order, filters))
 }
 
 function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {

@@ -14,13 +14,19 @@
   text-align: center;
 }
 
-.navigationGroup,
+.monthNavigation,
 .toolbarSpacer {
   display: flex;
   gap: 0.35rem;
 }
 
-.navigationGroup button {
+.monthNavigation {
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.monthNavigation button {
   align-items: center;
   background: #fff;
   border: 1px solid #d7dee8;
@@ -34,15 +40,16 @@
   padding: 0.45rem 0.75rem;
 }
 
-.navigationGroup button:hover,
-.navigationGroup button:focus {
+.monthNavigation button:hover,
+.monthNavigation button:focus {
   border-color: var(--calendar-orange);
   color: var(--calendar-orange);
   outline: none;
 }
 
-.todayButton {
-  min-width: 3.8rem !important;
+.dragNavigationTarget {
+  border-color: rgba(var(--calendar-orange-rgb), 0.55);
+  box-shadow: 0 0 0 3px rgba(var(--calendar-orange-rgb), 0.12);
 }
 
 @media (max-width: 767.98px) {
@@ -50,13 +57,12 @@
     grid-template-columns: 1fr;
   }
 
-  .toolbar h2 {
-    order: -1;
+  .monthNavigation {
+    justify-content: center;
   }
 
-  .navigationGroup,
-  .toolbarSpacer {
-    justify-content: center;
+  .toolbar h2 {
+    font-size: 1.12rem;
   }
 
   .toolbarSpacer {

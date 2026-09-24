@@ -1,25 +1,72 @@
-import { useCallback, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import KanbanColumn from '../components/KanbanColumn'
 import KanbanFilters from '../components/KanbanFilters'
 import styles from './KanbanBoardPage.module.css'
 import { useAuth } from '../../../hooks/useAuth'
 import { PERMISSIONS } from '../../../config/permissions'
 import { useKanbanApi } from '../hooks/useKanbanApi'
-import { useEffect } from 'react'
+
+function toInteger(value, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : fallback
+}
+
+function formatDate(value) {
+  if (!value) return 'Hoy'
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`)
+
+  if (Number.isNaN(date.getTime())) return String(value)
+
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function normalizeLoad(result = {}) {
+  return {
+    date: result.date ?? null,
+    capacity: toInteger(result.capacity, 1200),
+    lanyardsInProduction: toInteger(result.lanyardsInProduction, 0),
+    percentage: toInteger(result.percentage, 0),
+    details: Array.isArray(result.details) ? result.details : [],
+  }
+}
+
+function getEditableMax(detail) {
+  return toInteger(detail.remainingQuantity) + toInteger(detail.dailyQuantity)
+}
+
+function getProgressPercentage(detail) {
+  const percentage = Number(detail.progressPercentage ?? 0)
+
+  return Number.isFinite(percentage) ? Math.round(percentage) : 0
+}
+
+function hasDailyLoadChange(detail) {
+  return toInteger(detail.draftQuantity) !== toInteger(detail.dailyQuantity)
+}
 
 export default function KanbanBoardPage() {
   const api = useKanbanApi()
   const { hasPermission } = useAuth()
-  const [capacities, setCapacities] = useState([])
   const [isCapacityOpen, setIsCapacityOpen] = useState(false)
   const [capacityError, setCapacityError] = useState('')
   const [isSavingCapacity, setIsSavingCapacity] = useState(false)
   const [appliedFilters, setAppliedFilters] = useState({})
+  const [kanbanRefreshKey, setKanbanRefreshKey] = useState(0)
   const [operationalLoad, setOperationalLoad] = useState({
+    date: null,
     capacity: 1200,
     lanyardsInProduction: 0,
     percentage: 0,
+    details: [],
   })
+  const [draftQuantities, setDraftQuantities] = useState({})
+  const canManageProductionLoad =
+    hasPermission(PERMISSIONS.MANAGE_PRODUCTION_LOAD) ||
+    hasPermission(PERMISSIONS.MANAGE_CAPACITY)
   const loadLevel =
     operationalLoad.percentage > 100
       ? 'overloaded'
@@ -27,32 +74,72 @@ export default function KanbanBoardPage() {
         ? 'warning'
         : 'normal'
   const progressWidth = `${Math.min(operationalLoad.percentage, 100)}%`
-  const handleOperationalLoadChange = useCallback((nextLoad) => {
-    setOperationalLoad(nextLoad)
-  }, [])
-  const lanyardCapacity = capacities.find((item) => item.productType?.toLowerCase() === 'lanyard')?.capacity ?? 0
+  const draftDetails = useMemo(() => operationalLoad.details.map((detail) => ({
+    ...detail,
+    draftQuantity: draftQuantities[detail.detailId] ?? toInteger(detail.dailyQuantity),
+  })), [draftQuantities, operationalLoad.details])
 
   useEffect(() => {
-    api.getCapacities().then((result) => {
-      setCapacities(result)
-      setCapacityError('')
-    }).catch((error) => setCapacityError(error?.payload?.message ?? 'No fue posible cargar las capacidades.'))
+    let isMounted = true
+
+    api.getProductionLoad()
+      .then((result) => {
+        if (!isMounted) return
+        const nextLoad = normalizeLoad(result)
+        setOperationalLoad(nextLoad)
+        setDraftQuantities(Object.fromEntries(
+          nextLoad.details.map((detail) => [detail.detailId, toInteger(detail.dailyQuantity)]),
+        ))
+        setCapacityError('')
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setCapacityError(error?.payload?.message ?? 'No fue posible cargar la carga operativa.')
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [api])
 
-  async function saveCapacities(event) {
+  function updateDraftQuantity(detail, rawValue) {
+    const max = getEditableMax(detail)
+    const value = Math.min(max, toInteger(rawValue))
+    setDraftQuantities((current) => ({ ...current, [detail.detailId]: value }))
+    setCapacityError('')
+  }
+
+  async function saveProductionLoad(event) {
     event.preventDefault()
-    if (capacities.length !== 1 || capacities.some((item) => !Number.isInteger(Number(item.capacity)) || Number(item.capacity) <= 0 || Number(item.capacity) > 10000)) {
-      setCapacityError('La capacidad de Lanyard debe estar entre 1 y 10.000.')
-      return
-    }
     setIsSavingCapacity(true)
     try {
-      setCapacities(await api.updateCapacities(capacities.map((item) => ({ id: item.id, capacity: Number(item.capacity) }))))
+      const entries = draftDetails.filter(hasDailyLoadChange).map((detail) => {
+        const quantity = toInteger(detail.draftQuantity)
+        const max = getEditableMax(detail)
+
+        if (quantity > max) {
+          throw new Error(`La carga de ${detail.salesNoteNumber ?? detail.detailId} supera lo pendiente.`)
+        }
+
+        return {
+          detailId: detail.detailId,
+          quantity,
+        }
+      })
+      const result = normalizeLoad(await api.updateProductionLoad(entries))
+      setOperationalLoad(result)
+      setDraftQuantities(Object.fromEntries(
+        result.details.map((detail) => [detail.detailId, toInteger(detail.dailyQuantity)]),
+      ))
+      setKanbanRefreshKey((current) => current + 1)
       setIsCapacityOpen(false)
       setCapacityError('')
     } catch (error) {
-      setCapacityError(error?.payload?.message ?? 'No fue posible guardar las capacidades.')
-    } finally { setIsSavingCapacity(false) }
+      setCapacityError(error?.payload?.message ?? error?.message ?? 'No fue posible guardar la carga operativa.')
+    } finally {
+      setIsSavingCapacity(false)
+    }
   }
 
   return (
@@ -72,8 +159,8 @@ export default function KanbanBoardPage() {
                 <span>Carga Operativa</span>
                 <div className={styles.capacityHeaderActions}>
                   <strong>{operationalLoad.percentage}%</strong>
-                  {hasPermission(PERMISSIONS.MANAGE_CAPACITY) && (
-                    <button aria-label="Configurar capacidad productiva" onClick={() => setIsCapacityOpen(true)} title="Configurar capacidad productiva" type="button">
+                  {canManageProductionLoad && (
+                    <button aria-label="Configurar carga operativa" onClick={() => setIsCapacityOpen(true)} title="Configurar carga operativa" type="button">
                       <i className="bi bi-sliders" aria-hidden="true" />
                     </button>
                   )}
@@ -96,38 +183,81 @@ export default function KanbanBoardPage() {
             onApplyFilters={(nextFilters) => setAppliedFilters(nextFilters)}
             onClearFilters={() => setAppliedFilters({})}
           />
-          <KanbanColumn capacity={lanyardCapacity} filters={appliedFilters} onOperationalLoadChange={handleOperationalLoadChange} />
+          <KanbanColumn filters={appliedFilters} refreshKey={kanbanRefreshKey} />
         </div>
       </section>
       {isCapacityOpen && (
         <div className={styles.modalLayer} role="presentation">
-          <form className={styles.capacityModal} onSubmit={saveCapacities} role="dialog" aria-modal="true" aria-labelledby="capacity-title">
-            <header><div><span>Producción</span><h2 id="capacity-title">Capacidad máxima diaria</h2></div><button disabled={isSavingCapacity} onClick={() => setIsCapacityOpen(false)} type="button"><i className="bi bi-x-lg" /></button></header>
+          <form className={styles.capacityModal} onSubmit={saveProductionLoad} role="dialog" aria-modal="true" aria-labelledby="capacity-title">
+            <header>
+              <div>
+                <span>Produccion</span>
+                <h2 id="capacity-title">Carga diaria de Lanyard</h2>
+              </div>
+              <button disabled={isSavingCapacity} onClick={() => setIsCapacityOpen(false)} type="button">
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
+            </header>
             <div className={styles.capacityFields}>
-              {capacities.map((item, index) => (
-                <label className={styles.volumeControl} key={item.id}>
-                  <span className={styles.volumeHeading}>
-                    <i className="bi bi-box-seam" aria-hidden="true" />
-                    <span>Producción diaria de Lanyard</span>
-                    <input
-                      aria-label="Valor exacto de capacidad diaria"
-                      max="10000"
-                      min="1"
-                      onChange={(event) => setCapacities((current) => current.map((entry, position) => position === index ? { ...entry, capacity: event.target.value } : entry))}
-                      step="1"
-                      type="number"
-                      value={item.capacity}
-                    />
-                  </span>
-                  <span className={styles.sliderRow}>
-                    <input aria-label="Capacidad diaria de Lanyard" max="10000" min="1" onChange={(event) => setCapacities((current) => current.map((entry, position) => position === index ? { ...entry, capacity: Number(event.target.value) } : entry))} step="1" type="range" value={item.capacity} />
-                  </span>
-                  <span className={styles.sliderLimits}><small>1</small><small>10.000</small></span>
-                </label>
-              ))}
+              <div className={styles.capacityModalSummary}>
+                <span>{formatDate(operationalLoad.date)}</span>
+                <strong>{operationalLoad.lanyardsInProduction} / {operationalLoad.capacity} lanyards asignados para la jornada</strong>
+              </div>
+              {draftDetails.length === 0 && (
+                <p className={styles.capacityEmpty}>No hay detalles Lanyard en En produccion.</p>
+              )}
+              {draftDetails.map((detail) => {
+                const max = getEditableMax(detail)
+                const value = toInteger(detail.draftQuantity)
+                const progressPercentage = getProgressPercentage(detail)
+
+                return (
+                  <label className={styles.volumeControl} key={detail.detailId}>
+                    <span className={styles.volumeHeading}>
+                      <i className="bi bi-box-seam" aria-hidden="true" />
+                      <span className={styles.orderLoadInfo}>
+                        <strong>Pedido numero: {detail.salesNoteNumber ?? `Detalle ${detail.detailId}`} / Cliente: {detail.clientName ?? 'Cliente sin nombre'}</strong>
+                        <span>
+                          <small>{detail.accumulatedQuantity} / {detail.quantity} producidos</small>
+                          <small>{progressPercentage}%</small>
+                        </span>
+                      </span>
+                      <input
+                        aria-label={`Carga diaria para ${detail.salesNoteNumber ?? detail.detailId}`}
+                        max={max}
+                        min="0"
+                        onChange={(event) => updateDraftQuantity(detail, event.target.value)}
+                        step="1"
+                        type="number"
+                        value={value}
+                      />
+                    </span>
+                    <span className={styles.sliderRow}>
+                      <input
+                        aria-label={`Selector de carga diaria para ${detail.salesNoteNumber ?? detail.detailId}`}
+                        max={max}
+                        min="0"
+                        onChange={(event) => updateDraftQuantity(detail, event.target.value)}
+                        step="1"
+                        type="range"
+                        value={value}
+                      />
+                    </span>
+                    <span className={styles.sliderLimits}>
+                      <small>0</small>
+                      <small>{max}</small>
+                    </span>
+                  </label>
+                )
+              })}
               {capacityError && <p className={styles.capacityError}>{capacityError}</p>}
             </div>
-            <footer><button disabled={isSavingCapacity} onClick={() => setIsCapacityOpen(false)} type="button">Cancelar</button><button disabled={isSavingCapacity} type="submit">{isSavingCapacity ? 'Guardando...' : 'Guardar capacidades'}</button></footer>
+            <footer>
+              <button disabled={isSavingCapacity} onClick={() => setIsCapacityOpen(false)} type="button">Cancelar</button>
+              <button disabled={isSavingCapacity || draftDetails.length === 0} type="submit">
+                {isSavingCapacity ? 'Guardando...' : 'Confirmar carga'}
+              </button>
+            </footer>
           </form>
         </div>
       )}

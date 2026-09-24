@@ -29,5 +29,7 @@ export function createKanbanApi(apiClient) {
     setLabel: (orderId, label, active) => apiClient.patch(`/orders/${orderId}/labels`, { label, active }),
     getCapacities: () => apiClient.get('/production-capacity'),
     updateCapacities: (capacities) => apiClient.patch('/production-capacity', { capacities }),
+    getProductionLoad: () => apiClient.get('/production-load/today'),
+    updateProductionLoad: (entries) => apiClient.patch('/production-load/today', { entries }),
   }
 }

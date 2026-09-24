@@ -14,7 +14,7 @@ export const PERMISSIONS = Object.freeze({
   REEVALUATE_ORDERS: 'reevaluate:orders', READ_PAYMENTS: 'read:payments', UPDATE_PAYMENT_STATUS: 'update:payment-status',
   REVISE_PAYMENT_STATUS: 'revise:payment-status', MOVE_ORDERS: 'move:orders', START_PRODUCTION: 'start:production',
   UPDATE_SUBPROCESSES: 'update:production-subprocesses', ROLLBACK_SUBPROCESSES: 'rollback:production-subprocesses',
-  MANAGE_CAPACITY: 'manage:production-capacity', MANAGE_TAGS: 'manage:order-tags', REVIEW_ORDERS: 'review:orders',
+  MANAGE_CAPACITY: 'manage:production-capacity', MANAGE_PRODUCTION_LOAD: 'manage:production-load', MANAGE_TAGS: 'manage:order-tags', REVIEW_ORDERS: 'review:orders',
   CANCEL_ORDERS: 'cancel:orders', READ_CALENDAR: 'read:production-calendar', UPDATE_DELIVERY_DATE: 'update:order-delivery-date',
   VIEW_METRICS: 'view:metrics', VIEW_KANBAN_MODULE: 'view:kanban-module', VIEW_PAYMENTS_MODULE: 'view:payments-module',
 });
@@ -25,7 +25,7 @@ const sales = [P.READ_SALES_NOTES,P.CREATE_ORDERS,P.REEVALUATE_ORDERS,P.READ_CAL
 const collections = [P.READ_PAYMENTS,P.UPDATE_PAYMENT_STATUS];
 const production = [P.MOVE_ORDERS,P.UPDATE_SUBPROCESSES];
 export const ROLE_PERMISSIONS = Object.freeze(Object.fromEntries(Object.entries({
-  [ROLES.ADMINISTRADOR]: [...common,P.MANAGE_USERS,...production,P.START_PRODUCTION,P.ROLLBACK_SUBPROCESSES,P.MANAGE_CAPACITY,P.MANAGE_TAGS,P.REVIEW_ORDERS,P.CANCEL_ORDERS,P.READ_CALENDAR,P.UPDATE_DELIVERY_DATE, P.VIEW_METRICS],
+  [ROLES.ADMINISTRADOR]: [...common,P.MANAGE_USERS,...production,P.START_PRODUCTION,P.ROLLBACK_SUBPROCESSES,P.MANAGE_CAPACITY,P.MANAGE_PRODUCTION_LOAD,P.MANAGE_TAGS,P.REVIEW_ORDERS,P.CANCEL_ORDERS,P.READ_CALENDAR,P.UPDATE_DELIVERY_DATE, P.VIEW_METRICS],
   [ROLES.ADMIN_VENTAS]: [...common,P.MANAGE_USERS,...sales],
   [ROLES.ADMIN_COBRANZAS]: [...common,P.MANAGE_USERS,...collections,P.REVISE_PAYMENT_STATUS],
   [ROLES.PRODUCCION]: [...common,...production], [ROLES.VENTAS]: [...common,...sales],

@@ -7,6 +7,7 @@ import { createOrderRouter } from '../src/modules/orders/routes/order.routes.js'
 import { createAdminUsersRouter } from '../src/modules/users/routes/adminUsers.routes.js';
 import { createProductionCapacityRouter } from '../src/modules/productionCapacity/routes/productionCapacity.routes.js';
 import { createProductionCalendarRouter } from '../src/modules/productionCalendar/routes/productionCalendar.routes.js';
+import { createProductionLoadRouter } from '../src/modules/productionLoad/routes/productionLoad.routes.js';
 import { createOrderHistoryRouter } from '../src/modules/history/routes/orderHistory.routes.js';
 import { createMessageRouter } from '../src/modules/messages/routes/message.routes.js';
 import { createRequireActiveIdentity } from '../src/middlewares/requireActiveIdentity.js';
@@ -26,7 +27,7 @@ const validatePin = createRequirePin({pins:{async validate(sub,pin) {
   return {idUsuario:1};
 }}});
 const ok = (_req,res) => res.sendStatus(204);
-const controller = Object.fromEntries(['getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','listOrders','getOrderHistory','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
+const controller = Object.fromEntries(['getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
 async function listen(app,t) {const s=app.listen(0); t.after(()=>s.close()); await once(s,'listening'); return `http://127.0.0.1:${s.address().port}`;}
 
 // Expected access is literal and independent of ROLE_PERMISSIONS. Tokens deliberately
@@ -41,6 +42,7 @@ const endpoints = [
  ['PATCH','/orders/1/details/1/subprocesses/1/complete',[AP,OP,S],true],
  ['PATCH','/orders/1/details/1/subprocesses/1/rollback',[AP,S],true],
  ['GET','/capacity',all],['PATCH','/capacity',[AP,S]],
+ ['GET','/load/today',all],['PATCH','/load/today',[AP,S]],
  ['POST','/calendar/operational-load',[AP,AV,OV,S]],
  ['GET','/history/orders',all],['GET','/history/orders/1',all],
  ['GET','/messages',all],['GET','/messages/notifications',all],['GET','/messages/1',all],
@@ -48,7 +50,7 @@ const endpoints = [
 ];
 test('matriz HTTP por rol, permisos y PIN: llamadas directas', async t => {
  const app=express();app.use(express.json());
- for (const [path, factory] of [['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/calendar',createProductionCalendarRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
+ for (const [path, factory] of [['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/load',createProductionLoadRouter],['/calendar',createProductionCalendarRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
  const base=await listen(app,t);
  for(const [method,path,allowed,pin] of endpoints) {
   for(const role of all) await t.test(`${role} ${method} ${path} => ${allowed.includes(role)?204:403}`, async()=> {

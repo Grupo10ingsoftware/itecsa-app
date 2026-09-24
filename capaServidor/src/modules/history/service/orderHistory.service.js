@@ -62,6 +62,34 @@ function personName(user) {
     return [user.nombre_usuario, user.apellido_usuario].filter(Boolean).join(" ") || user.correo_usuario;
 }
 
+function parseLanyardProgress(description) {
+    const text = String(description ?? "");
+    const match = text.match(/Avance Lanyard:\s*(\d+)%\s*(?:\((\d+)\/(\d+) producidos\))?/i);
+
+    if (!match) {
+        return {
+            cleanDescription: description ?? null,
+            lanyardProgress: null,
+        };
+    }
+
+    const cleanDescription = text
+        .replace(match[0], "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join("\n");
+
+    return {
+        cleanDescription: cleanDescription || null,
+        lanyardProgress: {
+            percentage: Number(match[1]),
+            accumulatedQuantity: match[2] ? Number(match[2]) : null,
+            totalQuantity: match[3] ? Number(match[3]) : null,
+        },
+    };
+}
+
 function mapSummary(order) {
     return {
         id: order.id_pedido,
@@ -120,13 +148,16 @@ function mapEvent(record) {
         const detail = record.registro_subprocesos;
         const enteredAt = detail.fecha_hora_entrada;
         const exitedAt = detail.fecha_hora_salida;
+        const { cleanDescription, lanyardProgress } = parseLanyardProgress(record.observacion);
+        const subprocessName = detail.Estado_Subprocesos?.nombre_estado ?? "Cambio de subproceso";
         return {
             ...base,
             type: "subprocess",
             typeLabel: "Subproceso",
-            title: detail.Estado_Subprocesos?.nombre_estado ?? "Cambio de subproceso",
-            description: record.observacion ?? null,
+            title: lanyardProgress ? `${subprocessName} ${lanyardProgress.percentage}%` : subprocessName,
+            description: cleanDescription,
             productType: detail.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
+            lanyardProgress,
             enteredAt,
             exitedAt,
             durationSeconds: enteredAt && exitedAt

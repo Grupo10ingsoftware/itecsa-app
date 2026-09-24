@@ -95,6 +95,19 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
                             Registro_Pago: null,
                             registro_subprocesos: null,
                         },
+                        {
+                            ...baseRecord,
+                            ID_REGISTRO: 4,
+                            observacion: "Avance Lanyard: 11% (54/500 producidos)",
+                            Registro_Etapas: null,
+                            Registro_Pago: null,
+                            registro_subprocesos: {
+                                fecha_hora_entrada: new Date("2026-09-04T09:59:30Z"),
+                                fecha_hora_salida: new Date("2026-09-04T10:00:00Z"),
+                                Estado_Subprocesos: { nombre_estado: "Impresion" },
+                                Detalle_pedido: { Tipo_Producto: { nombre_producto: "Lanyard" } },
+                            },
+                        },
                     ],
                 };
             },
@@ -113,6 +126,15 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
     assert.equal(calendarResult.events[0].type, "calendar");
     assert.equal(calendarResult.events[0].typeLabel, "Calendarizacion");
     assert.equal(calendarResult.events[0].title, "Fecha de termino definida");
+
+    const subprocessResult = await service.getOrderHistory("8", { type: "subprocess" });
+    assert.equal(subprocessResult.events.length, 1);
+    assert.equal(subprocessResult.events[0].title, "Impresion 11%");
+    assert.deepEqual(subprocessResult.events[0].lanyardProgress, {
+        percentage: 11,
+        accumulatedQuantity: 54,
+        totalQuantity: 500,
+    });
 });
 
 test("rechaza IDs y tipos de evento invalidos", async () => {

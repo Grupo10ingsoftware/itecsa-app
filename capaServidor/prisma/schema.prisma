@@ -40,6 +40,7 @@ model Detalle_pedido {
   Estado_Subprocesos     Estado_Subprocesos?     @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "Detalle_pedido_Estado_Subprocesos_FK")
   Pedidos                Pedidos?                @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "id_pedido")
   Tipo_Producto          Tipo_Producto?          @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "id_tipo_producto")
+  Avance_Lanyard         Avance_Lanyard[]
   Dise_o                 Dise_o[]
   registro_subprocesos   registro_subprocesos[]
 
@@ -201,6 +202,7 @@ model Usuario {
   pin_accepted_at        DateTime?
   pin_failed_attempts    Int                     @default(0)
   pin_locked_until       DateTime?
+  Avance_Lanyard         Avance_Lanyard[]
   Comentario_Produccion  Comentario_Produccion[]
   MENSAJE_USUARIO        MENSAJE_USUARIO[]
   Pedido_Etiqueta        Pedido_Etiqueta[]
@@ -224,12 +226,36 @@ model registro_subprocesos {
   fecha_hora_salida    DateTime?           @db.DateTime(0)
   id_detalle_pedido    Int?
   id_estado_subproceso Int?
+  Avance_Lanyard       Avance_Lanyard[]
   Estado_Subprocesos   Estado_Subprocesos? @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_estado_subprocesos")
   Detalle_pedido       Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
   Registros            Registros           @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "registro_subprocesos_Registros_FK")
 
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")
   @@index([id_estado_subproceso], map: "id_estado_subproceso_idx")
+}
+
+model Avance_Lanyard {
+  id_avance_lanyard      Int                  @id @default(autoincrement())
+  id_detalle_pedido      Int
+  fecha_produccion       DateTime             @db.Date
+  cantidad_dia           Int                  @default(0)
+  cantidad_acumulada     Int                  @default(0)
+  porcentaje_acumulado   Decimal              @default(0) @db.Decimal(5, 2)
+  capacidad_diaria_referencia Int             @default(1200)
+  id_usuario_registra    Int
+  id_registro_subproceso Int?
+  observacion            String?              @db.Text
+  fecha_registro         DateTime             @default(now()) @db.DateTime(0)
+  fecha_actualizacion    DateTime?            @db.DateTime(0)
+  Detalle_pedido         Detalle_pedido       @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_avance_lanyard_detalle")
+  Usuario                Usuario              @relation(fields: [id_usuario_registra], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_avance_lanyard_usuario")
+  registro_subprocesos   registro_subprocesos? @relation(fields: [id_registro_subproceso], references: [id_registro], onDelete: SetNull, onUpdate: NoAction, map: "fk_avance_lanyard_registro_subproceso")
+
+  @@unique([id_detalle_pedido, fecha_produccion], map: "uq_avance_lanyard_detalle_fecha")
+  @@index([fecha_produccion], map: "idx_avance_lanyard_fecha")
+  @@index([id_usuario_registra], map: "idx_avance_lanyard_usuario")
+  @@index([id_registro_subproceso], map: "idx_avance_lanyard_registro_subproceso")
 }
 
 model MENSAJE_USUARIO {

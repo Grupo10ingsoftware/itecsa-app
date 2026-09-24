@@ -353,10 +353,26 @@
   color: #94a3b8;
 }
 
+.delayBadgeGreen {
+  background: #16a34a;
+  border-color: #15803d;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+  color: #fff;
+}
+
+.delayBadgeYellow,
 .delayBadgeActive {
-  background: #fff7ed;
-  border-color: rgba(202, 138, 4, 0.3);
-  color: #b45309;
+  background: #d97706;
+  border-color: #b45309;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  color: #fff;
+}
+
+.delayBadgeRed {
+  background: #dc2626;
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
+  color: #fff;
 }
 
 .cardIndicatorButton {
@@ -590,10 +606,23 @@
     border-color: #d7dee8;
   }
 
+  .delayBadgeGreen {
+    background-color: #16a34a;
+    color: #fff;
+    border-color: #15803d;
+  }
+
+  .delayBadgeYellow,
   .delayBadgeActive {
-    background-color: rgba(202,138,4,0.12);
-    color: var(--kanban-yellow);
-    border-color: rgba(202,138,4,0.3);
+    background-color: #d97706;
+    color: #fff;
+    border-color: #b45309;
+  }
+
+  .delayBadgeRed {
+    background-color: #dc2626;
+    color: #fff;
+    border-color: #b91c1c;
   }
 
   .correctionBadge {
@@ -850,6 +879,41 @@
   font-size: 0.95rem;
   font-weight: 850;
   margin: 0;
+}
+
+.stepperGroupHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.7rem;
+  justify-content: space-between;
+}
+
+.lanyardProgressBadge {
+  align-items: flex-end;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 0.55rem;
+  color: #fff;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.12rem;
+  justify-items: end;
+  min-width: 6.5rem;
+  padding: 0.42rem 0.55rem;
+}
+
+.lanyardProgressBadge strong {
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.lanyardProgressBadge small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  font-weight: 780;
+  line-height: 1.2;
 }
 
 .detailList {

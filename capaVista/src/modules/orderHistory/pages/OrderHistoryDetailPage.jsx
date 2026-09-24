@@ -83,6 +83,13 @@ export default function OrderHistoryDetailPage() {
                     <p>Responsable: {event.responsible ?? 'No disponible'}</p>
                     {event.description && <p>{event.description}</p>}
                     {event.productType && <p>Producto: {event.productType}</p>}
+                    {event.lanyardProgress && (
+                      <p>
+                        Avance producido: {event.lanyardProgress.accumulatedQuantity ?? 0}
+                        {event.lanyardProgress.totalQuantity ? ` / ${event.lanyardProgress.totalQuantity}` : ''}
+                        {' '}lanyards ({event.lanyardProgress.percentage}%)
+                      </p>
+                    )}
                     {event.previousStatus && <p>{event.previousStatus} → {event.nextStatus ?? 'Sin estado'}</p>}
                     {formatDuration(event.durationSeconds) && (
                       <strong>

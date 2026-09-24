@@ -195,6 +195,14 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
       fecha_real_termino: null,
       id_estado_subproceso: null,
       estado_subproceso: null,
+      lanyardProgress: {
+        accumulatedQuantity: 0,
+        totalQuantity: 250,
+        remainingQuantity: 250,
+        percentage: 0,
+        updatedAt: null,
+        lastProductionDate: null,
+      },
       subProcesses: [
         {
           id: "1",

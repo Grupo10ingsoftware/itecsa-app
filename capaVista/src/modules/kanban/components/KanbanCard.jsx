@@ -21,6 +21,10 @@ function buildSummaryItems({ dueDate, items, product, quantity }) {
   ]
 }
 
+function formatClientNameForDisplay(clientName) {
+  return String(clientName ?? 'Cliente sin nombre').replace(/^cliente\s+/i, '')
+}
+
 function KanbanCard({
   clientName,
   nv,
@@ -46,6 +50,7 @@ function KanbanCard({
     id: nv,
     disabled: isMoveBlocked || !canMove,
   })
+  const displayClientName = formatClientNameForDisplay(clientName)
   const summaryItems = buildSummaryItems({ dueDate, items, product, quantity })
   const delayStatusClass = styles[`delayBadge${delayStatus.charAt(0).toUpperCase()}${delayStatus.slice(1)}`] ?? ''
   const delayTitle = (() => {
@@ -79,7 +84,10 @@ function KanbanCard({
       ref={ref}
     >
       <div className={styles.orderCardHeader}>
-        <span className={styles.orderClient}>{clientName}</span>
+        <div className={styles.orderIdentity}>
+          <span>Pedido: {nv}</span>
+          <span>Cliente: {displayClientName}</span>
+        </div>
         <div className={styles.headerBadgesGroup}>
           {isMoveBlocked && (
             <span className={styles.lockedBadge} title="Pago pendiente">

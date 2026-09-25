@@ -130,6 +130,26 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
                     },
                   },
                 },
+                {
+                  ID_REGISTRO: 10,
+                  FECHA_HORA: new Date("2026-06-11T11:30:00.000Z"),
+                  observacion: "Avance Lanyard: 40% (100/250 producidos)",
+                  Usuario: {
+                    nombre_usuario: "Ana",
+                    apellido_usuario: "Perez",
+                    correo_usuario: "ana@example.com",
+                  },
+                  registro_subprocesos: {
+                    Estado_Subprocesos: {
+                      nombre_estado: "Costura",
+                    },
+                    Detalle_pedido: {
+                      Tipo_Producto: {
+                        nombre_producto: "Lanyard",
+                      },
+                    },
+                  },
+                },
               ],
             },
           ];
@@ -179,6 +199,7 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
     },
   ]);
   assert.equal(orders[0].commentGroups.system.length, 1);
+  assert.equal(orders[0].commentGroups.subprocesses.length, 1);
   assert.equal(orders[0].commentGroups.subprocesses[0].subprocessName, "Impresion");
   assert.deepEqual(orders[0].detalles, [
     {

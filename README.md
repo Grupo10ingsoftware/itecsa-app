@@ -62,8 +62,6 @@ npm run prisma:validate
 npm run prisma:migrate:dev
 npm run prisma:migrate:status
 npm run prisma:studio
-npm run repair:payment-demo
-npm run sync:dummy-sales-notes
 ```
 
 El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000` con las plantillas actuales.
@@ -90,9 +88,9 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
 - La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
 - La entidad interna `Usuario`, pedidos, clientes, detalles, productos, estados de pago, registros de pago y reglas Kanban se resuelven desde MySQL/Aiven mediante Prisma y el adaptador MariaDB.
-- La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado, previsualizar firma y abrir evidencia de firma.
+- La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado con PIN y revisar una vista previa de datos del pedido.
 - Kanban consume pedidos y estados reales desde backend, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
-- La pantalla `/ordenes/nuevo` sigue siendo un flujo visual frontend con datos mock y `sessionStorage`; no llama todavia al `POST /api/orders` del backend.
+- La pantalla `/ordenes/nuevo` consulta notas de venta mediante la API y registra pedidos con `POST /api/orders`; la fuente de notas sigue siendo un fixture local.
 
 Recursos Auth0 esperados/configurados para esta rama:
 

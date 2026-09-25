@@ -1,16 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
-import OrderRepository, {
-  buildSalesNotePdfUrl,
-} from "../src/modules/orders/repo/orders.repo.js";
-
-test("convierte ruta almacenada de NV a URL consumible por frontend", () => {
-  assert.equal(
-    buildSalesNotePdfUrl("itecsa-app\\data\\NVS\\Pedido1.pdf"),
-    "/api/documents/nvs/Pedido1.pdf",
-  );
-});
+import OrderRepository from "../src/modules/orders/repo/orders.repo.js";
 
 test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
   const repo = new OrderRepository({
@@ -48,10 +38,10 @@ test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
 
   const orders = await repo.getAllOrders();
 
-  assert.equal(orders[0].ruta_pdf, null);
+  assert.equal(Object.hasOwn(orders[0], "ruta_pdf"), false);
   assert.equal(orders[0].numero_nota_venta, null);
-  assert.equal(orders[0].firmado, null);
-  assert.equal(orders[0].firma_pago, null);
+  assert.equal(Object.hasOwn(orders[0], "firmado"), false);
+  assert.equal(Object.hasOwn(orders[0], "firma_pago"), false);
   assert.equal(orders[0].estado_pago, "Pendiente");
   assert.deepEqual(orders[0].etiquetas, [
     {

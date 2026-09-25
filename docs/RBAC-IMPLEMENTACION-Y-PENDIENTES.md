@@ -81,7 +81,7 @@ Prefijo `/api`. Todos salvo recuperación pública/health pasan por JWT e identi
 | GET `/history/orders[/ :orderId]` | `read:orders` | Historial por pedido | Rutas de historial |
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages` | Destinatario = actor | Bandeja / detalle |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages` | Destinatario = actor | Leer/ocultar notificación |
-| GET `/documents/nvs/:filename` | `read:orders` | Autenticación y archivo válido | Consumo autenticado de PDF existente; sin permiso nuevo de documentos |
+| `/documents/*` | No aplica | Módulo retirado en limpieza según RF01–RF75 | Sin endpoint de PDF de notas de venta |
 | POST directos de clients/products/order-status/payment-status/details/payment-records | Denegados 403 | Evitan saltarse flujos y trazabilidad; se usan servicios desde operación de negocio | Sin acción funcional independiente |
 | `/demo-orders/*` | Capacidad correspondiente + Soporte exclusivamente | PIN en mutaciones; almacenamiento demo separado | Pruebas técnicas, no flujo funcional de aprobaciones |
 
@@ -133,7 +133,7 @@ La matriz TAP enumera cada rol y endpoint, respuesta esperada y comprobación re
 - Movimiento automático al terminar todos los subprocesos y demás transiciones automáticas: no agregar automatismos aquí; no permitir forzarlos con `/move`.
 - RNF01: invalidación de sesión dentro de cinco segundos tras logout requiere diseño adicional. Sí se valida el estado y rol interno en cada petición; no se afirma revocación instantánea de cualquier token después de logout.
 - Tema 9 aprobado como pendiente: documentar y diseñar por separado las capacidades futuras; no dar permisos anticipados de reportes, estadísticas, exportaciones, estimación o buffer si no existen operaciones implementadas.
-- Retirada de documentos/PDF: acordada para el futuro, sin eliminar funcionalidades dentro de esta tarea. La ruta existente deja de ser pública y se consume con autenticación; no se agrega un catálogo PDF.
+- Actualización posterior: documentos/PDF retirados por instrucción del usuario tras aportar RF01–RF75. Se conserva la vista previa JSON de pagos y el historial de negocio.
 - Confirmar el documento de requisitos de la nube con las correcciones explícitas: Cobranzas, calendario con PIN, roles, RNF02 y transiciones. La copia local no se reescribió.
 
 ## Diferencias respecto del estado anterior

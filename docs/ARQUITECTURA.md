@@ -82,7 +82,7 @@ flowchart LR
 
 ## Creacion Administrativa De Usuarios
 
-Los endpoints bajo `/api/admin/users` estan protegidos con `checkJwt` y rol `Administrador Produccion` o `Soporte`. La creacion acepta `multipart/form-data` con nombre, apellido, RUT, correo, rol y firma electronica. No recibe contrasenas.
+Los endpoints bajo `/api/admin/users` requieren JWT, identidad activa y `manage:users`, con alcance departamental definido en `shared/authorization.js`. La creación acepta JSON con nombre, apellido, RUT, correo y rol. Genera el PIN; no recibe firmas ni contraseñas.
 
 El backend usa `ITECSA Backend Management` para:
 
@@ -90,26 +90,26 @@ El backend usa `ITECSA Backend Management` para:
 - Resolver el rol Auth0 RBAC existente.
 - Crear el usuario en `Username-Password-Authentication`.
 - Asignar el rol RBAC al usuario.
-- Registrar la entidad interna `Usuario` con datos personales de negocio y ruta de firma.
+- Registrar la entidad interna `Usuario` con datos personales de negocio.
 - Solicitar el correo de establecimiento/cambio de contrasena mediante Auth0.
 
 La contrasena temporal generada para la creacion Database existe solo en memoria durante la llamada a Auth0. ITECSA no recibe, almacena ni persiste contrasenas, tickets ni enlaces de cambio de contrasena.
 
-La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT y ruta de firma siguen siendo datos internos de negocio.
+La gestion administrativa usa la tabla interna `Usuario` para listar, resumir, editar y desvincular usuarios. Las ediciones de correo, rol y estado se sincronizan con Auth0 Management API, mientras nombre, apellido, RUT siguen siendo datos internos de negocio.
 
 ## Persistencia Y Modulos De Negocio
 
-El backend usa Prisma con `@prisma/adapter-mariadb` para conectar a MySQL/Aiven. Los repositorios de usuarios, pedidos, clientes, productos, estados de pedido, estados de pago, detalles, registros de pago y documentos consultan o actualizan la base real cuando el endpoint correspondiente se ejecuta.
+El backend usa Prisma con `@prisma/adapter-mariadb` para conectar a MySQL/Aiven. Los repositorios de usuarios, pedidos, clientes, productos, estados de pedido, estados de pago, detalles y registros de pago consultan o actualizan la base real cuando el endpoint correspondiente se ejecuta.
 
 Estado funcional actual:
 
-- `/pagos` consume `GET /api/orders`, `GET /api/payment-status`, `PATCH /api/orders/:orderId/payment-status`, `GET /api/orders/:orderId/payment-signature-preview` y `GET /api/orders/:orderId/payment-signature-evidence`.
-- Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria, firma la Nota de Venta vigente y mueve el pedido a `Listo para produccion`.
+- `/pagos` consume `GET /api/orders/payments`, `GET /api/orders/:orderId/payment-records/preview` (datos JSON) y `PATCH /api/orders/:orderId/payment-status` con PIN.
+- Al confirmar un pago, el backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub`, registra auditoria y mueve el pedido a `Listo para produccion`.
 - Un pago ya confirmado no puede devolverse a `Pendiente` ni `Rechazado`; el backend responde conflicto y no genera auditoria nueva.
 - Kanban consume `GET /api/orders` y `GET /api/order-status`, mueve etapas con `PATCH /api/orders/:orderId/move`, bloquea saltos o retrocesos y exige `move:kanban-to-production` para mover a `En produccion`.
 - El movimiento devuelve los campos de etapa (`id_pedido`, `id_estado_pedido`, `id_etapa_general`, `generalStepId`, `nombre_etapa_general`), no el pedido completo. Kanban aplica estos campos sobre la tarjeta existente y conserva productos, cliente, pago y etiquetas. Si etapa o pago cambiaron desde la validacion, responde 409; las escrituras y la auditoria siguen en una transaccion. Una solicitud a la etapa actual devuelve el estado reducido sin escribir.
-- El backend expone `POST /api/orders` para crear pedidos JSON con cliente y productos, pero la pantalla frontend `/ordenes/nuevo` sigue siendo visual/mock y guarda una copia temporal en `sessionStorage`.
-- `data/NVS` y `data/Firmas` son almacenamiento local de desarrollo para PDFs de Nota de Venta y firmas electronicas; no deben contener documentos reales ni datos sensibles.
+- `/ordenes/nuevo` consulta la nota por API y registra el pedido mediante `POST /api/orders`; mantiene el borrador en memoria React.
+- El módulo de documentos/PDF y firmas fue retirado. Las notas de venta se consultan como datos estructurados desde el fixture local hasta disponer de integración autorizada.
 
 ## Variables De Entorno
 
@@ -148,10 +148,10 @@ Las variables `DB_*` alimentan el adaptador Prisma MariaDB usado en runtime; `DA
 ## Limites Vigentes
 
 - Prisma y MySQL/Aiven estan integrados en `capaServidor` para la entidad interna `Usuario` y para modulos de pedidos, pagos, clientes, productos, estados, detalles y documentos.
-- No se persisten contrasenas. RUT y ruta de firma se persisten en la entidad interna `Usuario`.
+- No se persisten contrasenas. RUT se persisten en la entidad interna `Usuario`.
 - No se documentan tokens, contrasenas, correos reales ni secrets.
 - La matriz rol-permiso funcional vive en Auth0 RBAC; si se agrega una nueva vista, se debe crear el permiso en `ITECSA API`, asignarlo al rol correspondiente y consumirlo desde `hasPermission(...)`.
-- La pantalla `/ordenes/nuevo` no crea pedidos reales todavia; conserva mocks y `sessionStorage` hasta que exista contrato aprobado para Nota de Venta y archivos.
+- La integración externa de notas de venta está pendiente; no confundir el fixture de consulta con la persistencia propia de pedidos.
 - No ejecutar `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` sobre la base existente sin una decision explicita de migraciones.
 
 Para ejecutar cada capa, consultar [README raiz](../README.md), [README frontend](../capaVista/README.md) y [README backend](../capaServidor/README.md).

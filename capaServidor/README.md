@@ -27,8 +27,6 @@ Comandos disponibles:
 npm start
 npm run dev
 npm test
-npm run repair:payment-demo
-npm run sync:dummy-sales-notes
 npm run prisma:pull
 npm run prisma:generate
 npm run prisma:validate
@@ -236,18 +234,19 @@ Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite
 
 ### `POST /api/admin/users`
 
-Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Acepta `multipart/form-data` con:
+Requiere JWT, identidad activa y `manage:users`, con alcance departamental. Acepta JSON:
 
-```txt
-nombreUsuario=Ana
-apellidoUsuario=Perez
-rutUsuario=12.345.678-9
-correoUsuario=correo.controlado@example.cl
-rolUsuario=Ventas
-firmaElectronica=<archivo XML, CMS o PDF>
+```json
+{
+  "nombreUsuario": "Ana",
+  "apellidoUsuario": "Perez",
+  "rutUsuario": "12.345.678-9",
+  "correoUsuario": "correo.controlado@example.cl",
+  "rolUsuario": "Operario Ventas"
+}
 ```
 
-Los roles permitidos son `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`. El backend valida duplicados internos, guarda la firma electronica en `data/Firmas`, crea la cuenta Auth0, le asigna el rol RBAC existente, registra la entidad interna `Usuario` y solicita el correo de establecimiento de contrasena; nunca recibe ni retorna una contrasena.
+El administrador sólo puede crear roles de su departamento. El backend valida duplicados, crea la identidad Auth0, registra el usuario interno, genera su PIN y solicita el correo para establecer contraseña. No se reciben archivos de firma.
 
 La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
 
@@ -262,7 +261,6 @@ Respuesta exitosa:
   "rutUsuario": "12.345.678-9",
   "correoUsuario": "correo.controlado@example.cl",
   "rolUsuario": "Ventas",
-  "rutaFirma": "itecsa-app\\data\\Firmas\\firma-123.pdf",
   "passwordSetupEmailRequested": true
 }
 ```
@@ -271,7 +269,7 @@ Respuestas:
 
 - `201`: usuario creado, con `passwordSetupEmailRequested: true` si se solicito el correo.
 - `201` recuperable: cuenta Auth0 creada pero fallo la asignacion de rol, el registro interno o la solicitud de correo; no debe repetirse la creacion.
-- `400`: cuerpo invalido, firma ausente, tipo de firma no permitido, rol no permitido o campos adicionales.
+- `400`: cuerpo inválido, rol no permitido o campos adicionales.
 - `401`: access token ausente o invalido.
 - `403`: usuario autenticado sin rol `Administrador` o `Soporte`.
 - `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
@@ -294,8 +292,7 @@ Respuesta exitosa:
       "rutUsuario": "12.345.678-9",
       "correoUsuario": "correo.controlado@example.cl",
       "rolUsuario": "Ventas",
-      "estadoUsuario": "Activo",
-      "rutaFirma": "itecsa-app\\data\\Firmas\\firma-123.pdf"
+      "estadoUsuario": "Activo"
     }
   ],
   "total": 1,
@@ -377,12 +374,8 @@ Creacion administrativa con token Administrador y un correo controlado nuevo:
 ```bash
 curl -i -X POST http://localhost:3000/api/admin/users \
   -H "Authorization: Bearer <access_token>" \
-  -F "nombreUsuario=Ana" \
-  -F "apellidoUsuario=Perez" \
-  -F "rutUsuario=12.345.678-9" \
-  -F "correoUsuario=correo.controlado@example.cl" \
-  -F "rolUsuario=Ventas" \
-  -F "firmaElectronica=@./data/Firmas/firma-demo.pdf"
+  -H "Content-Type: application/json" \
+  --data '{"nombreUsuario":"Ana","apellidoUsuario":"Perez","rutUsuario":"12.345.678-9","correoUsuario":"correo.controlado@example.cl","rolUsuario":"Operario Ventas"}'
 ```
 
 Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.
@@ -441,7 +434,7 @@ Estos endpoints usan datos reales desde MySQL/Aiven mediante Prisma. Todos requi
 
 ### `GET /api/orders` y `GET /api/orders/kanban`
 
-Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago, Nota de Venta y datos de firma de pago cuando existen. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
+Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago y número de Nota de Venta. No incluyen archivos ni firmas de pago. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
 
 Campos relevantes de respuesta:
 
@@ -456,15 +449,7 @@ Campos relevantes de respuesta:
   "nombre_etapa_general": "Listo para produccion",
   "id_estado_pago": 2,
   "estado_pago": "Confirmado",
-  "ruta_pdf": "/api/documents/nvs/Pedido1.pdf",
-  "numero_nota_venta": "Pedido1",
-  "firmado": 1,
-  "firma_pago": {
-    "id_firma_documento": 1,
-    "id_usuario": 10,
-    "evidenceFileName": "firma-demo.pdf",
-    "evidenceUrl": "/api/orders/1/payment-signature-evidence"
-  }
+  "numero_nota_venta": "NV-2026-3001"
 }
 ```
 
@@ -519,18 +504,14 @@ Requiere permiso `update:payment-status`.
 
 El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
 
-- Si queda `Confirmado`, firma la Nota de Venta vigente, registra auditoria y mueve la orden a `Listo para produccion`.
+- Si queda `Confirmado`, registra auditoria y mueve la orden a `Listo para produccion`.
 - Si queda `Pendiente` o `Rechazado`, registra auditoria y devuelve la orden a `Confirmacion de pago`.
 - Si el pago ya estaba `Confirmado`, no permite devolverlo a `Pendiente` ni `Rechazado`.
 - Sin permiso `update:payment-status`, responde `403`.
 
-### `GET /api/orders/:orderId/payment-signature-preview`
+### `GET /api/orders/:orderId/payment-records/preview`
 
-Requiere permiso `update:payment-status`. Genera una vista previa PDF firmada sin sobrescribir el documento vigente ni crear registros de firma.
-
-### `GET /api/orders/:orderId/payment-signature-evidence`
-
-Devuelve el archivo de evidencia de firma de pago desde `data/Firmas` cuando el pedido ya tiene firma registrada. Rechaza rutas inseguras o archivos inexistentes.
+Requiere `read:payments`. Devuelve datos JSON para la vista previa de cobranza; no genera ni firma PDF.
 
 ### `GET /api/orders/:orderId/payment-records`
 
@@ -569,7 +550,7 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 - `GET /api/orders/:orderId/details`, `GET /api/orders/:orderId/details/:detailId` y `POST /api/orders/:orderId/details`: detalles de pedido.
 - `GET /api/clients/:clientId`, `GET /api/clients/rut/:rutCliente` y `POST /api/clients`: clientes.
 - `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
-- `GET /api/documents/nvs/:filename`: PDF de Nota de Venta local, publico para renderizar documentos; rechaza path traversal y archivos no PDF.
+- El módulo de documentos/PDF fue retirado; `/api/documents/*` ya no se monta.
 
 ### PIN debug para Soporte (desarrollo)
 

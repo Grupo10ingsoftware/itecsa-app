@@ -1,5 +1,41 @@
 import getPrismaClient from "../../../database/prisma.js";
 
+const paymentRecordSelect = {
+  id_registro: true,
+  fecha_registro: true,
+  observacion: true,
+  id_estado_pago_anterior: true,
+  id_estado_pago_nuevo: true,
+  Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago: {
+    select: {
+      id_estado_pago: true,
+      nombre_estado_pago: true,
+    },
+  },
+  Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: {
+    select: {
+      id_estado_pago: true,
+      nombre_estado_pago: true,
+    },
+  },
+  Registros: {
+    select: {
+      ID_REGISTRO: true,
+      FECHA_HORA: true,
+      id_pedido: true,
+      id_usuario: true,
+      observacion: true,
+      Usuario: {
+        select: {
+          id_usuario: true,
+          nombre_usuario: true,
+          apellido_usuario: true,
+        },
+      },
+    },
+  },
+};
+
 class PaymentRecordRepo {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -47,9 +83,7 @@ class PaymentRecordRepo {
   async getById(paymentRecordId) {
     return this.client.registro_Pago.findUnique({
       where: { id_registro: Number(paymentRecordId) },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
     });
   }
 
@@ -60,9 +94,7 @@ class PaymentRecordRepo {
           id_pedido: Number(orderId),
         },
       },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
       orderBy: [
         { fecha_registro: "desc" },
         { id_registro: "desc" },
@@ -78,9 +110,7 @@ class PaymentRecordRepo {
           id_pedido: Number(orderId),
         },
       },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
     });
   }
 

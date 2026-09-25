@@ -46,6 +46,37 @@ function normalizeProcessName(value) {
     .replace(/\s+/g, "-");
 }
 
+function isLanyardProduct(value) {
+  return normalizeProcessName(value).includes("lanyard");
+}
+
+function isPackagingSubprocess(process) {
+  return normalizeProcessName(process?.Estado_Subprocesos?.nombre_estado).includes("empaquet");
+}
+
+function formatLanyardProgressObservation(progress, totalQuantity) {
+  if (!progress) return null;
+  const percentage = Number(progress.porcentaje_acumulado ?? 0);
+  const accumulated = Number(progress.cantidad_acumulada ?? 0);
+  const total = Number(totalQuantity ?? 0);
+
+  if (!Number.isFinite(percentage)) return null;
+
+  const roundedPercentage = Math.round(percentage);
+  const quantityText = Number.isFinite(total) && total > 0
+    ? ` (${accumulated}/${total} producidos)`
+    : "";
+
+  return `Avance Lanyard: ${roundedPercentage}%${quantityText}`;
+}
+
+function mergeObservation(comment, systemObservation) {
+  const trimmedComment = String(comment ?? "").trim();
+  const trimmedSystemObservation = String(systemObservation ?? "").trim();
+
+  return [trimmedComment, trimmedSystemObservation].filter(Boolean).join("\n") || null;
+}
+
 function mapDetailSubprocesses(detail) {
   const productSubprocesses = detail.Tipo_Producto?.Producto_Subproceso;
 
@@ -77,6 +108,22 @@ function mapDetailSubprocesses(detail) {
   });
 }
 
+function mapLanyardProgress(detail) {
+  const latest = Array.isArray(detail.Avance_Lanyard) ? detail.Avance_Lanyard[0] : null;
+  const quantity = Number(detail.cantidad ?? 0);
+  const accumulated = Number(latest?.cantidad_acumulada ?? 0);
+  const percentage = Number(latest?.porcentaje_acumulado ?? 0);
+
+  return {
+    accumulatedQuantity: accumulated,
+    totalQuantity: Number.isFinite(quantity) && quantity > 0 ? quantity : null,
+    remainingQuantity: Number.isFinite(quantity) && quantity > 0 ? Math.max(0, quantity - accumulated) : null,
+    percentage,
+    updatedAt: latest?.fecha_actualizacion ?? latest?.fecha_registro ?? null,
+    lastProductionDate: latest?.fecha_produccion ?? null,
+  };
+}
+
 function mapOrderDetail(detail) {
   return {
     id_detalle_pedido: detail.id_detalle_pedido ?? null,
@@ -92,6 +139,7 @@ function mapOrderDetail(detail) {
     fecha_real_termino: detail.fecha_real_termino ?? null,
     id_estado_subproceso: detail.id_estado_subproceso ?? null,
     estado_subproceso: detail.Estado_Subprocesos?.nombre_estado ?? null,
+    lanyardProgress: mapLanyardProgress(detail),
     subProcesses: mapDetailSubprocesses(detail),
   };
 }
@@ -270,6 +318,13 @@ const orderReadInclude = {
         },
       },
       Estado_Subprocesos: true,
+      Avance_Lanyard: {
+        orderBy: [
+          { fecha_produccion: "desc" },
+          { id_avance_lanyard: "desc" },
+        ],
+        take: 1,
+      },
     },
   },
   Estado_Pedido: true,
@@ -1020,6 +1075,29 @@ class OrderRepository {
 
     const now = new Date();
     const nextSubprocess = subprocesses[processIndex + 1] ?? null;
+    const firstSubprocess = subprocesses[0] ?? null;
+    const isLanyard = isLanyardProduct(detail.Tipo_Producto?.nombre_producto);
+    const shouldCheckLanyardProgress =
+      isLanyard && nextSubprocess && isPackagingSubprocess(nextSubprocess);
+    const latestLanyardProgress = isLanyard
+      ? await this.client.avance_Lanyard.findFirst({
+          where: { id_detalle_pedido: Number(detailId) },
+          orderBy: [
+            { fecha_produccion: "desc" },
+            { id_avance_lanyard: "desc" },
+          ],
+        })
+      : null;
+    const lanyardProgressPercentage = Number(
+      latestLanyardProgress?.porcentaje_acumulado ?? 0,
+    );
+    const shouldRepeatLanyardFlow =
+      shouldCheckLanyardProgress &&
+      lanyardProgressPercentage < 100 &&
+      firstSubprocess;
+    const targetSubprocess = shouldRepeatLanyardFlow
+      ? firstSubprocess
+      : nextSubprocess;
 
     const latestSubprocessRecord = await this.client.registro_subprocesos.findFirst({
       where: { id_detalle_pedido: Number(detailId) },
@@ -1051,7 +1129,7 @@ class OrderRepository {
       },
       data: {
         id_estado_subproceso:
-          nextSubprocess?.id_estado_subproceso ?? detail.id_estado_subproceso,
+          targetSubprocess?.id_estado_subproceso ?? detail.id_estado_subproceso,
         fecha_real_termino: nextSubprocess ? null : now,
       },
     });
@@ -1069,7 +1147,10 @@ class OrderRepository {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
-        observacion: comment?.trim() || null,
+        observacion: mergeObservation(
+          comment,
+          formatLanyardProgressObservation(latestLanyardProgress, detail.cantidad),
+        ),
       },
     });
 

@@ -220,7 +220,7 @@
       "ciudad": "Ciudad Demo 006",
       "TIPO_CLIENTE": "MASIVO"
     },
-    "observaciones": null,
+    "observaciones": "Observacion demo 010",
     "items": [
       {
         "codigo": "2300030140053",
@@ -245,7 +245,7 @@
       "ciudad": "Ciudad Demo 037",
       "TIPO_CLIENTE": "GRANDES CUENTAS"
     },
-    "observaciones": null,
+    "observaciones": "Comentario de prueba 034",
     "items": [
       {
         "codigo": "2300030140053",

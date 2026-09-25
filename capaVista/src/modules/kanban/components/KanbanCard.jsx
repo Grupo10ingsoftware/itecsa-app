@@ -28,6 +28,8 @@ function KanbanCard({
   dueDate,
   items,
   quantity,
+  delayStatus = 'neutral',
+  businessDaysRemaining = null,
   isDelayed,
   isMoveBlocked,
   isCorrectionRequested,
@@ -45,6 +47,22 @@ function KanbanCard({
     disabled: isMoveBlocked || !canMove,
   })
   const summaryItems = buildSummaryItems({ dueDate, items, product, quantity })
+  const delayStatusClass = styles[`delayBadge${delayStatus.charAt(0).toUpperCase()}${delayStatus.slice(1)}`] ?? ''
+  const delayTitle = (() => {
+    if (businessDaysRemaining === null) {
+      return 'Sin fecha de entrega definida'
+    }
+
+    if (businessDaysRemaining < 0 || isDelayed) {
+      return 'Pedido atrasado'
+    }
+
+    if (businessDaysRemaining === 0) {
+      return 'Entrega hoy'
+    }
+
+    return `${businessDaysRemaining} dia${businessDaysRemaining === 1 ? '' : 's'} habil${businessDaysRemaining === 1 ? '' : 'es'} para la entrega`
+  })()
 
   return (
     <article
@@ -68,7 +86,7 @@ function KanbanCard({
               <i className="bi bi-lock-fill" aria-hidden="true" />
             </span>
           )}
-          <span className={`${styles.delayBadge} ${isDelayed ? styles.delayBadgeActive : ''}`} title={isDelayed ? 'Pedido atrasado' : 'Indicador de tiempo'}>
+          <span className={`${styles.delayBadge} ${delayStatusClass}`} title={delayTitle}>
             <i className="bi bi-clock-fill" aria-hidden="true" />
           </span>
           <button

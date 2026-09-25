@@ -23,6 +23,37 @@ function isLanyardItem(item) {
   return String(item.product ?? '').toLowerCase().includes('lanyard')
 }
 
+function normalizeText(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function isPackagingProcess(process) {
+  return normalizeText(process?.name ?? process?.nombre_estado).includes('empaquet')
+}
+
+function getLanyardProgress(item) {
+  const progress = item?.lanyardProgress ?? {}
+  const totalQuantity = Number(progress.totalQuantity ?? item?.quantity ?? 0)
+  const accumulatedQuantity = Number(progress.accumulatedQuantity ?? 0)
+  const remainingQuantity = Number(progress.remainingQuantity ?? Math.max(0, totalQuantity - accumulatedQuantity))
+  const percentage = Number(progress.percentage ?? progress.progressPercentage ?? 0)
+
+  return {
+    accumulatedQuantity: Number.isFinite(accumulatedQuantity) ? accumulatedQuantity : 0,
+    remainingQuantity: Number.isFinite(remainingQuantity) ? remainingQuantity : 0,
+    totalQuantity: Number.isFinite(totalQuantity) ? totalQuantity : 0,
+    percentage: Number.isFinite(percentage) ? Math.min(100, Math.max(0, percentage)) : 0,
+  }
+}
+
+function isLanyardPackagingBlocked(item, process) {
+  return isLanyardItem(item) && isPackagingProcess(process) && getLanyardProgress(item).percentage < 100
+}
+
 function displayValue(value, fallback = 'No definido') {
   if (typeof value === 'string') return value.trim() || fallback
 
@@ -86,6 +117,7 @@ function getOrderItems(order) {
           quantity: order.quantity,
           dueDate: order.dueDate,
           manufacturingDetails: order.manufacturingDetails,
+          lanyardProgress: order.lanyardProgress,
           subProcesses: order.subProcesses,
         },
       ]
@@ -97,6 +129,7 @@ function getOrderItems(order) {
       product: item.product ?? order.product ?? 'Producto no definido',
       quantity: item.quantity ?? order.quantity ?? null,
       dueDate: item.dueDate ?? order.dueDate ?? null,
+      lanyardProgress: item.lanyardProgress ?? null,
       subProcesses: getSubProcessesForItem(item),
     }))
     .sort((left, right) => {
@@ -178,7 +211,13 @@ export default function KanbanOffCanvas({
     Boolean(order.paymentDeconfirmationRequested)
 
   function openAuthModal(item, process, processIndex, currentProcessIndex) {
-    if (!canCompleteSubprocess || !isInProduction || process.status === 'done' || processIndex !== currentProcessIndex) {
+    if (
+      !canCompleteSubprocess ||
+      !isInProduction ||
+      process.status === 'done' ||
+      processIndex !== currentProcessIndex ||
+      isLanyardPackagingBlocked(item, process)
+    ) {
       return
     }
 
@@ -502,15 +541,25 @@ export default function KanbanOffCanvas({
               {orderItems.map((item) => {
                 const firstPendingIndex = item.subProcesses.findIndex((process) => process.status !== 'done')
                 const currentProcessIndex = firstPendingIndex < 0 ? item.subProcesses.length : firstPendingIndex
+                const lanyardProgress = getLanyardProgress(item)
 
                 return (
                   <article className={styles.stepperGroup} key={item.id}>
-                    <h4>{item.product}</h4>
+                    <div className={styles.stepperGroupHeader}>
+                      <h4>{item.product}</h4>
+                      {isLanyardItem(item) && (
+                        <span className={styles.lanyardProgressBadge}>
+                          <strong>{Math.round(lanyardProgress.percentage)}%</strong>
+                          <small>{lanyardProgress.accumulatedQuantity} / {lanyardProgress.totalQuantity} lanyards</small>
+                        </span>
+                      )}
+                    </div>
                     <div className={styles.subProcessStepper}>
                       {item.subProcesses.map((process, index) => {
                         const isDone = process.status === 'done'
                         const isCurrent = isInProduction && index === currentProcessIndex
-                        const isLocked = !canCompleteSubprocess || !isInProduction || (!isDone && !isCurrent)
+                        const isPackagingBlocked = isLanyardPackagingBlocked(item, process)
+                        const isLocked = !canCompleteSubprocess || !isInProduction || (!isDone && !isCurrent) || isPackagingBlocked
                         const canRollback = canRollbackSubprocess && isInProduction && isDone && index === currentProcessIndex - 1
 
                         return (
@@ -537,6 +586,8 @@ export default function KanbanOffCanvas({
                               <strong>
                                 {isDone
                                   ? formatStatus(process.status)
+                                : isPackagingBlocked
+                                  ? 'Bloqueado hasta 100%'
                                   : isCurrent && isInProduction
                                     ? 'En curso'
                                     : 'Bloqueado'}

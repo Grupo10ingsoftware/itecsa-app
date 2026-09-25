@@ -16,7 +16,6 @@ const STAGE_BACKWARD_MESSAGE = 'No puedes retroceder en las etapas del pedido.'
 const KANBAN_EN_PRODUCCION_STEP = 2
 const KANBAN_LISTO_PRODUCCION_STEP = 1
 const KANBAN_REVISION_STEP = 6
-const LANYARD_DAILY_CAPACITY = 1200
 
 const baseColumns = [
   {
@@ -60,52 +59,111 @@ function parseDate(value) {
     return null
   }
 
+  const isoDateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+
+  if (isoDateMatch) {
+    const [, year, month, day] = isoDateMatch.map(Number)
+    const parsedDate = new Date(year, month - 1, day)
+
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+  }
+
+  const localDateMatch = String(value).match(/^(\d{2})-(\d{2})-(\d{4})$/)
+
+  if (localDateMatch) {
+    const [, day, month, year] = localDateMatch.map(Number)
+    const parsedDate = new Date(year, month - 1, day)
+
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+  }
+
   const date = new Date(value)
 
   if (!Number.isNaN(date.getTime())) {
     return date
   }
 
-  const [day, month, year] = String(value).split('-').map(Number)
-  const parsedDate = new Date(year, month - 1, day)
-
-  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+  return null
 }
 
-function isOrderDelayed(dueDate) {
+function startOfToday() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return today
+}
+
+function isBusinessDay(date) {
+  const day = date.getDay()
+
+  return day >= 1 && day <= 5
+}
+
+function countBusinessDaysUntil(dueDate) {
   const parsedDueDate = parseDate(dueDate)
 
   if (!parsedDueDate) {
-    return false
+    return null
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = startOfToday()
   parsedDueDate.setHours(0, 0, 0, 0)
 
-  return parsedDueDate < today
+  if (parsedDueDate < today) {
+    return -1
+  }
+
+  let businessDays = 0
+  const cursor = new Date(today)
+  cursor.setDate(cursor.getDate() + 1)
+
+  while (cursor <= parsedDueDate) {
+    if (isBusinessDay(cursor)) {
+      businessDays += 1
+    }
+
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return businessDays
+}
+
+function getDeliveryDelayStatus(dueDate) {
+  const businessDaysRemaining = countBusinessDaysUntil(dueDate)
+
+  if (businessDaysRemaining === null) {
+    return { status: 'neutral', businessDaysRemaining: null }
+  }
+
+  if (businessDaysRemaining <= 2) {
+    return { status: 'red', businessDaysRemaining }
+  }
+
+  if (businessDaysRemaining <= 5) {
+    return { status: 'yellow', businessDaysRemaining }
+  }
+
+  return { status: 'green', businessDaysRemaining }
+}
+
+function isOrderDelayed(dueDate) {
+  const businessDaysRemaining = countBusinessDaysUntil(dueDate)
+
+  return businessDaysRemaining !== null && businessDaysRemaining < 0
 }
 
 function isOrderUrgent(dueDate) {
-  const parsedDueDate = parseDate(dueDate)
+  const businessDaysRemaining = countBusinessDaysUntil(dueDate)
 
-  if (!parsedDueDate || isOrderDelayed(dueDate)) {
+  if (businessDaysRemaining === null || businessDaysRemaining < 0) {
     return false
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const daysUntilDue = Math.ceil((parsedDueDate - today) / 86_400_000)
-
-  return daysUntilDue <= 3
+  return businessDaysRemaining <= 3
 }
 
 function isPaymentConfirmed(order) {
   return order.paymentStatus === 'Confirmado' || Number(order.paymentStatusId) === 2
-}
-
-function isLanyardOrder(order) {
-  return String(order.product ?? '').toLowerCase().includes('lanyard')
 }
 
 function isLanyardItem(item) {
@@ -114,37 +172,6 @@ function isLanyardItem(item) {
 
 function toDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
-}
-
-function getQuantity(value) {
-  const quantity = Number(value)
-
-  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0
-}
-
-function getOrderQuantity(order) {
-  return getQuantity(order.quantity ?? order.cantidad)
-}
-
-function calculateOperationalLoad(orders, capacity = LANYARD_DAILY_CAPACITY) {
-  const lanyardsInProduction = orders
-    .filter((order) => Number(order.generalStepId) === KANBAN_EN_PRODUCCION_STEP && order.isProducing)
-    .reduce((total, order) => {
-      if (Array.isArray(order.items) && order.items.length > 0) {
-        return total + order.items
-          .filter(isLanyardItem)
-          .reduce((itemTotal, item) => itemTotal + getQuantity(item.quantity), 0)
-      }
-
-      return total + (isLanyardOrder(order) ? getOrderQuantity(order) : 0)
-    }, 0)
-  const percentage = capacity > 0 ? Math.round((lanyardsInProduction / capacity) * 100) : 0
-
-  return {
-    capacity,
-    lanyardsInProduction,
-    percentage,
-  }
 }
 
 function createItemFromDetail(detail, index) {
@@ -156,6 +183,7 @@ function createItemFromDetail(detail, index) {
     quantity: detail.cantidad ?? detail.quantity ?? null,
     dueDate: toDateKey(detail.fecha_estimada_termino ?? detail.dueDate),
     manufacturingDetails: detail.manufacturingDetails ?? null,
+    lanyardProgress: detail.lanyardProgress ?? null,
     subProcesses: Array.isArray(detail.subProcesses)
       ? detail.subProcesses
       : Array.isArray(detail.subprocesos)
@@ -188,6 +216,7 @@ function buildOrderItems(order, product, dueDate) {
       quantity: order.quantity ?? order.cantidad ?? null,
       dueDate,
       manufacturingDetails: order.manufacturingDetails ?? null,
+      lanyardProgress: order.lanyardProgress ?? null,
       subProcesses: Array.isArray(order.subProcesses)
         ? order.subProcesses
         : Array.isArray(order.subprocesos)
@@ -216,6 +245,7 @@ function normalizeOrder(order) {
     )
 
   const items = buildOrderItems(order, product, dueDate)
+  const deliveryDelay = getDeliveryDelayStatus(dueDate)
 
   return {
     id,
@@ -234,6 +264,8 @@ function normalizeOrder(order) {
       getColumnTitleByStepId(order.id_etapa_general),
     generalStepId: order.generalStepId ?? order.id_etapa_general,
     isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
+    delayStatus: order.delayStatus ?? deliveryDelay.status,
+    businessDaysRemaining: order.businessDaysRemaining ?? deliveryDelay.businessDaysRemaining,
     isUrgent: Boolean(order.isUrgent ?? order.urgente ?? (hasOrderLabel(order, ['Urgencia']) || isOrderUrgent(dueDate))),
     hasContractPriority: Boolean(
       order.hasContractPriority ??
@@ -371,6 +403,23 @@ function orderMatchesFilters(order, filters = {}) {
   return true
 }
 
+function getLanyardProgressPercentage(item) {
+  const progress = item?.lanyardProgress
+  const percentage = Number(progress?.percentage ?? progress?.progressPercentage ?? 0)
+
+  return Number.isFinite(percentage) ? percentage : 0
+}
+
+function isItemReadyForDelivery(item) {
+  if (isLanyardItem(item) && getLanyardProgressPercentage(item) < 100) {
+    return false
+  }
+
+  return Array.isArray(item.subProcesses) &&
+    item.subProcesses.length > 0 &&
+    item.subProcesses.every((process) => process.status === 'done')
+}
+
 function sortOrdersForColumn(orders, column, filters) {
   const activeFilters = hasActiveFilters(filters)
   const baseSortedOrders = [KANBAN_LISTO_PRODUCCION_STEP, KANBAN_EN_PRODUCCION_STEP].includes(Number(column.generalStepId))
@@ -470,7 +519,7 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
         </header>
 
         <div className={styles.operatorModalBody}>
-          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso de {order.clientName}.</p>
+          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso del pedido {order.nv}.</p>
           <label>
             <span>PIN</span>
             <input
@@ -543,7 +592,7 @@ function DroppableColumn({ id, accent, icon, count, children }) {
   )
 }
 
-function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationalLoadChange }) {
+function KanbanColumn({ filters, refreshKey = 0 }) {
   const [orders, setOrders] = useState([])
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
@@ -600,11 +649,7 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
     }
 
     loadOrders()
-  }, [kanbanApi])
-
-  useEffect(() => {
-    onOperationalLoadChange?.(calculateOperationalLoad(orders, capacity))
-  }, [capacity, onOperationalLoadChange, orders])
+  }, [kanbanApi, refreshKey])
 
   async function applyOrderMove(order, targetColumn, audit = {}) {
     const patch = await kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit)
@@ -630,10 +675,8 @@ function KanbanColumn({ capacity = LANYARD_DAILY_CAPACITY, filters, onOperationa
     if (!((currentStep === 1 && targetStep === 2) || (currentStep === 2 && targetStep === 3) || (currentStep === 3 && targetStep === 4))) {
       setMoveError('Esta transicion es automatica o no esta permitida.'); return
     }
-    if (targetStep === 3 && (!order.items?.length || order.items.some((item) =>
-      !item.subProcesses?.length || item.subProcesses.some((process) => process.status !== 'done')
-    ))) {
-      setMoveError('Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.')
+    if (targetStep === 3 && (!order.items?.length || order.items.some((item) => !isItemReadyForDelivery(item)))) {
+      setMoveError('Todos los detalles deben completar sus subprocesos y los lanyards deben llegar al 100% antes de pasar a Listo para Entrega.')
       return
     }
     const isForwardMove = targetStep > currentStep

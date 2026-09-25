@@ -105,7 +105,7 @@ export default function AppRouter() {
               element={
                 <RoleGuard
                   requiredPermission={PERMISSIONS.VIEW_METRICS}
-                  requiredRoles={[ROLES.ADMINISTRADOR, ROLES.GERENCIA]}
+                  requiredRoles={[ROLES.ADMINISTRADOR, ROLES.GERENCIA, ROLES.SOPORTE]}
                 >
                   <MetricsPage />
                 </RoleGuard>

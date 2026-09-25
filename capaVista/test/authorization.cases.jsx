@@ -17,6 +17,10 @@ export function run() {
   assert.equal(html.includes('contenido-autorizado'),allowed.includes(role),`${path} ${role}`);count++
  }
  for(const role of Object.values(ROLES)) {
+  const html=renderToStaticMarkup(<MemoryRouter initialEntries={['/metricas']}><AuthContext.Provider value={context(role)}><RoleGuard requiredPermission="view:metrics" requiredRoles={[AP,ROLES.GERENCIA,S]}><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
+  assert.equal(html.includes('contenido-autorizado'),[AP,ROLES.GERENCIA,S].includes(role),`/metricas ${role}`);count++
+ }
+ for(const role of Object.values(ROLES)) {
   assert.equal(manageableRoles(role).includes(S),false);count++
   const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(role,[])}><RoleGuard requiredPermission="read:orders"><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
   assert.equal(html.includes('contenido-autorizado'),false);count++

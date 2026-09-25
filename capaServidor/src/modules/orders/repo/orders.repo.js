@@ -211,49 +211,65 @@ function mapOrderComments(order) {
   };
 }
 
-function mapOrderRow(order, paymentStatusName = null) {
+function toOrderSummaryDTO(order, paymentStatusName = null) {
   if (!order) return null;
-  const mappedComments = mapOrderComments(order);
 
-  const {
-    Cliente,
-    Detalle_pedido,
-    Estado_Pedido,
-    Estado_Pago,
-    Pedido_Etiqueta,
-    Pedido_Item_Sin_Seguimiento,
-    ...orderFields
-  } = order;
+  const mappedComments = mapOrderComments(order);
+  const detallePedido = Array.isArray(order.Detalle_pedido) ? order.Detalle_pedido : [];
+  const totalProductNames = detallePedido.length > 0 ? uniqueProductNames(detallePedido) : undefined;
+  const descripcionProducto = detallePedido.length > 0 ? uniqueProductDescriptions(detallePedido) : undefined;
+  const quantityTotal = detallePedido.length > 0 ? totalQuantity(detallePedido) : null;
 
   return {
-    ...orderFields,
-    nombre_cliente: Cliente?.nombre_cliente ?? null,
-    rut_cliente: Cliente?.rut_cliente ?? null,
-    razon_social: Cliente?.razon_social ?? null,
-    nombre_producto: Detalle_pedido ? uniqueProductNames(Detalle_pedido) : undefined,
-    product: Detalle_pedido ? uniqueProductNames(Detalle_pedido) : undefined,
-    descripcion_producto: Detalle_pedido
-      ? uniqueProductDescriptions(Detalle_pedido)
-      : undefined,
-    cantidad: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
-    quantity: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
-    detalles: Array.isArray(Detalle_pedido)
-      ? Detalle_pedido.map(mapOrderDetail)
+    id: order.id_pedido ?? null,
+    id_pedido: order.id_pedido ?? null,
+    numero_nota_venta: order.numero_nota_venta ?? null,
+    fecha_creacion: order.fecha_creacion ?? null,
+    fecha_estimada_termino: order.fecha_estimada_termino ?? null,
+    dueDate: order.fecha_estimada_termino ?? null,
+    id_cliente: order.id_cliente ?? null,
+    id_usuario: order.id_usuario ?? null,
+    usuario_manager_origen: order.usuario_manager_origen ?? null,
+    nombre_cliente: order.Cliente?.nombre_cliente ?? null,
+    rut_cliente: order.Cliente?.rut_cliente ?? null,
+    razon_social: order.Cliente?.razon_social ?? null,
+    nombre_producto: totalProductNames,
+    product: totalProductNames,
+    descripcion_producto: descripcionProducto,
+    cantidad: quantityTotal,
+    quantity: quantityTotal,
+    detalles: detallePedido.map(mapOrderDetail),
+    id_etapa_general: order.Estado_Pedido?.orden_kanban ?? null,
+    generalStepId: order.Estado_Pedido?.orden_kanban ?? null,
+    nombre_etapa_general: order.Estado_Pedido?.nombre_etapa ?? null,
+    id_estado_pago: order.id_estado_pago ?? null,
+    paymentStatusId: order.id_estado_pago ?? null,
+    id_estado_pedido: order.id_estado_pedido ?? null,
+    estado_pago: paymentStatusName ?? order.Estado_Pago?.nombre_estado_pago ?? null,
+    paymentStatus: paymentStatusName ?? order.Estado_Pago?.nombre_estado_pago ?? null,
+    etiquetas: Array.isArray(order.Pedido_Etiqueta)
+      ? order.Pedido_Etiqueta.map((item) => item.etiqueta).filter(Boolean)
       : [],
-    id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
-    generalStepId: Estado_Pedido?.orden_kanban ?? null,
-    nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
-    estado_pago: paymentStatusName ?? Estado_Pago?.nombre_estado_pago ?? null,
-    paymentStatus: paymentStatusName ?? Estado_Pago?.nombre_estado_pago ?? null,
-    etiquetas: Array.isArray(Pedido_Etiqueta)
-      ? Pedido_Etiqueta.map((item) => item.etiqueta).filter(Boolean)
-      : [],
-    itemsSinSeguimientoProductivo: Array.isArray(Pedido_Item_Sin_Seguimiento)
-      ? Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
+    itemsSinSeguimientoProductivo: Array.isArray(order.Pedido_Item_Sin_Seguimiento)
+      ? order.Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
     comments: mappedComments.all,
     commentGroups: mappedComments,
   };
+}
+
+function toOrderDetailDTO(order, paymentStatusName = null) {
+  if (!order) return null;
+
+  return {
+    ...toOrderSummaryDTO(order, paymentStatusName),
+    observacion_origen: order.observacion_origen ?? null,
+    observacion_interna: order.observacion_interna ?? null,
+  };
+}
+
+function mapOrderRow(order, paymentStatusName = null) {
+  return toOrderSummaryDTO(order, paymentStatusName);
 }
 
 function mapPaymentOrderRow(order) {
@@ -276,46 +292,97 @@ function mapPaymentOrderRow(order) {
   };
 }
 
-const orderReadInclude = {
-  Cliente: true,
+const orderReadSelect = {
+  id_pedido: true,
+  id_cliente: true,
+  id_usuario: true,
+  id_estado_pedido: true,
+  id_estado_pago: true,
+  numero_nota_venta: true,
+  fecha_creacion: true,
+  fecha_estimada_termino: true,
+  observacion_origen: true,
+  observacion_interna: true,
+  usuario_manager_origen: true,
+  Cliente: {
+    select: {
+      nombre_cliente: true,
+      rut_cliente: true,
+      razon_social: true,
+    },
+  },
   Detalle_pedido: {
-    include: {
+    select: {
+      id_detalle_pedido: true,
+      id_tipo_producto: true,
+      cantidad: true,
+      fecha_estimada_termino: true,
+      fecha_real_termino: true,
+      id_estado_subproceso: true,
       Tipo_Producto: {
-        include: {
+        select: {
+          nombre_producto: true,
+          descripcion_producto: true,
           Producto_Subproceso: {
-            include: {
-              Estado_Subprocesos: true,
-            },
-            orderBy: {
-              orden_flujo: "asc",
+            orderBy: { orden_flujo: "asc" },
+            select: {
+              id_estado_subproceso: true,
+              orden_flujo: true,
+              Estado_Subprocesos: { select: { nombre_estado: true } },
             },
           },
         },
       },
-      Estado_Subprocesos: true,
+      Estado_Subprocesos: { select: { nombre_estado: true } },
       Avance_Lanyard: {
         orderBy: [
           { fecha_produccion: "desc" },
           { id_avance_lanyard: "desc" },
         ],
         take: 1,
+        select: {
+          cantidad_acumulada: true,
+          porcentaje_acumulado: true,
+          fecha_actualizacion: true,
+          fecha_produccion: true,
+        },
       },
     },
   },
-  Estado_Pedido: true,
-  Estado_Pago: true,
+  Estado_Pedido: { select: { orden_kanban: true, nombre_etapa: true } },
+  Estado_Pago: { select: { nombre_estado_pago: true } },
   Pedido_Etiqueta: {
-    include: {
-      etiqueta: true,
+    select: {
+      etiqueta: {
+        select: {
+          id_etiqueta: true,
+          nombre_etiqueta: true,
+        },
+      },
     },
   },
-  Pedido_Item_Sin_Seguimiento: true,
+  Pedido_Item_Sin_Seguimiento: {
+    select: {
+      id_item_sin_seguimiento: true,
+      codigo: true,
+      producto: true,
+      cantidad: true,
+      subfamilia: true,
+    },
+  },
   Registros: {
     where: {
       observacion: { not: null },
       registro_subprocesos: { isNot: null },
     },
-    include: {
+    orderBy: [
+      { FECHA_HORA: "asc" },
+      { ID_REGISTRO: "asc" },
+    ],
+    select: {
+      ID_REGISTRO: true,
+      FECHA_HORA: true,
+      observacion: true,
       Usuario: {
         select: {
           nombre_usuario: true,
@@ -324,20 +391,18 @@ const orderReadInclude = {
         },
       },
       registro_subprocesos: {
-        include: {
-          Estado_Subprocesos: true,
+        select: {
+          Estado_Subprocesos: { select: { nombre_estado: true } },
           Detalle_pedido: {
-            include: {
-              Tipo_Producto: true,
+            select: {
+              Tipo_Producto: {
+                select: { nombre_producto: true },
+              },
             },
           },
         },
       },
     },
-    orderBy: [
-      { FECHA_HORA: "asc" },
-      { ID_REGISTRO: "asc" },
-    ],
   },
 };
 
@@ -357,7 +422,7 @@ class OrderRepository {
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
-      include: orderReadInclude,
+      select: orderReadSelect,
     });
   }
 
@@ -372,7 +437,7 @@ class OrderRepository {
 
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
-      include: orderReadInclude,
+      select: orderReadSelect,
       orderBy: { id_pedido: "desc" },
     });
 
@@ -431,10 +496,10 @@ class OrderRepository {
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      include: orderReadInclude,
+      select: orderReadSelect,
     });
 
-    return mapOrderRow(order);
+    return toOrderDetailDTO(order);
   }
 
   async getTransitionState(id) {

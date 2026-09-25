@@ -7,7 +7,7 @@ test("lista pedidos sin depender de Documento/Nota_Venta legacy", async () => {
     prisma: {
       pedidos: {
         async findMany(query) {
-          assert.equal(query.include.Documento, undefined);
+          assert.equal(query.include, undefined);
           return [
             {
               id_pedido: 1,

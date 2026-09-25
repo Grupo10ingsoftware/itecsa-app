@@ -5,6 +5,39 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim().toLocaleLowerCase("es") : "";
 }
 
+function toUserSummary(user) {
+  if (!user) return null;
+
+  return {
+    id_usuario: user.id_usuario ?? null,
+    nombre_usuario: user.nombre_usuario ?? null,
+    apellido_usuario: user.apellido_usuario ?? null,
+  };
+}
+
+function toPaymentRecordDTO(record) {
+  if (!record) return null;
+
+  const registry = record.Registros ?? {};
+  const previousStatus =
+    record.Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago
+      ?.nombre_estado_pago ?? null;
+  const nextStatus =
+    record.Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago
+      ?.nombre_estado_pago ?? null;
+
+  return {
+    id_registro: record.id_registro ?? registry.ID_REGISTRO ?? null,
+    id_pedido: registry.id_pedido ?? null,
+    fecha_registro: record.fecha_registro ?? registry.FECHA_HORA ?? null,
+    observacion: record.observacion ?? registry.observacion ?? null,
+    estado_anterior: previousStatus,
+    estado_nuevo: nextStatus,
+    id_usuario: registry.id_usuario ?? null,
+    usuario: toUserSummary(registry.Usuario),
+  };
+}
+
 function resolveSalesNoteItems(details = [], salesNoteItems = []) {
   const availableItems = salesNoteItems.map((item, index) => ({ item, index }));
   const usedIndexes = new Set();
@@ -91,7 +124,7 @@ class PaymentRecordService {
       throw error;
     }
 
-    return record;
+    return toPaymentRecordDTO(record);
   }
 
   async getPaymentRecordsByOrderId(orderId) {
@@ -101,7 +134,8 @@ class PaymentRecordService {
       throw error;
     }
 
-    return this.repo.getByOrderId(orderId);
+    const records = await this.repo.getByOrderId(orderId);
+    return records.map(toPaymentRecordDTO);
   }
 
   async getConfirmationDetails(orderId) {

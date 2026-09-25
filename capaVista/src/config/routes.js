@@ -76,7 +76,7 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     label: 'Métricas',
     path: APP_ROUTES.METRICS,
     permission: PERMISSIONS.VIEW_METRICS,
-    requiredRoles: [ROLES.ADMINISTRADOR,ROLES.GERENCIA],
+    requiredRoles: [ROLES.ADMINISTRADOR,ROLES.GERENCIA,ROLES.SOPORTE],
     requirementIds: Object.freeze(['RF71']),
   }
 ])

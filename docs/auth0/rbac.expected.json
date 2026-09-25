@@ -96,6 +96,9 @@
       {
         "value": "update:order-delivery-date",
         "description": "RF51 y decisión del usuario: PIN obligatorio"
+      },
+      {
+        "value": "view:metrics"
       }
     ]
   },
@@ -207,7 +210,8 @@
       "review:orders",
       "cancel:orders",
       "read:production-calendar",
-      "update:order-delivery-date"
+      "update:order-delivery-date",
+      "view:metrics"
     ]
   }
 }

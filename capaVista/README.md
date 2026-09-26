@@ -54,7 +54,7 @@ No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda dis
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, con audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
+- API `ITECSA API`: audience `https://api.itecsa.local`, firma `RS256` y RBAC con permisos en el access token. Catálogo y asignaciones: [matriz vigente](../docs/auth0/RBAC-PERMISOS-POR-ROL.md), generada desde `shared/authorization.js`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador Produccion`, `Soporte`, `Gerencia`, `Operario Produccion`, `Operario Ventas` y `Operario Cobranzas`.
@@ -83,7 +83,7 @@ El frontend no lee `app_metadata.rolUsuario` ni decide autorizacion efectiva. La
 
 1. Crear el permiso en la API `ITECSA API` dentro de Auth0 y asignarlo al rol correspondiente en Auth0 RBAC.
 2. Definir el mismo permiso en `src/config/permissions.js`; crear el permiso en Auth0 no basta si la SPA no lo consume.
-3. Separar permisos de vista y permisos de accion. Ejemplo: `view:payments-module` permite entrar a `/pagos`, pero `update:payment-status` permite cambiar estados de pago.
+3. El acceso a `/pagos` requiere `read:payments`; cambiar estados requiere `update:payment-status`. Kanban usa `read:orders` y Métricas usa `view:metrics`.
 4. Proteger rutas con `RoleGuard` cuando el permiso controle acceso a una vista completa.
 5. Consultar `hasPermission(...)` desde `useAuth()` cuando el permiso controle botones, modales, formularios o acciones dentro de una vista compartida.
 6. Bloquear tambien los handlers de la accion, no solo deshabilitar u ocultar botones. Si el usuario no tiene permiso, no debe abrir menus, modales ni ejecutar cambios aunque el evento se dispare por accidente.

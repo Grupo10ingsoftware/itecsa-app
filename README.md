@@ -96,7 +96,7 @@ Recursos Auth0 esperados/configurados para esta rama:
 
 - SPA: `ITECSA Frontend Local`.
 - API: `ITECSA API`, audience `https://api.itecsa.local`.
-- API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
+- API `ITECSA API`: audience `https://api.itecsa.local`, firma `RS256` y RBAC con permisos en el access token. Catálogo y asignaciones: [matriz vigente](docs/auth0/RBAC-PERMISOS-POR-ROL.md), generada desde `shared/authorization.js`.
 - M2M backend: `ITECSA Backend Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.

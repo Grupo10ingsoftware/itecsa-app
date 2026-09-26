@@ -134,7 +134,7 @@ La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar 
 ## Recursos Auth0 Esperados
 
 - SPA: `ITECSA Frontend Local`.
-- API: `ITECSA API`, con audience `https://api.itecsa.local`, firma `RS256` y scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
+- API `ITECSA API`: audience `https://api.itecsa.local`, firma `RS256` y RBAC con permisos en el access token. Catálogo y asignaciones: [matriz vigente](../docs/auth0/RBAC-PERMISOS-POR-ROL.md), generada desde `shared/authorization.js`.
 - M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
 - Conexion Database: `Username-Password-Authentication`, administrada por Auth0.

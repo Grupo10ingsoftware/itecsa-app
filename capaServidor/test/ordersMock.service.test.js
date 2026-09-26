@@ -280,6 +280,8 @@ test("rechazar un pago confirmado y listo para produccion cancela el pedido", as
     assert.equal(order.estado_pago, PAYMENT_STATUS.RECHAZADO);
     assert.equal(order.id_etapa_general, 5);
     assert.equal(paymentRecords.length, 1);
+    assert.equal(paymentRecords[0].id_estado_pago_anterior, 2);
+    assert.equal(paymentRecords[0].id_estado_pago, 3);
     assert.equal(productionNotifications.length, 1);
     assert.equal(
         productionNotifications[0].subject,

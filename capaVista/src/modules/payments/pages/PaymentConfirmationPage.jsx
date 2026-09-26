@@ -523,6 +523,7 @@ export default function PaymentConfirmationPage() {
 
       {credentialsTransition && (
         <PaymentCredentialsModal
+          key={`${credentialsTransition.order.id}:${credentialsTransition.targetStatus}`}
           isSubmitting={isUpdatingPaymentStatus}
           onCancel={closeCredentialsValidation}
           onConfirm={completeCredentialsValidation}

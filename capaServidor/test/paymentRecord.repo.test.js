@@ -84,7 +84,8 @@ test("consulta el detalle del modal en una sola lectura parametrizada", async ()
   const source = await repo.getConfirmationSource(33);
 
   assert.match(query, /LEFT JOIN Detalle_pedido/);
-  assert.deepEqual(values, [33]);
+  assert.match(values[0].strings.join(""), /dp\.codigo_origen/);
+  assert.equal(values[1], 33);
   assert.equal(source.Usuario.correo_usuario, "vendedor@itecsa.cl");
   assert.deepEqual(source.Detalle_pedido, [
     {

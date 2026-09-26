@@ -111,7 +111,7 @@ El tenant usa Classic Universal Login con template personalizado. En desarrollo,
 
 - No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
 - No ejecutar migraciones destructivas, `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` contra la base existente sin una decision explicita del equipo.
-- No conectar `/ordenes/nuevo` a la creacion real de pedidos hasta definir el contrato frontend-backend para archivos y Nota de Venta.
+- `/ordenes/nuevo` ya llama a `POST /api/orders`, pero la fuente de Nota de Venta es un fixture. No usarlo como alta real hasta integrar Manager y conciliar/aplicar la migracion de Orders segun [el procedimiento](docs/ORDERS_MIGRACION.md). El flujo documental de archivos no forma parte del alta vigente.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

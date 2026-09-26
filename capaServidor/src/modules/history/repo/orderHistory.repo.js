@@ -1,4 +1,5 @@
 import getPrismaClient from "../../../database/prisma.js";
+import { snapshotOmit, supportsOrderSnapshots } from "../../orders/repo/orderSnapshotSchema.js";
 
 const orderSummarySelect = {
     id_pedido: true,
@@ -127,10 +128,30 @@ export default class OrderHistoryRepository {
         return { orders, total };
     }
 
-    getById(orderId) {
+    async getById(orderId) {
+        const omit = snapshotOmit(await supportsOrderSnapshots(this.client));
         return this.client.pedidos.findUnique({
             where: { id_pedido: Number(orderId) },
-            include: orderDetailInclude,
+            include: {
+                ...orderDetailInclude,
+                Detalle_pedido: { ...orderDetailInclude.Detalle_pedido, ...omit },
+                Registros: {
+                    ...orderDetailInclude.Registros,
+                    include: {
+                        ...orderDetailInclude.Registros.include,
+                        registro_subprocesos: {
+                            ...orderDetailInclude.Registros.include.registro_subprocesos,
+                            include: {
+                                ...orderDetailInclude.Registros.include.registro_subprocesos.include,
+                                Detalle_pedido: {
+                                    ...orderDetailInclude.Registros.include.registro_subprocesos.include.Detalle_pedido,
+                                    ...omit,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         });
     }
 }

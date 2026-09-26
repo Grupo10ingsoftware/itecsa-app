@@ -1,4 +1,4 @@
-import { sendOrderError } from "../service/salesOrder.errors.js";
+import { sendOrderError, sendOrderOperationError } from "../service/salesOrder.errors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
@@ -26,9 +26,7 @@ class OrderController {
             const workspace = await this.service.getPaymentWorkspace();
             res.status(200).json(workspace);
         } catch (error) {
-            res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al obtener pedidos de cobranza',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -100,11 +98,7 @@ class OrderController {
 
             res.status(200).json(result);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al actualizar el pedido',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -132,13 +126,10 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            const statusCode =
-                error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE
-                    ? 409
-                    : error.statusCode ?? 500;
-            res.status( statusCode ).json({
-                message: error.message || 'Error al actualizar el pedido',
-            })
+            if (error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE) {
+                return res.status(409).json({ message: error.message });
+            }
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -151,9 +142,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al enviar el pedido a revision',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -166,9 +155,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al cancelar la produccion',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -179,9 +166,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al reevaluar el pedido',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -191,7 +176,7 @@ class OrderController {
                 auth0UserId: req.auth?.payload?.sub,
             }));
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({ message: error.message || 'Error al actualizar etiqueta' });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -206,11 +191,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al actualizar fecha de entrega',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -231,11 +212,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al completar subproceso',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 
@@ -248,9 +225,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al retroceder el subproceso',
-            });
+            return sendOrderOperationError(res, error);
         }
     }
 

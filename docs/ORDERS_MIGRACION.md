@@ -1,7 +1,57 @@
 # Orders: procedimiento de migracion pendiente
 
-Estado: preparacion local. No se ha conectado ni migrado una base de datos.
+Estado al 26-09-2026: se inspecciono en solo lectura la base configurada `mydb`.
+No se ha ejecutado ninguna migracion ni SQL de escritura desde el trabajo de
+diagnostico. El responsable identifico la conexion como compartida o productiva;
+el DDL sigue pendiente.
 La persona responsable del producto confirmo que la NV es unica globalmente.
+
+El codigo ahora detecta si faltan las cinco columnas de snapshot y omite esos
+campos en lecturas y escrituras mientras no se aplique el DDL. Esto restablece
+Kanban, el alta y las lecturas relacionadas, pero los nuevos detalles creados
+en el esquema antiguo no conservan codigo y descripcion de origen. No sustituye
+la migracion ni su indice unico. La nota 24886, inicialmente disponible, aparecio
+registrada como pedido 73 con un detalle y una etapa de auditoria durante la
+verificacion de la correccion. Reiniciar el backend despues de aplicar el DDL
+para que vuelva a detectar el esquema completo.
+
+## Incidente reproducido en `mydb`
+
+- La misma lectura que alimenta Kanban (`OrderRepository.getAllOrders`) falla con
+  Prisma `P2022`. Faltan fisicamente las cinco columnas de snapshot que selecciona.
+- El alta nueva tambien intenta escribir esas columnas; su transaccion no puede
+  completarse en el esquema actual. No se ejecuto POST real para evitar alterar datos.
+- Hay 40 pedidos y 61 detalles. Los 40 pedidos tienen NV; no se detectaron NV
+  vacias, alias `NV-AAAA-` ni grupos duplicados tras canonicalizar. La columna NV
+  usa `utf8mb3_general_ci` y no tiene indice. No hay triggers en las cuatro tablas
+  de alta inspeccionadas. Estados iniciales 1, tipos productivos y etiquetas de
+  prioridad existen.
+- El motor de la conexion inspeccionada informa MySQL 8.4.8.
+- 34 de los 40 pedidos estan en etapas que el filtro actual del Kanban muestra;
+  los otros 6 estan Cancelado. Por tanto, una vez reparada la consulta, la lista
+  no deberia quedar vacia por falta de datos.
+- El fixture tiene 60 notas: 40 ya registradas y 20 disponibles. Una NV real
+  fuera del fixture seguira sin poder cargarse incluso despues del DDL. Falta la
+  integracion Manager; `Nota_Venta` tampoco existe como tabla fisica alternativa.
+- `_prisma_migrations` registra `0_init` y tres migraciones de agosto. Las
+  migraciones de septiembre presentes en el repositorio no figuran aplicadas,
+  aunque `Registros.observacion` y `Tipo_Producto.capacidad_diaria` ya existen
+  fisicamente. La consulta agregada tampoco encontro filas con los nombres de
+  rol antiguos cubiertos por las migraciones de septiembre. Por eso **no ejecutar
+  `prisma migrate deploy` a ciegas**: la
+  migracion de capacidad contiene `ADD COLUMN` sin `IF NOT EXISTS` y podria
+  fallar antes de alcanzar la migracion Orders. Primero hay que reconciliar
+  historial y esquema en una copia, con el responsable de la base.
+- `prisma migrate status` confirmó la divergencia: seis migraciones locales
+  pendientes (cinco de septiembre y la de Orders) y tres migraciones aplicadas
+  en la base cuyos archivos no están en el repositorio. El último ancestro común
+  es `0_init`. Hay que recuperar esos tres archivos históricos o establecer un
+  baseline reconciliado antes de usar el flujo normal de Prisma Migrate.
+
+Desde `capaServidor`, `npm run orders:preflight` reproduce lecturas y metadatos
+sin escribir datos ni mostrar clientes. Marca el esquema como no listo y sale
+con codigo no cero cuando faltan estructuras; tras un despliegue controlado
+debe salir con codigo 0.
 
 ## Antes de aplicar
 

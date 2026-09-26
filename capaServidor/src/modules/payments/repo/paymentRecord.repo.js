@@ -1,4 +1,6 @@
 import getPrismaClient from "../../../database/prisma.js";
+import { Prisma } from "@prisma/client";
+import { supportsOrderSnapshots } from "../../orders/repo/orderSnapshotSchema.js";
 
 const paymentRecordSelect = {
   id_registro: true,
@@ -115,6 +117,9 @@ class PaymentRecordRepo {
   }
 
   async getConfirmationSource(orderId) {
+    const snapshotColumns = (await supportsOrderSnapshots(this.client))
+      ? Prisma.raw("dp.linea_origen, dp.codigo_origen, dp.producto_origen")
+      : Prisma.raw("NULL AS linea_origen, NULL AS codigo_origen, NULL AS producto_origen");
     const rows = await this.client.$queryRaw`
       SELECT
         p.id_pedido,
@@ -125,9 +130,7 @@ class PaymentRecordRepo {
         u.correo_usuario,
         dp.id_detalle_pedido,
         dp.cantidad,
-        dp.linea_origen,
-        dp.codigo_origen,
-        dp.producto_origen,
+        ${snapshotColumns},
         tp.nombre_producto,
         tp.descripcion_producto
       FROM Pedidos p

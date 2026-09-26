@@ -12,6 +12,7 @@
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:status": "prisma migrate status",
+    "orders:preflight": "node scripts/ordersPreflight.mjs",
     "prisma:studio": "prisma studio"
   },
   "keywords": [],

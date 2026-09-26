@@ -23,6 +23,17 @@ export function sendOrderError(res, error, logger = console) {
   }
   const reference = randomUUID();
   // No registrar cuerpos, SQL, mensajes de dependencias ni datos del cliente.
-  logger.error({ event: "orders.unexpected_error", reference });
+  const databaseCode = typeof error?.code === "string" && /^P\d{4}$/.test(error.code)
+    ? error.code
+    : null;
+  logger.error({ event: "orders.unexpected_error", reference, ...(databaseCode ? { databaseCode } : {}) });
   return res.status(500).json({ message: "No fue posible completar la operacion del pedido.", reference });
+}
+
+export function sendOrderOperationError(res, error, logger = console) {
+  const statusCode = error?.statusCode;
+  if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500) {
+    return res.status(statusCode).json({ message: error.message || "No fue posible completar la operacion." });
+  }
+  return sendOrderError(res, error, logger);
 }

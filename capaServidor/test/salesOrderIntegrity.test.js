@@ -201,6 +201,18 @@ test("errores inesperados no exponen mensaje ni datos; logger solo recibe correl
   assert.equal(logs[0].reference, payload.reference);
 });
 
+test("el log de un error Prisma conserva solo el codigo diagnostico seguro", () => {
+  const logs = [];
+  const res = { status() { return this; }, json() { return this; } };
+  const error = new Error("SQL privado del cliente");
+  error.code = "P2022";
+  error.meta = { table: "Detalle_pedido", column: "producto_origen" };
+  sendOrderError(res, error, { error: (value) => logs.push(value) });
+  assert.equal(logs[0].databaseCode, "P2022");
+  assert.equal(JSON.stringify(logs).includes("producto_origen"), false);
+  assert.equal(JSON.stringify(logs).includes("SQL privado"), false);
+});
+
 test("controlador transmite actor verificado y conserva errores de dominio", async () => {
   let options, status, payload;
   const controller = new OrderController({ service: { async createOrder(_body, context) {

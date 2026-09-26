@@ -1,6 +1,7 @@
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
 import { createLineSnapshots } from "../service/salesOrder.snapshot.js";
+import { missingSnapshotOmit, snapshotData, snapshotOmit, supportsOrderSnapshots } from "./orderSnapshotSchema.js";
 
 
 const ORDER_UPDATE_FIELDS = new Set([
@@ -419,6 +420,17 @@ const orderReadSelect = {
   },
 };
 
+const legacyDetailSelect = { ...orderReadSelect.Detalle_pedido.select };
+for (const column of Object.keys(missingSnapshotOmit)) delete legacyDetailSelect[column];
+const legacyOrderReadSelect = {
+  ...orderReadSelect,
+  Detalle_pedido: { ...orderReadSelect.Detalle_pedido, select: legacyDetailSelect },
+};
+
+async function readSelect(client) {
+  return (await supportsOrderSnapshots(client)) ? orderReadSelect : legacyOrderReadSelect;
+}
+
 class OrderRepository {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -435,7 +447,7 @@ class OrderRepository {
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
   }
 
@@ -450,7 +462,7 @@ class OrderRepository {
 
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
-      select: orderReadSelect,
+      select: await readSelect(this.client),
       orderBy: { id_pedido: "desc" },
     });
 
@@ -509,7 +521,7 @@ class OrderRepository {
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
 
     return toOrderDetailDTO(order);
@@ -845,9 +857,10 @@ class OrderRepository {
   }
 
   async reevaluateFromSalesNote({ orderId, salesNote, userId }) {
+    const snapshotsSupported = await supportsOrderSnapshots(this.client);
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(orderId) },
-      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" } } },
+      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" }, ...snapshotOmit(snapshotsSupported) } },
     });
     if (!order) return null;
 
@@ -883,18 +896,19 @@ class OrderRepository {
       if (existing) {
         await this.client.detalle_pedido.update({
           where: { id_detalle_pedido: existing.id_detalle_pedido },
-          data: { ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate },
+          data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate }, snapshotsSupported),
+          ...snapshotOmit(snapshotsSupported),
         });
       } else {
         const first = await this.client.producto_Subproceso.findFirst({
           where: { id_tipo_producto: type.id_tipo_producto }, orderBy: { orden_flujo: "asc" },
         });
         await this.client.detalle_pedido.create({ data: {
-          ...snapshots[index],
+          ...snapshotData(snapshots[index], snapshotsSupported),
           id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
           cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
           id_estado_subproceso: first?.id_estado_subproceso ?? null,
-        } });
+        }, ...snapshotOmit(snapshotsSupported) });
       }
     }
 
@@ -1087,6 +1101,7 @@ class OrderRepository {
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: {
         id_pedido: Number(orderId),
         id_detalle_pedido: Number(detailId),
@@ -1241,6 +1256,7 @@ class OrderRepository {
   async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });

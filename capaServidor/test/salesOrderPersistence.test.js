@@ -91,9 +91,9 @@ test("lectura posterior conserva codigo y descripcion y no sustituye el tipo pro
 });
 
 test("consulta parametrizada de Cobranzas transporta los campos de snapshot", async () => {
-  const repo = new PaymentRecordRepo({ prisma: { async $queryRaw(strings, id) {
+  const repo = new PaymentRecordRepo({ prisma: { async $queryRaw(strings, snapshotFields, id) {
     assert.equal(id, 1);
-    assert.match(strings.join("?"), /dp\.codigo_origen/);
+    assert.match(snapshotFields.strings.join(""), /dp\.codigo_origen/);
     return [{ id_pedido: 1, id_detalle_pedido: 2, cantidad: 2,
       linea_origen: "version:0", codigo_origen: "SKU-A", producto_origen: "Producto A" }];
   } } });

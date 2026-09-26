@@ -521,13 +521,15 @@ export default function PaymentConfirmationPage() {
         targetStatus={pendingTransition?.targetStatus}
       />
 
-      <PaymentCredentialsModal
-        isSubmitting={isUpdatingPaymentStatus}
-        onCancel={closeCredentialsValidation}
-        onConfirm={completeCredentialsValidation}
-        order={credentialsTransition?.order}
-        targetStatus={credentialsTransition?.targetStatus}
-      />
+      {credentialsTransition && (
+        <PaymentCredentialsModal
+          isSubmitting={isUpdatingPaymentStatus}
+          onCancel={closeCredentialsValidation}
+          onConfirm={completeCredentialsValidation}
+          order={credentialsTransition.order}
+          targetStatus={credentialsTransition.targetStatus}
+        />
+      )}
     </main>
   )
 }

@@ -62,7 +62,11 @@ function createService(overrides = {}) {
                 return order ? { ...order, id_estado_pedido: order.id_etapa_general + 1 } : null;
             },
             async getPaymentOrder(orderId) {
-                return findOrder(orderId) ?? null;
+                const order = findOrder(orderId);
+                return order ? { ...order } : null;
+            },
+            async lockPaymentOrder(orderId) {
+                return Boolean(findOrder(orderId));
             },
             async getPaymentOrders() {
                 return orders.map((order) => ({ ...order }));
@@ -156,6 +160,37 @@ function createService(overrides = {}) {
     });
 }
 
+function synchronizePaymentTransactions(service) {
+    const read = service.repo.getPaymentOrder.bind(service.repo);
+    let initialReads = 0;
+    let releaseInitialReads;
+    const bothInitialReads = new Promise((resolve) => { releaseInitialReads = resolve; });
+    service.repo.getPaymentOrder = async (orderId) => {
+        const snapshot = await read(orderId);
+        if (++initialReads <= 2) {
+            if (initialReads === 2) releaseInitialReads();
+            await bothInitialReads;
+        }
+        return snapshot;
+    };
+
+    let transactionTail = Promise.resolve();
+    service.runInTransaction = async (callback) => {
+        const previous = transactionTail;
+        let release;
+        transactionTail = new Promise((resolve) => { release = resolve; });
+        await previous;
+        try {
+            return await callback({
+                repo: service.repo,
+                paymentRecordService: service.paymentRecordService,
+            });
+        } finally {
+            release();
+        }
+    };
+}
+
 test("carga pedidos y estados del espacio de cobranzas en paralelo", async () => {
     const service = createService();
     const workspace = await service.getPaymentWorkspace();
@@ -184,6 +219,7 @@ test("al confirmar pago mueve la orden a Listo para produccion", async () => {
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 2,
             observacion: undefined,
         },
@@ -213,6 +249,7 @@ test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 3,
             observacion: undefined,
         },
@@ -309,6 +346,39 @@ test("no registra auditoria si el pago ya estaba confirmado", async () => {
     assert.deepEqual(paymentRecords, []);
 });
 
+test("dos decisiones concurrentes sobre Pendiente dejan solo una auditoria", async () => {
+    const service = createService();
+    synchronizePaymentTransactions(service);
+
+    const [confirmed, rejected] = await Promise.allSettled([
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+        service.updPaymentState(1, 3, { id_usuario: 10 }),
+    ]);
+
+    assert.equal(confirmed.status, "fulfilled");
+    assert.equal(rejected.status, "rejected");
+    assert.equal(rejected.reason.statusCode, 409);
+    assert.equal(findOrder(1).id_estado_pago, 2);
+    assert.equal(paymentRecords.length, 1);
+    assert.equal(paymentRecords[0].id_estado_pago_anterior, 1);
+    assert.equal(productionNotifications.length, 1);
+});
+
+test("dos confirmaciones concurrentes son idempotentes", async () => {
+    const service = createService();
+    synchronizePaymentTransactions(service);
+
+    const results = await Promise.all([
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+    ]);
+
+    assert.equal(results[0].id_estado_pago, 2);
+    assert.equal(results[1].id_estado_pago, 2);
+    assert.equal(paymentRecords.length, 1);
+    assert.equal(productionNotifications.length, 1);
+});
+
 test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
     const service = createService();
     await service.updPaymentState(1, 2, { auth0UserId: "auth0|user-10" });
@@ -317,6 +387,7 @@ test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 2,
             observacion: undefined,
         },

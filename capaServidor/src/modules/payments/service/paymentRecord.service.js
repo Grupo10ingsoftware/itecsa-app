@@ -95,6 +95,7 @@ class PaymentRecordService {
       fecha_registro,
       observacion,
       id_usuario,
+      id_estado_pago_anterior,
       id_estado_pago,
     } = data;
 
@@ -110,11 +111,22 @@ class PaymentRecordService {
       throw error;
     }
 
+    const previousStatusId = Number(id_estado_pago_anterior);
+    const nextStatusId = Number(id_estado_pago);
+    if (!Number.isInteger(previousStatusId) || previousStatusId <= 0 ||
+        !Number.isInteger(nextStatusId) || nextStatusId <= 0 ||
+        previousStatusId === nextStatusId) {
+      const error = new Error("La transicion de pago requiere estados anterior y nuevo distintos.");
+      error.statusCode = 400;
+      throw error;
+    }
+
     return this.repo.create(orderId, {
       fecha_registro,
       observacion,
       id_usuario,
-      id_estado_pago,
+      id_estado_pago_anterior: previousStatusId,
+      id_estado_pago: nextStatusId,
     });
   }
 

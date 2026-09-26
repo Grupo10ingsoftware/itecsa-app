@@ -518,7 +518,7 @@ class OrderService {
       throw error;
     }
 
-    const [paymentStatus, currentOrder] = await Promise.all([
+    const [paymentStatus, observedOrder] = await Promise.all([
       this.paymentRepo.get(paymentStatusId),
       this.repo.getPaymentOrder(orderId),
     ]);
@@ -529,78 +529,89 @@ class OrderService {
       throw error;
     }
 
-    if (!currentOrder) {
+    if (!observedOrder) {
       const error = new Error("Pedido no encontrado");
       error.statusCode = 404;
       throw error;
     }
 
-    const currentPaymentStatus = currentOrder.estado_pago;
     const nextPaymentStatus = paymentStatus.nombre_estado_pago;
-    const isSamePaymentStatus =
-      Number(currentOrder.id_estado_pago) === paymentStatusId;
-    const isResolvedPayment = currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE;
-
-    if (isSamePaymentStatus) {
-      return currentOrder;
-    }
-
-    if (isResolvedPayment) {
-      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
-        const error = new Error(
-          "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
-        );
-        error.statusCode = 403;
-        throw error;
-      }
-
-      if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
-        const error = new Error(RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
-        error.statusCode = 409;
-        throw error;
-      }
-
-      if (!String(observacion ?? "").trim()) {
-        const error = new Error("El motivo del cambio de pago es obligatorio.");
-        error.statusCode = 400;
-        throw error;
-      }
-    }
-
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
     const KANBAN_EN_PRODUCCION = 2;
     const KANBAN_CANCELADO = 5;
-    const resolvedUserId =
-      actor?.idUsuario ??
-      await this.resolveInternalUserId({
-        auth0UserId,
-        id_usuario,
-      });
 
-    const currentKanbanOrder = Number(currentOrder.id_etapa_general);
-    const isConfirmedToRejected =
-      currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
-      nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
-    const cancelsReadyOrder =
-      isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
-    const requiresProductionCancellation =
-      isConfirmedToRejected &&
-      currentKanbanOrder === KANBAN_EN_PRODUCCION;
-    const nextKanbanOrder =
-      nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
-        ? KANBAN_LISTO_PRODUCCION
-        : cancelsReadyOrder
-          ? KANBAN_CANCELADO
-          : isConfirmedToRejected
-            ? null
-            : KANBAN_CONFIRMACION_PAGO;
-
-    // La transicion de pago es atomica: mueve Kanban y registra auditoria.
+    // La lectura inicial solo detecta conflictos; la decision usa la fila bloqueada.
     return this.runInTransaction(async ({
       repo,
       paymentRecordService,
     }) => {
+      if (!await repo.lockPaymentOrder(orderId)) {
+        const error = new Error("Pedido no encontrado");
+        error.statusCode = 404;
+        throw error;
+      }
+      const currentOrder = await repo.getPaymentOrder(orderId);
+      if (!currentOrder) {
+        const error = new Error("Pedido no encontrado");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Dos solicitudes con el mismo destino son idempotentes. Si cambio a otro
+      // estado desde la lectura inicial, la segunda debe volver a decidir.
+      if (Number(currentOrder.id_estado_pago) === paymentStatusId) {
+        return currentOrder;
+      }
+      if (Number(currentOrder.id_estado_pago) !== Number(observedOrder.id_estado_pago)) {
+        const error = new Error("El estado de pago cambio. Actualiza el pedido e intenta nuevamente.");
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const currentPaymentStatus = currentOrder.estado_pago;
+      if (currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE) {
+        if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
+          const error = new Error(
+            "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
+          );
+          error.statusCode = 403;
+          throw error;
+        }
+
+        if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
+          const error = new Error(RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
+          error.statusCode = 409;
+          throw error;
+        }
+
+        if (!String(observacion ?? "").trim()) {
+          const error = new Error("El motivo del cambio de pago es obligatorio.");
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+
+      const resolvedUserId =
+        actor?.idUsuario ??
+        await this.resolveInternalUserId({ auth0UserId, id_usuario });
+      const currentKanbanOrder = Number(currentOrder.id_etapa_general);
+      const isConfirmedToRejected =
+        currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+        nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
+      const cancelsReadyOrder =
+        isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
+      const requiresProductionCancellation =
+        isConfirmedToRejected && currentKanbanOrder === KANBAN_EN_PRODUCCION;
+      const nextKanbanOrder =
+        nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
+          ? KANBAN_LISTO_PRODUCCION
+          : cancelsReadyOrder
+            ? KANBAN_CANCELADO
+            : isConfirmedToRejected
+              ? null
+              : KANBAN_CONFIRMACION_PAGO;
+
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,
@@ -615,6 +626,7 @@ class OrderService {
 
       await paymentRecordService.createPaymentRecord(orderId, {
         id_usuario: resolvedUserId,
+        id_estado_pago_anterior: currentOrder.id_estado_pago,
         id_estado_pago: paymentStatusId,
         observacion,
       });

@@ -21,7 +21,7 @@ export default function PaymentCredentialsModal({
 
   if (!order || !targetStatus) return null
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!canSubmit) {
       setError(
@@ -33,7 +33,12 @@ export default function PaymentCredentialsModal({
     }
 
     setError('')
-    onConfirm({ comment: comment.trim(), pin })
+    try {
+      await onConfirm({ comment: comment.trim(), pin })
+    } finally {
+      // No conservar el PIN tras un intento fallido; al cerrar se desmonta el modal.
+      setPin('')
+    }
   }
 
   return (

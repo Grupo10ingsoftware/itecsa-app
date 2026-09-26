@@ -518,6 +518,17 @@ class OrderRepository {
     return mapPaymentOrderRow(orders[0]);
   }
 
+  async lockPaymentOrder(id) {
+    // Esta lectura debe ser la primera consulta dentro de la transaccion de pago.
+    // La fila queda bloqueada hasta que se escriban estado, auditoria y avisos.
+    const rows = await this.client.$queryRaw`
+      SELECT id_pedido FROM Pedidos
+      WHERE id_pedido = ${Number(id)}
+      FOR UPDATE
+    `;
+    return rows.length > 0;
+  }
+
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },

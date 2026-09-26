@@ -106,7 +106,7 @@ export default function PaymentActionConfirmModal({
       description={
         isDetailMode
           ? `Detalle de la Nota de Venta asociada al pago ${normalizedPaymentStatus}.`
-          : 'Revisa los datos registrados desde Manager antes de validar el cambio.'
+          : 'Revisa los datos del pedido y de la Nota de Venta antes de validar el cambio.'
       }
       footer={isDetailMode ? detailFooter : actionFooter}
       kicker={isDetailMode ? `Pago ${normalizedPaymentStatus}` : 'Cambio de estado'}

@@ -56,6 +56,7 @@ class PaymentRecordRepo {
       fecha_registro,
       observacion,
       id_usuario,
+      id_estado_pago_anterior,
       id_estado_pago,
     } = data;
     const createdAt = fecha_registro ?? new Date();
@@ -74,6 +75,7 @@ class PaymentRecordRepo {
         id_registro: registry.ID_REGISTRO,
         fecha_registro: createdAt,
         observacion: observacion ?? null,
+        id_estado_pago_anterior: Number(id_estado_pago_anterior),
         id_estado_pago_nuevo: Number(id_estado_pago),
       },
       include: {

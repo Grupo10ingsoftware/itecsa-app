@@ -81,7 +81,7 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - El link de recuperacion en Classic Universal Login apunta a la ruta publica propia `/recuperar-contrasena`.
 - La SPA muestra un mensaje controlado cuando Auth0 rechaza el login por cuenta bloqueada/desvinculada.
 - La API expone `GET /api/auth/verify`, protegido por bearer access token Auth0.
-- La API expone `POST /api/auth/password-reset/request`, publico, para validar el estado interno del correo antes de solicitar a Auth0 el correo de cambio de contrasena.
+- La API expone `POST /api/auth/password-reset/request`, público, con respuesta uniforme para cuentas existentes, inexistentes o desvinculadas; solo una cuenta habilitada provoca la solicitud a Auth0.
 - La validacion backend comprueba issuer y audience configurados.
 - La SPA consume `GET /api/auth/verify` mediante `authApi.verify()` para restaurar sesion, rol y permisos visuales.
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.

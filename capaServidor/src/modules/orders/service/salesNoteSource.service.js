@@ -2,6 +2,7 @@ import { AppError } from "../../../errors/AppError.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDemoFeatureEnabled } from "../../../config/environment.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,12 +86,23 @@ function normalizeSalesNote(record) {
 }
 
 class SalesNoteSourceService {
-  constructor({ fixturePath = DEFAULT_FIXTURE_PATH } = {}) {
+  constructor({
+    fixturePath = DEFAULT_FIXTURE_PATH,
+    demoFeatureEnabled = isDemoFeatureEnabled,
+  } = {}) {
     this.fixturePath = fixturePath;
+    this.demoFeatureEnabled = demoFeatureEnabled;
     this.cache = null;
   }
 
   async getSalesNotes() {
+    if (!this.demoFeatureEnabled()) {
+      const error = new Error("La fuente demo de Notas de Venta no esta habilitada.");
+      error.statusCode = 503;
+      error.code = "DEMO_FEATURES_DISABLED";
+      throw error;
+    }
+
     const stats = await fs.stat(this.fixturePath);
     const version = `${stats.mtimeMs}:${stats.size}`;
 

@@ -217,6 +217,19 @@ export class PinService {
         });
     }
 
+    async findUserForUpdate(transaction, auth0UserId) {
+        const users = await transaction.$queryRaw`
+            SELECT id_usuario, id_auth0, correo_usuario, nombre_usuario,
+                apellido_usuario, estado_usuario, pin_hash, pin_salt,
+                pin_accepted_at, pin_failed_attempts, pin_locked_until
+            FROM \`Usuario\`
+            WHERE id_auth0 = ${auth0UserId}
+            FOR UPDATE
+        `;
+
+        return users[0] ?? null;
+    }
+
     async provisionByUserId(userId) {
         for (let attempt = 0; attempt < 20; attempt += 1) {
             const credential = await this.buildCredential();
@@ -311,61 +324,83 @@ export class PinService {
             );
         }
 
-        const user = await this.findUser(auth0UserId);
-        assertActiveUser(user);
+        const result = await this.client.$transaction(async (transaction) => {
+            const user = await this.findUserForUpdate(transaction, auth0UserId);
+            assertActiveUser(user);
 
-        if (!user.pin_hash || !user.pin_accepted_at) {
-            throw new PinServiceError(
-                "PIN_NOT_ACKNOWLEDGED",
-                "Debes recibir y aceptar tu PIN antes de usarlo.",
-                { status: 403 },
-            );
-        }
+            if (!user.pin_hash || !user.pin_accepted_at) {
+                return {
+                    error: new PinServiceError(
+                        "PIN_NOT_ACKNOWLEDGED",
+                        "Debes recibir y aceptar tu PIN antes de usarlo.",
+                        { status: 403 },
+                    ),
+                };
+            }
 
-        const now = this.now();
+            const now = this.now();
+            if (user.pin_locked_until && user.pin_locked_until > now) {
+                return {
+                    error: new PinServiceError(
+                        "PIN_LOCKED",
+                        "El PIN esta temporalmente bloqueado.",
+                        {
+                            status: 423,
+                            details: {
+                                retryAfterSeconds: Math.ceil(
+                                    (user.pin_locked_until - now) / 1000,
+                                ),
+                            },
+                        },
+                    ),
+                };
+            }
 
-        if (user.pin_locked_until && user.pin_locked_until > now) {
-            throw new PinServiceError("PIN_LOCKED", "El PIN esta temporalmente bloqueado.", {
-                status: 423,
-                details: {
-                    retryAfterSeconds: Math.ceil((user.pin_locked_until - now) / 1000),
+            const valid = await matchesHash(pin, user.pin_hash, user.pin_salt);
+            if (!valid) {
+                const attempts = (user.pin_failed_attempts ?? 0) + 1;
+                const lockedUntil =
+                    attempts >= MAX_ATTEMPTS
+                        ? new Date(now.getTime() + LOCK_MS)
+                        : null;
+
+                await transaction.usuario.update({
+                    where: { id_usuario: user.id_usuario },
+                    data: {
+                        pin_failed_attempts:
+                            attempts >= MAX_ATTEMPTS ? 0 : attempts,
+                        pin_locked_until: lockedUntil,
+                    },
+                });
+
+                return {
+                    error: new PinServiceError(
+                        "PIN_INVALID",
+                        "El PIN ingresado no es valido.",
+                        { status: 403 },
+                    ),
+                };
+            }
+
+            if (user.pin_failed_attempts || user.pin_locked_until) {
+                await transaction.usuario.update({
+                    where: { id_usuario: user.id_usuario },
+                    data: { pin_failed_attempts: 0, pin_locked_until: null },
+                });
+            }
+
+            return {
+                user: {
+                    idUsuario: user.id_usuario,
+                    correoUsuario: user.correo_usuario,
+                    nombreUsuario: user.nombre_usuario,
+                    apellidoUsuario: user.apellido_usuario,
                 },
-            });
-        }
+            };
+        });
 
-        const valid = await matchesHash(pin, user.pin_hash, user.pin_salt);
-
-        if (!valid) {
-            const attempts = (user.pin_failed_attempts ?? 0) + 1;
-            const lockedUntil =
-                attempts >= MAX_ATTEMPTS ? new Date(now.getTime() + LOCK_MS) : null;
-
-            await this.client.usuario.update({
-                where: { id_usuario: user.id_usuario },
-                data: {
-                    pin_failed_attempts: attempts >= MAX_ATTEMPTS ? 0 : attempts,
-                    pin_locked_until: lockedUntil,
-                },
-            });
-
-            throw new PinServiceError("PIN_INVALID", "El PIN ingresado no es valido.", {
-                status: 403,
-            });
-        }
-
-        if (user.pin_failed_attempts || user.pin_locked_until) {
-            await this.client.usuario.update({
-                where: { id_usuario: user.id_usuario },
-                data: { pin_failed_attempts: 0, pin_locked_until: null },
-            });
-        }
-
-        return {
-            idUsuario: user.id_usuario,
-            correoUsuario: user.correo_usuario,
-            nombreUsuario: user.nombre_usuario,
-            apellidoUsuario: user.apellido_usuario,
-        };
+        if (result.error) throw result.error;
+        return result.user;
     }
 
     async debugReset(payload) {
@@ -412,20 +447,30 @@ export class PinService {
     }
 
     async requestRecovery(auth0UserId) {
-        const user = await this.findUser(auth0UserId);
-        assertActiveUser(user);
-
         const code = sixDigits();
         const hashed = await hashValue(code);
         const now = this.now();
-        const challenge = await this.client.pinRecoveryChallenge.create({
-            data: {
-                id_usuario: user.id_usuario,
-                code_hash: hashed.hash,
-                code_salt: hashed.salt,
-                expires_at: new Date(now.getTime() + RECOVERY_TTL_MS),
-                delivery_status: "pending",
-            },
+        const { user, challenge } = await this.client.$transaction(async (transaction) => {
+            const user = await this.findUserForUpdate(transaction, auth0UserId);
+            assertActiveUser(user);
+
+            await transaction.pinRecoveryChallenge.updateMany({
+                where: { id_usuario: user.id_usuario, used_at: null },
+                data: { used_at: now },
+            });
+
+            return {
+                user,
+                challenge: await transaction.pinRecoveryChallenge.create({
+                    data: {
+                        id_usuario: user.id_usuario,
+                        code_hash: hashed.hash,
+                        code_salt: hashed.salt,
+                        expires_at: new Date(now.getTime() + RECOVERY_TTL_MS),
+                        delivery_status: "pending",
+                    },
+                }),
+            };
         });
 
         try {
@@ -434,14 +479,16 @@ export class PinService {
                 code,
                 expiresAt: challenge.expires_at,
             });
-            await this.client.pinRecoveryChallenge.update({
+            await this.client.pinRecoveryChallenge.updateMany({
                 where: {
                     id_pin_recovery_challenge:
                         challenge.id_pin_recovery_challenge,
+                    used_at: null,
                 },
                 data: { delivery_status: "delivered" },
             });
         } catch (error) {
+<<<<<<< HEAD
             this.logger.error?.("pin_recovery_delivery_failure");
             try {
                 await this.client.pinRecoveryChallenge.update({
@@ -455,6 +502,15 @@ export class PinService {
                 // Do not expose persistence errors; confirmation only selects delivered challenges.
                 this.logger.error?.("pin_recovery_delivery_status_failed");
             }
+=======
+            await this.client.pinRecoveryChallenge.updateMany({
+                where: {
+                    id_pin_recovery_challenge:
+                        challenge.id_pin_recovery_challenge,
+                },
+                data: { delivery_status: "failed", used_at: now },
+            });
+>>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
             if (error instanceof PinDeliveryUnavailableError) throw new PinDeliveryUnavailableError();
 
@@ -503,18 +559,33 @@ export class PinService {
         }
 
         if (!(await matchesHash(code, challenge.code_hash, challenge.code_salt))) {
-            const failedAttempts = challenge.failed_attempts + 1;
-
-            await this.client.pinRecoveryChallenge.update({
+            const activeChallenge = {
+                id_pin_recovery_challenge:
+                    challenge.id_pin_recovery_challenge,
+                used_at: null,
+                delivery_status: "delivered",
+                expires_at: { gt: this.now() },
+            };
+            const failedAttempt = await this.client.pinRecoveryChallenge.updateMany({
                 where: {
-                    id_pin_recovery_challenge:
-                        challenge.id_pin_recovery_challenge,
+                    ...activeChallenge,
+                    failed_attempts: { lt: MAX_ATTEMPTS - 1 },
                 },
-                data: {
-                    failed_attempts: failedAttempts,
-                    used_at: failedAttempts >= MAX_ATTEMPTS ? this.now() : null,
-                },
+                data: { failed_attempts: { increment: 1 } },
             });
+
+            if (failedAttempt.count === 0) {
+                await this.client.pinRecoveryChallenge.updateMany({
+                    where: {
+                        ...activeChallenge,
+                        failed_attempts: MAX_ATTEMPTS - 1,
+                    },
+                    data: {
+                        failed_attempts: { increment: 1 },
+                        used_at: this.now(),
+                    },
+                });
+            }
 
             throw new PinServiceError(
                 "PIN_RECOVERY_CODE_INVALID",
@@ -527,24 +598,54 @@ export class PinService {
             if (await matchesHash(credential.pin, user.pin_hash, user.pin_salt)) continue;
 
             try {
-                await this.client.$transaction([
-                    this.client.usuario.update({
-                        where: { id_usuario: user.id_usuario },
-                        data: credential.data,
-                    }),
-                    this.client.pinRecoveryChallenge.update({
-                        where: {
-                            id_pin_recovery_challenge:
-                                challenge.id_pin_recovery_challenge,
-                        },
-                        data: { used_at: this.now() },
-                    }),
-                    this.client.pinRecoveryChallenge.updateMany({
-                        where: { id_usuario: user.id_usuario, used_at: null },
-                        data: { used_at: this.now() },
-                    }),
-                ]);
+                const now = this.now();
+                const result = await this.client.$transaction(async (transaction) => {
+                    const currentUser = await this.findUserForUpdate(
+                        transaction,
+                        auth0UserId,
+                    );
+                    assertActiveUser(currentUser);
 
+                    const consumed =
+                        await transaction.pinRecoveryChallenge.updateMany({
+                            where: {
+                                id_pin_recovery_challenge:
+                                    challenge.id_pin_recovery_challenge,
+                                id_usuario: currentUser.id_usuario,
+                                used_at: null,
+                                delivery_status: "delivered",
+                                expires_at: { gt: now },
+                                failed_attempts: { lt: MAX_ATTEMPTS },
+                            },
+                            data: { used_at: now },
+                        });
+
+                    if (consumed.count !== 1) {
+                        return {
+                            error: new PinServiceError(
+                                "PIN_RECOVERY_CODE_EXPIRED",
+                                "El codigo expiro o no existe.",
+                                { status: 410 },
+                            ),
+                        };
+                    }
+
+                    await transaction.usuario.update({
+                        where: { id_usuario: currentUser.id_usuario },
+                        data: credential.data,
+                    });
+                    await transaction.pinRecoveryChallenge.updateMany({
+                        where: {
+                            id_usuario: currentUser.id_usuario,
+                            used_at: null,
+                        },
+                        data: { used_at: now },
+                    });
+
+                    return { success: true };
+                });
+
+                if (result.error) throw result.error;
                 return "pending_acknowledgement";
             } catch (error) {
                 if (error?.code !== "P2002") throw error;

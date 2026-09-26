@@ -50,13 +50,17 @@ Si Auth0 rechaza el inicio de sesion por cuenta `blocked`, la SPA conserva el er
 
 El usuario inicia la recuperacion desde el link personalizado de Classic Universal Login hacia `/recuperar-contrasena`. La SPA no consulta Auth0 directamente; envia el correo al backend mediante `POST /api/auth/password-reset/request`.
 
-El backend aplica estas reglas:
+El backend normaliza el correo y consulta la tabla interna `Usuario`. Solo las cuentas habilitadas provocan una solicitud a Auth0 mediante `/dbconnections/change_password`; las cuentas inexistentes o desvinculadas no generan envío.
 
-- Si el correo no existe en la tabla interna `Usuario`, responde el mensaje de cuenta no encontrada y no llama Auth0.
-- Si el usuario existe pero su `estadoUsuario` no es `Activo`, responde el mensaje de cuenta desactivada y no llama Auth0.
-- Si el usuario existe y esta `Activo`, solicita a Auth0 el correo de cambio de contrasena mediante `/dbconnections/change_password`.
+Para todas las solicitudes con formato válido, la API devuelve el mismo status `200`, estructura y mensaje genérico: `Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.` La respuesta no revela existencia, estado interno ni resultado del envío. Errores de entrega se registran sin correo ni contenido sensible y conservan la respuesta pública uniforme. El flujo nunca retorna tickets, enlaces, tokens ni contraseñas a la SPA.
 
-El flujo nunca retorna tickets, enlaces, tokens ni contrasenas a la SPA. La distincion de mensajes entre cuenta inexistente y desactivada es una decision funcional del sistema y debe mantenerse con rate limiting, logs y monitoreo para reducir enumeracion abusiva.
+El endpoint tiene límites independientes en memoria: 20 solicitudes por IP y 5 por correo normalizado en una ventana fija de 15 minutos, con purga al recibir solicitudes y barrido programado cada minuto; el mapa está limitado a 10.000 claves. Un `429` usa el mismo mensaje para cualquiera de las cuotas. La cuota es local al proceso y no se comparte entre réplicas. No se habilita `trust proxy` ni se confía en `X-Forwarded-For`; **la configuración de proxy queda pendiente de validación del despliegue**.
+
+## Validacion Y Recuperacion De PIN
+
+La validación del PIN usa una transacción Prisma interactiva y bloquea la fila del usuario con `SELECT ... FOR UPDATE`. Los intentos incorrectos quedan serializados por cuenta: el quinto aplica el bloqueo existente de 15 minutos y reinicia el contador a cero; un PIN correcto limpia contador y bloqueo vencido. Si una validación correcta y una incorrecta concurren, el orden de adquisición del bloqueo define el resultado: incorrecto seguido de correcto termina en cero; correcto seguido de incorrecto registra un intento. Si el quinto intento incorrecto se confirma primero, las validaciones posteriores esperan y encuentran el PIN bloqueado.
+
+Solicitar un código de recuperación también bloquea la fila del usuario, invalida los retos no utilizados e inserta el nuevo reto en la misma transacción. La confirmación consume el reto mediante una actualización condicional que exige que pertenezca al usuario, esté entregado, siga vigente, no haya sido usado y conserve intentos disponibles. Solo una actualización puede modificar una fila; el cambio de credencial PIN y el consumo se confirman en una transacción conjunta, por lo que un fallo revierte ambos. Los intentos incorrectos incrementan el contador de forma atómica y el quinto invalida el reto. La expiración actual de 15 minutos se conserva.
 
 ## Autorizacion
 

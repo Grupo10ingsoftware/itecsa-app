@@ -1,6 +1,10 @@
 import { config } from "dotenv";
 import Server from "../server.js";
+<<<<<<< HEAD
 import pinService from "../modules/auth/service/pin.service.js";
+=======
+import { resolveEnvironmentConfig } from "../config/environment.js";
+>>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
 config();
 
@@ -12,6 +16,8 @@ const requiredEnvironmentVariables = [
 ];
 
 function validateEnvironment() {
+    resolveEnvironmentConfig(process.env);
+
     const missingVariables = requiredEnvironmentVariables.filter(
         (variable) => !process.env[variable]?.trim(),
     );

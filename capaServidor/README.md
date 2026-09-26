@@ -15,6 +15,11 @@ Para desarrollo con reinicio automatico:
 npm run dev
 ```
 
+Este comando establece `NODE_ENV=development` solo si no está definido en el
+entorno ni en `.env`. Si se define un valor inválido, la aplicación falla al
+iniciar en vez de sustituirlo silenciosamente. `npm start` no aplica ese valor
+por defecto y requiere `NODE_ENV` explícito.
+
 Para ejecutar pruebas backend:
 
 ```bash
@@ -40,6 +45,8 @@ npm run prisma:studio
 Crear un archivo `.env` local a partir de `env.example`:
 
 ```dotenv
+NODE_ENV=development
+ENABLE_DEMO_ROUTES=false
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
 AUTH0_DOMAIN=<tenant-auth0>
@@ -58,6 +65,8 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 ```
 
 - `PORT`: puerto HTTP del servidor.
+- `NODE_ENV`: ambiente requerido; debe ser `development`, `test` o `production`.
+- `ENABLE_DEMO_ROUTES`: opt-in explícito (`true`/`false`) para rutas, herramientas y fixtures demo; solo se admite en `development` o `test`, y por defecto queda deshabilitado.
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
 - `AUTH0_AUDIENCE`: identificador de la API que debe contener el access token.
@@ -74,6 +83,8 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 - `DATABASE_URL`: URL usada por Prisma para conectar a la misma base MySQL definida en `DB_NAME` y usar SSL con el certificado CA local.
 
 Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
+
+Las rutas `/api/demo-orders` y la fixture local de Notas de Venta solo están disponibles con `ENABLE_DEMO_ROUTES=true` en `development` o `test`. La ruta `/api/auth/pin/debug-reset` requiere ese mismo opt-in y el servicio solo opera con `NODE_ENV=development`; el botón de la SPA requiere además `VITE_ENABLE_DEMO_ROUTES=true`. En `production` no se montan las rutas/herramientas demo; el arranque falla si se intenta habilitarlas. La ausencia o un valor inválido de `NODE_ENV` también impide iniciar la API.
 
 ## Conexion Aiven MySQL
 
@@ -193,42 +204,20 @@ Endpoint publico usado por la pantalla `/recuperar-contrasena`. Acepta solo:
 }
 ```
 
-El backend normaliza el correo, consulta la tabla interna `Usuario` y decide si corresponde solicitar a Auth0 el correo de cambio de contrasena mediante `requestPasswordSetupEmail(...)`.
+El backend normaliza el correo y consulta la tabla interna `Usuario`. Solo para cuentas habilitadas solicita a Auth0 el correo de cambio de contraseña mediante `requestPasswordSetupEmail(...)`; las cuentas inexistentes o desvinculadas no generan una llamada a Auth0.
 
-Reglas:
-
-- Usuario no registrado: no llama Auth0 y devuelve mensaje controlado.
-- Usuario `Desvinculado` o distinto de `Activo`: no llama Auth0 y devuelve mensaje de cuenta desactivada.
-- Usuario `Activo`: solicita a Auth0 el correo de cambio de contrasena.
-
-Respuesta de usuario no registrado:
+Para toda solicitud correctamente formada, la respuesta pública es idéntica, independientemente de si se encontró una cuenta, su estado o si Auth0 aceptó la solicitud:
 
 ```json
 {
-  "status": "not_registered",
-  "message": "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunicate con el administrador."
+  "status": "accepted",
+  "message": "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña."
 }
 ```
 
-Respuesta de usuario desactivado:
+Una solicitud con formato inválido responde `400`; los límites responden `429` sin indicar qué cuota se alcanzó. El servicio no registra el correo ni detalles internos de Auth0 en la respuesta pública. Un error de entrega se registra con código/estado seguros y mantiene la respuesta uniforme para no revelar la elegibilidad de la cuenta.
 
-```json
-{
-  "status": "disabled",
-  "message": "Tu cuenta se encuentra desactivada. Comunicate con el administrador."
-}
-```
-
-Respuesta de usuario activo:
-
-```json
-{
-  "status": "sent",
-  "message": "Si la cuenta esta activa, enviaremos las instrucciones de recuperacion al correo indicado."
-}
-```
-
-Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite simple en memoria por IP y correo para reducir abuso local.
+El rate limit usa ventanas fijas de 15 minutos: hasta 20 solicitudes por IP y 5 por correo normalizado, aplicando ambos límites a la misma petición. Las claves se guardan como hashes en memoria; se purgan en cada solicitud y con un barrido programado cada minuto. El mapa tiene un máximo de 10.000 entradas; al llenarse, nuevas claves reciben `429`. El contador es local al proceso y no comparte cuota entre réplicas. La IP se toma de `req.ip` (o la dirección del socket), no se habilita `trust proxy` ni se confía en `X-Forwarded-For`. **La configuración de proxy queda pendiente de validación del despliegue**; si se usa un proxy, su confianza deberá configurarse de forma limitada y explícita.
 
 ## Endpoint Administrativo
 
@@ -552,15 +541,24 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 - `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
 - El módulo de documentos/PDF fue retirado; `/api/documents/*` ya no se monta.
 
+### Atomicidad de PIN y recuperación
+
+Las validaciones serializan por usuario dentro de una transacción con bloqueo de fila. Se conserva el límite de cinco intentos incorrectos y el bloqueo de 15 minutos. Una validación correcta limpia el contador y el bloqueo vencido; frente a una incorrecta concurrente, la fila se procesa según el orden del bloqueo de la base.
+
+Al solicitar un código nuevo se invalidan los retos no utilizados anteriores. La confirmación condiciona el consumo a que el reto siga entregado, vigente y sin usar, y actualiza el PIN en la misma transacción. Dos confirmaciones simultáneas del mismo código no pueden cambiar el PIN ambas; una falla o expiración revierte el consumo. La expiración continúa siendo de 15 minutos.
+
 ### PIN debug para Soporte (desarrollo)
 
-Para habilitar el botón **Generar nuevo PIN (debug)** en el perfil, inicia la SPA
-con `npm run dev` y el backend con `NODE_ENV=development npm run dev`.
+Para habilitar la herramienta **Generar nuevo PIN (debug)** en el perfil, inicia
+la SPA y el backend en desarrollo con `VITE_ENABLE_DEMO_ROUTES=true` y
+`ENABLE_DEMO_ROUTES=true`, respectivamente. Ambos flags deben activarse de forma
+explícita; el backend debe usar `NODE_ENV=development`.
 `POST /api/auth/pin/debug-reset` exige sesión activa, rol Soporte coincidente
 con la BD y permiso `manage:own-pin`; opera solo sobre el usuario autenticado.
 Reemplaza el PIN anterior e invalida códigos de recuperación pendientes. El nuevo
 PIN se muestra con el flujo habitual de entrega y su copia cifrada se elimina al
 aceptarlo. No requiere cambios en Auth0 ni en el esquema de BD.
 El endpoint rechaza cualquier entorno distinto de `development`, incluido uno
-sin `NODE_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
-ese entorno; las compilaciones de producción de la SPA no muestran el botón.
+sin `NODE_ENV`. Para desactivar esta herramienta, elimina o cambia ambos flags;
+las compilaciones de producción de la SPA no muestran el control y el backend no
+monta la ruta.

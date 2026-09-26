@@ -235,94 +235,90 @@ test("rechaza solicitud de recuperacion con email invalido", async () => {
     assert.equal(calls, 0);
 });
 
-test("responde no registrado sin llamar Auth0", async () => {
+test("cuentas activas, inexistentes y desvinculadas reciben la misma respuesta publica", async () => {
+    const publicResponses = [];
     let auth0Calls = 0;
-    const res = await executePasswordReset({
-        body: { email: "NO.REGISTRADO@EXAMPLE.CL" },
-        users: createUsersRepositoryMock({
-            onFindByEmail(email) {
-                assert.equal(email, "no.registrado@example.cl");
-            },
-        }),
-        requestPasswordEmail: async () => {
-            auth0Calls += 1;
+    const accounts = [
+        {
+            name: "active",
+            users: createUsersRepositoryMock({
+                user: {
+                    correoUsuario: "usuario@example.cl",
+                    estadoUsuario: "Activo",
+                },
+            }),
+            shouldSend: true,
         },
-    });
+        {
+            name: "missing",
+            users: createUsersRepositoryMock(),
+            shouldSend: false,
+        },
+        {
+            name: "disabled",
+            users: createUsersRepositoryMock({
+                user: {
+                    correoUsuario: "usuario@example.cl",
+                    estadoUsuario: "Desvinculado",
+                },
+            }),
+            shouldSend: false,
+        },
+    ];
 
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, {
-        status: "not_registered",
-        message:
-            "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.",
-    });
+    for (const account of accounts) {
+        const res = await executePasswordReset({
+            users: account.users,
+            requestPasswordEmail: async ({ email }) => {
+                auth0Calls += 1;
+                assert.equal(account.shouldSend, true, `${account.name} must not send`);
+                assert.equal(email, "usuario@example.cl");
+            },
+            logger: {},
+        });
+        publicResponses.push({ status: res.statusCode, body: res.body });
+    }
+
+    assert.deepEqual(publicResponses, [
+        {
+            status: 200,
+            body: {
+                status: "accepted",
+                message:
+                    "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.",
+            },
+        },
+        publicResponses[0],
+        publicResponses[0],
+    ]);
+    assert.equal(auth0Calls, 1);
+    assert.equal(JSON.stringify(publicResponses).includes("not_registered"), false);
+    assert.equal(JSON.stringify(publicResponses).includes("disabled"), false);
+    assert.equal(JSON.stringify(publicResponses).includes("user_exists"), false);
+});
+
+test("no elegibles se determinan internamente sin invocar Auth0", async () => {
+    let auth0Calls = 0;
+    for (const user of [
+        null,
+        { correoUsuario: "usuario@example.cl", estadoUsuario: "Desvinculado" },
+        { correoUsuario: "usuario@example.cl", estadoUsuario: "Pendiente rol" },
+    ]) {
+        const res = await executePasswordReset({
+            users: createUsersRepositoryMock({ user }),
+            requestPasswordEmail: async () => {
+                auth0Calls += 1;
+            },
+            logger: {},
+        });
+        assert.equal(res.statusCode, 200);
+        assert.equal(res.body.status, "accepted");
+    }
     assert.equal(auth0Calls, 0);
 });
 
-test("responde desactivado sin llamar Auth0 si el usuario esta desvinculado", async () => {
-    let auth0Calls = 0;
-    const res = await executePasswordReset({
-        users: createUsersRepositoryMock({
-            user: {
-                correoUsuario: "usuario@example.cl",
-                estadoUsuario: "Desvinculado",
-            },
-        }),
-        requestPasswordEmail: async () => {
-            auth0Calls += 1;
-        },
-    });
-
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, {
-        status: "disabled",
-        message: "Tu cuenta se encuentra desactivada. Comunícate con el administrador.",
-    });
-    assert.equal(auth0Calls, 0);
-});
-
-test("responde desactivado sin llamar Auth0 si el usuario no esta activo", async () => {
-    let auth0Calls = 0;
-    const res = await executePasswordReset({
-        users: createUsersRepositoryMock({
-            user: {
-                correoUsuario: "usuario@example.cl",
-                estadoUsuario: "Pendiente rol",
-            },
-        }),
-        requestPasswordEmail: async () => {
-            auth0Calls += 1;
-        },
-    });
-
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.status, "disabled");
-    assert.equal(auth0Calls, 0);
-});
-
-test("solicita correo Auth0 si el usuario esta activo", async () => {
-    let requestedEmail;
-    const res = await executePasswordReset({
-        users: createUsersRepositoryMock({
-            user: {
-                correoUsuario: "usuario@example.cl",
-                estadoUsuario: "Activo",
-            },
-        }),
-        requestPasswordEmail: async ({ email }) => {
-            requestedEmail = email;
-            return { requested: true };
-        },
-    });
-
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body, {
-        status: "sent",
-        message: "Te enviamos un enlace para cambiar tu contraseña.",
-    });
-    assert.equal(requestedEmail, "usuario@example.cl");
-});
-
-test("responde error generico si falla Auth0", async () => {
+test("un error Auth0 no revela si la cuenta existe", async () => {
+    const loggerCalls = [];
     const res = await executePasswordReset({
         users: createUsersRepositoryMock({
             user: {
@@ -336,12 +332,22 @@ test("responde error generico si falla Auth0", async () => {
                 "detalle interno",
             );
         },
+        logger: {
+            error: (...args) => loggerCalls.push(args),
+        },
     });
 
+<<<<<<< HEAD
     assert.equal(res.statusCode, 500);
     assert.equal(res.body.code, "INTERNAL_ERROR");
     assert.equal(res.body.message, "Ocurrio un error interno.");
     assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
+=======
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.status, "accepted");
+    assert.equal(JSON.stringify(loggerCalls).includes("usuario@example.cl"), false);
+    assert.equal(JSON.stringify(loggerCalls).includes("detalle interno"), false);
+>>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 });
 
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {
@@ -386,7 +392,11 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
     const body = await response.json();
 
     assert.equal(response.status, 200);
-    assert.equal(body.status, "sent");
+    assert.deepEqual(body, {
+        status: "accepted",
+        message:
+            "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.",
+    });
     assert.equal(authCalls, 0);
     assert.equal(emailRequested, true);
 });
@@ -399,7 +409,8 @@ test("limita intentos repetidos de recuperacion", async (t) => {
         createAuthRouter({
             passwordResetRateLimit: createPasswordResetRateLimit({
                 attempts: new Map(),
-                maxAttempts: 2,
+                maxAttemptsPerIp: 2,
+                maxAttemptsPerEmail: 5,
                 now: () => 100,
             }),
             users: createUsersRepositoryMock(),

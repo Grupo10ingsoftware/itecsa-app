@@ -219,7 +219,7 @@ export default function ProfilePage() {
                 {pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
               </p>
             </div>
-            {import.meta.env.DEV && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
+            {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ROUTES === 'true' && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
               <div>
                 <button className="btn btn-outline-warning" type="button" disabled={isPinBusy} onClick={debugResetPin}>
                   {isPinBusy ? 'Generando...' : 'Generar nuevo PIN (debug)'}

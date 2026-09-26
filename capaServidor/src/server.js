@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+<<<<<<< HEAD
 import { requestContext, errorHandler } from './errors/httpErrors.js';
+=======
+import { resolveEnvironmentConfig } from './config/environment.js';
+>>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
-import authRoutes from './modules/auth/routes/auth.routes.js';
+import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
@@ -24,10 +28,12 @@ import messageRoutes from './modules/messages/routes/message.routes.js';
 import orderHistoryRoutes from './modules/history/routes/orderHistory.routes.js';
 import metricsRoutes from './modules/metrics/routes/metrics.routes.js';
 class Server {
-  constructor() {
+  constructor({ env = process.env } = {}) {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
-    this.port = process.env.PORT; // definido en .env
+    this.port = env.PORT; // definido en .env
+    this.environment = resolveEnvironmentConfig(env);
+    this.env = env;
     this.paths = {
         // Rutas cuando las tengamos
 
@@ -72,7 +78,7 @@ class Server {
     this.app.use(requestContext);
 
     // Cors
-    this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
+    this.app.use(cors( {origin : this.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
@@ -95,9 +101,16 @@ class Server {
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API
      */
-    this.app.use( this.paths.auth, authRoutes)
+    this.app.use(
+      this.paths.auth,
+      createAuthRouter({
+        includeDebugRoutes: this.environment.demoFeaturesEnabled,
+      }),
+    )
     this.app.use( this.paths.admin, adminUsersRoutes)
-    this.app.use( this.paths.demoOrders, demoOrdersRoutes)
+    if (this.environment.demoFeaturesEnabled) {
+      this.app.use(this.paths.demoOrders, demoOrdersRoutes)
+    }
     this.app.use( this.paths.health, healthRoutes)
     this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.history, orderHistoryRoutes)

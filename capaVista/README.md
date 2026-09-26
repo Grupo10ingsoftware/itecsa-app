@@ -29,12 +29,14 @@ VITE_AUTH0_DOMAIN=<tenant-auth0>
 VITE_AUTH0_CLIENT_ID=<client-id-spa>
 VITE_AUTH0_AUDIENCE=https://api.itecsa.local
 VITE_API_BASE_URL=http://localhost:3000/api
+VITE_ENABLE_DEMO_ROUTES=false
 ```
 
 - `VITE_AUTH0_DOMAIN`: tenant usado por Universal Login.
 - `VITE_AUTH0_CLIENT_ID`: identificador publico de la SPA.
 - `VITE_AUTH0_AUDIENCE`: identificador de la API para solicitar access tokens destinados al backend.
 - `VITE_API_BASE_URL`: base prevista para consumir la API Express.
+- `VITE_ENABLE_DEMO_ROUTES`: muestra herramientas visuales demo solo en desarrollo cuando vale `true`; no sustituye `ENABLE_DEMO_ROUTES=true` en el backend. La build de producción nunca muestra esos controles.
 
 No usar variables `VITE_*` para secretos: todo valor expuesto por Vite queda disponible en el navegador. La SPA nunca debe recibir `AUTH0_MANAGEMENT_CLIENT_SECRET`, tokens M2M ni credenciales de Auth0 Management.
 

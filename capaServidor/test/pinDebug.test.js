@@ -20,11 +20,19 @@ async function fixture() {
             const previousChallenges = structuredClone(challenges);
             try {
                 return await callback({
-                    usuario: { updateMany: async ({ where, data }) => {
-                        if (user.pin_hash !== where.pin_hash || user.rol_usuario !== where.rol_usuario || !where.estado_usuario.in.includes(user.estado_usuario)) return { count: 0 };
-                        Object.assign(user, data);
-                        return { count: 1 };
-                    } },
+                    $queryRaw: async (_strings, auth0UserId) =>
+                        auth0UserId === user.id_auth0 ? [{ ...user }] : [],
+                    usuario: {
+                        update: async ({ data }) => {
+                            Object.assign(user, data);
+                            return { ...user };
+                        },
+                        updateMany: async ({ where, data }) => {
+                            if (user.pin_hash !== where.pin_hash || user.rol_usuario !== where.rol_usuario || !where.estado_usuario.in.includes(user.estado_usuario)) return { count: 0 };
+                            Object.assign(user, data);
+                            return { count: 1 };
+                        },
+                    },
                     pinRecoveryChallenge: { updateMany: async ({ data }) => {
                         if (fail) throw new Error('database failure');
                         challenges = challenges.map(c => ({ ...c, ...data }));

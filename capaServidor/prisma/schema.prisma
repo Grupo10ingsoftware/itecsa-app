@@ -30,6 +30,11 @@ model Comentario_Produccion {
 
 model Detalle_pedido {
   id_detalle_pedido      Int                     @id @default(autoincrement())
+  linea_origen          String?                 @db.VarChar(100)
+  codigo_origen         String?                 @db.VarChar(50)
+  producto_origen       String?                 @db.VarChar(255)
+  familia_origen        String?                 @db.VarChar(100)
+  subfamilia_origen      String?                 @db.VarChar(100)
   cantidad               Int?
   fecha_estimada_termino DateTime?               @db.DateTime(0)
   fecha_real_termino     DateTime?               @db.DateTime(0)
@@ -117,7 +122,7 @@ model Pedidos {
   id_cliente                  Int?
   id_etiqueta                 Int?
   observacion                 String?                       @db.Text
-  numero_nota_venta           String?                       @db.VarChar(50)
+  numero_nota_venta           String?                       @unique(map: "Pedidos_numero_nota_venta_UNIQUE") @db.VarChar(50)
   usuario_manager_origen      String?                       @db.VarChar(100)
   observacion_origen          String?                       @db.Text
   observacion_interna         String?                       @db.Text

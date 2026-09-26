@@ -44,6 +44,15 @@ function resolveSalesNoteItems(details = [], salesNoteItems = []) {
 
   return details.map((detail, detailIndex) => {
     const productType = detail.Tipo_Producto?.nombre_producto;
+    if (detail.linea_origen && detail.producto_origen) {
+      return {
+        id: detail.id_detalle_pedido,
+        productType: productType ?? null,
+        code: detail.codigo_origen ?? null,
+        product: detail.producto_origen,
+        quantity: detail.cantidad,
+      };
+    }
     const normalizedType = normalizeText(productType);
     const quantity = Number(detail.cantidad);
     const matchesType = ({ item, index }) =>
@@ -86,6 +95,7 @@ class PaymentRecordService {
       fecha_registro,
       observacion,
       id_usuario,
+      id_estado_pago_anterior,
       id_estado_pago,
     } = data;
 
@@ -101,11 +111,22 @@ class PaymentRecordService {
       throw error;
     }
 
+    const previousStatusId = Number(id_estado_pago_anterior);
+    const nextStatusId = Number(id_estado_pago);
+    if (!Number.isInteger(previousStatusId) || previousStatusId <= 0 ||
+        !Number.isInteger(nextStatusId) || nextStatusId <= 0 ||
+        previousStatusId === nextStatusId) {
+      const error = new Error("La transicion de pago requiere estados anterior y nuevo distintos.");
+      error.statusCode = 400;
+      throw error;
+    }
+
     return this.repo.create(orderId, {
       fecha_registro,
       observacion,
       id_usuario,
-      id_estado_pago,
+      id_estado_pago_anterior: previousStatusId,
+      id_estado_pago: nextStatusId,
     });
   }
 
@@ -157,7 +178,8 @@ class PaymentRecordService {
 
     let salesNote = null;
 
-    if (order.numero_nota_venta) {
+    const needsSource = (order.Detalle_pedido ?? []).some((detail) => !detail.linea_origen || !detail.producto_origen);
+    if (order.numero_nota_venta && needsSource) {
       try {
         salesNote = await this.salesNoteSourceService.getByNumber(
           order.numero_nota_venta,

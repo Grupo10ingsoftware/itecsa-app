@@ -91,6 +91,7 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado con PIN y revisar una vista previa de datos del pedido.
 - Kanban consume pedidos y estados reales desde backend, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
 - La pantalla `/ordenes/nuevo` consulta notas de venta mediante la API y registra pedidos con `POST /api/orders`; la fuente de notas sigue siendo un fixture local.
+- Orders valida y recupera la fuente en servidor, registra historial inicial y conserva snapshots comerciales de las líneas. Antes de desplegar estos cambios debe aplicarse el [procedimiento de migración pendiente](docs/ORDERS_MIGRACION.md); el DDL está preparado, no ejecutado. [Contrato y pruebas](capaVista/src/modules/orders/README.md).
 
 Recursos Auth0 esperados/configurados para esta rama:
 
@@ -110,7 +111,7 @@ El tenant usa Classic Universal Login con template personalizado. En desarrollo,
 
 - No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
 - No ejecutar migraciones destructivas, `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` contra la base existente sin una decision explicita del equipo.
-- No conectar `/ordenes/nuevo` a la creacion real de pedidos hasta definir el contrato frontend-backend para archivos y Nota de Venta.
+- `/ordenes/nuevo` ya llama a `POST /api/orders`, pero la fuente de Nota de Venta es un fixture. No usarlo como alta real hasta integrar Manager y conciliar/aplicar la migracion de Orders segun [el procedimiento](docs/ORDERS_MIGRACION.md). El flujo documental de archivos no forma parte del alta vigente.
 - No exponer credenciales Auth0 Management en frontend.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

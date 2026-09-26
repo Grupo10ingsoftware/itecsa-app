@@ -29,14 +29,8 @@ class OrderStatusService {
     }
 
     async getAll() {
-        try {
-            const statuses = await this.repo.getAll()
-            return statuses || []
-
-        } catch (error) {
-            console.log( error );
-
-        }
+        const statuses = await this.repo.getAll()
+        return statuses || []
     }
 
     async getById( statusId ) {

@@ -545,3 +545,19 @@ test('valida todos los detalles y rechaza pedidos sin detalles', async () => {
         await assert.rejects(repo.updateGeneralStep(6, 3, { userId: 99 }), { statusCode: 409 });
     }
 });
+
+test('bloquea por PK el pedido de pago antes de releerlo', async () => {
+    let sql;
+    let values;
+    const repo = new OrderRepository({ prisma: {
+        async $queryRaw(strings, ...parameters) {
+            sql = strings.join('?');
+            values = parameters;
+            return [{ id_pedido: 6 }];
+        },
+    } });
+
+    assert.equal(await repo.lockPaymentOrder('6'), true);
+    assert.match(sql, /WHERE id_pedido = \?\s+FOR UPDATE/);
+    assert.deepEqual(values, [6]);
+});

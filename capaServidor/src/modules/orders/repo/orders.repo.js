@@ -1,5 +1,7 @@
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
+import { createLineSnapshots } from "../service/salesOrder.snapshot.js";
+import { missingSnapshotOmit, snapshotData, snapshotOmit, supportsOrderSnapshots } from "./orderSnapshotSchema.js";
 
 
 const ORDER_UPDATE_FIELDS = new Set([
@@ -125,6 +127,13 @@ function mapLanyardProgress(detail) {
 
 function mapOrderDetail(detail) {
   return {
+    ...(detail.linea_origen ? {
+      linea_origen: detail.linea_origen,
+      codigo: detail.codigo_origen ?? null,
+      producto: detail.producto_origen ?? null,
+      familia: detail.familia_origen ?? null,
+      subfamilia: detail.subfamilia_origen ?? null,
+    } : {}),
     id_detalle_pedido: detail.id_detalle_pedido ?? null,
     id: detail.id_detalle_pedido ? String(detail.id_detalle_pedido) : null,
     id_tipo_producto: detail.id_tipo_producto ?? null,
@@ -313,6 +322,11 @@ const orderReadSelect = {
   },
   Detalle_pedido: {
     select: {
+      linea_origen: true,
+      codigo_origen: true,
+      producto_origen: true,
+      familia_origen: true,
+      subfamilia_origen: true,
       id_detalle_pedido: true,
       id_tipo_producto: true,
       cantidad: true,
@@ -406,6 +420,17 @@ const orderReadSelect = {
   },
 };
 
+const legacyDetailSelect = { ...orderReadSelect.Detalle_pedido.select };
+for (const column of Object.keys(missingSnapshotOmit)) delete legacyDetailSelect[column];
+const legacyOrderReadSelect = {
+  ...orderReadSelect,
+  Detalle_pedido: { ...orderReadSelect.Detalle_pedido, select: legacyDetailSelect },
+};
+
+async function readSelect(client) {
+  return (await supportsOrderSnapshots(client)) ? orderReadSelect : legacyOrderReadSelect;
+}
+
 class OrderRepository {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -422,7 +447,7 @@ class OrderRepository {
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
   }
 
@@ -437,7 +462,7 @@ class OrderRepository {
 
   async getAllOrders() {
     const orders = await this.client.pedidos.findMany({
-      select: orderReadSelect,
+      select: await readSelect(this.client),
       orderBy: { id_pedido: "desc" },
     });
 
@@ -493,10 +518,21 @@ class OrderRepository {
     return mapPaymentOrderRow(orders[0]);
   }
 
+  async lockPaymentOrder(id) {
+    // Esta lectura debe ser la primera consulta dentro de la transaccion de pago.
+    // La fila queda bloqueada hasta que se escriban estado, auditoria y avisos.
+    const rows = await this.client.$queryRaw`
+      SELECT id_pedido FROM Pedidos
+      WHERE id_pedido = ${Number(id)}
+      FOR UPDATE
+    `;
+    return rows.length > 0;
+  }
+
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
 
     return toOrderDetailDTO(order);
@@ -526,6 +562,21 @@ class OrderRepository {
       estado_pago: order.Estado_Pago?.nombre_estado_pago ?? null,
       paymentStatus: order.Estado_Pago?.nombre_estado_pago ?? null,
     };
+  }
+
+  async recordCreation({ orderId, userId, stateId, now = new Date() }) {
+    const registry = await this.client.registros.create({ data: {
+      FECHA_HORA: now,
+      id_pedido: Number(orderId),
+      id_usuario: Number(userId),
+      observacion: "Pedido registrado desde Nota de Venta.",
+    } });
+    await this.client.registro_Etapas.create({ data: {
+      id_registro: registry.ID_REGISTRO,
+      fecha_hora_entrada: now,
+      fecha_hora_salida: null,
+      id_estado_pedido: Number(stateId),
+    } });
   }
 
   async create(data, { hydrate = true } = {}) {
@@ -817,9 +868,10 @@ class OrderRepository {
   }
 
   async reevaluateFromSalesNote({ orderId, salesNote, userId }) {
+    const snapshotsSupported = await supportsOrderSnapshots(this.client);
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(orderId) },
-      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" } } },
+      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" }, ...snapshotOmit(snapshotsSupported) } },
     });
     if (!order) return null;
 
@@ -843,6 +895,9 @@ class OrderRepository {
       },
     });
 
+    // Adaptacion del nuevo contrato de persistencia; la correspondencia productiva
+    // por posicion sigue pendiente de auditoria transversal (OBS-ORD-002).
+    const snapshots = createLineSnapshots(salesNote.items ?? []);
     for (const [index, item] of (salesNote.items ?? []).entries()) {
       const type = await this.client.tipo_Producto.findFirst({
         where: { nombre_producto: item.tipoProducto },
@@ -852,17 +907,19 @@ class OrderRepository {
       if (existing) {
         await this.client.detalle_pedido.update({
           where: { id_detalle_pedido: existing.id_detalle_pedido },
-          data: { cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate },
+          data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate }, snapshotsSupported),
+          ...snapshotOmit(snapshotsSupported),
         });
       } else {
         const first = await this.client.producto_Subproceso.findFirst({
           where: { id_tipo_producto: type.id_tipo_producto }, orderBy: { orden_flujo: "asc" },
         });
         await this.client.detalle_pedido.create({ data: {
+          ...snapshotData(snapshots[index], snapshotsSupported),
           id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
           cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
           id_estado_subproceso: first?.id_estado_subproceso ?? null,
-        } });
+        }, ...snapshotOmit(snapshotsSupported) });
       }
     }
 
@@ -1055,6 +1112,7 @@ class OrderRepository {
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: {
         id_pedido: Number(orderId),
         id_detalle_pedido: Number(detailId),
@@ -1209,6 +1267,7 @@ class OrderRepository {
   async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });

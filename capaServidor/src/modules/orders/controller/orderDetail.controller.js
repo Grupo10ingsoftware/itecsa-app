@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import OrderDetailService from "../service/orderDetail.service.js";
 
@@ -14,11 +15,7 @@ class OrderDetailController {
 
       res.status(201).json(detail);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al crear detalle de pedido",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -30,11 +27,7 @@ class OrderDetailController {
 
       res.status(200).json(detail);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al obtener detalle de pedido",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -46,11 +39,7 @@ class OrderDetailController {
 
       res.status(200).json(details);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al obtener detalles del pedido",
-      });
+        return respondError(error, req, res);
     }
   };
 }

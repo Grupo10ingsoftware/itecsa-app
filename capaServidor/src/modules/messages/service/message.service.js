@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import MessageRepository from "../repo/message.repo.js";
 import { UserRepository } from "../../users/repo/users.repo.js";
 
@@ -5,8 +6,7 @@ const VALID_STATUSES = new Set(["all", "read", "unread"]);
 const VALID_SORTS = new Set(["latest", "oldest"]);
 
 function createHttpError(statusCode, message) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
+    const error = new AppError(statusCode, message);
     return error;
 }
 

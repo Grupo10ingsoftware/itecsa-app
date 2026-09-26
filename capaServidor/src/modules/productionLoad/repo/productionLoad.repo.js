@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import getPrismaClient from "../../../database/prisma.js";
 import { Prisma } from "@prisma/client";
 
@@ -153,8 +154,7 @@ export default class ProductionLoadRepository {
       const detailsById = new Map(details.map((detail) => [Number(detail.id_detalle_pedido), detail]));
 
       if (detailsById.size !== detailIds.length) {
-        const error = new Error("Detalle de pedido no encontrado.");
-        error.statusCode = 404;
+        const error = new AppError(404, "Detalle de pedido no encontrado.");
         throw error;
       }
 
@@ -174,21 +174,18 @@ export default class ProductionLoadRepository {
         const dailyQuantity = Number(entry.quantity);
 
         if (!isLanyardName(detail.Tipo_Producto?.nombre_producto)) {
-          const error = new Error("Solo se puede registrar carga para detalles Lanyard.");
-          error.statusCode = 400;
+          const error = new AppError(400, "Solo se puede registrar carga para detalles Lanyard.");
           throw error;
         }
 
         if (Number(detail.Pedidos?.Estado_Pedido?.orden_kanban) !== KANBAN_EN_PRODUCCION_STEP) {
-          const error = new Error("La carga operativa solo considera pedidos En produccion.");
-          error.statusCode = 409;
+          const error = new AppError(409, "La carga operativa solo considera pedidos En produccion.");
           throw error;
         }
 
         const totalQuantity = Number(detail.cantidad ?? 0);
         if (!Number.isInteger(totalQuantity) || totalQuantity <= 0) {
-          const error = new Error("El detalle Lanyard no tiene una cantidad valida.");
-          error.statusCode = 409;
+          const error = new AppError(409, "El detalle Lanyard no tiene una cantidad valida.");
           throw error;
         }
 
@@ -196,8 +193,7 @@ export default class ProductionLoadRepository {
         const accumulated = Number(previous?.cantidad_acumulada ?? 0) + dailyQuantity;
 
         if (accumulated > totalQuantity) {
-          const error = new Error("La carga diaria supera la cantidad pendiente del detalle Lanyard.");
-          error.statusCode = 400;
+          const error = new AppError(400, "La carga diaria supera la cantidad pendiente del detalle Lanyard.");
           throw error;
         }
 

@@ -13,8 +13,7 @@ import { promisify } from "node:util";
 import getPrismaClient from "../../../database/prisma.js";
 import {
     PinDeliveryUnavailableError,
-    developmentPinRecoveryDelivery,
-    unavailablePinRecoveryDelivery,
+    createPinRecoveryDelivery,
 } from "./pinDelivery.service.js";
 
 import { ROLES, roleFromPayload, can, PERMISSIONS } from "../../../../../shared/authorization.js";
@@ -25,6 +24,7 @@ const PIN_PATTERN = /^\d{6}$/;
 const RECOVERY_CODE_PATTERN = /^\d{6}$/;
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
+const PIN_HASH_PREFIX = 'scrypt$v2$N=32768,r=8,p=3$';
 const RECOVERY_TTL_MS = 15 * 60 * 1000;
 
 export class PinServiceError extends Error {
@@ -35,12 +35,6 @@ export class PinServiceError extends Error {
         this.status = status;
         this.details = details;
     }
-}
-
-function getDefaultDelivery() {
-    return process.env.NODE_ENV === "production"
-        ? unavailablePinRecoveryDelivery
-        : developmentPinRecoveryDelivery;
 }
 
 function decodeSecret(value) {
@@ -69,11 +63,13 @@ function deriveKey(secret, purpose) {
     );
 }
 
-async function hashValue(value, salt = randomBytes(16)) {
-    const derived = await scrypt(value, salt, 32, { N: 16384, r: 8, p: 1 });
+async function hashValue(value, salt = randomBytes(16), hardened = false) {
+    const derived = await scrypt(value, salt, 32, hardened
+        ? { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 }
+        : { N: 16384, r: 8, p: 1 });
 
     return {
-        hash: Buffer.from(derived).toString("base64"),
+        hash: (hardened ? PIN_HASH_PREFIX : "") + Buffer.from(derived).toString("base64"),
         salt: salt.toString("base64"),
     };
 }
@@ -81,12 +77,16 @@ async function hashValue(value, salt = randomBytes(16)) {
 async function matchesHash(value, hash, salt) {
     if (!hash || !salt) return false;
 
-    const expected = Buffer.from(hash, "base64");
+    const hardened = hash.startsWith(PIN_HASH_PREFIX);
+    const encoded = hardened ? hash.slice(PIN_HASH_PREFIX.length) : hash;
+    if (!/^[A-Za-z0-9+/]{43}=$/.test(encoded)) return false;
+    const expected = Buffer.from(encoded, "base64");
     const actual = Buffer.from(
         await scrypt(value, Buffer.from(salt, "base64"), expected.length, {
-            N: 16384,
+            N: hardened ? 32768 : 16384,
             r: 8,
-            p: 1,
+            p: hardened ? 3 : 1,
+            maxmem: 64 * 1024 * 1024,
         }),
     );
 
@@ -115,13 +115,28 @@ export class PinService {
     constructor({
         prisma,
         secret,
-        delivery = getDefaultDelivery(),
+        delivery,
+        emailDelivery,
+        deliveryEnvironment = process.env,
+        logger = console,
         now = () => new Date(),
     } = {}) {
         this.prisma = prisma;
         this.secretValue = secret;
-        this.delivery = delivery;
+        this.testDelivery = delivery;
+        this.emailDelivery = emailDelivery;
+        this.deliveryEnvironment = deliveryEnvironment;
+        this.logger = logger;
         this.now = now;
+    }
+
+    get delivery() {
+        // Resolve after dotenv/startup configuration; no import-time environment fallback.
+        return createPinRecoveryDelivery({
+            env: this.deliveryEnvironment,
+            testDelivery: this.testDelivery,
+            emailDelivery: this.emailDelivery,
+        });
     }
 
     get client() {
@@ -180,7 +195,7 @@ export class PinService {
 
     async buildCredential() {
         const pin = sixDigits();
-        const hashed = await hashValue(pin);
+        const hashed = await hashValue(pin, randomBytes(16), true);
         const encrypted = this.encrypt(pin);
 
         return {
@@ -430,15 +445,21 @@ export class PinService {
                 data: { delivery_status: "delivered" },
             });
         } catch (error) {
-            await this.client.pinRecoveryChallenge.update({
-                where: {
-                    id_pin_recovery_challenge:
-                        challenge.id_pin_recovery_challenge,
-                },
-                data: { delivery_status: "failed", used_at: now },
-            });
+            this.logger.error?.("pin_recovery_delivery_failure");
+            try {
+                await this.client.pinRecoveryChallenge.update({
+                    where: {
+                        id_pin_recovery_challenge:
+                            challenge.id_pin_recovery_challenge,
+                    },
+                    data: { delivery_status: "failed", used_at: now },
+                });
+            } catch {
+                // Do not expose persistence errors; confirmation only selects delivered challenges.
+                this.logger.error?.("pin_recovery_delivery_status_failed");
+            }
 
-            if (error instanceof PinDeliveryUnavailableError) throw error;
+            if (error instanceof PinDeliveryUnavailableError) throw new PinDeliveryUnavailableError();
 
             throw new PinServiceError(
                 "PIN_RECOVERY_DELIVERY_FAILED",
@@ -506,6 +527,7 @@ export class PinService {
 
         for (let attempt = 0; attempt < 20; attempt += 1) {
             const credential = await this.buildCredential();
+            if (await matchesHash(credential.pin, user.pin_hash, user.pin_salt)) continue;
 
             try {
                 await this.client.$transaction([

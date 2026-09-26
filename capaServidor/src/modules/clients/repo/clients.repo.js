@@ -31,8 +31,7 @@ class ClientRepo {
         },
       });
     } catch (error) {
-      console.log(error);
-      return null;
+      throw error;
     }
   }
 
@@ -42,8 +41,7 @@ class ClientRepo {
         where: { id_cliente: Number(id) },
       });
     } catch (error) {
-      console.log(error);
-      return null;
+      throw error;
     }
   }
 
@@ -51,8 +49,7 @@ class ClientRepo {
     try {
       return this.client.cliente.findMany();
     } catch (error) {
-      console.log(error);
-      return null;
+      throw error;
     }
   }
 
@@ -62,8 +59,7 @@ class ClientRepo {
         where: { rut_cliente: rutCliente },
       });
     } catch (error) {
-      console.log(error);
-      return null;
+      throw error;
     }
   }
 }

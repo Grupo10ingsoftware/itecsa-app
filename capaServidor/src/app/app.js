@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import Server from "../server.js";
+import pinService from "../modules/auth/service/pin.service.js";
 
 config();
 
@@ -25,6 +26,7 @@ function validateEnvironment() {
 (async () => {
     try {
         validateEnvironment();
+        void pinService.delivery; // Validate explicit provider/environment before listening.
         const server = new Server();
         await server.listen()
     } catch ( err ){

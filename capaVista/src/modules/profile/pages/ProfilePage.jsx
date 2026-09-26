@@ -322,7 +322,7 @@ export default function ProfilePage() {
                 <div className="modal-body">
                   {!recoveryRequested ? (
                     <p>
-                      En desarrollo el codigo temporal se registra en la consola del backend.
+                      Solicita un codigo de verificacion en tu correo para generar un nuevo PIN.
                     </p>
                   ) : (
                     <label className="form-label w-100">

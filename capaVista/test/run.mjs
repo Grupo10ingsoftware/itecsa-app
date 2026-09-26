@@ -11,6 +11,9 @@ try {
 
   const profile = await server.ssrLoadModule('/test/profile.cases.jsx')
 
+  const apiErrors = await server.ssrLoadModule('/test/apiErrors.cases.js')
+  await apiErrors.run()
+
   profile.run()
   authorization.run()
   payments.run()

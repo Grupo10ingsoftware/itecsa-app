@@ -1,4 +1,5 @@
-import pinService, { PinServiceError } from "../modules/auth/service/pin.service.js";
+import { respondError } from "../errors/httpErrors.js";
+import pinService from "../modules/auth/service/pin.service.js";
 
 export function createRequirePin({ pins = pinService } = {}) {
     return async function requirePin(req, res, next) {
@@ -11,18 +12,7 @@ export function createRequirePin({ pins = pinService } = {}) {
 
             return next();
         } catch (error) {
-            if (error instanceof PinServiceError) {
-                return res.status(error.status).json({
-                    code: error.code,
-                    message: error.message,
-                    ...(error.details ?? {}),
-                });
-            }
-
-            return res.status(500).json({
-                code: "PIN_VALIDATION_FAILED",
-                message: "No fue posible validar el PIN.",
-            });
+            return respondError(error, req, res);
         }
     };
 }

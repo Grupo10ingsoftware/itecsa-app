@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import PaymentRecordService from "../service/paymentRecord.service.js";
 
@@ -13,9 +14,7 @@ class PaymentRecordController {
 
       res.status(200).json(record);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registro de pago",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -26,9 +25,7 @@ class PaymentRecordController {
 
       res.status(200).json(records);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registros de pago",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -39,9 +36,7 @@ class PaymentRecordController {
 
       res.status(200).json(details);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener el detalle de confirmacion",
-      });
+        return respondError(error, req, res);
     }
   };
 }

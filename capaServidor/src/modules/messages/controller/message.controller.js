@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import MessageService from "../service/message.service.js";
 
@@ -12,9 +13,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener los mensajes.",
-            });
+            return respondError(error, req, res);
         }
     };
 
@@ -24,9 +23,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener las notificaciones.",
-            });
+            return respondError(error, req, res);
         }
     };
 
@@ -39,9 +36,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener el mensaje.",
-            });
+            return respondError(error, req, res);
         }
     };
 
@@ -54,9 +49,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al marcar el mensaje como leido.",
-            });
+            return respondError(error, req, res);
         }
     };
 
@@ -69,9 +62,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al ocultar la notificacion.",
-            });
+            return respondError(error, req, res);
         }
     };
 
@@ -81,9 +72,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al limpiar las notificaciones.",
-            });
+            return respondError(error, req, res);
         }
     };
 }

@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -119,8 +120,7 @@ class SalesNoteSourceService {
     const normalizedNumber = normalizeSalesNoteNumber(numeroNota);
 
     if (!normalizedNumber) {
-      const error = new Error("El numero de Nota de Venta es obligatorio.");
-      error.statusCode = 400;
+      const error = new AppError(400, "El numero de Nota de Venta es obligatorio.");
       throw error;
     }
 
@@ -128,8 +128,7 @@ class SalesNoteSourceService {
     const record = this.cache.byNumber.get(normalizedNumber);
 
     if (!record) {
-      const error = new Error("Nota de Venta no encontrada.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Nota de Venta no encontrada.");
       throw error;
     }
 

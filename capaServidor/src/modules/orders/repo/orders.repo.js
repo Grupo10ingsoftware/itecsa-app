@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
 
@@ -655,8 +656,7 @@ class OrderRepository {
       // Evita duplicar registros si la misma transición llega más de una vez.
       if (transition.count !== 1) {
         if (expectedState) {
-          const error = new Error("El pedido cambio mientras se procesaba la solicitud. Actualiza el tablero e intenta nuevamente.");
-          error.statusCode = 409;
+          const error = new AppError(409, "El pedido cambio mientras se procesaba la solicitud. Actualiza el tablero e intenta nuevamente.");
           throw error;
         }
         return null;
@@ -752,8 +752,7 @@ class OrderRepository {
         select: { fecha_real_termino: true },
       });
       if (details.length === 0 || details.some((detail) => !detail.fecha_real_termino)) {
-        const error = new Error("Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.");
-        error.statusCode = 409;
+        const error = new AppError(409, "Todos los detalles deben completar sus subprocesos antes de pasar a Listo para Entrega.");
         throw error;
       }
     }
@@ -1078,14 +1077,12 @@ class OrderRepository {
     if (!order) return null;
 
     if (Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
-      const error = new Error("Los subprocesos solo pueden completarse en Produccion.");
-      error.statusCode = 409;
+      const error = new AppError(409, "Los subprocesos solo pueden completarse en Produccion.");
       throw error;
     }
 
     if (detail.fecha_real_termino) {
-      const error = new Error("Todos los subprocesos de este producto ya estan completos.");
-      error.statusCode = 409;
+      const error = new AppError(409, "Todos los subprocesos de este producto ya estan completos.");
       throw error;
     }
 
@@ -1096,8 +1093,7 @@ class OrderRepository {
     );
 
     if (processIndex < 0) {
-      const error = new Error("Subproceso no encontrado para este producto.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Subproceso no encontrado para este producto.");
       throw error;
     }
 
@@ -1108,8 +1104,7 @@ class OrderRepository {
     );
 
     if (currentIndex < 0 || processIndex !== currentIndex) {
-      const error = new Error("Debe completar primero el subproceso actual.");
-      error.statusCode = 409;
+      const error = new AppError(409, "Debe completar primero el subproceso actual.");
       throw error;
     }
 
@@ -1177,8 +1172,7 @@ class OrderRepository {
     // La actualización condicional actúa como barrera de idempotencia. Si dos
     // solicitudes llegan juntas, solo la primera puede avanzar el detalle.
     if (transition.count !== 1) {
-      const error = new Error("El subproceso ya fue completado.");
-      error.statusCode = 409;
+      const error = new AppError(409, "El subproceso ya fue completado.");
       throw error;
     }
 
@@ -1215,7 +1209,7 @@ class OrderRepository {
     if (!detail) return null;
     const order = await this.getTransitionState(orderId);
     if (!order || Number(order.id_etapa_general) !== 2 || order.estado_pago !== "Confirmado") {
-      const error = new Error("El pedido debe estar en produccion y con pago confirmado."); error.statusCode = 409; throw error;
+      const error = new AppError(409, "El pedido debe estar en produccion y con pago confirmado."); throw error;
     }
 
     const subprocesses = detail.Tipo_Producto?.Producto_Subproceso ?? [];
@@ -1225,8 +1219,7 @@ class OrderRepository {
       Number(item.id_estado_subproceso) === Number(subprocessId));
     const rollbackIndex = detail.fecha_real_termino ? currentIndex : currentIndex - 1;
     if (currentIndex < 0 || rollbackIndex < 0 || targetIndex !== rollbackIndex) {
-      const error = new Error("Solo se puede retroceder al subproceso inmediatamente anterior.");
-      error.statusCode = 409;
+      const error = new AppError(409, "Solo se puede retroceder al subproceso inmediatamente anterior.");
       throw error;
     }
 
@@ -1239,8 +1232,7 @@ class OrderRepository {
       data: { id_estado_subproceso: Number(subprocessId), fecha_real_termino: null },
     });
     if (changed.count !== 1) {
-      const error = new Error("El subproceso ya fue modificado.");
-      error.statusCode = 409;
+      const error = new AppError(409, "El subproceso ya fue modificado.");
       throw error;
     }
 

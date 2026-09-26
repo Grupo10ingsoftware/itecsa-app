@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
   KANBAN_EN_PRODUCCION_STEP,
@@ -169,22 +170,19 @@ class OrderService {
 
   async updGeneralStep(orderId, stepId, options = {}) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     if (stepId === undefined || stepId === null) {
-      const error = new Error("La etapa destino es obligatoria");
-      error.statusCode = 400;
+      const error = new AppError(400, "La etapa destino es obligatoria");
       throw error;
     }
 
     const order = await this.repo.getTransitionState(orderId);
 
     if (!order) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 
@@ -192,14 +190,12 @@ class OrderService {
     const nextStep = Number(stepId);
 
     if (!Number.isInteger(nextStep)) {
-      const error = new Error("Etapa no valida");
-      error.statusCode = 400;
+      const error = new AppError(400, "Etapa no valida");
       throw error;
     }
 
     if (nextStep < currentStep) {
-      const error = new Error("No puedes retroceder en las etapas del pedido");
-      error.statusCode = 409;
+      const error = new AppError(409, "No puedes retroceder en las etapas del pedido");
       throw error;
     }
 
@@ -208,14 +204,13 @@ class OrderService {
     }
 
     if (nextStep !== currentStep + 1) {
-      const error = new Error(KANBAN_STAGE_SKIP_MESSAGE);
-      error.statusCode = 409;
+      const error = new AppError(409, KANBAN_STAGE_SKIP_MESSAGE);
       throw error;
     }
 
     // Se permiten avances manuales consecutivos desde producción lista hasta entrega.
     if (!((currentStep === 1 && nextStep === 2) || (currentStep === 2 && nextStep === 3) || (currentStep === 3 && nextStep === 4))) {
-      const error = new Error("Esta transicion no admite movimiento manual."); error.statusCode = 403; throw error;
+      const error = new AppError(403, "Esta transicion no admite movimiento manual."); throw error;
     }
     const isMoveToProduction =
       currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
@@ -225,18 +220,16 @@ class OrderService {
       isMoveToProduction &&
       !can(options.role, permissions, P.START_PRODUCTION)
     ) {
-      const error = new Error(KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
-      error.statusCode = 403;
+      const error = new AppError(403, KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
       throw error;
     }
 
     if (order.estado_pago !== PAYMENT_STATUS.CONFIRMADO) {
-      throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
+      throw new AppError(409, PAYMENT_CONFIRMATION_REQUIRED_MESSAGE, "PAYMENT_CONFIRMATION_REQUIRED");
     }
 
     if (!options.actor?.idUsuario) {
-      const error = new Error("El usuario validado por PIN es obligatorio.");
-      error.statusCode = 403;
+      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
       throw error;
     }
 
@@ -257,27 +250,23 @@ class OrderService {
   async sendToReview(orderId, comment, { auth0UserId } = {}) {
     const normalizedComment = typeof comment === "string" ? comment.trim() : "";
     if (!normalizedComment) {
-      const error = new Error("El comentario de revision es obligatorio.");
-      error.statusCode = 400;
+      const error = new AppError(400, "El comentario de revision es obligatorio.");
       throw error;
     }
 
     if (normalizedComment.length > 2000) {
-      const error = new Error("El comentario de revision no puede superar 2000 caracteres.");
-      error.statusCode = 400;
+      const error = new AppError(400, "El comentario de revision no puede superar 2000 caracteres.");
       throw error;
     }
 
     const currentOrder = await this.repo.get(orderId);
     if (!currentOrder) {
-      const error = new Error("Pedido no encontrado.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND");
       throw error;
     }
 
     if (Number(currentOrder.id_etapa_general) !== 1) {
-      const error = new Error("Solo se puede enviar a revision un pedido Listo para Produccion.");
-      error.statusCode = 409;
+      const error = new AppError(409, "Solo se puede enviar a revision un pedido Listo para Produccion.");
       throw error;
     }
 
@@ -288,8 +277,7 @@ class OrderService {
         comment: normalizedComment,
       });
       if (!updatedOrder) {
-        const error = new Error("Pedido o estado En revisión no encontrado.");
-        error.statusCode = 404;
+        const error = new AppError(404, "Pedido o estado En revisión no encontrado.");
         throw error;
       }
       return updatedOrder;
@@ -299,33 +287,28 @@ class OrderService {
   async cancelProduction(orderId, comment, { actor } = {}) {
     const normalizedComment = typeof comment === "string" ? comment.trim() : "";
     if (!normalizedComment) {
-      const error = new Error("La observacion de cancelacion es obligatoria.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La observacion de cancelacion es obligatoria.");
       throw error;
     }
 
     if (normalizedComment.length > 2000) {
-      const error = new Error("La observacion no puede superar 2000 caracteres.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La observacion no puede superar 2000 caracteres.");
       throw error;
     }
 
     if (!actor?.idUsuario) {
-      const error = new Error("El usuario validado por PIN es obligatorio.");
-      error.statusCode = 403;
+      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
       throw error;
     }
 
     const currentOrder = await this.repo.get(orderId);
     if (!currentOrder) {
-      const error = new Error("Pedido no encontrado.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND");
       throw error;
     }
 
     if (currentOrder.nombre_etapa_general === "Cancelado") {
-      const error = new Error("El pedido ya se encuentra cancelado.");
-      error.statusCode = 409;
+      const error = new AppError(409, "El pedido ya se encuentra cancelado.");
       throw error;
     }
 
@@ -335,8 +318,7 @@ class OrderService {
         comment: normalizedComment,
       });
       if (!updatedOrder) {
-        const error = new Error("Pedido o estado Cancelado no encontrado.");
-        error.statusCode = 404;
+        const error = new AppError(404, "Pedido o estado Cancelado no encontrado.");
         throw error;
       }
       return updatedOrder;
@@ -345,34 +327,29 @@ class OrderService {
 
   async updateDeliveryDate(orderId, dueDate, { actor } = {}) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     if (!dueDate) {
-      const error = new Error("La fecha de entrega es obligatoria.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La fecha de entrega es obligatoria.");
       throw error;
     }
 
     const parsedDate = toPrismaDate(dueDate);
 
     if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
-      const error = new Error("La fecha de entrega no es valida.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La fecha de entrega no es valida.");
       throw error;
     }
 
     if (!isBusinessDate(parsedDate)) {
-      const error = new Error("La fecha de produccion debe ser un dia habil.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La fecha de produccion debe ser un dia habil.");
       throw error;
     }
 
     if (!actor?.idUsuario) {
-      const error = new Error("El usuario validado por PIN es obligatorio.");
-      error.statusCode = 403;
+      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
       throw error;
     }
 
@@ -383,8 +360,7 @@ class OrderService {
     });
 
     if (!updatedOrder) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 
@@ -393,14 +369,12 @@ class OrderService {
 
   async completeSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
     if (!orderId || !detailId || !subprocessId) {
-      const error = new Error("Faltan IDs obligatorios para completar el subproceso.");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan IDs obligatorios para completar el subproceso.");
       throw error;
     }
 
     if (!actor?.idUsuario) {
-      const error = new Error("El usuario validado por PIN es obligatorio.");
-      error.statusCode = 403;
+      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
       throw error;
     }
 
@@ -414,8 +388,7 @@ class OrderService {
       });
 
       if (!updatedOrder) {
-        const error = new Error("Pedido o detalle de pedido no encontrado.");
-        error.statusCode = 404;
+        const error = new AppError(404, "Pedido o detalle de pedido no encontrado.");
         throw error;
       }
 
@@ -426,18 +399,15 @@ class OrderService {
   async rollbackSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
     const observation = typeof comment === "string" ? comment.trim() : "";
     if (!actor?.idUsuario) {
-      const error = new Error("El usuario validado por PIN es obligatorio.");
-      error.statusCode = 403;
+      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
       throw error;
     }
     if (!observation) {
-      const error = new Error("La observacion del retroceso es obligatoria.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La observacion del retroceso es obligatoria.");
       throw error;
     }
     if (observation.length > 2000) {
-      const error = new Error("La observacion no puede superar 2000 caracteres.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La observacion no puede superar 2000 caracteres.");
       throw error;
     }
 
@@ -446,8 +416,7 @@ class OrderService {
         orderId, detailId, subprocessId, userId: actor.idUsuario, comment: observation,
       });
       if (!result) {
-        const error = new Error("Pedido o subproceso no encontrado.");
-        error.statusCode = 404;
+        const error = new AppError(404, "Pedido o subproceso no encontrado.");
         throw error;
       }
       return result;
@@ -478,8 +447,7 @@ class OrderService {
     ]);
 
     if (isAlreadyRegistered) {
-      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
-      error.statusCode = 409;
+      const error = new AppError(409, DUPLICATE_SALES_NOTE_MESSAGE);
       throw error;
     }
 
@@ -489,13 +457,13 @@ class OrderService {
   async reevaluateOrder(orderId, { auth0UserId } = {}) {
     const order = await this.repo.get(orderId);
     if (!order) {
-      const error = new Error("Pedido no encontrado."); error.statusCode = 404; throw error;
+      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND"); throw error;
     }
     if (Number(order.id_etapa_general) !== 6) {
-      const error = new Error("Solo se pueden reevaluar pedidos En revision."); error.statusCode = 409; throw error;
+      const error = new AppError(409, "Solo se pueden reevaluar pedidos En revision."); throw error;
     }
     if (!order.numero_nota_venta) {
-      const error = new Error("El pedido no tiene numero de Nota de Venta."); error.statusCode = 409; throw error;
+      const error = new AppError(409, "El pedido no tiene numero de Nota de Venta."); throw error;
     }
     const [salesNote, userId] = await Promise.all([
       this.salesNoteSourceService.getByNumber(order.numero_nota_venta),
@@ -509,12 +477,12 @@ class OrderService {
   async setOrderLabel(orderId, { label, active }, { auth0UserId } = {}) {
     const allowed = new Set(["Urgencia", "Prioridad por contrato", "PRODUCIÉNDOSE"]);
     if (!allowed.has(label) || typeof active !== "boolean") {
-      const error = new Error("Etiqueta o estado no valido."); error.statusCode = 400; throw error;
+      const error = new AppError(400, "Etiqueta o estado no valido."); throw error;
     }
     const userId = await this.resolveInternalUserId({ auth0UserId });
     return this.runInTransaction(async ({ repo }) => {
       const result = await repo.setOrderLabel({ orderId, label, active, userId });
-      if (!result) { const error = new Error("Pedido no encontrado."); error.statusCode = 404; throw error; }
+      if (!result) { const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND"); throw error; }
       return result;
     });
   }
@@ -524,8 +492,7 @@ class OrderService {
       const user = await this.userRepo.findByAuth0Id(auth0UserId);
 
       if (!user?.idUsuario) {
-        const error = new Error("No existe un usuario interno vinculado a la sesion.");
-        error.statusCode = 403;
+        const error = new AppError(403, "No existe un usuario interno vinculado a la sesion.");
         throw error;
       }
 
@@ -536,8 +503,7 @@ class OrderService {
       return id_usuario;
     }
 
-    const error = new Error("El usuario autenticado es obligatorio para registrar el pago.");
-    error.statusCode = 400;
+    const error = new AppError(400, "El usuario autenticado es obligatorio para registrar el pago.");
     throw error;
   }
 
@@ -552,8 +518,7 @@ class OrderService {
     const paymentStatusId = Number(newPaymentStatusId);
 
     if (!Number.isInteger(paymentStatusId)) {
-      const error = new Error("El estado de pago no es valido.");
-      error.statusCode = 400;
+      const error = new AppError(400, "El estado de pago no es valido.");
       throw error;
     }
 
@@ -563,14 +528,12 @@ class OrderService {
     ]);
 
     if (!paymentStatus) {
-      const error = new Error("Estado de pago no encontrado.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Estado de pago no encontrado.");
       throw error;
     }
 
     if (!currentOrder) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 
@@ -586,22 +549,19 @@ class OrderService {
 
     if (isResolvedPayment) {
       if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
-        const error = new Error(
+        const error = new AppError(403,
           "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
         );
-        error.statusCode = 403;
         throw error;
       }
 
       if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
-        const error = new Error(RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
-        error.statusCode = 409;
+        const error = new AppError(409, RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
         throw error;
       }
 
       if (!String(observacion ?? "").trim()) {
-        const error = new Error("El motivo del cambio de pago es obligatorio.");
-        error.statusCode = 400;
+        const error = new AppError(400, "El motivo del cambio de pago es obligatorio.");
         throw error;
       }
     }
@@ -719,8 +679,7 @@ class OrderService {
       !Array.isArray(productos) ||
       productos.length === 0
     ) {
-      const error = new Error("Faltan datos obligatorios para crear el pedido.");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan datos obligatorios para crear el pedido.");
       throw error;
     }
 
@@ -776,8 +735,7 @@ class OrderService {
         const { nombre_producto, cantidad, fecha_estimada_termino } = product;
 
         if (!nombre_producto || cantidad === undefined) {
-          const error = new Error("Faltan datos obligatorios en un detalle del pedido.");
-          error.statusCode = 400;
+          const error = new AppError(400, "Faltan datos obligatorios en un detalle del pedido.");
           throw error;
         }
 
@@ -818,8 +776,7 @@ class OrderService {
     );
 
     if (!numeroNota || !cliente.rut || !cliente.nombre || productionItems.length === 0) {
-      const error = new Error("Faltan datos obligatorios para registrar el pedido.");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan datos obligatorios para registrar el pedido.");
       throw error;
     }
 
@@ -828,8 +785,7 @@ class OrderService {
     );
 
     if (invalidItem) {
-      const error = new Error("Hay productos sin tipo productivo, nombre o cantidad valida.");
-      error.statusCode = 400;
+      const error = new AppError(400, "Hay productos sin tipo productivo, nombre o cantidad valida.");
       throw error;
     }
 
@@ -849,8 +805,7 @@ class OrderService {
       const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
 
       if (duplicateOrder) {
-        const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
-        error.statusCode = 409;
+        const error = new AppError(409, DUPLICATE_SALES_NOTE_MESSAGE);
         throw error;
       }
 
@@ -974,16 +929,14 @@ class OrderService {
 
   async getOrderById(orderId) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     const order = await this.repo.get(orderId);
 
     if (!order) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 

@@ -339,9 +339,9 @@ test("responde error generico si falla Auth0", async () => {
     });
 
     assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, {
-        message: "No fue posible solicitar el correo de recuperación de contraseña.",
-    });
+    assert.equal(res.body.code, "INTERNAL_ERROR");
+    assert.equal(res.body.message, "Ocurrio un error interno.");
+    assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
 });
 
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {

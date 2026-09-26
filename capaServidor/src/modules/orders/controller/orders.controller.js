@@ -1,8 +1,8 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
-import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
 
 
 class OrderController {
@@ -16,7 +16,7 @@ class OrderController {
             const orders = await this.service.getAllOrders()
             res.status( 200 ).json( orders );
         } catch ( error ) {
-            res.status(500).json({ message: 'Error al obtener pedidos' });
+            return respondError(error, req, res);
         }
     }
 
@@ -25,9 +25,7 @@ class OrderController {
             const workspace = await this.service.getPaymentWorkspace();
             res.status(200).json(workspace);
         } catch (error) {
-            res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al obtener pedidos de cobranza',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -36,14 +34,11 @@ class OrderController {
             const { orderId } = req.params;
             const order = await this.service.getOrderById(orderId);
 
-            if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
+            if (!order) return res.status(404).json({ code: 'ORDER_NOT_FOUND', message: 'Pedido no encontrado' });
 
             res.status(200).json(order);
         } catch ( error ) {
-            const statusCode = error.statusCode ?? 500;
-            res.status(statusCode).json({
-                message: error.message || 'Error al obtener pedido',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -54,11 +49,7 @@ class OrderController {
 
             res.status(200).json(salesNote);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al consultar Nota de Venta',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -70,11 +61,7 @@ class OrderController {
 
             res.status(201).json(order);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al crear pedido',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -109,11 +96,7 @@ class OrderController {
 
             res.status(200).json(result);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al actualizar el pedido',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -141,13 +124,7 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            const statusCode =
-                error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE
-                    ? 409
-                    : error.statusCode ?? 500;
-            res.status( statusCode ).json({
-                message: error.message || 'Error al actualizar el pedido',
-            })
+            return respondError(error, req, res);
         }
     }
 
@@ -160,9 +137,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al enviar el pedido a revision',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -175,9 +150,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al cancelar la produccion',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -188,9 +161,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al reevaluar el pedido',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -200,7 +171,7 @@ class OrderController {
                 auth0UserId: req.auth?.payload?.sub,
             }));
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({ message: error.message || 'Error al actualizar etiqueta' });
+            return respondError(error, req, res);
         }
     }
 
@@ -215,11 +186,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al actualizar fecha de entrega',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -240,11 +207,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al completar subproceso',
-            });
+            return respondError(error, req, res);
         }
     }
 
@@ -257,9 +220,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || 'Error al retroceder el subproceso',
-            });
+            return respondError(error, req, res);
         }
     }
 

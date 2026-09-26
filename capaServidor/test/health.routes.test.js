@@ -54,7 +54,7 @@ test("GET /api/health/db no expone detalles si falla la conexion", async (t) => 
   const body = await response.json();
 
   assert.equal(response.status, 500);
-  assert.deepEqual(body, {
-    message: "No fue posible conectar con la base de datos.",
-  });
+  assert.equal(body.code, "INTERNAL_ERROR");
+    assert.equal(body.message, "Ocurrio un error interno.");
+    assert.match(body.requestId, /^[0-9a-f-]{36}$/);
 });

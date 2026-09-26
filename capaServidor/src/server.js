@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { requestContext, errorHandler } from './errors/httpErrors.js';
 
 import authRoutes from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
@@ -60,12 +61,15 @@ class Server {
     this.middlewares();
     // rutas de mi aplicacion
     this.routes();
+    this.app.use(errorHandler);
   }
 
 
 
   // aca mismo podemos tener una función asincrona para conectar a la base de datos cuando este disponible
   middlewares() {
+
+    this.app.use(requestContext);
 
     // Cors
     this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));

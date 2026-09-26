@@ -1,11 +1,11 @@
+import { AppError } from "../../../errors/AppError.js";
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
 
 const EVENT_TYPES = new Set(["all", "stage", "payment", "subprocess", "calendar", "general"]);
 const CALENDARIZATION_DESCRIPTION_PREFIX = "Fecha de termino definida para ";
 
 function httpError(statusCode, message) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
+    const error = new AppError(statusCode, message);
     return error;
 }
 

@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import PaymentRecordRepo from "../repo/paymentRecord.repo.js";
 import SalesNoteSourceService from "../../orders/service/salesNoteSource.service.js";
 
@@ -90,14 +91,12 @@ class PaymentRecordService {
     } = data;
 
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     if (!id_usuario || !id_estado_pago) {
-      const error = new Error("Faltan datos obligatorios del registro de pago");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan datos obligatorios del registro de pago");
       throw error;
     }
 
@@ -111,16 +110,14 @@ class PaymentRecordService {
 
   async getPaymentRecord(orderId, paymentRecordId) {
     if (!orderId || !paymentRecordId) {
-      const error = new Error("Faltan IDs obligatorios");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan IDs obligatorios");
       throw error;
     }
 
     const record = await this.repo.getByOrderIdAndRecordId(orderId, paymentRecordId);
 
     if (!record) {
-      const error = new Error("Registro de pago no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Registro de pago no encontrado");
       throw error;
     }
 
@@ -129,8 +126,7 @@ class PaymentRecordService {
 
   async getPaymentRecordsByOrderId(orderId) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
@@ -142,16 +138,14 @@ class PaymentRecordService {
     const parsedOrderId = Number(orderId);
 
     if (!Number.isInteger(parsedOrderId) || parsedOrderId <= 0) {
-      const error = new Error("El ID del pedido no es valido");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido no es valido");
       throw error;
     }
 
     const order = await this.repo.getConfirmationSource(parsedOrderId);
 
     if (!order) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 

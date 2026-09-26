@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { roleFromPayload, manageableRoles, canManageUser } from "../../../../../shared/authorization.js";
 import {
-    AUTH0_MANAGEMENT_SCOPES,
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
@@ -27,12 +27,6 @@ function allowedTarget(req, res, role) {
     return true;
 }
 
-const INTERNAL_ERROR_MESSAGE = "No fue posible crear el usuario.";
-const PASSWORD_EMAIL_ERROR_MESSAGE =
-    "No fue posible solicitar el correo de establecimiento de contrasena.";
-const LIST_USERS_ERROR_MESSAGE = "No fue posible consultar los usuarios.";
-const UPDATE_USER_ERROR_MESSAGE = "No fue posible actualizar el usuario.";
-const UPDATE_STATUS_ERROR_MESSAGE = "No fue posible actualizar el estado del usuario.";
 const SELF_UNLINK_ERROR_MESSAGE =
     "No puedes desvincular tu propio usuario.";
 const SELF_ROLE_UPDATE_ERROR_MESSAGE =
@@ -70,29 +64,6 @@ function createdResponse(user, createdUser, passwordSetupEmailRequested) {
         rolUsuario: user.rolUsuario,
         passwordSetupEmailRequested,
     };
-}
-
-function auth0ErrorResponse(error, fallbackMessage) {
-    if (!(error instanceof Auth0ServiceError)) {
-        return { message: fallbackMessage };
-    }
-
-    const response = {
-        message: fallbackMessage,
-        code: error.code,
-    };
-
-    if (error.code === "AUTH0_CONFIGURATION_ERROR") {
-        response.message = "La configuracion administrativa de Auth0 esta incompleta.";
-    }
-
-    if (error.code === "AUTH0_INSUFFICIENT_SCOPE") {
-        response.message =
-            "La aplicacion administrativa de Auth0 no tiene permisos suficientes para consultar o modificar usuarios.";
-        response.requiredScopes = AUTH0_MANAGEMENT_SCOPES;
-    }
-
-    return response;
 }
 
 function isMissingUserError(error) {
@@ -155,8 +126,8 @@ export function createListAdminUsersHandler({ users = userRepository } = {}) {
                 ...result,
                 usuarios: result.usuarios.map(managementUserResponse),
             });
-        } catch {
-            return res.status(500).json({ message: LIST_USERS_ERROR_MESSAGE });
+        } catch (error) {
+            return respondError(error, req, res);
         }
     };
 }
@@ -168,8 +139,8 @@ export function createAdminUsersSummaryHandler({ users = userRepository } = {}) 
             if (!allowedRoles.length) return res.status(403).json({message:"Acceso denegado."});
             const result = await users.getSummary({allowedRoles});
             return res.status(200).json(result);
-        } catch {
-            return res.status(500).json({ message: LIST_USERS_ERROR_MESSAGE });
+        } catch (error) {
+            return respondError(error, req, res);
         }
     };
 }
@@ -246,12 +217,10 @@ export function createUpdateAdminUserHandler({
             }
 
             if (error instanceof Auth0ServiceError) {
-                return res
-                    .status(500)
-                    .json(auth0ErrorResponse(error, UPDATE_USER_ERROR_MESSAGE));
+                return respondError(error, req, res);
             }
 
-            return res.status(500).json({ message: UPDATE_USER_ERROR_MESSAGE });
+            return respondError(error, req, res);
         }
     };
 }
@@ -319,12 +288,10 @@ export function createUpdateAdminUserStatusHandler({
             }
 
             if (error instanceof Auth0ServiceError) {
-                return res
-                    .status(500)
-                    .json(auth0ErrorResponse(error, UPDATE_STATUS_ERROR_MESSAGE));
+                return respondError(error, req, res);
             }
 
-            return res.status(500).json({ message: UPDATE_STATUS_ERROR_MESSAGE });
+            return respondError(error, req, res);
         }
     };
 }
@@ -350,10 +317,8 @@ export function createPasswordSetupEmailHandler({
             await requestPasswordEmail({
                 email: validatedRequest.correoUsuario,
             });
-        } catch {
-            return res.status(500).json({
-                message: PASSWORD_EMAIL_ERROR_MESSAGE,
-            });
+        } catch (error) {
+            return respondError(error, req, res);
         }
 
         return res.status(200).json({
@@ -384,8 +349,8 @@ export function createAdminUserHandler({
 
         try {
             existingInternalUser = await users.findByEmail(user.correoUsuario);
-        } catch {
-            return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
+        } catch (error) {
+            return respondError(error, req, res);
         }
 
         if (existingInternalUser) {
@@ -409,7 +374,7 @@ export function createAdminUserHandler({
                 });
             }
 
-            return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
+            return respondError(error, req, res);
         }
 
         try {
@@ -454,7 +419,7 @@ export function createAdminUserHandler({
 
         try {
             await pins.provisionByUserId(createdUser.internalUser.idUsuario);
-        } catch {
+        } catch (error) {
             return res.status(201).json({
                 ...createdResponse(user, createdUser, false),
                 recoverable: true,
@@ -465,7 +430,7 @@ export function createAdminUserHandler({
 
         try {
             await requestPasswordEmail({ email: user.correoUsuario });
-        } catch {
+        } catch (error) {
             return res.status(201).json({
                 ...createdResponse(user, createdUser, false),
                 recoverable: true,
@@ -495,8 +460,8 @@ export function createAdminUserMovementsHandler({ users = userRepository } = {})
             const { page, perPage } = query.filters;
             const result = await users.listMovements(user.idUsuario, { page, perPage });
             return res.status(200).json(result);
-        } catch {
-            return res.status(500).json({ message: "No fue posible consultar los movimientos del usuario." });
+        } catch (error) {
+            return respondError(error, req, res);
         }
     };
 }

@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import ProductionLoadRepository, { LANYARD_DAILY_CAPACITY } from "../repo/productionLoad.repo.js";
 import { UserRepository } from "../../users/repo/users.repo.js";
 
@@ -13,8 +14,7 @@ function normalizeDateKey(value) {
   if (value === undefined || value === null || value === "") return todayKey();
   const text = String(value);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-    const error = new Error("La fecha debe tener formato YYYY-MM-DD.");
-    error.statusCode = 400;
+    const error = new AppError(400, "La fecha debe tener formato YYYY-MM-DD.");
     throw error;
   }
   const [year, month, day] = text.split("-").map(Number);
@@ -25,8 +25,7 @@ function normalizeDateKey(value) {
     date.getMonth() !== month - 1 ||
     date.getDate() !== day
   ) {
-    const error = new Error("La fecha no es valida.");
-    error.statusCode = 400;
+    const error = new AppError(400, "La fecha no es valida.");
     throw error;
   }
   return text;
@@ -34,8 +33,7 @@ function normalizeDateKey(value) {
 
 function normalizeEntries(entries) {
   if (!Array.isArray(entries)) {
-    const error = new Error("Debe enviar una lista de cargas por detalle.");
-    error.statusCode = 400;
+    const error = new AppError(400, "Debe enviar una lista de cargas por detalle.");
     throw error;
   }
 
@@ -43,13 +41,11 @@ function normalizeEntries(entries) {
     const detailId = Number(entry?.detailId ?? entry?.id_detalle_pedido);
     const quantity = Number(entry?.quantity ?? entry?.cantidad_dia);
     if (!Number.isInteger(detailId) || detailId <= 0) {
-      const error = new Error("Cada carga debe incluir un detalle valido.");
-      error.statusCode = 400;
+      const error = new AppError(400, "Cada carga debe incluir un detalle valido.");
       throw error;
     }
     if (!Number.isInteger(quantity) || quantity < 0) {
-      const error = new Error("La cantidad diaria debe ser un entero mayor o igual a cero.");
-      error.statusCode = 400;
+      const error = new AppError(400, "La cantidad diaria debe ser un entero mayor o igual a cero.");
       throw error;
     }
     return {
@@ -95,8 +91,7 @@ export default class ProductionLoadService {
     const user = await this.userRepo.findByAuth0Id(auth0UserId);
 
     if (!user?.idUsuario) {
-      const error = new Error("No existe un usuario interno vinculado a la sesion.");
-      error.statusCode = 403;
+      const error = new AppError(403, "No existe un usuario interno vinculado a la sesion.");
       throw error;
     }
 

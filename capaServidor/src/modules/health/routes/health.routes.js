@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { Router } from "express";
 import { checkDatabaseConnection } from "../../../database/prisma.js";
 
@@ -12,9 +13,7 @@ export function createHealthRouter({
       const isConnected = await checkDatabase();
 
       if (!isConnected) {
-        return res.status(500).json({
-          message: "No fue posible conectar con la base de datos.",
-        });
+        return respondError(new Error(), req, res, { logger: { error: logError } });
       }
 
       return res.status(200).json({
@@ -22,14 +21,7 @@ export function createHealthRouter({
         database: "mysql",
       });
     } catch (error) {
-      logError(
-        "Fallo healthcheck de base de datos:",
-        error?.code ?? error?.name ?? "DATABASE_HEALTHCHECK_ERROR",
-      );
-
-      return res.status(500).json({
-        message: "No fue posible conectar con la base de datos.",
-      });
+      return respondError(error, req, res, { logger: { error: logError } });
     }
   });
 

@@ -1,3 +1,7 @@
+import SalesOrderCreationService, { DUPLICATE_SALES_NOTE_MESSAGE } from "./salesOrderCreation.service.js";
+import { createSalesOrderTransaction } from "./salesOrder.transaction.js";
+import { toSalesNotePreview } from "./salesOrder.validator.js";
+import { SalesOrderError } from "./salesOrder.errors.js";
 import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
   KANBAN_EN_PRODUCCION_STEP,
@@ -25,8 +29,7 @@ import SalesNoteSourceService, {
 
 export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
   "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
-export const DUPLICATE_SALES_NOTE_MESSAGE =
-  "Esta Nota de Venta ya fue registrada en el sistema y no puede volver a ingresarse.";
+export { DUPLICATE_SALES_NOTE_MESSAGE };
 
 function toPrismaDate(value) {
   if (!value) return null;
@@ -44,48 +47,6 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeQuantity(value) {
-  const quantity = Number(value);
-
-  return Number.isFinite(quantity) ? quantity : null;
-}
-
-function normalizePriorityLabels(priority) {
-  if (!priority) return [];
-
-  const priorities = Array.isArray(priority) ? priority : [priority];
-  const labelNames = new Set();
-
-  for (const item of priorities) {
-    if (item === "urgent") labelNames.add("Urgencia");
-    if (item === "contract") labelNames.add("Prioridad por contrato");
-  }
-
-  return [...labelNames];
-}
-
-function normalizeProductionItems(items = []) {
-  return items.map((item) => ({
-    codigo: item.codigo ?? null,
-    producto: item.producto ?? null,
-    cantidad: normalizeQuantity(item.cantidad),
-    familia: item.familia ?? null,
-    subfamilia: item.subfamilia ?? null,
-    tipoProducto: item.tipoProducto ?? item.nombre_producto ?? null,
-  }));
-}
-
-function normalizeUntrackedItems(items = []) {
-  return items
-    .map((item) => ({
-      codigo: item.codigo ?? null,
-      producto: item.producto ?? null,
-      cantidad: normalizeQuantity(item.cantidad),
-      subfamilia: item.subfamilia ?? null,
-    }))
-    .filter((item) => normalizeText(item.producto));
-}
-
 class OrderService {
   constructor({
     repo,
@@ -98,6 +59,7 @@ class OrderService {
     salesNoteSourceService,
     repoClient,
     prisma,
+    salesOrderTransaction,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
     this.clientService = clientService ?? new ClientService();
@@ -110,6 +72,7 @@ class OrderService {
       salesNoteSourceService ?? new SalesNoteSourceService();
     this.repoClient = repoClient ?? null;
     this.prisma = prisma;
+    this.salesOrderTransaction = salesOrderTransaction;
     this.hasInjectedDependencies = Boolean(
       repo ||
         clientService ||
@@ -478,12 +441,10 @@ class OrderService {
     ]);
 
     if (isAlreadyRegistered) {
-      const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
-      error.statusCode = 409;
-      throw error;
+      throw new SalesOrderError(DUPLICATE_SALES_NOTE_MESSAGE, 409);
     }
 
-    return salesNote;
+    return toSalesNotePreview(salesNote);
   }
 
   async reevaluateOrder(orderId, { auth0UserId } = {}) {
@@ -698,278 +659,16 @@ class OrderService {
   }
 
   async createOrder(data, options = {}) {
-    if (data?.numeroNota || data?.cliente || data?.items) {
-      return this.createOrderFromSalesNote(data, options);
-    }
-
-    const {
-      rut_cliente,
-      nombre_cliente,
-      razon_social,
-      estado_cliente,
-      id_etiqueta,
-      productos,
-    } = data;
-
-    const id_usuario = await this.resolveInternalUserId({ auth0UserId: options.auth0UserId });
-
-    if (
-      !id_usuario ||
-      !rut_cliente ||
-      !Array.isArray(productos) ||
-      productos.length === 0
-    ) {
-      const error = new Error("Faltan datos obligatorios para crear el pedido.");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    return this.runInTransaction(async ({
-      repo,
-      clientService,
-      orderDetailService,
-      productTypeService,
-    }) => {
-      const client = await clientService.findOrCreateClient({
-        rut_cliente,
-        nombre_cliente,
-        razon_social,
-        estado_cliente,
-      });
-
-      if (!client?.id_cliente) {
-        const error = new Error("No se pudo resolver el cliente del pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const id_estado_pago = 1;
-      const id_estado_pedido = 1;
-
-      const fecha_estimada_termino = productos.reduce((latestDate, product) => {
-        if (!product.fecha_estimada_termino) return latestDate;
-        if (!latestDate) return product.fecha_estimada_termino;
-
-        return new Date(product.fecha_estimada_termino) > new Date(latestDate)
-          ? product.fecha_estimada_termino
-          : latestDate;
-      }, null);
-
-      const order = await repo.create({
-        id_cliente: client.id_cliente,
-        id_usuario,
-        id_estado_pedido,
-        id_estado_pago,
-        id_etiqueta,
-        fecha_estimada_termino: toPrismaDate(fecha_estimada_termino),
-      });
-
-      if (!order?.id_pedido) {
-        const error = new Error("No se pudo crear el pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const details = [];
-
-      for (const product of productos) {
-        const { nombre_producto, cantidad, fecha_estimada_termino } = product;
-
-        if (!nombre_producto || cantidad === undefined) {
-          const error = new Error("Faltan datos obligatorios en un detalle del pedido.");
-          error.statusCode = 400;
-          throw error;
-        }
-
-        const productType = await productTypeService.getProductTypeByName(
-          nombre_producto,
-        );
-
-        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productType.id_tipo_producto,
-          cantidad,
-          fecha_estimada_termino: toPrismaDate(fecha_estimada_termino) ?? null,
-          fecha_real_termino: null,
-        });
-
-        details.push(detail);
-      }
-
-      await repo.notifyCollectionsAdministrators({
-        orderId: order.id_pedido,
-        subject: "Nuevo pedido pendiente de confirmación de pago",
-        content: `Se registró el pedido ${order.numero_nota_venta ?? `#${order.id_pedido}`}. Está pendiente de confirmación de pago.`,
-      });
-
-      return {
-        ...order,
-        detalles: details,
-      };
-    });
+    return this.createOrderFromSalesNote(data, options);
   }
 
   async createOrderFromSalesNote(data, options = {}) {
-    const numeroNota = normalizeText(data.numeroNota);
-    const cliente = data.cliente ?? {};
-    const origen = data.origen ?? {};
-    const productionItems = normalizeProductionItems(data.items ?? []);
-    const untrackedItems = normalizeUntrackedItems(
-      data.itemsSinSeguimientoProductivo ?? data.itemsNoSoportados ?? [],
-    );
-
-    if (!numeroNota || !cliente.rut || !cliente.nombre || productionItems.length === 0) {
-      const error = new Error("Faltan datos obligatorios para registrar el pedido.");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const invalidItem = productionItems.find(
-      (item) => !item.tipoProducto || !item.producto || item.cantidad === null,
-    );
-
-    if (invalidItem) {
-      const error = new Error("Hay productos sin tipo productivo, nombre o cantidad valida.");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const resolvedUserId = await this.resolveInternalUserId({
-      auth0UserId: options.auth0UserId,
-      id_usuario: data.id_usuario,
+    const service = new SalesOrderCreationService({
+      source: this.salesNoteSourceService,
+      userRepo: this.userRepo,
+      runInTransaction: this.salesOrderTransaction ?? createSalesOrderTransaction(() => this.client),
     });
-    const estimatedCompletionDate = null;
-
-    return this.runInTransaction(async ({
-      repo,
-      clientService,
-      orderDetailService,
-      productTypeService,
-      repoClient,
-    }) => {
-      const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
-
-      if (duplicateOrder) {
-        const error = new Error(DUPLICATE_SALES_NOTE_MESSAGE);
-        error.statusCode = 409;
-        throw error;
-      }
-
-      const client = await clientService.findOrCreateClient({
-        rut_cliente: cliente.rut,
-        nombre_cliente: cliente.nombre,
-        razon_social: cliente.nombre,
-        estado_cliente: "ACTIVO",
-      });
-
-      if (!client?.id_cliente) {
-        const error = new Error("No se pudo resolver el cliente del pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const labelNames = normalizePriorityLabels(data.priority);
-      const labels = labelNames.length > 0
-        ? await repoClient.etiqueta.findMany({
-            where: {
-              nombre_etiqueta: { in: labelNames },
-              esta_activa: 1,
-            },
-          })
-        : [];
-      const primaryLabelId = labels[0]?.id_etiqueta ?? null;
-
-      const order = await repo.create({
-        id_cliente: client.id_cliente,
-        id_usuario: resolvedUserId,
-        id_estado_pedido: 1,
-        id_estado_pago: 1,
-        id_etiqueta: primaryLabelId,
-        fecha_estimada_termino: estimatedCompletionDate,
-        numero_nota_venta: numeroNota,
-        usuario_manager_origen: origen.usuarioManager ?? null,
-        observacion_origen: data.observaciones ?? null,
-        observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
-      }, { hydrate: false });
-
-      if (!order?.id_pedido) {
-        const error = new Error("No se pudo crear el pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      if (labels.length > 0) {
-        await repo.addLabels(
-          order.id_pedido,
-          labels.map((label) => label.id_etiqueta),
-          resolvedUserId,
-        );
-      }
-
-      const details = [];
-      const productContextByName = new Map();
-
-      for (const item of productionItems) {
-        let productContext = productContextByName.get(item.tipoProducto);
-
-        if (!productContext) {
-          const productType = await productTypeService.getProductTypeByName(
-            item.tipoProducto,
-          );
-          const subprocesses = await repo.getProductSubprocesses(
-            productType.id_tipo_producto,
-          );
-
-          productContext = {
-            productType,
-            firstSubprocess: subprocesses[0] ?? null,
-          };
-          productContextByName.set(item.tipoProducto, productContext);
-        }
-
-        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productContext.productType.id_tipo_producto,
-          cantidad: item.cantidad,
-          fecha_estimada_termino: estimatedCompletionDate,
-          fecha_real_termino: null,
-          id_estado_subproceso:
-            productContext.firstSubprocess?.id_estado_subproceso ?? null,
-        });
-
-        details.push({
-          ...detail,
-          codigo: item.codigo,
-          producto: item.producto,
-          familia: item.familia,
-          subfamilia: item.subfamilia,
-          tipoProducto: item.tipoProducto,
-        });
-      }
-
-      const createdUntrackedItems = await repo.createUntrackedItems(
-        order.id_pedido,
-        untrackedItems,
-      );
-
-      await repo.notifyCollectionsAdministrators({
-        orderId: order.id_pedido,
-        subject: "Nuevo pedido pendiente de confirmación de pago",
-        content: `Se registró el pedido ${numeroNota}. Está pendiente de confirmación de pago.`,
-      });
-
-      await repo.notifyProductionAdministrators({
-        orderId: order.id_pedido,
-        subject: "Pedido pendiente de programacion",
-        content: `Se registro el pedido ${numeroNota}. Debe asignarse una fecha habil en el calendario de produccion.`,
-      });
-
-      const fullOrder = await repo.get(order.id_pedido);
-
-      return {
-        ...fullOrder,
-        detalles: details,
-        itemsSinSeguimientoProductivo: createdUntrackedItems,
-      };
-    });
+    return service.create(data, options);
   }
 
   async getOrderById(orderId) {

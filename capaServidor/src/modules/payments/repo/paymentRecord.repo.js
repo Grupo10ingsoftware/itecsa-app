@@ -125,6 +125,9 @@ class PaymentRecordRepo {
         u.correo_usuario,
         dp.id_detalle_pedido,
         dp.cantidad,
+        dp.linea_origen,
+        dp.codigo_origen,
+        dp.producto_origen,
         tp.nombre_producto,
         tp.descripcion_producto
       FROM Pedidos p
@@ -156,6 +159,11 @@ class PaymentRecordRepo {
         .map((row) => ({
           id_detalle_pedido: row.id_detalle_pedido,
           cantidad: row.cantidad,
+          ...(row.linea_origen ? {
+            linea_origen: row.linea_origen,
+            codigo_origen: row.codigo_origen ?? null,
+            producto_origen: row.producto_origen ?? null,
+          } : {}),
           Tipo_Producto: {
             nombre_producto: row.nombre_producto ?? null,
             descripcion_producto: row.descripcion_producto ?? null,

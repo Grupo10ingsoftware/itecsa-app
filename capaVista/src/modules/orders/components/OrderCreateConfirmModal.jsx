@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import styles from './OrderCreateConfirmModal.module.css'
 
 function SummaryItem({ icon, label, value, wide = false }) {
@@ -15,6 +16,37 @@ function SummaryItem({ icon, label, value, wide = false }) {
 }
 
 export default function OrderCreateConfirmModal({ draft, isRegistering = false, onCancel, onConfirm }) {
+  const dialog = useRef(null)
+  useEffect(() => {
+    const trigger = document.activeElement
+    dialog.current?.querySelector('button:not(:disabled)')?.focus()
+    return () => trigger?.focus()
+  }, [])
+
+  useEffect(() => {
+    if (isRegistering) dialog.current?.focus()
+  }, [isRegistering])
+
+  function handleKeyDown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      if (!isRegistering) onCancel()
+    }
+    if (event.key !== 'Tab') return
+    const buttons = [...dialog.current.querySelectorAll('button:not(:disabled)')]
+    const first = buttons[0]
+    const last = buttons.at(-1)
+    if (!first) {
+      event.preventDefault()
+      dialog.current.focus()
+    } else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
   const priorityLabel = {
     urgent: 'Urgente',
     contract: 'Cliente con contrato',
@@ -22,7 +54,7 @@ export default function OrderCreateConfirmModal({ draft, isRegistering = false, 
 
   return (
     <div className={styles.modalBackdrop} role="presentation">
-      <section aria-labelledby="register-order-modal-title" aria-modal="true" className={styles.modalCard} role="dialog">
+      <section ref={dialog} tabIndex={-1} onKeyDown={handleKeyDown} aria-busy={isRegistering} aria-labelledby="register-order-modal-title" aria-modal="true" className={styles.modalCard} role="dialog">
         <header className={styles.modalHeader}>
           <div>
             <span className={styles.modalKicker}>Registro de pedido</span>
@@ -30,7 +62,7 @@ export default function OrderCreateConfirmModal({ draft, isRegistering = false, 
             <p>Revisa la información antes de crear el pedido.</p>
           </div>
 
-          <button aria-label="Cerrar confirmacion" className={styles.modalClose} onClick={onCancel} type="button">
+          <button aria-label="Cerrar confirmacion" disabled={isRegistering} className={styles.modalClose} onClick={onCancel} type="button">
             <i className="bi bi-x-lg" aria-hidden="true" />
           </button>
         </header>

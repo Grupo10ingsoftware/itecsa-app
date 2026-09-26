@@ -91,6 +91,7 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado con PIN y revisar una vista previa de datos del pedido.
 - Kanban consume pedidos y estados reales desde backend, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
 - La pantalla `/ordenes/nuevo` consulta notas de venta mediante la API y registra pedidos con `POST /api/orders`; la fuente de notas sigue siendo un fixture local.
+- Orders valida y recupera la fuente en servidor, registra historial inicial y conserva snapshots comerciales de las líneas. Antes de desplegar estos cambios debe aplicarse el [procedimiento de migración pendiente](docs/ORDERS_MIGRACION.md); el DDL está preparado, no ejecutado. [Contrato y pruebas](capaVista/src/modules/orders/README.md).
 
 Recursos Auth0 esperados/configurados para esta rama:
 

@@ -44,6 +44,15 @@ function resolveSalesNoteItems(details = [], salesNoteItems = []) {
 
   return details.map((detail, detailIndex) => {
     const productType = detail.Tipo_Producto?.nombre_producto;
+    if (detail.linea_origen && detail.producto_origen) {
+      return {
+        id: detail.id_detalle_pedido,
+        productType: productType ?? null,
+        code: detail.codigo_origen ?? null,
+        product: detail.producto_origen,
+        quantity: detail.cantidad,
+      };
+    }
     const normalizedType = normalizeText(productType);
     const quantity = Number(detail.cantidad);
     const matchesType = ({ item, index }) =>
@@ -157,7 +166,8 @@ class PaymentRecordService {
 
     let salesNote = null;
 
-    if (order.numero_nota_venta) {
+    const needsSource = (order.Detalle_pedido ?? []).some((detail) => !detail.linea_origen || !detail.producto_origen);
+    if (order.numero_nota_venta && needsSource) {
       try {
         salesNote = await this.salesNoteSourceService.getByNumber(
           order.numero_nota_venta,

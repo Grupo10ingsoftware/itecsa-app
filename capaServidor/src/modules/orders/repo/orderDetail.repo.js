@@ -24,6 +24,11 @@ class OrderDetailRepo {
 
     return this.client.detalle_pedido.create({
       data: {
+        linea_origen: data.linea_origen ?? null,
+        codigo_origen: data.codigo_origen ?? null,
+        producto_origen: data.producto_origen ?? null,
+        familia_origen: data.familia_origen ?? null,
+        subfamilia_origen: data.subfamilia_origen ?? null,
         id_pedido: Number(orderId),
         id_tipo_producto: Number(id_tipo_producto),
         cantidad,

@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs"
+    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.17.0",

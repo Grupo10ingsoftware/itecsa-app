@@ -109,6 +109,7 @@ Estado funcional actual:
 - Kanban consume `GET /api/orders` y `GET /api/order-status`, mueve etapas con `PATCH /api/orders/:orderId/move`, bloquea saltos o retrocesos y exige `move:kanban-to-production` para mover a `En produccion`.
 - El movimiento devuelve los campos de etapa (`id_pedido`, `id_estado_pedido`, `id_etapa_general`, `generalStepId`, `nombre_etapa_general`), no el pedido completo. Kanban aplica estos campos sobre la tarjeta existente y conserva productos, cliente, pago y etiquetas. Si etapa o pago cambiaron desde la validacion, responde 409; las escrituras y la auditoria siguen en una transaccion. Una solicitud a la etapa actual devuelve el estado reducido sin escribir.
 - `/ordenes/nuevo` consulta la nota por API y registra el pedido mediante `POST /api/orders`; mantiene el borrador en memoria React.
+- El POST de Ventas delega en `SalesOrderCreationService`: recupera la fuente autoritativa, valida, resuelve actor interno y ejecuta una unidad transaccional explícita. Persiste snapshots comerciales y evento/etapa inicial. Las operaciones compartidas restantes de `OrderService` no fueron rediseñadas. El [schema preparado requiere migración revisada antes de desplegar](ORDERS_MIGRACION.md).
 - El módulo de documentos/PDF y firmas fue retirado. Las notas de venta se consultan como datos estructurados desde el fixture local hasta disponer de integración autorizada.
 
 ## Variables De Entorno

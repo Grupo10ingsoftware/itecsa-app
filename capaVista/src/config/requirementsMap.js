@@ -6,6 +6,7 @@ export const REQUIREMENTS_MAP = Object.freeze({
   'modules/auth': Object.freeze(['UR 1.1', 'UR 1.10', 'UR 1.11', 'UR 1.14', 'UR 1.18']),
   'modules/users': Object.freeze(['UR 1.4', 'UR 1.12', 'UR 1.13']),
   'modules/payments': Object.freeze(['UR 3.1', 'UR 3.3', 'UR 3.7']),
+  'modules/orders': Object.freeze(['RF42', 'RF43', 'RF44', 'RF45', 'RF46', 'RF47', 'RF48']),
   'modules/kanban': Object.freeze(['UR 5.1', 'UR 5.2', 'UR 5.3']),
   'modules/profile': Object.freeze(['UR 1.7']),
   'shared/components/layout': Object.freeze(['UR 1.7', 'UR 1.18', 'UR 12.1']),

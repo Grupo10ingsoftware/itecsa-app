@@ -1,3 +1,4 @@
+import { sendOrderError } from "../service/salesOrder.errors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
@@ -40,10 +41,7 @@ class OrderController {
 
             res.status(200).json(order);
         } catch ( error ) {
-            const statusCode = error.statusCode ?? 500;
-            res.status(statusCode).json({
-                message: error.message || 'Error al obtener pedido',
-            });
+            return sendOrderError(res, error);
         }
     }
 
@@ -54,11 +52,7 @@ class OrderController {
 
             res.status(200).json(salesNote);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al consultar Nota de Venta',
-            });
+            return sendOrderError(res, error);
         }
     }
 
@@ -66,15 +60,12 @@ class OrderController {
         try {
             const order = await this.service.createOrder(req.body ?? {}, {
                 auth0UserId: req.auth?.payload?.sub,
+                actorId: req.currentUser?.idUsuario,
             });
 
             res.status(201).json(order);
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-                message: error.message || 'Error al crear pedido',
-            });
+            return sendOrderError(res, error);
         }
     }
 

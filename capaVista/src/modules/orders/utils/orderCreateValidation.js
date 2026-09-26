@@ -11,6 +11,10 @@ export function validateSalesNoteStep(draft) {
     errors.salesNoteCode = 'Debe buscar la informacion de la Nota de Venta antes de registrar.'
   }
 
+  if ((draft.comments?.length ?? 0) > 300) {
+    errors.comments = 'La observacion interna admite hasta 300 caracteres.'
+  }
+
   return errors
 }
 

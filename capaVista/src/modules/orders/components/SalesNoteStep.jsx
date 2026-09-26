@@ -282,10 +282,11 @@ export default function SalesNoteStep({
 
             <section className={styles.internalObservation}>
               <div className={styles.subsectionHeader}>
-                <h3>Observaciones del pedido</h3>
+                <h3 id="order-observations-label">Observaciones del pedido</h3>
                 <span>{draft.comments?.length || 0}/300</span>
               </div>
               <textarea
+                aria-labelledby="order-observations-label"
                 className={styles.textarea}
                 maxLength={300}
                 onChange={(event) => onChange('comments', event.target.value)}

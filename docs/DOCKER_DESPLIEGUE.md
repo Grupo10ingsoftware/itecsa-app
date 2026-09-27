@@ -63,7 +63,7 @@ VPN o tunel; eso depende de su red y no reemplaza credenciales ni validacion TLS
 
 Workflow: `.github/workflows/docker.yml`.
 
-- PR a `main`: pruebas backend/frontend y del despliegue, build y smoke Docker.
+- PR a `dev` o `main`: pruebas backend/frontend y del despliegue, build y smoke Docker.
   No publica imagenes y no recibe credenciales de despliegue.
 - Push a `main`: mismas verificaciones, publicacion en GHCR de **las imagenes
   probadas** y actualizacion de Northflank si todo pasa.
@@ -78,6 +78,12 @@ Las operaciones manuales se ejecutan desde `main`. Los nombres son
 `ghcr.io/grupo10ingsoftware/itecsa-app-web:sha-<SHA>`.
 El despliegue utiliza `@sha256:<digest>`, no `latest`. Las imagenes permanecen
 privadas: no cambiar la visibilidad para resolver problemas de acceso.
+
+La integracion de esta rama sigue `migration/docker` → `dev` → `main`.
+Primero revisar la dockerizacion en un PR hacia `dev`; cuando esa integracion
+este validada, preparar el PR de `dev` hacia `main`. Integrar en `dev` verifica
+codigo, pero no publica imagenes ni despliega Northflank. La activacion externa
+se realiza al preparar la primera entrega a `main`.
 
 Solo hay un despliegue activo a la vez; no se cancela durante escrituras.
 Las versiones de `main` obsoletas se omiten antes de actualizar. La API se actualiza
@@ -99,7 +105,8 @@ Guardar estas referencias junto a cada entrega al cliente.
 
 ## Primera activacion de Northflank
 
-1. Revisar/mergear esta rama con las pruebas aprobadas. El primer push puede
+1. Integrar primero esta rama en `dev` con las pruebas aprobadas. Cuando el equipo
+   autorice la entrega, integrar `dev` en `main`. El primer push a `main` puede
    publicar imagenes aunque el job de despliegue falle por configuracion faltante.
    Alternativamente ejecutar `operation=publish` desde `main` para bootstrap.
 2. Northflank: completar su requisito de metodo de pago y mantener el plan

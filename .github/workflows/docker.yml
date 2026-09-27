@@ -2,7 +2,7 @@ name: Docker CI and Northflank CD
 
 on:
   pull_request:
-    branches: [main]
+    branches: [dev, main]
   push:
     branches: [main]
   workflow_dispatch:

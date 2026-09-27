@@ -120,8 +120,15 @@ export class MemoryThrottleService {
     }
 }
 
-const defaultThrottle = process.env.APP_ENV === "test"
-    ? new MemoryThrottleService()
-    : new SecurityThrottleService();
+export function createDefaultThrottle(appEnvironment = process.env.APP_ENV) {
+    // La cuota compartida es obligatoria en producción. Desarrollo y pruebas no
+    // deben depender de migraciones que deliberadamente aún no se aplican a la
+    // base compartida.
+    return appEnvironment === "production"
+        ? new SecurityThrottleService()
+        : new MemoryThrottleService();
+}
+
+const defaultThrottle = createDefaultThrottle();
 
 export default defaultThrottle;

@@ -22,6 +22,10 @@ test("protege listado y detalle con checkJwt", async (t) => {
                 calls.push(`getOrderHistory:${req.params.orderId}`);
                 res.status(200).json({ id: Number(req.params.orderId) });
             },
+            listOrderEvents(req, res) {
+                calls.push(`listOrderEvents:${req.params.orderId}`);
+                res.status(200).json({ events: [] });
+            },
         },
     });
     const app = express();
@@ -34,5 +38,7 @@ test("protege listado y detalle con checkJwt", async (t) => {
     assert.equal(response.status, 200);
     response = await fetch(`http://127.0.0.1:${server.address().port}/api/history/orders/9`);
     assert.equal(response.status, 200);
-    assert.deepEqual(calls, ["checkJwt", "listOrders", "checkJwt", "getOrderHistory:9"]);
+    response = await fetch(`http://127.0.0.1:${server.address().port}/api/history/orders/9/events`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, ["checkJwt", "listOrders", "checkJwt", "getOrderHistory:9", "checkJwt", "listOrderEvents:9"]);
 });

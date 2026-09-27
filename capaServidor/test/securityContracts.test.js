@@ -8,6 +8,17 @@ import { createLineSnapshots, salesNoteLineIdentity } from "../src/modules/order
 import { decodeCursor, encodeCursor, parseLimit } from "../src/shared/pagination.js";
 import { createSupportAudit } from "../src/middlewares/supportAudit.js";
 import { TemporaryDataCleanupService } from "../src/modules/security/service/temporaryDataCleanup.service.js";
+import {
+    MemoryThrottleService,
+    SecurityThrottleService,
+    createDefaultThrottle,
+} from "../src/modules/security/service/securityThrottle.service.js";
+
+test("desarrollo no depende de DDL pendiente y producción conserva cuotas persistentes", () => {
+    assert.ok(createDefaultThrottle("development") instanceof MemoryThrottleService);
+    assert.ok(createDefaultThrottle("test") instanceof MemoryThrottleService);
+    assert.ok(createDefaultThrottle("production") instanceof SecurityThrottleService);
+});
 
 test("cursores son opacos, estrictos y los limites no superan 100", () => {
     const cursor = encodeCursor({ id: 42 });

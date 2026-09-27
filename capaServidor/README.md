@@ -64,6 +64,7 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 ```
 
 - `APP_ENV`: entorno obligatorio (`development`, `test` o `production`) usado por decisiones de seguridad.
+- En `development` y `test`, las cuotas se mantienen en memoria para no depender de migraciones pendientes en la base compartida. En `production`, `SecurityThrottle` es obligatorio y las cuotas son persistentes entre instancias.
 - `PORT`: puerto HTTP del servidor.
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.

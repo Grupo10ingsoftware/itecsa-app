@@ -19,7 +19,7 @@ export function encodeCursor(value) {
     return `${payload}.${signature}`;
 }
 
-export function decodeCursor(value) {
+function decodeSignedCursor(value) {
     if (!value) return null;
     try {
         const [payload, signature, extra] = String(value).split(".");
@@ -28,14 +28,45 @@ export function decodeCursor(value) {
         const receivedBuffer = Buffer.from(signature);
         const expectedBuffer = Buffer.from(expected);
         if (receivedBuffer.length !== expectedBuffer.length || !timingSafeEqual(receivedBuffer, expectedBuffer)) throw new Error("invalid");
-        const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-        if (!decoded || !Number.isInteger(decoded.id) || decoded.id <= 0 || Object.keys(decoded).some((key) => key !== "id")) {
-            throw new Error("invalid");
-        }
-        return decoded;
+        return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     } catch {
         throw new AppError("INVALID_CURSOR", "El cursor de paginacion no es valido.");
     }
+}
+
+export function decodeCursor(value) {
+    const decoded = decodeSignedCursor(value);
+    if (!decoded) return null;
+    if (!Number.isInteger(decoded.id) || decoded.id <= 0 || Object.keys(decoded).some((key) => key !== "id")) {
+        throw new AppError("INVALID_CURSOR", "El cursor de paginacion no es valido.");
+    }
+    return decoded;
+}
+
+export function encodeHistoryEventCursor(record) {
+    return encodeCursor({
+        kind: "history-event",
+        id: Number(record.ID_REGISTRO),
+        occurredAt: new Date(record.FECHA_HORA).toISOString(),
+    });
+}
+
+export function decodeHistoryEventCursor(value) {
+    const decoded = decodeSignedCursor(value);
+    if (!decoded) return null;
+    const keys = Object.keys(decoded).sort();
+    const occurredAt = new Date(decoded.occurredAt);
+    if (
+        decoded.kind !== "history-event" ||
+        !Number.isInteger(decoded.id) ||
+        decoded.id <= 0 ||
+        keys.join(",") !== "id,kind,occurredAt" ||
+        Number.isNaN(occurredAt.getTime()) ||
+        occurredAt.toISOString() !== decoded.occurredAt
+    ) {
+        throw new AppError("INVALID_CURSOR", "El cursor de paginacion no es valido.");
+    }
+    return { id: decoded.id, occurredAt };
 }
 
 function cursorSecret() {

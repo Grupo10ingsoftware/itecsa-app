@@ -78,7 +78,7 @@ Prefijo `/api`. Todos salvo recuperación pública/health pasan por JWT e identi
 | GET `/production-capacity` | `read:production-capacity` | Lectura compartida | Kanban / capacidad |
 | PATCH `/production-capacity` | `manage:production-capacity` | AP/Soporte | Configuración de capacidad |
 | POST `/production-calendar/operational-load` | `read:production-calendar` | Cálculo sin persistencia | Calendario AP/AV/OV/Soporte |
-| GET `/history/orders[/ :orderId]` | `read:orders` | Historial por pedido | Rutas de historial |
+| GET `/history/orders`, `/history/orders/:orderId`, `/history/orders/:orderId/events` | `read:orders` | Listado y eventos paginados; actor/observación de pagos requieren `read:payments` | Rutas de historial |
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages` | Destinatario = actor | Bandeja / detalle |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages` | Destinatario = actor | Leer/ocultar notificación |
 | `/documents/*` | No aplica | Módulo retirado en limpieza según RF01–RF75 | Sin endpoint de PDF de notas de venta |

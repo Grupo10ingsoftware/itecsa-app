@@ -1,10 +1,8 @@
-import { config } from "dotenv";
+import "dotenv/config";
 import Server from "../server.js";
 import { currentAppEnvironment } from "../config/environment.js";
 import { safeLogger } from "../shared/safeLogger.js";
 import { startTemporaryDataCleanup } from "../modules/security/service/temporaryDataCleanup.service.js";
-
-config();
 
 const requiredEnvironmentVariables = [
     "AUTH0_DOMAIN",
@@ -36,9 +34,10 @@ function validateEnvironment() {
 (async () => {
     try {
         validateEnvironment();
-        const server = new Server({ appEnvironment: currentAppEnvironment({ required: true }) });
+        const appEnvironment = currentAppEnvironment({ required: true });
+        const server = new Server({ appEnvironment });
         await server.listen();
-        startTemporaryDataCleanup();
+        if (appEnvironment === "production") startTemporaryDataCleanup();
     } catch ( err ){
         safeLogger.error("server.start_failed", { code: err?.code ?? "START_FAILED", outcome: "error" });
         process.exit(1);

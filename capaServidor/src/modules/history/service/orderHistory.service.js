@@ -1,5 +1,11 @@
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
-import { decodeCursor, pageResult, parseLimit } from "../../../shared/pagination.js";
+import {
+    decodeCursor,
+    decodeHistoryEventCursor,
+    encodeHistoryEventCursor,
+    pageResult,
+    parseLimit,
+} from "../../../shared/pagination.js";
 
 const EVENT_TYPES = new Set(["all", "stage", "payment", "subprocess", "calendar", "general"]);
 const CALENDARIZATION_DESCRIPTION_PREFIX = "Fecha de termino definida para ";
@@ -178,7 +184,7 @@ function mapEvent(record, { includePaymentDetails = false } = {}) {
     return { ...base, type: "general", typeLabel: "General", title: "Actividad del pedido" };
 }
 
-function mapDetail(order, requestedType, options = {}) {
+function mapDetail(order, records, options = {}) {
     const trackedItems = order.Detalle_pedido.map((detail) => ({
         id: detail.id_detalle_pedido,
         productType: detail.Tipo_Producto?.nombre_producto ?? null,
@@ -195,7 +201,7 @@ function mapDetail(order, requestedType, options = {}) {
         estimatedCompletionAt: null,
         completedAt: null,
     }));
-    const allEvents = order.Registros.map((record) => mapEvent(record, options));
+    const events = records.map((record) => mapEvent(record, options));
 
     return {
         id: order.id_pedido,
@@ -213,10 +219,36 @@ function mapDetail(order, requestedType, options = {}) {
         },
         labels: order.Pedido_Etiqueta.map((item) => item.etiqueta?.nombre_etiqueta).filter(Boolean),
         items: [...trackedItems, ...untrackedItems],
-        availableEventTypes: [...new Set(allEvents.map((event) => event.type))],
-        events: requestedType === "all"
-            ? allEvents
-            : allEvents.filter((event) => event.type === requestedType),
+        availableEventTypes: [...EVENT_TYPES].filter((type) => type !== "all"),
+        events,
+    };
+}
+
+function eventPageInfo(records, limit) {
+    const hasMore = records.length > limit;
+    const visibleRecords = hasMore ? records.slice(0, limit) : records;
+    const last = visibleRecords.at(-1);
+    return {
+        visibleRecords,
+        pageInfo: {
+            limit,
+            nextCursor: hasMore && last ? encodeHistoryEventCursor(last) : null,
+            hasMore,
+        },
+    };
+}
+
+function parseEventQuery(orderId, query) {
+    const parsedId = positiveInteger(orderId, null, "orderId");
+    const type = String(query.type ?? "all").trim().toLowerCase();
+    if (!EVENT_TYPES.has(type)) {
+        throw httpError(400, "type debe ser all, stage, payment, subprocess, calendar o general.");
+    }
+    return {
+        orderId: parsedId,
+        type,
+        limit: parseLimit(query.limit),
+        cursor: decodeHistoryEventCursor(query.cursor),
     };
 }
 
@@ -243,14 +275,35 @@ export default class OrderHistoryService {
     }
 
     async getOrderHistory(orderId, query = {}, options = {}) {
-        const parsedId = positiveInteger(orderId, null, "orderId");
-        const type = String(query.type ?? "all").trim().toLowerCase();
-        if (!EVENT_TYPES.has(type)) {
-            throw httpError(400, "type debe ser all, stage, payment, subprocess, calendar o general.");
-        }
-
-        const order = await this.repo.getById(parsedId);
+        const { orderId: parsedId, type, limit, cursor } = parseEventQuery(orderId, query);
+        const [order, records] = await Promise.all([
+            this.repo.getById(parsedId),
+            this.repo.listEvents({
+                orderId: parsedId,
+                type,
+                cursor,
+                limit,
+                includePaymentDetails: options.includePaymentDetails === true,
+            }),
+        ]);
         if (!order) throw httpError(404, "Pedido no encontrado.");
-        return mapDetail(order, type, options);
+        const { visibleRecords, pageInfo } = eventPageInfo(records, limit);
+        return {
+            ...mapDetail(order, visibleRecords, options),
+            pageInfo,
+        };
+    }
+
+    async listOrderEvents(orderId, query = {}, options = {}) {
+        const parsed = parseEventQuery(orderId, query);
+        const records = await this.repo.listEvents({
+            ...parsed,
+            includePaymentDetails: options.includePaymentDetails === true,
+        });
+        const { visibleRecords, pageInfo } = eventPageInfo(records, parsed.limit);
+        return {
+            events: visibleRecords.map((record) => mapEvent(record, options)),
+            pageInfo,
+        };
     }
 }

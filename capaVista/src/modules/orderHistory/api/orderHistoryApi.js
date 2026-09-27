@@ -10,7 +10,9 @@ function queryString(params = {}) {
 export function createOrderHistoryApi(apiClient) {
   return {
     listOrders: (params) => apiClient.get(`/history/orders${queryString(params)}`),
-    getOrderHistory: (orderId, type = 'all') =>
-      apiClient.get(`/history/orders/${orderId}${queryString({ type })}`),
+    getOrderHistory: (orderId, params = {}) =>
+      apiClient.get(`/history/orders/${orderId}${queryString(params)}`),
+    listOrderEvents: (orderId, params = {}) =>
+      apiClient.get(`/history/orders/${orderId}/events${queryString(params)}`),
   }
 }

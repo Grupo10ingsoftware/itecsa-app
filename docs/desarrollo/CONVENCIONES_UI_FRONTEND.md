@@ -8,8 +8,8 @@ Usar este documento cuando se cree o modifique una vista frontend para mantener 
 
 Debe consultarse junto con:
 
-- [`capaVista/README.md`](../capaVista/README.md), para ejecucion, variables de entorno y autenticacion frontend.
-- [`docs/ARQUITECTURA.md`](./ARQUITECTURA.md), para flujo Auth0, roles, permisos y limites vigentes.
+- [Frontend](../../capaVista/README.md), para ejecucion, variables de entorno y autenticacion frontend.
+- [Arquitectura](../arquitectura/ARQUITECTURA.md), para flujo Auth0, roles, permisos y limites vigentes.
 
 ## Estilo Visual General
 
@@ -59,7 +59,7 @@ Los formularios nuevos deben seguir estas reglas:
 - Mantener botones de accion alineados y con jerarquia visual clara.
 - Evitar agregar campos que la integracion actual no persiste, salvo que esten deshabilitados y explicados.
 
-No se deben solicitar ni persistir contrasenas desde frontend. RUT y firma electronica solo deben enviarse en flujos con contrato backend aprobado, como la creacion administrativa de usuarios.
+No se deben solicitar ni persistir contraseñas desde frontend. El alta administrativa envía RUT y datos personales como JSON según el contrato vigente; no recibe firmas ni archivos.
 
 ## Modulos Y Paginas
 
@@ -100,7 +100,7 @@ La dependencia de drag and drop `@dnd-kit/react` esta declarada en `capaVista/pa
 
 ## Cobranzas / Payments
 
-El modulo `payments` ya posee documentacion propia en `capaVista/src/modules/payments/README.md`. Las convenciones generales de este documento aplican al modulo, pero los detalles funcionales de Cobranzas deben mantenerse en su README local.
+Los detalles funcionales de Cobranzas se mantienen en [Payments](../modulos/PAYMENTS.md); su README local enlaza esa referencia. Estas convenciones generales también aplican al módulo.
 
 ## Checklist Para Nuevas Pantallas
 
@@ -120,7 +120,7 @@ Antes de dar por terminada una nueva vista frontend, revisar:
 No usar este documento para:
 
 - Secretos, tokens, client secrets o credenciales reales.
-- Configuracion detallada de Auth0, que vive en `docs/ARQUITECTURA.md` y los README de capa.
-- Endpoints backend, que corresponden a `capaServidor/README.md`.
+- Configuración detallada de autenticación, que vive en la [guía Auth0](../auth0/README.md).
+- Endpoints backend, que corresponden a la [referencia API](API.md).
 - Historial granular de cambios por commit o por integrante.
 - Instrucciones locales de IDE salvo que sean necesarias para todo el equipo.

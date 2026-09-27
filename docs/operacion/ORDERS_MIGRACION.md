@@ -1,4 +1,6 @@
-# Orders: procedimiento de migracion pendiente
+# Orders: procedimiento de migración pendiente
+
+Consultar [Orders](../modulos/ORDERS.md) y [pendientes](../PENDIENTES.md). Los conteos y metadatos siguientes proceden del diagnóstico del 26-09-2026, no de una nueva conexión en esta limpieza documental.
 
 Estado al 26-09-2026: se inspecciono en solo lectura la base configurada `mydb`.
 No se ha ejecutado ninguna migracion ni SQL de escritura desde el trabajo de
@@ -15,7 +17,7 @@ registrada como pedido 73 con un detalle y una etapa de auditoria durante la
 verificacion de la correccion. Reiniciar el backend despues de aplicar el DDL
 para que vuelva a detectar el esquema completo.
 
-## Incidente reproducido en `mydb`
+## Diagnóstico histórico de `mydb`, previo al modo compatible
 
 - La misma lectura que alimenta Kanban (`OrderRepository.getAllOrders`) falla con
   Prisma `P2022`. Faltan fisicamente las cinco columnas de snapshot que selecciona.
@@ -102,7 +104,7 @@ debe salir con codigo 0.
 Detener temporalmente las altas durante el backfill y la creacion del indice.
 Verificar otra vez que no hay colisiones; aplicar exclusivamente la migracion
 aditiva revisada. Generar el cliente Prisma y desplegar backend/frontend juntos.
-El codigo nuevo requiere las columnas de snapshot: no desplegarlo antes del DDL.
+El código actual tolera la ausencia de columnas mediante omisión de snapshots. Para habilitar la persistencia completa de snapshots y la integridad concurrente, aplicar primero el DDL revisado y reiniciar el backend; no considerar el modo compatible equivalente a una migración validada.
 La restriccion unica es la garantia de concurrencia; la consulta previa no basta.
 
 ## Datos y compatibilidad

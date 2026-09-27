@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 26-09-2026; revisión descrita en el informe.
+> Ubicación original: `docs/ORDERS_REAUDITORIA_2026-09-26.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../modulos/ORDERS.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Reauditoría técnica de Orders/Ventas — 26-09-2026
 
 ## 1. Resumen ejecutivo y alcance

@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: rama opt-ventas; fase previa a la reauditoría del 26-09-2026.
+> Ubicación original: `docs/ORDERS_IMPLEMENTACION.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../modulos/ORDERS.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Implementación Orders / Ventas — rama `opt-ventas`
 
 El proyecto comenzó con el árbol Git limpio en `opt-ventas`. Este documento

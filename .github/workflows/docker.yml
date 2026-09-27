@@ -55,6 +55,10 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Keep both SHA tags coherent if a release is rerun while another run publishes it.
+    concurrency:
+      group: images-${{ github.repository }}-${{ inputs.operation == 'rollback' && inputs.release_sha || github.sha }}
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write

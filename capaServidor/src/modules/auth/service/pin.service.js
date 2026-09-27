@@ -12,10 +12,10 @@ import { promisify } from "node:util";
 
 import getPrismaClient from "../../../database/prisma.js";
 import {
+    defaultPinRecoveryDelivery,
     PinDeliveryUnavailableError,
-    developmentPinRecoveryDelivery,
-    unavailablePinRecoveryDelivery,
 } from "./pinDelivery.service.js";
+import { currentAppEnvironment } from "../../../config/environment.js";
 
 import { ROLES, roleFromPayload, can, PERMISSIONS } from "../../../../../shared/authorization.js";
 
@@ -35,12 +35,6 @@ export class PinServiceError extends Error {
         this.status = status;
         this.details = details;
     }
-}
-
-function getDefaultDelivery() {
-    return process.env.NODE_ENV === "production"
-        ? unavailablePinRecoveryDelivery
-        : developmentPinRecoveryDelivery;
 }
 
 function decodeSecret(value) {
@@ -115,7 +109,7 @@ export class PinService {
     constructor({
         prisma,
         secret,
-        delivery = getDefaultDelivery(),
+        delivery = defaultPinRecoveryDelivery,
         now = () => new Date(),
     } = {}) {
         this.prisma = prisma;
@@ -357,7 +351,7 @@ export class PinService {
     }
 
     async debugReset(payload) {
-        if (process.env.NODE_ENV !== "development") {
+        if (currentAppEnvironment() !== "development") {
             throw new PinServiceError("PIN_DEBUG_DISABLED", "La generacion debug solo esta disponible en desarrollo.", { status: 403 });
         }
         if (!payload?.sub || roleFromPayload(payload) !== ROLES.SOPORTE ||

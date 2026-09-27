@@ -10,6 +10,7 @@ import UserManagementTable from '../components/UserManagementTable'
 import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
 import UserMovementsModal from '../components/UserMovementsModal'
 import UserSummaryCards from '../components/UserSummaryCards'
+import { createLatestRequestTracker } from '../utils/latestRequestTracker'
 import styles from './UserManagementPage.module.css'
 
 const EMPTY_SUMMARY = Object.freeze({
@@ -92,6 +93,7 @@ export default function UserManagementPage() {
   const { auth0User, loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const latestRequestRef = useRef(0)
+  const latestSummaryRequestRef = useRef(createLatestRequestTracker())
   const [users, setUsers] = useState([])
   const [activeStatus, setActiveStatus] = useState('')
   const [activeRole, setActiveRole] = useState('')
@@ -100,6 +102,11 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [summary, setSummary] = useState(EMPTY_SUMMARY)
+  const [summaryState, setSummaryState] = useState({
+    error: '',
+    hasData: false,
+    isLoading: true,
+  })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
@@ -173,15 +180,29 @@ export default function UserManagementPage() {
   )
 
   const loadSummary = useCallback(async () => {
+    const tracker = latestSummaryRequestRef.current
+    const requestId = tracker.begin()
+    setSummaryState((current) => ({ ...current, error: '', isLoading: true }))
+
     try {
       const response = await adminUsersApi.getSummary()
+
+      if (!tracker.isLatest(requestId)) return
+
       setSummary({
         totalUsuarios: response.totalUsuarios ?? 0,
         vinculados: response.vinculados ?? 0,
         desvinculados: response.desvinculados ?? 0,
       })
-    } catch {
-      setSummary(EMPTY_SUMMARY)
+      setSummaryState({ error: '', hasData: true, isLoading: false })
+    } catch (error) {
+      if (!tracker.isLatest(requestId)) return
+
+      setSummaryState((current) => ({
+        ...current,
+        error: getErrorText(error),
+        isLoading: false,
+      }))
     }
   }, [adminUsersApi])
 
@@ -194,11 +215,15 @@ export default function UserManagementPage() {
   }, [loadUsers])
 
   useEffect(() => {
+    const tracker = latestSummaryRequestRef.current
     const requestTimer = window.setTimeout(() => {
       loadSummary()
     }, 0)
 
-    return () => window.clearTimeout(requestTimer)
+    return () => {
+      window.clearTimeout(requestTimer)
+      tracker.invalidate()
+    }
   }, [loadSummary])
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / DEFAULT_PAGE_SIZE))
@@ -269,7 +294,19 @@ export default function UserManagementPage() {
           <p className={styles.pageSubtitle}>Administra usuarios, roles y estado de vinculacion del sistema.</p>
         </header>
 
-        <UserSummaryCards summary={summary} />
+        <UserSummaryCards
+          isLoading={summaryState.isLoading}
+          summary={summaryState.hasData ? summary : null}
+        />
+
+        {summaryState.error && (
+          <div className={`${styles.feedbackMessage} ${styles.feedbackdanger}`} role="alert">
+            <span>{summaryState.error} {summaryState.hasData ? 'Se conservan los ultimos valores disponibles.' : ''}</span>
+            <UserButton disabled={summaryState.isLoading} onClick={() => { void loadSummary() }} variant="secondary">
+              Reintentar resumen
+            </UserButton>
+          </div>
+        )}
 
         <div className={styles.content}>
           {actionMessage && (
@@ -294,7 +331,7 @@ export default function UserManagementPage() {
             onStatusChange={handleStatusChange}
             onToggle={() => setIsFiltersOpen((currentValue) => !currentValue)}
             searchTerm={searchTerm}
-            summary={summary}
+            summary={summaryState.hasData ? summary : null}
           />
 
           <UserManagementTable

@@ -70,7 +70,7 @@ export default function UserManagementFilters({
                   type="button"
                 >
                   <span>{filter.label}</span>
-                  <strong>{summary[filter.countKey] ?? 0}</strong>
+                  <strong>{summary?.[filter.countKey] ?? '—'}</strong>
                 </button>
               ))}
             </div>

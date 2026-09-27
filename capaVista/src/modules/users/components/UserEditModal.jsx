@@ -2,6 +2,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getRoleLabel, manageableRoles } from '../../../config/roles'
 import UserButton from './UserButton'
+import { useModalDialog } from '../hooks/useModalDialog'
 import styles from '../pages/UserManagementPage.module.css'
 import editStyles from './UserEditModal.module.css'
 
@@ -24,6 +25,15 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   const [saveError, setSaveError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const firstInputRef = useRef(null)
+  const modalRef = useRef(null)
+
+  useModalDialog({
+    canClose: !isSubmitting,
+    containerRef: modalRef,
+    initialFocusRef: firstInputRef,
+    isOpen: Boolean(isOpen && user),
+    onClose,
+  })
 
   useEffect(() => {
     if (!isOpen || !user) {
@@ -31,24 +41,10 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
     }
 
     const resetTimer = window.setTimeout(() => { setPin(''); setPinError('') }, 0)
-    const previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 0)
-
-    function handleEscape(event) {
-      if (event.key === 'Escape' && !isSubmitting) {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
     return () => {
       window.clearTimeout(resetTimer)
-      window.clearTimeout(focusTimer)
-      document.body.style.overflow = previousBodyOverflow
-      document.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen, isSubmitting, onClose, user])
+  }, [isOpen, user])
 
   const canSubmit = useMemo(() => {
     if (!values) {
@@ -116,20 +112,23 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   }
 
   return (
-    <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
+    <div className={styles.modalLayer} data-modal-layer="true" onMouseDown={handleBackdropMouseDown} role="presentation">
       <form
+        aria-describedby="user-edit-modal-description"
         aria-labelledby="user-edit-modal-title"
         aria-modal="true"
         className={editStyles.modal}
         noValidate
         onSubmit={handleSubmit}
+        ref={modalRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header className={editStyles.header}>
           <div>
             <span className={editStyles.kicker}>Usuario</span>
             <h2 id="user-edit-modal-title">Editar usuario</h2>
-            <p>Modifica la informacion del usuario en el sistema.</p>
+            <p id="user-edit-modal-description">Modifica la informacion del usuario en el sistema.</p>
           </div>
           <button
             aria-label="Cerrar modal de edicion"

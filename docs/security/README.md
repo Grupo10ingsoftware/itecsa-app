@@ -11,7 +11,7 @@ Este directorio contiene los procedimientos operativos que acompañan las defens
 - [ ] Validar y aplicar las migraciones en la base objetivo; reconciliar `_prisma_migrations` sólo con supervisión.
 - [ ] Crear un usuario append-only para `SecurityAuditEvent` y denegar UPDATE/DELETE a la identidad runtime.
 - [ ] Configurar red interna y token de `/internal/ready`, o mantener el endpoint deshabilitado.
-- [ ] Resolver el rediseño de PIN descrito en [INFORME_CAMBIOS_PIN_DELEGADOS.md](INFORME_CAMBIOS_PIN_DELEGADOS.md); no fue implementado en esta entrega.
+- [ ] Completar el rediseño de PIN descrito en [INFORME_CAMBIOS_PIN_DELEGADOS.md](INFORME_CAMBIOS_PIN_DELEGADOS.md). La exposición por consola y la divergencia `NODE_ENV`/`APP_ENV` ya fueron cerradas; proveedor, rotación, concurrencia y retención siguen pendientes.
 - [ ] Aprobar TLS, usuario read-only, vistas y contrato de la futura fuente externa de notas de venta.
 
 ## Riesgo residual H03

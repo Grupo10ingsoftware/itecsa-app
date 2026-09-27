@@ -560,12 +560,21 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 ### PIN debug para Soporte (desarrollo)
 
 Para habilitar el botón **Generar nuevo PIN (debug)** en el perfil, inicia la SPA
-con `npm run dev` y el backend con `NODE_ENV=development npm run dev`.
+con `npm run dev` y el backend con `APP_ENV=development npm run dev`.
 `POST /api/auth/pin/debug-reset` exige sesión activa, rol Soporte coincidente
 con la BD y permiso `manage:own-pin`; opera solo sobre el usuario autenticado.
 Reemplaza el PIN anterior e invalida códigos de recuperación pendientes. El nuevo
 PIN se muestra con el flujo habitual de entrega y su copia cifrada se elimina al
 aceptarlo. No requiere cambios en Auth0 ni en el esquema de BD.
 El endpoint rechaza cualquier entorno distinto de `development`, incluido uno
-sin `NODE_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
+sin `APP_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
 ese entorno; las compilaciones de producción de la SPA no muestran el botón.
+
+### Recuperación de PIN
+
+La entrega automática de códigos permanece deshabilitada de forma fail-closed
+en `development`, `test` y `production` hasta integrar y aprobar un proveedor.
+El backend nunca registra el correo ni el código en consola. Las pruebas deben
+inyectar un delivery falso y usar únicamente direcciones sintéticas. Mientras
+no exista proveedor, `POST /api/auth/pin-recovery/request` responde `503` con
+`PIN_RECOVERY_DELIVERY_UNAVAILABLE`; no se debe interpretar como entrega.

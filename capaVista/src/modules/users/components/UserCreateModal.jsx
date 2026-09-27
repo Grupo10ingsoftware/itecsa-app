@@ -1,32 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import UserCreateForm from './UserCreateForm'
+import { useModalDialog } from '../hooks/useModalDialog'
 import styles from '../pages/UserManagementPage.module.css'
 
 export default function UserCreateModal({ isOpen, onClose, onCreated }) {
-  const closeButtonRef = useRef(null)
+  const modalRef = useRef(null)
+  const titleRef = useRef(null)
 
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined
-    }
-
-    const previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0)
-
-    function handleEscape(event) {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      window.clearTimeout(focusTimer)
-      document.body.style.overflow = previousBodyOverflow
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isOpen, onClose])
+  useModalDialog({ containerRef: modalRef, initialFocusRef: titleRef, isOpen, onClose })
 
   if (!isOpen) {
     return null
@@ -39,17 +20,23 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
   }
 
   return (
-    <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
-      <section aria-labelledby="user-create-modal-title" aria-modal="true" className={styles.createModal} role="dialog">
+    <div className={styles.modalLayer} data-modal-layer="true" onMouseDown={handleBackdropMouseDown} role="presentation">
+      <section
+        aria-labelledby="user-create-modal-title"
+        aria-modal="true"
+        className={styles.createModal}
+        ref={modalRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <header className={`${styles.modalHeader} ${styles.createModalHeader}`}>
           <div>
-            <h2 id="user-create-modal-title">Creacion de usuario</h2>
+            <h2 id="user-create-modal-title" ref={titleRef} tabIndex={-1}>Creacion de usuario</h2>
           </div>
           <button
             aria-label="Cerrar modal de creacion"
             className={styles.modalCloseButton}
             onClick={onClose}
-            ref={closeButtonRef}
             type="button"
           >
             <i className="bi bi-x-lg" aria-hidden="true" />

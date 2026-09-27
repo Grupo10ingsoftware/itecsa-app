@@ -8,6 +8,7 @@ import UserEditModal from '../components/UserEditModal'
 import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
 import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
+import UserMovementsModal from '../components/UserMovementsModal'
 import UserSummaryCards from '../components/UserSummaryCards'
 import styles from './UserManagementPage.module.css'
 
@@ -57,7 +58,7 @@ function getErrorText(error) {
   }
 
   if (error?.status === 403) {
-    return 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
+    return error?.payload?.message || 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
   }
 
   if (error?.code === API_ERROR_CODES.NETWORK_ERROR) {
@@ -103,6 +104,7 @@ export default function UserManagementPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [movementsUser, setMovementsUser] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
   const [unlinkingUser, setUnlinkingUser] = useState(null)
   const currentAuth0UserId = auth0User?.sub ?? null
@@ -233,6 +235,7 @@ export default function UserManagementPage() {
       await refreshAfterMutation({ type: 'success', text: 'Usuario actualizado correctamente.' })
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
+      throw new Error(getErrorText(error), { cause: error })
     }
   }
 
@@ -298,6 +301,8 @@ export default function UserManagementPage() {
             currentPage={page}
             isLoading={isLoading}
             onEditUser={setEditingUser}
+            onViewMovements={setMovementsUser}
+            onPrefetchMovements={(user) => adminUsersApi.prefetchMovements(user.idUsuarioAutenticacionExterna)}
             onPageChange={setPage}
             totalPages={totalPages}
             totalUsers={totalUsers}
@@ -306,6 +311,14 @@ export default function UserManagementPage() {
         </div>
       </section>
 
+      {movementsUser && (
+        <UserMovementsModal
+          key={movementsUser.id}
+          user={movementsUser}
+          api={adminUsersApi}
+          onClose={() => setMovementsUser(null)}
+        />
+      )}
       <UserCreateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

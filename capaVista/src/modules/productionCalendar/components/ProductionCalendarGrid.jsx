@@ -1,6 +1,6 @@
 import { useAuth } from "../../../hooks/useAuth";
 import { PERMISSIONS } from "../../../config/permissions";
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { WEEK_DAYS, buildMonthGrid, groupItemsByDate, isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
 
@@ -517,6 +517,90 @@ function PendingOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onOpe
   )
 }
 
+function TransferOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onDropTransferItem, onOpenDetail }) {
+  const { hasPermission } = useAuth()
+  const canReceiveTransfer = hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)
+
+  function handleDragStart(event, itemId) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', itemId)
+    onDragStart(itemId)
+  }
+
+  function handleDragOver(event) {
+    if (!canReceiveTransfer || !draggedItemId) return
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  function handleDrop(event) {
+    if (!canReceiveTransfer) return
+
+    event.preventDefault()
+    const itemId = event.dataTransfer.getData('text/plain')
+    onDropTransferItem(itemId)
+  }
+
+  return (
+    <aside
+      className={[styles.transferTray, draggedItemId ? styles.transferTrayActive : '']
+        .filter(Boolean)
+        .join(' ')}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      aria-label="Bandeja temporal para mover pedidos de mes"
+    >
+      <header className={styles.transferTrayHeader}>
+        <div>
+          <span>Produccion</span>
+          <h2>Bandeja para mover pedidos</h2>
+        </div>
+        <strong>{items.length}</strong>
+      </header>
+
+      <div className={styles.transferTrayBody}>
+        {items.length === 0 ? (
+          <p className={styles.emptyTransferState}>Arrastra aqui los pedidos que quieras mover a otro mes.</p>
+        ) : items.map((item) => (
+          <article
+            className={[
+              styles.transferOrderCard,
+              getOrderToneClass(item),
+              draggedItemId === item.id ? styles.draggingEvent : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            draggable={canReceiveTransfer}
+            key={item.id}
+            onDragEnd={onDragEnd}
+            onDoubleClick={() => onOpenDetail(item)}
+            onDragStart={(event) => handleDragStart(event, item.id)}
+            title="Arrastrar a un dia habil del calendario"
+          >
+            <span className={styles.eventLine}>
+              <b>Pedido NÂ°:</b>
+              <strong>{item.orderNumber}</strong>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Cliente:</b>
+              <span>{item.clientName}</span>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Productos:</b>
+              <em>{getProductSummary(item)}</em>
+            </span>
+            <span className={styles.eventLine}>
+              <b>Fecha actual:</b>
+              <small>{displayValue(item.dueDate, 'Sin fecha')}</small>
+            </span>
+          </article>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
 function CalendarDayCell({
   day,
   draggedItemId,
@@ -585,38 +669,84 @@ function CalendarDayCell({
 }
 
 export default function ProductionCalendarGrid({
+  allItems,
   draggedItemId,
   items,
   monthDate,
   onChangeDeliveryDate,
   onDragEnd,
   onDragStart,
+  toolbar,
 }) {
   const [selectedDayKey, setSelectedDayKey] = useState(null)
   const [selectedDetailOrder, setSelectedDetailOrder] = useState(null)
   const [pendingChange, setPendingChange] = useState(null)
   const [isCredentialStepOpen, setIsCredentialStepOpen] = useState(false)
   const [dropTargetDate, setDropTargetDate] = useState(null)
+  const [transferItemIds, setTransferItemIds] = useState([])
   const days = buildMonthGrid(monthDate)
+  const sourceItems = Array.isArray(allItems) ? allItems : items
+  const transferItemIdSet = useMemo(
+    () => new Set(transferItemIds.map((itemId) => String(itemId))),
+    [transferItemIds],
+  )
+  const visibleItems = useMemo(
+    () => items.filter((item) => !transferItemIdSet.has(String(item.id))),
+    [items, transferItemIdSet],
+  )
+  const transferItems = useMemo(
+    () => sourceItems.filter((item) => transferItemIdSet.has(String(item.id))),
+    [sourceItems, transferItemIdSet],
+  )
   const scheduledMonthItems = useMemo(
-    () => items.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
-    [items, monthDate],
+    () => visibleItems.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
+    [visibleItems, monthDate],
   )
   const pendingItems = useMemo(
-    () => items.filter((item) => !isBusinessDateKey(item.dueDate)),
-    [items],
+    () => visibleItems.filter((item) => !isBusinessDateKey(item.dueDate)),
+    [visibleItems],
   )
   const itemsByDate = useMemo(() => groupItemsByDate(scheduledMonthItems), [scheduledMonthItems])
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
 
   const { hasPermission } = useAuth()
+
+  useEffect(() => {
+    const sourceItemIds = new Set(sourceItems.map((item) => String(item.id)))
+
+    setTransferItemIds((currentIds) => currentIds.filter((itemId) => sourceItemIds.has(String(itemId))))
+  }, [sourceItems])
+
+  function handleDropTransferItem(itemId) {
+    if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
+    onDragEnd?.()
+    setDropTargetDate(null)
+
+    const item = sourceItems.find((currentItem) => String(currentItem.id) === String(itemId))
+    if (!item) return
+
+    setTransferItemIds((currentIds) => {
+      if (currentIds.some((currentId) => String(currentId) === String(itemId))) return currentIds
+
+      return [...currentIds, item.id]
+    })
+  }
+
   function handleDropItem(itemId, targetDate) {
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
     onDragEnd?.()
     setDropTargetDate(null)
-    const item = items.find((currentItem) => String(currentItem.id) === String(itemId))
+    const item = sourceItems.find((currentItem) => String(currentItem.id) === String(itemId))
+    const isTransferItem = transferItemIdSet.has(String(itemId))
 
-    if (!item || !targetDate || item.dueDate === targetDate) return
+    if (!item || !targetDate) return
+
+    if (item.dueDate === targetDate) {
+      if (isTransferItem) {
+        setTransferItemIds((currentIds) => currentIds.filter((currentId) => String(currentId) !== String(itemId)))
+      }
+      return
+    }
 
     setPendingChange({
       item,
@@ -640,62 +770,78 @@ export default function ProductionCalendarGrid({
     if (!pendingChange) return
 
     await onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate, credentials)
+    setTransferItemIds((currentIds) =>
+      currentIds.filter((itemId) => String(itemId) !== String(pendingChange.item.id)),
+    )
     closeDeliveryChangeFlow()
   }
 
   return (
     <>
-      <section className={styles.calendarShell} aria-label="Calendario mensual de produccion">
-        <div className={styles.calendarLayout}>
-          <div className={styles.businessCalendar}>
-            <div className={styles.weekHeader}>
-              {WEEK_DAYS.map((day) => (
-                <span key={day}>{day}</span>
-              ))}
-            </div>
-
-            <div className={styles.monthGrid}>
-              {days.map((day) => (
-                <CalendarDayCell
-                  day={day}
-                  draggedItemId={draggedItemId}
-                  dropTargetDate={dropTargetDate}
-                  items={itemsByDate.get(day.dateKey) ?? []}
-                  key={day.dateKey}
-                  onDragEnd={handleDragEnd}
-                  onDragStart={onDragStart}
-                  onDropItem={handleDropItem}
-                  onOpenDay={setSelectedDayKey}
-                  onOpenDetail={setSelectedDetailOrder}
-                  onSetDropTarget={setDropTargetDate}
-                />
-              ))}
-            </div>
-          </div>
-
-          <PendingOrdersTray
-            draggedItemId={draggedItemId}
-            items={pendingItems}
-            onDragEnd={handleDragEnd}
-            onDragStart={onDragStart}
-            onOpenDetail={setSelectedDetailOrder}
-          />
-        </div>
-
-        <DayOrdersModal
-          dateKey={selectedDayKey}
+      <div className={styles.calendarGridStack}>
+        <TransferOrdersTray
           draggedItemId={draggedItemId}
-          items={selectedDayItems}
-          onClose={() => setSelectedDayKey(null)}
+          items={transferItems}
           onDragEnd={handleDragEnd}
           onDragStart={onDragStart}
+          onDropTransferItem={handleDropTransferItem}
           onOpenDetail={setSelectedDetailOrder}
         />
-        <OrderDetailModal
-          order={selectedDetailOrder}
-          onClose={() => setSelectedDetailOrder(null)}
-        />
-      </section>
+
+        {toolbar && <div className={styles.calendarToolbarSlot}>{toolbar}</div>}
+
+        <section className={styles.calendarShell} aria-label="Calendario mensual de produccion">
+          <div className={styles.calendarLayout}>
+            <div className={styles.businessCalendar}>
+              <div className={styles.weekHeader}>
+                {WEEK_DAYS.map((day) => (
+                  <span key={day}>{day}</span>
+                ))}
+              </div>
+
+              <div className={styles.monthGrid}>
+                {days.map((day) => (
+                  <CalendarDayCell
+                    day={day}
+                    draggedItemId={draggedItemId}
+                    dropTargetDate={dropTargetDate}
+                    items={itemsByDate.get(day.dateKey) ?? []}
+                    key={day.dateKey}
+                    onDragEnd={handleDragEnd}
+                    onDragStart={onDragStart}
+                    onDropItem={handleDropItem}
+                    onOpenDay={setSelectedDayKey}
+                    onOpenDetail={setSelectedDetailOrder}
+                    onSetDropTarget={setDropTargetDate}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <PendingOrdersTray
+              draggedItemId={draggedItemId}
+              items={pendingItems}
+              onDragEnd={handleDragEnd}
+              onDragStart={onDragStart}
+              onOpenDetail={setSelectedDetailOrder}
+            />
+          </div>
+        </section>
+      </div>
+
+      <DayOrdersModal
+        dateKey={selectedDayKey}
+        draggedItemId={draggedItemId}
+        items={selectedDayItems}
+        onClose={() => setSelectedDayKey(null)}
+        onDragEnd={handleDragEnd}
+        onDragStart={onDragStart}
+        onOpenDetail={setSelectedDetailOrder}
+      />
+      <OrderDetailModal
+        order={selectedDetailOrder}
+        onClose={() => setSelectedDetailOrder(null)}
+      />
       <DeliveryChangeConfirmModal
         change={!isCredentialStepOpen ? pendingChange : null}
         onCancel={closeDeliveryChangeFlow}

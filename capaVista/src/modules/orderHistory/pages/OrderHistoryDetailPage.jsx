@@ -90,7 +90,9 @@ export default function OrderHistoryDetailPage() {
                         {' '}lanyards ({event.lanyardProgress.percentage}%)
                       </p>
                     )}
-                    {event.previousStatus && <p>{event.previousStatus} → {event.nextStatus ?? 'Sin estado'}</p>}
+                    {event.type === 'payment' && (
+                      <p>{event.previousStatus ?? 'Estado anterior desconocido'} → {event.nextStatus ?? 'Sin estado'}</p>
+                    )}
                     {formatDuration(event.durationSeconds) && (
                       <strong>
                         Tiempo transcurrido{event.isOngoing ? ' (en curso)' : ''}: {formatDuration(event.durationSeconds)}

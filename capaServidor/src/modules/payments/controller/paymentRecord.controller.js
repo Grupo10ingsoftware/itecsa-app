@@ -1,5 +1,6 @@
 import { request, response } from "express";
 import PaymentRecordService from "../service/paymentRecord.service.js";
+import { sendPaymentError } from "./paymentError.js";
 
 class PaymentRecordController {
   constructor({ service } = {}) {
@@ -13,9 +14,7 @@ class PaymentRecordController {
 
       res.status(200).json(record);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registro de pago",
-      });
+      sendPaymentError(res, error);
     }
   };
 
@@ -26,9 +25,7 @@ class PaymentRecordController {
 
       res.status(200).json(records);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registros de pago",
-      });
+      sendPaymentError(res, error);
     }
   };
 
@@ -39,9 +36,7 @@ class PaymentRecordController {
 
       res.status(200).json(details);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener el detalle de confirmacion",
-      });
+      sendPaymentError(res, error);
     }
   };
 }

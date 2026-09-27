@@ -156,10 +156,22 @@ function pinErrorResponse(error, res) {
 
 export function createRevealPinHandler({ pins = pinService } = {}) {
     return async function revealPinHandler(req, res) {
+        res.set("Cache-Control", "no-store");
         try {
             return res.status(200).json({
                 pin: await pins.reveal(req.auth?.payload?.sub),
             });
+        } catch (error) {
+            return pinErrorResponse(error, res);
+        }
+    };
+}
+
+export function createDebugResetPinHandler({ pins = pinService } = {}) {
+    return async function debugResetPinHandler(req, res) {
+        res.set("Cache-Control", "no-store");
+        try {
+            return res.status(200).json({ pinStatus: await pins.debugReset(req.auth?.payload) });
         } catch (error) {
             return pinErrorResponse(error, res);
         }

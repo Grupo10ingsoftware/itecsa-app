@@ -17,6 +17,8 @@ import {
     unavailablePinRecoveryDelivery,
 } from "./pinDelivery.service.js";
 
+import { ROLES, roleFromPayload, can, PERMISSIONS } from "../../../../../shared/authorization.js";
+
 const scrypt = promisify(scryptCallback);
 const ACTIVE_STATUSES = new Set(["Activo", "Vinculado"]);
 const PIN_PATTERN = /^\d{6}$/;
@@ -352,6 +354,49 @@ export class PinService {
             nombreUsuario: user.nombre_usuario,
             apellidoUsuario: user.apellido_usuario,
         };
+    }
+
+    async debugReset(payload) {
+        if (process.env.NODE_ENV !== "development") {
+            throw new PinServiceError("PIN_DEBUG_DISABLED", "La generacion debug solo esta disponible en desarrollo.", { status: 403 });
+        }
+        if (!payload?.sub || roleFromPayload(payload) !== ROLES.SOPORTE ||
+            !can(ROLES.SOPORTE, payload.permissions, PERMISSIONS.MANAGE_PIN)) {
+            throw new PinServiceError("PIN_DEBUG_FORBIDDEN", "Esta accion requiere el rol Soporte.", { status: 403 });
+        }
+        const user = await this.findUser(payload.sub);
+        assertActiveUser(user);
+        if (user.rol_usuario !== ROLES.SOPORTE) {
+            throw new PinServiceError("PIN_DEBUG_FORBIDDEN", "Renueva tu sesion para verificar tu rol.", { status: 403 });
+        }
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+            const credential = await this.buildCredential();
+            if (await matchesHash(credential.pin, user.pin_hash, user.pin_salt)) continue;
+            try {
+                await this.client.$transaction(async (tx) => {
+                    const result = await tx.usuario.updateMany({
+                        where: {
+                            id_usuario: user.id_usuario,
+                            rol_usuario: ROLES.SOPORTE,
+                            estado_usuario: { in: [...ACTIVE_STATUSES] },
+                            pin_hash: user.pin_hash,
+                        },
+                        data: credential.data,
+                    });
+                    if (result.count !== 1) {
+                        throw new PinServiceError("PIN_DEBUG_CONFLICT", "La cuenta cambio. Actualiza tu sesion e intenta nuevamente.", { status: 409 });
+                    }
+                    await tx.pinRecoveryChallenge.updateMany({
+                        where: { id_usuario: user.id_usuario, used_at: null },
+                        data: { used_at: this.now() },
+                    });
+                });
+                return "pending_acknowledgement";
+            } catch (error) {
+                if (error?.code !== "P2002") throw error;
+            }
+        }
+        throw new PinServiceError("PIN_GENERATION_FAILED", "No fue posible generar un PIN unico.", { status: 500 });
     }
 
     async requestRecovery(auth0UserId) {

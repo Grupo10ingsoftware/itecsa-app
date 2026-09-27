@@ -1,6 +1,6 @@
 # Modulo `payments` / Cobranzas
 
-La vista `/pagos` carga pedidos reales desde backend y permite gestionar el estado de pago usando la base de datos real. Los mocks historicos se conservan como fixtures de desarrollo y documentacion del shape esperado, pero no alimentan el flujo productivo.
+La vista `/pagos` carga pedidos desde backend y permite gestionar su estado de pago. Cuando faltan los campos de snapshot en un detalle historico, el preview consulta el fixture local de Notas de Venta. La integracion directa con Manager aun no esta implementada.
 
 ## Contratos backend usados
 
@@ -17,7 +17,7 @@ La BD real usa estos IDs:
 - `2`: `Confirmado`
 - `3`: `Rechazado`
 
-El frontend no debe hardcodear IDs antiguos. La vista resuelve el ID desde `GET /api/payment-status` antes de llamar al PATCH. Operario Cobranzas solo gestiona pagos pendientes. Administrador Cobranzas y Soporte pueden cambiar una decision entre `Confirmado` y `Rechazado`, indicando un motivo, pero ningun pago resuelto puede volver a `Pendiente`.
+El frontend no debe hardcodear IDs antiguos. La vista recibe el catalogo junto con los pedidos desde `GET /api/orders/payments` y resuelve el ID antes de llamar al PATCH. Operario Cobranzas solo gestiona pagos pendientes. Administrador Cobranzas y Soporte pueden cambiar una decision entre `Confirmado` y `Rechazado`, indicando un motivo, pero ningun pago resuelto puede volver a `Pendiente`.
 
 Confirmar un pago valida el PIN, registra auditoria y mueve la orden a `Listo para produccion`. Si un pago confirmado se rechaza mientras esta `Listo para produccion`, el pedido pasa a `Cancelado` y se notifica a Administracion de Produccion. Si la produccion ya comenzo, conserva su etapa y se notifica que debe cancelarse desde Produccion.
 
@@ -30,7 +30,6 @@ payments/
 ├── components/
 ├── hooks/
 │   └── usePaymentsApi.js
-├── mocks/
 ├── pages/
 │   └── PaymentConfirmationPage.jsx
 └── utils/
@@ -40,13 +39,13 @@ payments/
 
 ## Reglas de UI
 
-- `view:payments-module` protege el acceso a la ruta.
+- `read:payments` protege el acceso a la ruta.
 - `update:payment-status` habilita acciones de cambio de estado.
 - La vista cubre loading, error con reintento y estado vacio.
 - La fecha de creacion se filtra mediante un rango inclusivo `Desde` / `Hasta`; la busqueda textual cubre RUT, Nota de Venta y cliente.
-- Los modales de confirmacion y detalle usan informacion registrada y no dependen de PDFs.
+- Los modales de confirmacion y detalle usan informacion del pedido y, para detalles sin snapshot, el fixture local de NV; no dependen de PDFs.
 - El backend vuelve a validar permisos y transiciones aunque la opcion no sea visible en la interfaz.
 
 ## Auditoria
 
-`Registro_Pago.id_usuario` se resuelve en backend desde `req.auth.payload.sub` contra `Usuario.id_auth0`. El frontend no envia ni controla `id_usuario`.
+El actor del PIN se toma de `req.pinActor` y se registra en `Registros.id_usuario`, vinculado al evento de `Registro_Pago`. El frontend no envia ni controla `id_usuario`. El evento guarda los IDs de estado anterior y nuevo para cambios futuros; los registros historicos pueden carecer del anterior.

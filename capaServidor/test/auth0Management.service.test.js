@@ -3,6 +3,7 @@ import { afterEach, beforeEach, test } from "node:test";
 import {
     Auth0ServiceError,
     createAuth0User,
+    getAuth0UserRole,
     requestPasswordSetupEmail,
     setAuth0UserStatus,
     updateAuth0User,
@@ -45,6 +46,30 @@ function jsonResponse(status, body) {
         },
     };
 }
+
+test('consulta el rol asignado en Auth0 y exige uno solo reconocido', async () => {
+    let assignedRoles = [{ name: 'Administrador Ventas' }];
+    const requests = [];
+    global.fetch = async (url) => {
+        requests.push(url);
+        if (url.endsWith('/oauth/token')) return jsonResponse(200, { access_token: 'management-access-token' });
+        return jsonResponse(200, { roles: assignedRoles, total: assignedRoles.length });
+    };
+
+    assert.equal(await getAuth0UserRole('auth0|user-id'), 'Administrador Ventas');
+    assert.equal(requests[1], 'https://tenant.example.auth0.com/api/v2/users/auth0%7Cuser-id/roles?per_page=100&page=0&include_totals=true');
+    assignedRoles = [{ name: 'Administrador Ventas' }, { name: 'Operario Ventas' }];
+    assert.equal(await getAuth0UserRole('auth0|user-id'), null);
+    assignedRoles = [];
+    assert.equal(await getAuth0UserRole('auth0|user-id'), null);
+});
+
+test('rechaza una respuesta parcial de roles de Auth0', async () => {
+    global.fetch = async (url) => url.endsWith('/oauth/token')
+        ? jsonResponse(200, { access_token: 'management-access-token' })
+        : jsonResponse(200, { roles: [{ name: 'Administrador Ventas' }], total: 2 });
+    await assert.rejects(getAuth0UserRole('auth0|user-id'), { code: 'AUTH0_INVALID_RESPONSE' });
+});
 
 test("resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena", async () => {
     const requests = [];

@@ -248,6 +248,11 @@
   color: #b91c1c;
 }
 
+.saveError {
+  flex: 0 0 auto;
+  margin: 0 2rem 1rem;
+}
+
 .actions {
   align-items: center;
   background: #fff;

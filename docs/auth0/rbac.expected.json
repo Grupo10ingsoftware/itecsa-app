@@ -78,6 +78,10 @@
         "description": "RF24"
       },
       {
+        "value": "manage:production-load",
+        "description": "Gestionar la carga operativa diaria de producción"
+      },
+      {
         "value": "manage:order-tags",
         "description": "RF26–27"
       },
@@ -96,6 +100,10 @@
       {
         "value": "update:order-delivery-date",
         "description": "RF51 y decisión del usuario: PIN obligatorio"
+      },
+      {
+        "value": "view:metrics",
+        "description": "Consultar el resumen e indicadores de métricas"
       }
     ]
   },
@@ -113,11 +121,13 @@
       "start:production",
       "rollback:production-subprocesses",
       "manage:production-capacity",
+      "manage:production-load",
       "manage:order-tags",
       "review:orders",
       "cancel:orders",
       "read:production-calendar",
-      "update:order-delivery-date"
+      "update:order-delivery-date",
+      "view:metrics"
     ],
     "Administrador Ventas": [
       "read:own-profile",
@@ -182,7 +192,8 @@
       "read:orders",
       "read:production-capacity",
       "read:own-messages",
-      "update:own-messages"
+      "update:own-messages",
+      "view:metrics"
     ],
     "Soporte": [
       "read:own-profile",
@@ -203,11 +214,13 @@
       "update:production-subprocesses",
       "rollback:production-subprocesses",
       "manage:production-capacity",
+      "manage:production-load",
       "manage:order-tags",
       "review:orders",
       "cancel:orders",
       "read:production-calendar",
-      "update:order-delivery-date"
+      "update:order-delivery-date",
+      "view:metrics"
     ]
   }
 }

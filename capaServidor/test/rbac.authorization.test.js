@@ -9,6 +9,7 @@ import { createProductionCapacityRouter } from '../src/modules/productionCapacit
 import { createProductionCalendarRouter } from '../src/modules/productionCalendar/routes/productionCalendar.routes.js';
 import { createProductionLoadRouter } from '../src/modules/productionLoad/routes/productionLoad.routes.js';
 import { createOrderHistoryRouter } from '../src/modules/history/routes/orderHistory.routes.js';
+import { createMetricsRouter } from '../src/modules/metrics/routes/metrics.routes.js';
 import { createMessageRouter } from '../src/modules/messages/routes/message.routes.js';
 import { createRequireActiveIdentity } from '../src/middlewares/requireActiveIdentity.js';
 import { createRequirePin } from '../src/middlewares/requirePin.js';
@@ -18,7 +19,7 @@ const {ADMINISTRADOR: AP, ADMIN_VENTAS: AV, ADMIN_COBRANZAS: AC, PRODUCCION: OP,
 const all = [AP,AV,AC,OP,OV,OC,G,S];
 const authenticate = (req,res,next) => {
   if (!req.headers['x-test-role']) return res.sendStatus(401);
-  req.auth = {payload:{sub:'auth0|actor',[ROLES_CLAIM]:[req.headers['x-test-role']],permissions:req.headers['x-no-permissions'] ? [] : BUSINESS_PERMISSIONS}};
+  req.auth = {payload:{sub:'auth0|actor',[ROLES_CLAIM]:[req.headers['x-test-role']],permissions:req.headers['x-no-permissions'] ? [] : req.headers['x-test-permissions'] ? JSON.parse(req.headers['x-test-permissions']) : BUSINESS_PERMISSIONS}};
   next();
 };
 const validatePin = createRequirePin({pins:{async validate(sub,pin) {
@@ -27,7 +28,7 @@ const validatePin = createRequirePin({pins:{async validate(sub,pin) {
   return {idUsuario:1};
 }}});
 const ok = (_req,res) => res.sendStatus(204);
-const controller = Object.fromEntries(['getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
+const controller = Object.fromEntries(['summary','getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
 async function listen(app,t) {const s=app.listen(0); t.after(()=>s.close()); await once(s,'listening'); return `http://127.0.0.1:${s.address().port}`;}
 
 // Expected access is literal and independent of ROLE_PERMISSIONS. Tokens deliberately
@@ -41,6 +42,7 @@ const endpoints = [
  ['PATCH','/orders/1/labels',[AP,S]],['PATCH','/orders/1/delivery-date',[AP,S],true],
  ['PATCH','/orders/1/details/1/subprocesses/1/complete',[AP,OP,S],true],
  ['PATCH','/orders/1/details/1/subprocesses/1/rollback',[AP,S],true],
+ ['GET','/metrics/summary',[AP,G,S]],
  ['GET','/capacity',all],['PATCH','/capacity',[AP,S]],
  ['GET','/load/today',all],['PATCH','/load/today',[AP,S]],
  ['POST','/calendar/operational-load',[AP,AV,OV,S]],
@@ -50,7 +52,7 @@ const endpoints = [
 ];
 test('matriz HTTP por rol, permisos y PIN: llamadas directas', async t => {
  const app=express();app.use(express.json());
- for (const [path, factory] of [['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/load',createProductionLoadRouter],['/calendar',createProductionCalendarRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
+ for (const [path, factory] of [['/metrics',createMetricsRouter],['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/load',createProductionLoadRouter],['/calendar',createProductionCalendarRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
  const base=await listen(app,t);
  for(const [method,path,allowed,pin] of endpoints) {
   for(const role of all) await t.test(`${role} ${method} ${path} => ${allowed.includes(role)?204:403}`, async()=> {
@@ -102,7 +104,7 @@ test('contrato de identidad: denegacion antes de ejecutar operaciones',async()=>
   ['sin permisos',{...valid,permissions:undefined},null,403],['desvinculado',valid,{estadoUsuario:'Desvinculado',rolUsuario:AP},403],
   ['token de rol anterior',valid,{estadoUsuario:'Activo',rolUsuario:OP},403],['sin usuario',valid,null,403],
  ]) {
-  let actual;const middleware=createRequireActiveIdentity({repository:{async findByAuth0Id(){return user;}}});
+  let actual;const middleware=createRequireActiveIdentity({repository:{async findByAuth0Id(){return user;}},resolveAuth0Role:async()=>OP});
   const res={status(s){actual=s;return this;},json(){}};
   await middleware({auth:{payload}},res,()=>{actual=204;});assert.equal(actual,status,name);
  }
@@ -127,4 +129,20 @@ test('rutas auxiliares no permiten fabricar escrituras fuera del flujo de negoci
   const response=await fetch(base+path,{method:'POST',headers:{'x-test-role':role,'content-type':'application/json'},body:JSON.stringify({pin:'123456',id_usuario:999,id_estado_pago:2,id_estado_subproceso:2})});
   assert.equal(response.status,403);
  });
+});
+
+
+test('carga acepta cada permiso alternativo; permisos visuales retirados no autorizan lecturas',async t=>{
+ const app=express();app.use(express.json());
+ app.use('/load',createProductionLoadRouter({authenticate,controller}));
+ app.use('/orders',createOrderRouter({authenticate,controller,validatePin}));
+ const base=await listen(app,t);
+ for(const permission of ['manage:production-load','manage:production-capacity']) for(const role of all) {
+  const res=await fetch(base+'/load/today',{method:'PATCH',headers:{'x-test-role':role,'x-test-permissions':JSON.stringify([permission])}});
+  assert.equal(res.status,[AP,S].includes(role)?204:403,`${role}: ${permission}`);
+ }
+ for(const [path,permission] of [['/orders/kanban','view:kanban-module'],['/orders/payments','view:payments-module']]) {
+  const res=await fetch(base+path,{headers:{'x-test-role':S,'x-test-permissions':JSON.stringify([permission])}});
+  assert.equal(res.status,403);
+ }
 });

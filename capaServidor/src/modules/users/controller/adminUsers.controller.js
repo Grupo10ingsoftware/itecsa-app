@@ -12,6 +12,7 @@ import {
     validateAdminUserRequest,
     validateAdminUserUpdateRequest,
     validateListUsersQuery,
+    validateUserMovementsQuery,
     validatePasswordSetupEmailRequest,
 } from "../validators/adminUsers.validator.js";
 import userRepository, {
@@ -476,5 +477,26 @@ export function createAdminUserHandler({
         return res
             .status(201)
             .json(createdResponse(user, createdUser, true));
+    };
+}
+
+
+export function createAdminUserMovementsHandler({ users = userRepository } = {}) {
+    return async function adminUserMovementsHandler(req, res) {
+        if (invalidUserId(req.params.userId)) {
+            return res.status(400).json({ message: "El identificador del usuario es obligatorio." });
+        }
+        const query = validateUserMovementsQuery(req.query ?? {});
+        if (!query.valid) return res.status(400).json({ message: query.message });
+        try {
+            const user = await users.findByAuth0Id(req.params.userId.trim());
+            if (!user) return res.status(404).json({ message: "El usuario no existe." });
+            if (!allowedTarget(req, res, user.rolUsuario)) return;
+            const { page, perPage } = query.filters;
+            const result = await users.listMovements(user.idUsuario, { page, perPage });
+            return res.status(200).json(result);
+        } catch {
+            return res.status(500).json({ message: "No fue posible consultar los movimientos del usuario." });
+        }
     };
 }

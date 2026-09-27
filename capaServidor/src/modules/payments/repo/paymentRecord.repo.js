@@ -1,4 +1,42 @@
 import getPrismaClient from "../../../database/prisma.js";
+import { Prisma } from "@prisma/client";
+import { supportsOrderSnapshots } from "../../orders/repo/orderSnapshotSchema.js";
+
+const paymentRecordSelect = {
+  id_registro: true,
+  fecha_registro: true,
+  observacion: true,
+  id_estado_pago_anterior: true,
+  id_estado_pago_nuevo: true,
+  Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago: {
+    select: {
+      id_estado_pago: true,
+      nombre_estado_pago: true,
+    },
+  },
+  Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: {
+    select: {
+      id_estado_pago: true,
+      nombre_estado_pago: true,
+    },
+  },
+  Registros: {
+    select: {
+      ID_REGISTRO: true,
+      FECHA_HORA: true,
+      id_pedido: true,
+      id_usuario: true,
+      observacion: true,
+      Usuario: {
+        select: {
+          id_usuario: true,
+          nombre_usuario: true,
+          apellido_usuario: true,
+        },
+      },
+    },
+  },
+};
 
 class PaymentRecordRepo {
   constructor({ prisma } = {}) {
@@ -18,6 +56,7 @@ class PaymentRecordRepo {
       fecha_registro,
       observacion,
       id_usuario,
+      id_estado_pago_anterior,
       id_estado_pago,
     } = data;
     const createdAt = fecha_registro ?? new Date();
@@ -36,6 +75,7 @@ class PaymentRecordRepo {
         id_registro: registry.ID_REGISTRO,
         fecha_registro: createdAt,
         observacion: observacion ?? null,
+        id_estado_pago_anterior: Number(id_estado_pago_anterior),
         id_estado_pago_nuevo: Number(id_estado_pago),
       },
       include: {
@@ -47,9 +87,7 @@ class PaymentRecordRepo {
   async getById(paymentRecordId) {
     return this.client.registro_Pago.findUnique({
       where: { id_registro: Number(paymentRecordId) },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
     });
   }
 
@@ -60,9 +98,7 @@ class PaymentRecordRepo {
           id_pedido: Number(orderId),
         },
       },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
       orderBy: [
         { fecha_registro: "desc" },
         { id_registro: "desc" },
@@ -78,13 +114,14 @@ class PaymentRecordRepo {
           id_pedido: Number(orderId),
         },
       },
-      include: {
-        Registros: true,
-      },
+      select: paymentRecordSelect,
     });
   }
 
   async getConfirmationSource(orderId) {
+    const snapshotColumns = (await supportsOrderSnapshots(this.client))
+      ? Prisma.raw("dp.linea_origen, dp.codigo_origen, dp.producto_origen")
+      : Prisma.raw("NULL AS linea_origen, NULL AS codigo_origen, NULL AS producto_origen");
     const rows = await this.client.$queryRaw`
       SELECT
         p.id_pedido,
@@ -95,6 +132,7 @@ class PaymentRecordRepo {
         u.correo_usuario,
         dp.id_detalle_pedido,
         dp.cantidad,
+        ${snapshotColumns},
         tp.nombre_producto,
         tp.descripcion_producto
       FROM Pedidos p
@@ -126,6 +164,11 @@ class PaymentRecordRepo {
         .map((row) => ({
           id_detalle_pedido: row.id_detalle_pedido,
           cantidad: row.cantidad,
+          ...(row.linea_origen ? {
+            linea_origen: row.linea_origen,
+            codigo_origen: row.codigo_origen ?? null,
+            producto_origen: row.producto_origen ?? null,
+          } : {}),
           Tipo_Producto: {
             nombre_producto: row.nombre_producto ?? null,
             descripcion_producto: row.descripcion_producto ?? null,

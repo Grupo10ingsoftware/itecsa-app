@@ -16,7 +16,7 @@ export const PERMISSIONS = Object.freeze({
   UPDATE_SUBPROCESSES: 'update:production-subprocesses', ROLLBACK_SUBPROCESSES: 'rollback:production-subprocesses',
   MANAGE_CAPACITY: 'manage:production-capacity', MANAGE_PRODUCTION_LOAD: 'manage:production-load', MANAGE_TAGS: 'manage:order-tags', REVIEW_ORDERS: 'review:orders',
   CANCEL_ORDERS: 'cancel:orders', READ_CALENDAR: 'read:production-calendar', UPDATE_DELIVERY_DATE: 'update:order-delivery-date',
-  VIEW_METRICS: 'view:metrics', VIEW_KANBAN_MODULE: 'view:kanban-module', VIEW_PAYMENTS_MODULE: 'view:payments-module',
+  VIEW_METRICS: 'view:metrics',
 });
 export const BUSINESS_PERMISSIONS = Object.freeze(Object.values(PERMISSIONS));
 const P = PERMISSIONS;

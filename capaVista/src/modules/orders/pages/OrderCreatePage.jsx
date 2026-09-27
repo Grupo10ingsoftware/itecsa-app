@@ -36,7 +36,7 @@ export default function OrderCreatePage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.dashboardShell}>
+      <section className={styles.dashboardShell} inert={flow.showConfirmModal || undefined}>
         <OrderCreateHeader />
 
         <div className={styles.content}>
@@ -78,7 +78,7 @@ export default function OrderCreatePage() {
         <OrderCreateConfirmModal
           draft={flow.draft}
           isRegistering={flow.isRegistering}
-          onCancel={() => actions.setShowConfirmModal(false)}
+          onCancel={actions.closeConfirmModal}
           onConfirm={actions.handleConfirmRegister}
         />
       )}

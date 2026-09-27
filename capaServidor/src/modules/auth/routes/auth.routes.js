@@ -4,6 +4,7 @@ import checkJwt from "../../../middlewares/checkJwt.js";
 import pinService from "../service/pin.service.js";
 import {
     createGetProfileHandler,
+    createDebugResetPinHandler,
     createAcknowledgePinHandler,
     createConfirmPinRecoveryHandler,
     createPasswordResetRequestHandler,
@@ -75,6 +76,7 @@ export function createAuthRouter({
         requireCapability(P.READ_PROFILE),
         createVerifyAuthSessionHandler({ users, pins, logger }),
     );
+    router.post("/pin/debug-reset", authenticate, requireCapability(P.MANAGE_PIN), createDebugResetPinHandler({ pins }));
     router.post("/pin/reveal", authenticate, requireCapability(P.MANAGE_PIN), createRevealPinHandler({ pins }));
     router.post("/pin/acknowledge", authenticate, requireCapability(P.MANAGE_PIN), createAcknowledgePinHandler({ pins }));
     router.post(

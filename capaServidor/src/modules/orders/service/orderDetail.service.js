@@ -27,6 +27,11 @@ class OrderDetailService {
     }
 
     return this.repo.create(orderId, {
+      linea_origen: data.linea_origen ?? null,
+      codigo_origen: data.codigo_origen ?? null,
+      producto_origen: data.producto_origen ?? null,
+      familia_origen: data.familia_origen ?? null,
+      subfamilia_origen: data.subfamilia_origen ?? null,
       id_tipo_producto,
       cantidad,
       fecha_estimada_termino: fecha_estimada_termino ?? null,

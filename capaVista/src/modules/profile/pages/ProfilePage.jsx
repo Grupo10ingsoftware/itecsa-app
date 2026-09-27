@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ROLES } from '../../../config/roles'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAuthApi } from '../../auth/hooks/useAuthApi'
 import RoleBadge from '../../../shared/components/data/RoleBadge'
@@ -85,6 +86,20 @@ export default function ProfilePage() {
       await refreshSession()
     } catch (error) {
       setPinError(error?.payload?.message ?? 'No fue posible confirmar la recepcion del PIN.')
+    } finally {
+      setIsPinBusy(false)
+    }
+  }
+
+  async function debugResetPin() {
+    setIsPinBusy(true)
+    setPinError('')
+    setVisiblePin('')
+    try {
+      await authApi.debugResetPin()
+      await refreshSession()
+    } catch (error) {
+      setPinError(error?.payload?.message ?? 'No fue posible generar el PIN.')
     } finally {
       setIsPinBusy(false)
     }
@@ -204,6 +219,14 @@ export default function ProfilePage() {
                 {pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
               </p>
             </div>
+            {import.meta.env.DEV && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
+              <div>
+                <button className="btn btn-outline-warning" type="button" disabled={isPinBusy} onClick={debugResetPin}>
+                  {isPinBusy ? 'Generando...' : 'Generar nuevo PIN (debug)'}
+                </button>
+                <p className="small text-secondary mb-0 mt-2">El PIN anterior dejará de funcionar.</p>
+              </div>
+            )}
             {pinStatus === 'active' && (
               <button
                 className="btn btn-outline-dark"
@@ -218,6 +241,10 @@ export default function ProfilePage() {
             )}
           </div>
         </section>
+
+        {pinError && pinStatus === 'active' && !recoveryOpen && (
+          <div className="alert alert-danger" role="alert">{pinError}</div>
+        )}
 
         <section className={styles.movementsPanel} aria-labelledby="movements-title">
           <header className={styles.movementsHeader}>

@@ -21,6 +21,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   const { user: actor } = useAuth()
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const firstInputRef = useRef(null)
 
@@ -96,6 +97,7 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
     }
 
     setIsSubmitting(true)
+    setSaveError('')
 
     try {
       await onSave({
@@ -106,6 +108,8 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
         rolUsuario: values.rolUsuario,
         pin: trimmedPin,
       })
+    } catch (error) {
+      setSaveError(error?.message || 'No fue posible guardar los cambios. Intenta nuevamente.')
     } finally {
       setIsSubmitting(false)
     }
@@ -248,6 +252,11 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
           </div>
         </div>
 
+        {saveError && (
+          <div className={`${styles.feedbackMessage} ${styles.feedbackdanger} ${editStyles.saveError}`} role="alert">
+            {saveError}
+          </div>
+        )}
         <footer className={editStyles.actions}>
           <UserButton
             className={`${editStyles.actionButton} ${editStyles.unlinkButton}`}

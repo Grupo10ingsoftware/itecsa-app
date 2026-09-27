@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { PAYMENT_STATUS } from '@/config/status'
 import styles from './PaymentActionConfirmModal.module.css'
 
@@ -12,6 +12,7 @@ export default function PaymentCredentialsModal({
   const [pin, setPin] = useState('')
   const [comment, setComment] = useState('')
   const [error, setError] = useState('')
+  const submittingRef = useRef(false)
 
   const requiresComment =
     order?.paymentStatus !== undefined &&
@@ -21,8 +22,9 @@ export default function PaymentCredentialsModal({
 
   if (!order || !targetStatus) return null
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isSubmitting || submittingRef.current) return
     if (!canSubmit) {
       setError(
         !/^\d{6}$/.test(pin)
@@ -33,7 +35,14 @@ export default function PaymentCredentialsModal({
     }
 
     setError('')
-    onConfirm({ comment: comment.trim(), pin })
+    submittingRef.current = true
+    try {
+      await onConfirm({ comment: comment.trim(), pin })
+    } finally {
+      // No conservar el PIN tras un intento fallido; al cerrar se desmonta el modal.
+      setPin('')
+      submittingRef.current = false
+    }
   }
 
   return (
@@ -73,7 +82,8 @@ export default function PaymentCredentialsModal({
           <label className={styles.credentialsField}>
             <span>PIN personal</span>
             <input
-              autoComplete="one-time-code"
+              autoComplete="off"
+              autoFocus
               className={styles.credentialsPinInput}
               disabled={isSubmitting}
               inputMode="numeric"

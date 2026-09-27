@@ -1,6 +1,13 @@
 export function createKanbanApi(apiClient) {
+  const queryString = (params = {}) => {
+    const query = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
+    })
+    return query.size ? `?${query.toString()}` : ''
+  }
   return {
-    getOrders: () => apiClient.get('/orders'),
+    getOrders: (params) => apiClient.get(`/orders${queryString(params)}`),
     getOrderStatuses: () => apiClient.get('/order-status'),
     moveOrder: (orderId, generalStepId, audit = {}) =>
       apiClient.request(`/orders/${orderId}/move`, {

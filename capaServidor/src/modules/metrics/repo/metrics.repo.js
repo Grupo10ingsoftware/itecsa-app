@@ -76,7 +76,7 @@ export default class MetricsRepository {
                 fecha_creacion: true,
                 fecha_estimada_termino: true,
                 Usuario: {
-                    select: { nombre_usuario: true, apellido_usuario: true, correo_usuario: true },
+                    select: { nombre_usuario: true, apellido_usuario: true },
                 },
                 Detalle_pedido: {
                     select: {

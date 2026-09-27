@@ -1,6 +1,5 @@
 import { roleFromPayload, manageableRoles, canManageUser } from "../../../../../shared/authorization.js";
 import {
-    AUTH0_MANAGEMENT_SCOPES,
     Auth0ServiceError,
     createAuth0User,
     requestPasswordSetupEmail,
@@ -72,27 +71,12 @@ function createdResponse(user, createdUser, passwordSetupEmailRequested) {
     };
 }
 
-function auth0ErrorResponse(error, fallbackMessage) {
-    if (!(error instanceof Auth0ServiceError)) {
-        return { message: fallbackMessage };
-    }
-
-    const response = {
-        message: fallbackMessage,
-        code: error.code,
-    };
-
-    if (error.code === "AUTH0_CONFIGURATION_ERROR") {
-        response.message = "La configuracion administrativa de Auth0 esta incompleta.";
-    }
-
-    if (error.code === "AUTH0_INSUFFICIENT_SCOPE") {
-        response.message =
-            "La aplicacion administrativa de Auth0 no tiene permisos suficientes para consultar o modificar usuarios.";
-        response.requiredScopes = AUTH0_MANAGEMENT_SCOPES;
-    }
-
-    return response;
+function internalError(req, res, message) {
+    return res.status(500).json({
+        code: "INTERNAL_ERROR",
+        message,
+        requestId: req.requestId,
+    });
 }
 
 function isMissingUserError(error) {
@@ -156,7 +140,7 @@ export function createListAdminUsersHandler({ users = userRepository } = {}) {
                 usuarios: result.usuarios.map(managementUserResponse),
             });
         } catch {
-            return res.status(500).json({ message: LIST_USERS_ERROR_MESSAGE });
+            return internalError(req, res, LIST_USERS_ERROR_MESSAGE);
         }
     };
 }
@@ -169,7 +153,7 @@ export function createAdminUsersSummaryHandler({ users = userRepository } = {}) 
             const result = await users.getSummary({allowedRoles});
             return res.status(200).json(result);
         } catch {
-            return res.status(500).json({ message: LIST_USERS_ERROR_MESSAGE });
+            return internalError(req, res, LIST_USERS_ERROR_MESSAGE);
         }
     };
 }
@@ -245,13 +229,7 @@ export function createUpdateAdminUserHandler({
                 return res.status(404).json({ message: "El usuario no existe." });
             }
 
-            if (error instanceof Auth0ServiceError) {
-                return res
-                    .status(500)
-                    .json(auth0ErrorResponse(error, UPDATE_USER_ERROR_MESSAGE));
-            }
-
-            return res.status(500).json({ message: UPDATE_USER_ERROR_MESSAGE });
+            return internalError(req, res, UPDATE_USER_ERROR_MESSAGE);
         }
     };
 }
@@ -318,13 +296,7 @@ export function createUpdateAdminUserStatusHandler({
                 return res.status(404).json({ message: "El usuario no existe." });
             }
 
-            if (error instanceof Auth0ServiceError) {
-                return res
-                    .status(500)
-                    .json(auth0ErrorResponse(error, UPDATE_STATUS_ERROR_MESSAGE));
-            }
-
-            return res.status(500).json({ message: UPDATE_STATUS_ERROR_MESSAGE });
+            return internalError(req, res, UPDATE_STATUS_ERROR_MESSAGE);
         }
     };
 }
@@ -351,9 +323,7 @@ export function createPasswordSetupEmailHandler({
                 email: validatedRequest.correoUsuario,
             });
         } catch {
-            return res.status(500).json({
-                message: PASSWORD_EMAIL_ERROR_MESSAGE,
-            });
+            return internalError(req, res, PASSWORD_EMAIL_ERROR_MESSAGE);
         }
 
         return res.status(200).json({
@@ -385,7 +355,7 @@ export function createAdminUserHandler({
         try {
             existingInternalUser = await users.findByEmail(user.correoUsuario);
         } catch {
-            return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
+            return internalError(req, res, INTERNAL_ERROR_MESSAGE);
         }
 
         if (existingInternalUser) {
@@ -409,7 +379,7 @@ export function createAdminUserHandler({
                 });
             }
 
-            return res.status(500).json({ message: INTERNAL_ERROR_MESSAGE });
+            return internalError(req, res, INTERNAL_ERROR_MESSAGE);
         }
 
         try {
@@ -496,7 +466,7 @@ export function createAdminUserMovementsHandler({ users = userRepository } = {})
             const result = await users.listMovements(user.idUsuario, { page, perPage });
             return res.status(200).json(result);
         } catch {
-            return res.status(500).json({ message: "No fue posible consultar los movimientos del usuario." });
+            return internalError(req, res, "No fue posible consultar los movimientos del usuario.");
         }
     };
 }

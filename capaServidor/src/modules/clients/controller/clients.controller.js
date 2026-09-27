@@ -1,6 +1,7 @@
 import { response, request } from "express";
 
 import ClientService from "../service/clients.service.js";
+import { sendControllerError } from "../../../shared/httpResponse.js";
 /**
  *
  *  = async ( req = request, res = response ) => {}
@@ -33,10 +34,7 @@ class ClientController {
             })
             res.status( 200 ).json( result );
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-            res.status(statusCode).json({
-            message: error.message || 'Error al crear cliente- Error controlador'
-            });
+            return sendControllerError(req, res, error, "Error al crear cliente");
         }
     }
 
@@ -49,8 +47,7 @@ class ClientController {
             if ( !result ) return res.status( 404 ).json({msg:'Cliente no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {
-            const statusCode = error.statusCode ?? 500;
-            res.status( statusCode ).json({ message: error.message})
+            return sendControllerError(req, res, error, "Error al obtener cliente");
         }
     }
 
@@ -62,11 +59,7 @@ class ClientController {
 
             res.status( 200 ).json( client );
         } catch ( error ) {
-            const statusCode = error.statusCode ?? 500;
-
-            res.status(statusCode).json({
-            message: error.message || "Error al buscar cliente por RUT",
-            });
+            return sendControllerError(req, res, error, "Error al buscar cliente por RUT");
         }
     };
 

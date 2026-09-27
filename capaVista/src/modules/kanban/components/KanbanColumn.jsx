@@ -599,6 +599,8 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
+  const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
+  const [loadingMore, setLoadingMore] = useState(false)
   const [pendingProductionMove, setPendingProductionMove] = useState(null)
   const kanbanApi = useKanbanApi()
   const { hasPermission } = useAuth()
@@ -609,20 +611,25 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         setLoadError(null)
 
         const [ordersResult, statusesResult] = await Promise.allSettled([
-          kanbanApi.getOrders(),
+          kanbanApi.getOrders({
+            limit: 50,
+            search: filters?.nv || filters?.clientName || '',
+            productType: filters?.productType || '',
+          }),
           kanbanApi.getOrderStatuses(),
         ])
 
         if (ordersResult.status === 'fulfilled') {
-          const normalizedOrders = Array.isArray(ordersResult.value)
-            ? ordersResult.value
+          const orderItems = ordersResult.value?.items ?? []
+          const normalizedOrders = Array.isArray(orderItems)
+            ? orderItems
                 .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
                 .map(normalizeOrder)
                 .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
             : []
           setOrders(normalizedOrders)
+          setPageInfo(ordersResult.value?.pageInfo ?? { nextCursor: null, hasMore: false })
         } else {
-          console.error('Error cargando ordenes:', ordersResult.reason)
           setLoadError('No fue posible cargar las ordenes.')
         }
 
@@ -635,12 +642,11 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
           setColumns(normalizedStatuses.length > 0 ? normalizedStatuses : baseColumns)
         } else {
           if (statusesResult.status === 'rejected') {
-            console.warn('No fue posible cargar los estados del kanban:', statusesResult.reason)
+            setLoadError((current) => current || 'No fue posible cargar los estados del kanban.')
           }
           setColumns(baseColumns)
         }
-      } catch (error) {
-        console.error('Error inesperado cargando kanban:', error)
+      } catch {
         setLoadError('No fue posible cargar las ordenes.')
         setColumns(baseColumns)
       } finally {
@@ -649,7 +655,30 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     }
 
     loadOrders()
-  }, [kanbanApi, refreshKey])
+  }, [filters?.clientName, filters?.nv, filters?.productType, kanbanApi, refreshKey])
+
+  async function loadMoreOrders() {
+    if (!pageInfo.hasMore || !pageInfo.nextCursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const result = await kanbanApi.getOrders({
+        limit: 50,
+        cursor: pageInfo.nextCursor,
+        search: filters?.nv || filters?.clientName || '',
+        productType: filters?.productType || '',
+      })
+      const nextOrders = (result.items ?? [])
+        .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+        .map(normalizeOrder)
+        .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
+      setOrders((current) => [...current, ...nextOrders.filter((next) => !current.some((item) => item.id === next.id))])
+      setPageInfo(result.pageInfo ?? { nextCursor: null, hasMore: false })
+    } catch {
+      setLoadError('No fue posible cargar más ordenes.')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   async function applyOrderMove(order, targetColumn, audit = {}) {
     const patch = await kanbanApi.moveOrder(order.id, targetColumn.generalStepId, audit)
@@ -884,6 +913,13 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
           })}
         </div>
       </DragDropProvider>
+      {pageInfo.hasMore && (
+        <div className="d-flex justify-content-center mt-3">
+          <button className="btn btn-outline-primary" disabled={loadingMore} onClick={loadMoreOrders} type="button">
+            {loadingMore ? 'Cargando…' : 'Cargar más pedidos'}
+          </button>
+        </div>
+      )}
       <KanbanOffCanvas
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}
@@ -897,7 +933,6 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         onRollbackSubprocess={handleRollbackSubprocess}
         onReevaluate={handleReevaluate}
         onSendToReview={handleSendToReview}
-        onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
       />
       <MoveToProductionModal

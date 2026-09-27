@@ -10,15 +10,6 @@ function getCurrentMonth() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
 }
 
-function getMonthOptions() {
-  const today = new Date()
-  return Array.from({ length: 12 }, (_, index) => {
-    const date = new Date(today.getFullYear(), today.getMonth() - index, 1)
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    return { value, label: new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric' }).format(date) }
-  })
-}
-
 function getPeriodDates(period) {
   if (period.mode === 'month') {
     const [year, month] = period.month.split('-').map(Number)
@@ -36,10 +27,6 @@ function formatDuration(seconds) {
   return `${(hours / 24).toFixed(1)} días`
 }
 
-function SummaryCard({ icon, label, value, subtitle }) {
-  return <article className={styles.summaryCard}><div className={styles.summaryIcon}><i className={`bi ${icon}`} aria-hidden="true" /></div><div><span className={styles.summaryLabel}>{label}</span><strong className={styles.summaryValue}>{value}</strong><span className={styles.summarySubtitle}>{subtitle}</span></div></article>
-}
-
 export default function MetricsPage() {
   const api = useMetricsApi()
   const [period, setPeriod] = useState(INITIAL_PERIOD)
@@ -50,30 +37,36 @@ export default function MetricsPage() {
   const [selectedSubprocessProduct, setSelectedSubprocessProduct] = useState('all')
   const [isSellerOpen, setIsSellerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
-  const queryPeriod = getPeriodDates(period)
+  const queryPeriod = useMemo(() => getPeriodDates(period), [period])
   const canQuery = Boolean(queryPeriod.from && queryPeriod.to)
 
   useEffect(() => {
     if (!canQuery) return undefined
     let active = true
-    setLoading(true)
-    setError('')
-    api.getSummary(queryPeriod)
-      .then((result) => active && setSummary(result))
-      .catch((requestError) => active && setError(requestError?.payload?.message ?? 'No fue posible cargar las métricas.'))
-      .finally(() => active && setLoading(false))
+    async function loadSummary() {
+      setLoading(true)
+      setError('')
+      try {
+        const result = await api.getSummary(queryPeriod)
+        if (active) setSummary(result)
+      } catch (requestError) {
+        if (active) setError(requestError?.payload?.message ?? 'No fue posible cargar las métricas.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    loadSummary()
     return () => { active = false }
-  }, [api, queryPeriod.from, queryPeriod.to, canQuery])
+  }, [api, queryPeriod, canQuery])
 
   const chart = useMemo(() => {
     const total = Number(summary.production?.total ?? 0)
-    let currentPercentage = 0
-    const segments = (summary.production?.products ?? []).map((product, index) => {
+    const segments = (summary.production?.products ?? []).reduce((items, product, index) => {
       const percentage = total ? (Number(product.quantity) / total) * 100 : 0
-      const segment = { ...product, percentage, start: currentPercentage, end: currentPercentage + percentage, color: PRODUCT_COLORS[index % PRODUCT_COLORS.length] }
-      currentPercentage += percentage
-      return segment
-    })
+      const start = items.at(-1)?.end ?? 0
+      items.push({ ...product, percentage, start, end: start + percentage, color: PRODUCT_COLORS[index % PRODUCT_COLORS.length] })
+      return items
+    }, [])
     return { total, segments }
   }, [summary.production])
 
@@ -81,7 +74,6 @@ export default function MetricsPage() {
     { key: 'stages', title: 'Etapas generales', items: summary.dwellTime?.stages ?? [] },
     { key: 'subprocesses', title: 'Subprocesos', items: summary.dwellTime?.subprocesses ?? [] },
   ]
-  const dwellItems = dwellGroups.flatMap((group) => group.items)
   const subprocessProducts = [...new Set((summary.dwellTime?.subprocesses ?? []).map((item) => item.productType).filter(Boolean))].sort()
   const visibleSubprocesses = selectedSubprocessProduct === 'all'
     ? summary.dwellTime?.subprocesses ?? []

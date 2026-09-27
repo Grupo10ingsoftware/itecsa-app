@@ -14,7 +14,7 @@ const source = {
 // Integra servicios/repositorios reales con un adaptador en memoria.
 // Verifica cableado y propagacion; no prueba semantica de rollback/locks de MySQL.
 function database({ failStage = false } = {}) {
-  let committed = { orders: [], details: [], events: [], stages: [] };
+  let committed = { orders: [], details: [], events: [], stages: [], securityEvents: [] };
   const calls = { transactions: 0, types: 0, subprocesses: 0 };
   const prisma = { async $transaction(operation, options) {
     calls.transactions++;
@@ -41,6 +41,7 @@ function database({ failStage = false } = {}) {
         if (failStage) throw new Error("stage failure");
         working.stages.push(data); return data;
       } },
+      securityAuditEvent: { async create({ data }) { working.securityEvents.push(data); return data; } },
       usuario: { findMany: async () => [] },
     };
     const result = await operation(tx);
@@ -65,6 +66,9 @@ test("repositorios reales conservan snapshots, actor, evento y etapa con el mism
   assert.equal(rows.stages[0].id_registro, 5);
   assert.equal(rows.stages[0].id_estado_pedido, 1);
   assert.equal(rows.stages[0].fecha_hora_entrada.getTime(), rows.events[0].FECHA_HORA.getTime());
+  assert.equal(rows.securityEvents.length, 1);
+  assert.equal(rows.securityEvents[0].event_type, "order.imported");
+  assert.equal(rows.securityEvents[0].actor_user_id, 7);
   assert.equal(result.detalles[1].codigo, "SKU-B");
   assert.deepEqual(db.calls, { transactions: 1, types: 1, subprocesses: 1 });
 });
@@ -73,7 +77,7 @@ test("fallo en apertura inicial sale de la transaccion sin commit del adaptador"
   const db = database({ failStage: true });
   const service = new OrderService({ prisma: db.prisma, salesNoteSourceService: { getByNumber: async () => source } });
   await assert.rejects(service.createOrder({ numeroNota: "42" }, { actorId: 7 }), /stage failure/);
-  assert.deepEqual(db.read(), { orders: [], details: [], events: [], stages: [] });
+  assert.deepEqual(db.read(), { orders: [], details: [], events: [], stages: [], securityEvents: [] });
 });
 
 test("lectura posterior conserva codigo y descripcion y no sustituye el tipo productivo", async () => {
@@ -104,7 +108,7 @@ test("consulta parametrizada de Cobranzas transporta los campos de snapshot", as
 test("reevaluacion mantiene el nuevo snapshot consistente con los items que actualiza", async () => {
   const changes = [];
   const repo = new OrderRepository({ prisma: {
-    pedidos: { findUnique: async () => ({ id_cliente: 2, Detalle_pedido: [{ id_detalle_pedido: 10 }] }), update: async () => ({}) },
+    pedidos: { findUnique: async () => ({ id_cliente: 2, Detalle_pedido: [] }), update: async () => ({}) },
     cliente: { update: async () => ({}) },
     tipo_Producto: { findFirst: async () => ({ id_tipo_producto: 3 }) },
     detalle_pedido: { update: async ({ data }) => changes.push(data), create: async ({ data }) => changes.push(data) },
@@ -115,4 +119,49 @@ test("reevaluacion mantiene el nuevo snapshot consistente con los items que actu
   await repo.reevaluateFromSalesNote({ orderId: 1, salesNote: source, userId: 7 });
   assert.deepEqual(changes.map((line) => line.codigo_origen), ["SKU-A", "SKU-B"]);
   assert.notEqual(changes[0].linea_origen, changes[1].linea_origen);
+});
+
+test("reevaluacion rechaza lineas duplicadas y eliminacion con progreso", async () => {
+  const baseClient = {
+    cliente: { update: async () => ({}) },
+    pedidos: { update: async () => ({}) },
+  };
+  const duplicated = new OrderRepository({ prisma: {
+    ...baseClient,
+    pedidos: { ...baseClient.pedidos, findUnique: async () => ({ id_cliente: 2, Detalle_pedido: [] }) },
+  } });
+  await assert.rejects(duplicated.reevaluateFromSalesNote({
+    orderId: 1,
+    userId: 7,
+    salesNote: { ...source, items: [source.items[0], { ...source.items[0], cantidad: 9 }] },
+  }), { statusCode: 409 });
+
+  const withProgress = new OrderRepository({ prisma: {
+    ...baseClient,
+    pedidos: { ...baseClient.pedidos, findUnique: async () => ({ id_cliente: 2, Detalle_pedido: [{
+      id_detalle_pedido: 20,
+      codigo_origen: "SKU-RETIRADO",
+      producto_origen: "Retirado",
+      _count: { Comentario_Produccion: 0, registro_subprocesos: 1, Avance_Lanyard: 0 },
+    }] }) },
+  } });
+  await assert.rejects(withProgress.reevaluateFromSalesNote({ orderId: 1, salesNote: source, userId: 7 }), { statusCode: 409 });
+});
+
+test("reevaluacion reordenada conserva el progreso en su linea estable", async () => {
+  const updates = [];
+  const details = [
+    { id_detalle_pedido: 11, codigo_origen: "SKU-B", producto_origen: "Producto B", id_tipo_producto: 3, Avance_Lanyard: [{ cantidad_acumulada: 1 }], _count: {} },
+    { id_detalle_pedido: 10, codigo_origen: "SKU-A", producto_origen: "Producto A", id_tipo_producto: 3, Avance_Lanyard: [{ cantidad_acumulada: 1 }], _count: {} },
+  ];
+  const repo = new OrderRepository({ prisma: {
+    pedidos: { findUnique: async () => ({ id_cliente: 2, Detalle_pedido: details }), update: async () => ({}) },
+    cliente: { update: async () => ({}) },
+    tipo_Producto: { findFirst: async () => ({ id_tipo_producto: 3 }) },
+    detalle_pedido: { update: async ({ where, data }) => updates.push({ where, data }) },
+    usuario: { findMany: async () => [] },
+  } });
+  repo.transitionGeneralStage = async () => ({ id_pedido: 1 });
+  await repo.reevaluateFromSalesNote({ orderId: 1, salesNote: source, userId: 7 });
+  assert.deepEqual(updates.map((entry) => [entry.where.id_detalle_pedido, entry.data.codigo_origen]), [[10, "SKU-A"], [11, "SKU-B"]]);
 });

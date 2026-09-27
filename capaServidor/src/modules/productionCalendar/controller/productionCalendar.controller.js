@@ -1,6 +1,7 @@
 import { request, response } from "express";
 
 import { calculateOperationalLoadByDate } from "../service/operationalLoad.service.js";
+import { sendControllerError } from "../../../shared/httpResponse.js";
 
 class ProductionCalendarController {
   calculateOperationalLoad = (req = request, res = response) => {
@@ -13,9 +14,7 @@ class ProductionCalendarController {
 
       return res.status(200).json(result);
     } catch (error) {
-      return res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al calcular carga operativa.",
-      });
+      return sendControllerError(req, res, error, "No fue posible calcular la carga operativa.");
     }
   };
 }

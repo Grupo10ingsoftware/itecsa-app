@@ -52,8 +52,8 @@ export default function OrderHistoryDetailPage() {
         <>
           <section className={styles.summary} aria-label="Información del pedido">
             <article><span>Estado actual</span><strong>{order.status ?? 'Sin estado'}</strong><small>Pago: {order.paymentStatus ?? 'Sin estado'}</small></article>
-            <article><span>Cliente</span><strong>{order.client.name ?? 'No disponible'}</strong><small>{order.client.rut ?? 'RUT no disponible'}</small></article>
-            <article><span>Vendedor asociado</span><strong>{order.seller.name ?? 'No disponible'}</strong><small>{order.seller.email ?? ''}</small></article>
+            <article><span>Cliente</span><strong>{order.client.name ?? 'No disponible'}</strong></article>
+            <article><span>Vendedor asociado</span><strong>{order.seller.name ?? 'No disponible'}</strong></article>
             <article><span>Fecha de creación</span><strong>{formatDate(order.createdAt)}</strong><small>Entrega: {formatDate(order.estimatedCompletionAt)}</small></article>
           </section>
 

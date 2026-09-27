@@ -13,6 +13,7 @@ import {
     createAuthRouter,
     createPasswordResetRateLimit,
 } from "../src/modules/auth/routes/auth.routes.js";
+import { MemoryThrottleService } from "../src/modules/security/service/securityThrottle.service.js";
 
 const VALID_PAYLOAD = {
     sub: "auth0|user-id",
@@ -84,6 +85,8 @@ async function executePasswordReset({
         users,
         requestPasswordEmail,
         logger: {},
+        minimumDelayMs: 0,
+        random: () => 0,
     });
 
     await handler({ body }, res);
@@ -249,11 +252,10 @@ test("responde no registrado sin llamar Auth0", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "not_registered",
-        message:
-            "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(auth0Calls, 0);
 });
@@ -272,10 +274,10 @@ test("responde desactivado sin llamar Auth0 si el usuario esta desvinculado", as
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "disabled",
-        message: "Tu cuenta se encuentra desactivada. Comunícate con el administrador.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(auth0Calls, 0);
 });
@@ -294,8 +296,8 @@ test("responde desactivado sin llamar Auth0 si el usuario no esta activo", async
         },
     });
 
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.status, "disabled");
+    assert.equal(res.statusCode, 202);
+    assert.equal(res.body.status, "accepted");
     assert.equal(auth0Calls, 0);
 });
 
@@ -314,15 +316,15 @@ test("solicita correo Auth0 si el usuario esta activo", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "sent",
-        message: "Te enviamos un enlace para cambiar tu contraseña.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(requestedEmail, "usuario@example.cl");
 });
 
-test("responde error generico si falla Auth0", async () => {
+test("mantiene respuesta uniforme si falla Auth0", async () => {
     const res = await executePasswordReset({
         users: createUsersRepositoryMock({
             user: {
@@ -338,9 +340,10 @@ test("responde error generico si falla Auth0", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 500);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        message: "No fue posible solicitar el correo de recuperación de contraseña.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
 });
 
@@ -369,6 +372,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
                 emailRequested = true;
             },
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -385,8 +390,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
     );
     const body = await response.json();
 
-    assert.equal(response.status, 200);
-    assert.equal(body.status, "sent");
+    assert.equal(response.status, 202);
+    assert.equal(body.status, "accepted");
     assert.equal(authCalls, 0);
     assert.equal(emailRequested, true);
 });
@@ -398,13 +403,13 @@ test("limita intentos repetidos de recuperacion", async (t) => {
         "/api/auth",
         createAuthRouter({
             passwordResetRateLimit: createPasswordResetRateLimit({
-                attempts: new Map(),
-                maxAttempts: 2,
-                now: () => 100,
+                throttle: new MemoryThrottleService({ now: () => new Date(100) }),
             }),
             users: createUsersRepositoryMock(),
             requestPasswordEmail: async () => {},
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -419,16 +424,15 @@ test("limita intentos repetidos de recuperacion", async (t) => {
             body: JSON.stringify({ email: "usuario@example.cl" }),
         });
 
-    assert.equal((await request()).status, 200);
-    assert.equal((await request()).status, 200);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
     const limitedResponse = await request();
     const body = await limitedResponse.json();
 
     assert.equal(limitedResponse.status, 429);
-    assert.deepEqual(body, {
-        message:
-            "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
-    });
+    assert.equal(body.code, "RATE_LIMITED");
+    assert.equal(limitedResponse.headers.get("retry-after"), "900");
 });
 
 for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"]) {

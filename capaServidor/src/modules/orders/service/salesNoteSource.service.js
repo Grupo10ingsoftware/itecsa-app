@@ -8,6 +8,7 @@ const DEFAULT_FIXTURE_PATH = path.resolve(
   __dirname,
   "../../../../data/demo/sales-notes-fixture.json",
 );
+const fixtureRepositories = new Set();
 
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -21,10 +22,6 @@ function normalizeClient(client = {}) {
   return {
     rut: client.rut ?? client.RUT ?? null,
     nombre: client.nombre ?? client.CLIENTE ?? null,
-    direccion: client.direccion ?? client.dir ?? null,
-    comuna: client.comuna ?? null,
-    ciudad: client.ciudad ?? null,
-    tipoClienteOrigen: client.tipoClienteOrigen ?? client.TIPO_CLIENTE ?? null,
   };
 }
 
@@ -83,17 +80,45 @@ function normalizeSalesNote(record) {
   };
 }
 
-class SalesNoteSourceService {
-  constructor({ fixturePath = DEFAULT_FIXTURE_PATH } = {}) {
+function validatedRepositoryDTO(record) {
+  const validItem = (item) => item && typeof item === "object" &&
+    Number.isInteger(item.cantidad) && item.cantidad > 0 &&
+    typeof item.producto === "string" && item.producto.trim().length > 0;
+  if (!record || typeof record !== "object" || typeof record.numeroNota !== "string" ||
+    !record.cliente || typeof record.cliente.nombre !== "string" ||
+    typeof record.cliente.rut !== "string" || !Array.isArray(record.items) ||
+    record.items.length === 0 || !record.items.every(validItem) ||
+    !Array.isArray(record.itemsSinSeguimientoProductivo) ||
+    !record.itemsSinSeguimientoProductivo.every(validItem)) {
+    const error = new Error("La fuente de Notas de Venta no cumple el contrato autorizado.");
+    error.statusCode = 502;
+    error.code = "SALES_NOTE_SOURCE_CONTRACT_INVALID";
+    throw error;
+  }
+  return record;
+}
+
+export class SalesNoteRepository {
+  async getByNumber() {
+    throw new Error("SalesNoteRepository.getByNumber debe ser implementado.");
+  }
+}
+
+export class FixtureSalesNoteRepository extends SalesNoteRepository {
+  constructor({ fixturePath = DEFAULT_FIXTURE_PATH, cacheTtlMs = 5 * 60 * 1000, now = Date.now } = {}) {
+    super();
     this.fixturePath = fixturePath;
+    this.cacheTtlMs = cacheTtlMs;
+    this.now = now;
     this.cache = null;
+    fixtureRepositories.add(this);
   }
 
   async getSalesNotes() {
     const stats = await fs.stat(this.fixturePath);
     const version = `${stats.mtimeMs}:${stats.size}`;
 
-    if (this.cache?.version === version) {
+    if (this.cache?.version === version && this.cache.expiresAt > this.now()) {
       return this.cache.salesNotes;
     }
 
@@ -103,6 +128,7 @@ class SalesNoteSourceService {
 
     this.cache = {
       version,
+      expiresAt: this.now() + this.cacheTtlMs,
       salesNotes,
       byNumber: new Map(
         salesNotes.map((item) => [
@@ -113,6 +139,10 @@ class SalesNoteSourceService {
     };
 
     return salesNotes;
+  }
+
+  clearExpired() {
+    if (this.cache && this.cache.expiresAt <= this.now()) this.cache = null;
   }
 
   async getByNumber(numeroNota) {
@@ -133,7 +163,20 @@ class SalesNoteSourceService {
       throw error;
     }
 
-    return normalizeSalesNote(record);
+    return validatedRepositoryDTO(normalizeSalesNote(record));
+  }
+}
+
+export function purgeExpiredSalesNoteCaches() {
+  for (const repository of fixtureRepositories) repository.clearExpired();
+}
+
+export class UnavailableExternalSalesNoteRepository extends SalesNoteRepository {
+  async getByNumber() {
+    const error = new Error("La fuente externa de Notas de Venta no esta configurada.");
+    error.statusCode = 503;
+    error.code = "EXTERNAL_SALES_NOTE_SOURCE_UNAVAILABLE";
+    throw error;
   }
 }
 
@@ -141,6 +184,8 @@ export {
   normalizeSalesNote,
   normalizeSalesNoteNumber,
   resolveProductType,
+  validatedRepositoryDTO,
 };
 
-export default SalesNoteSourceService;
+export { FixtureSalesNoteRepository as SalesNoteSourceService };
+export default FixtureSalesNoteRepository;

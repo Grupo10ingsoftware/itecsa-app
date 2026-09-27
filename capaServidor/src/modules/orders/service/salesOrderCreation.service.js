@@ -39,6 +39,7 @@ export default class SalesOrderCreationService {
       clientService,
       orderDetailService,
       productTypeService,
+      securityAudit,
       repoClient,
     }) => {
       const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
@@ -159,6 +160,16 @@ export default class SalesOrderCreationService {
         orderId: order.id_pedido,
         subject: "Pedido pendiente de programacion",
         content: `Se registro el pedido ${numeroNota}. Debe asignarse una fecha habil en el calendario de produccion.`,
+      });
+
+      await securityAudit?.record({
+        eventType: "order.imported",
+        actorUserId: resolvedUserId,
+        action: "create",
+        resourceType: "order",
+        resourceId: String(order.id_pedido),
+        requestId: options.requestId,
+        outcome: "allowed",
       });
 
       const fullOrder = await repo.get(order.id_pedido);

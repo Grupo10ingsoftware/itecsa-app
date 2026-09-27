@@ -195,7 +195,8 @@ class PaymentRecordService {
       companyName:
         order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
       rut: order.Cliente?.rut_cliente ?? null,
-      sellerEmail: order.Usuario?.correo_usuario ?? null,
+      sellerId: order.Usuario?.id_usuario ?? null,
+      sellerName: [order.Usuario?.nombre_usuario, order.Usuario?.apellido_usuario].filter(Boolean).join(" ") || null,
       products: resolveSalesNoteItems(
         order.Detalle_pedido,
         salesNote?.items ?? [],

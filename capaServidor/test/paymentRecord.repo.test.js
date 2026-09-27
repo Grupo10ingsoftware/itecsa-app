@@ -103,7 +103,9 @@ test("consulta el detalle del modal en una sola lectura parametrizada", async ()
             nombre_cliente: "Cliente Demo 013",
             razon_social: "Cliente Demo 013 SpA",
             rut_cliente: "RUT-DEMO-013",
-            correo_usuario: "vendedor@itecsa.cl",
+            id_usuario: 7,
+            nombre_usuario: "Ana",
+            apellido_usuario: "Perez",
             id_detalle_pedido: 38,
             cantidad: 100,
             nombre_producto: "Lanyard",
@@ -119,7 +121,7 @@ test("consulta el detalle del modal en una sola lectura parametrizada", async ()
   assert.match(query, /LEFT JOIN Detalle_pedido/);
   assert.match(values[0].strings.join(""), /dp\.codigo_origen/);
   assert.equal(values[1], 33);
-  assert.equal(source.Usuario.correo_usuario, "vendedor@itecsa.cl");
+  assert.deepEqual(source.Usuario, { id_usuario: 7, nombre_usuario: "Ana", apellido_usuario: "Perez" });
   assert.deepEqual(source.Detalle_pedido, [
     {
       id_detalle_pedido: 38,

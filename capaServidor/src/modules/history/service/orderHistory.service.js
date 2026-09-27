@@ -1,4 +1,5 @@
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
+import { decodeCursor, pageResult, parseLimit } from "../../../shared/pagination.js";
 
 const EVENT_TYPES = new Set(["all", "stage", "payment", "subprocess", "calendar", "general"]);
 const CALENDARIZATION_DESCRIPTION_PREFIX = "Fecha de termino definida para ";
@@ -43,7 +44,7 @@ function dateRangeFromQuery(from, to) {
             throw httpError(400, `${field} debe tener formato YYYY-MM-DD.`);
         }
         const date = new Date(`${value}T00:00:00.000Z`);
-        if (Number.isNaN(date.getTime())) throw httpError(400, `${field} no es una fecha valida.`);
+        if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw httpError(400, `${field} no es una fecha valida.`);
         return date;
     };
     const start = from ? parse(from, "from") : undefined;
@@ -59,7 +60,7 @@ function dateRangeFromQuery(from, to) {
 
 function personName(user) {
     if (!user) return null;
-    return [user.nombre_usuario, user.apellido_usuario].filter(Boolean).join(" ") || user.correo_usuario;
+    return [user.nombre_usuario, user.apellido_usuario].filter(Boolean).join(" ") || null;
 }
 
 function parseLanyardProgress(description) {
@@ -94,14 +95,13 @@ function mapSummary(order) {
     return {
         id: order.id_pedido,
         salesNoteNumber: order.numero_nota_venta,
-        clientRut: order.Cliente?.rut_cliente ?? null,
         clientName: order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
         status: order.Estado_Pedido?.nombre_etapa ?? null,
         createdAt: order.fecha_creacion,
     };
 }
 
-function mapEvent(record) {
+function mapEvent(record, { includePaymentDetails = false } = {}) {
     const base = {
         id: record.ID_REGISTRO,
         occurredAt: record.FECHA_HORA,
@@ -134,11 +134,11 @@ function mapEvent(record) {
         const previous = detail.Estado_Pago_Registro_Pago_id_estado_pago_anteriorToEstado_Pago?.nombre_estado_pago;
         const next = detail.Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago?.nombre_estado_pago;
         return {
-            ...base,
+            ...(includePaymentDetails ? base : { id: base.id, occurredAt: base.occurredAt }),
             type: "payment",
             typeLabel: "Pago",
             title: next ? `Estado de pago: ${next}` : "Actualizacion de pago",
-            description: record.observacion ?? detail.observacion ?? null,
+            ...(includePaymentDetails ? { description: record.observacion ?? detail.observacion ?? null } : {}),
             previousStatus: previous ?? null,
             nextStatus: next ?? null,
         };
@@ -178,7 +178,7 @@ function mapEvent(record) {
     return { ...base, type: "general", typeLabel: "General", title: "Actividad del pedido" };
 }
 
-function mapDetail(order, requestedType) {
+function mapDetail(order, requestedType, options = {}) {
     const trackedItems = order.Detalle_pedido.map((detail) => ({
         id: detail.id_detalle_pedido,
         productType: detail.Tipo_Producto?.nombre_producto ?? null,
@@ -195,7 +195,7 @@ function mapDetail(order, requestedType) {
         estimatedCompletionAt: null,
         completedAt: null,
     }));
-    const allEvents = order.Registros.map(mapEvent);
+    const allEvents = order.Registros.map((record) => mapEvent(record, options));
 
     return {
         id: order.id_pedido,
@@ -206,20 +206,11 @@ function mapDetail(order, requestedType) {
         paymentStatus: order.Estado_Pago?.nombre_estado_pago ?? null,
         client: {
             name: order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
-            rut: order.Cliente?.rut_cliente ?? null,
-            businessName: order.Cliente?.razon_social ?? null,
         },
         seller: {
             id: order.Usuario?.id_usuario ?? null,
             name: personName(order.Usuario),
-            email: order.Usuario?.correo_usuario ?? null,
         },
-        observations: {
-            general: order.observacion,
-            source: order.observacion_origen,
-            internal: order.observacion_interna,
-        },
-        managerSourceUser: order.usuario_manager_origen,
         labels: order.Pedido_Etiqueta.map((item) => item.etiqueta?.nombre_etiqueta).filter(Boolean),
         items: [...trackedItems, ...untrackedItems],
         availableEventTypes: [...new Set(allEvents.map((event) => event.type))],
@@ -235,29 +226,23 @@ export default class OrderHistoryService {
     }
 
     async listOrders(query = {}) {
-        const page = positiveInteger(query.page, 1, "page");
-        const perPage = Math.min(positiveInteger(query.perPage, 20, "perPage"), 100);
+        const limit = parseLimit(query.limit);
+        const cursor = decodeCursor(query.cursor);
         const status = String(query.status ?? "").trim();
         const search = String(query.search ?? "").trim();
         const selectedDateRange = dateRangeFromQuery(query.from, query.to);
-        const { orders, total } = await this.repo.list({
+        const orders = await this.repo.list({
             status: status || null,
             search: search || null,
             dateRange: selectedDateRange ?? dateRangeFromSearch(search),
-            page,
-            perPage,
+            cursor,
+            limit,
         });
 
-        return {
-            orders: orders.map(mapSummary),
-            total,
-            page,
-            perPage,
-            totalPages: Math.ceil(total / perPage),
-        };
+        return pageResult(orders, limit, mapSummary);
     }
 
-    async getOrderHistory(orderId, query = {}) {
+    async getOrderHistory(orderId, query = {}, options = {}) {
         const parsedId = positiveInteger(orderId, null, "orderId");
         const type = String(query.type ?? "all").trim().toLowerCase();
         if (!EVENT_TYPES.has(type)) {
@@ -266,6 +251,6 @@ export default class OrderHistoryService {
 
         const order = await this.repo.getById(parsedId);
         if (!order) throw httpError(404, "Pedido no encontrado.");
-        return mapDetail(order, type);
+        return mapDetail(order, type, options);
     }
 }

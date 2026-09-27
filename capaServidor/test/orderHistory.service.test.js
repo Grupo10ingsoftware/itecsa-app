@@ -8,16 +8,13 @@ test("lista pedidos y normaliza filtros de estado, busqueda y paginacion", async
         repo: {
             async list(filters) {
                 received = filters;
-                return {
-                    total: 1,
-                    orders: [{
+                return [{
                         id_pedido: 8,
                         numero_nota_venta: "NV-8",
                         fecha_creacion: new Date("2026-09-04T00:00:00Z"),
                         Cliente: { rut_cliente: "1-9", nombre_cliente: "Cliente" },
                         Estado_Pedido: { nombre_etapa: "En produccion" },
-                    }],
-                };
+                    }];
             },
         },
     });
@@ -25,22 +22,21 @@ test("lista pedidos y normaliza filtros de estado, busqueda y paginacion", async
     const result = await service.listOrders({
         status: "En produccion",
         search: "04-09-2026",
-        page: "2",
-        perPage: "10",
+        limit: "10",
     });
 
     assert.equal(received.status, "En produccion");
-    assert.equal(received.page, 2);
-    assert.equal(received.perPage, 10);
+    assert.equal(received.limit, 10);
+    assert.equal(received.cursor, null);
     assert.equal(received.dateRange.start.toISOString(), "2026-09-04T00:00:00.000Z");
-    assert.deepEqual(result.orders[0], {
+    assert.deepEqual(result.items[0], {
         id: 8,
         salesNoteNumber: "NV-8",
-        clientRut: "1-9",
         clientName: "Cliente",
         status: "En produccion",
         createdAt: new Date("2026-09-04T00:00:00Z"),
     });
+    assert.deepEqual(result.pageInfo, { limit: 10, nextCursor: null, hasMore: false });
 });
 
 test("consolida y filtra cronologia por tipo de registro", async () => {
@@ -114,12 +110,16 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
         },
     });
 
-    const result = await service.getOrderHistory("8", { type: "payment" });
+    const result = await service.getOrderHistory("8", { type: "payment" }, { includePaymentDetails: true });
     assert.equal(result.events.length, 1);
     assert.equal(result.events[0].type, "payment");
     assert.equal(result.events[0].responsible, "Ana Perez");
     assert.equal(result.events[0].previousStatus, "Pendiente");
     assert.equal(result.events[0].nextStatus, "Confirmado");
+
+    const restrictedResult = await service.getOrderHistory("8", { type: "payment" });
+    assert.equal("responsible" in restrictedResult.events[0], false);
+    assert.equal("description" in restrictedResult.events[0], false);
 
     const calendarResult = await service.getOrderHistory("8", { type: "calendar" });
     assert.equal(calendarResult.events.length, 1);

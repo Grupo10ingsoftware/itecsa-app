@@ -26,6 +26,7 @@ import getPrismaClient from "../../../database/prisma.js";
 import SalesNoteSourceService, {
   normalizeSalesNoteNumber,
 } from "./salesNoteSource.service.js";
+import { decodeCursor, pageResult, parseLimit } from "../../../shared/pagination.js";
 
 export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
   "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
@@ -417,8 +418,31 @@ class OrderService {
     });
   }
 
-  async getAllOrders() {
-    return this.repo.getAllOrders();
+  async getAllOrders(query = {}) {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const status = String(query.status ?? "").trim().slice(0, 100) || null;
+    const search = String(query.search ?? "").trim().slice(0, 100) || null;
+    const productType = String(query.productType ?? "").trim().slice(0, 100) || null;
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+        const error = new Error("Las fechas deben tener formato YYYY-MM-DD."); error.statusCode = 400; throw error;
+      }
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) { const error = new Error("La fecha no es valida."); error.statusCode = 400; throw error; }
+      return end ? new Date(date.getTime() + 24 * 60 * 60 * 1000) : date;
+    };
+    const rows = await this.repo.getAllOrders({
+      limit,
+      cursor,
+      status,
+      search,
+      productType,
+      from: parseDate(query.from),
+      to: parseDate(query.to, true),
+    });
+    return pageResult(rows, limit);
   }
 
   async getPaymentWorkspace() {

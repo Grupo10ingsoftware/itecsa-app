@@ -29,9 +29,10 @@ test("los cinco endpoints de Payments ocultan errores internos", async () => {
     for (const [controller, handler, serviceMethod] of scenarios) {
       controller.service[serviceMethod] = async () => { throw privateError; };
       const res = response();
-      await controller[handler]({ params: { orderId: "1", paymentRecordId: "2", id: "2" } }, res);
+      await controller[handler]({ requestId: "payment-request", params: { orderId: "1", paymentRecordId: "2", id: "2" } }, res);
       assert.equal(res.code, 500, handler);
-      assert.match(res.body.reference, /^[0-9a-f-]{36}$/i);
+      assert.equal(res.body.requestId, "payment-request");
+      assert.equal(res.body.code, "INTERNAL_ERROR");
       assert.doesNotMatch(JSON.stringify(res.body), /SQL private|P2021/);
     }
   } finally {
@@ -44,17 +45,14 @@ test("Payments conserva los errores esperados y registra solo metadatos seguros"
   const missing = response();
   sendPaymentError(missing, expected);
   assert.equal(missing.code, 404);
-  assert.deepEqual(missing.body, { message: expected.message });
+  assert.equal(missing.body.message, expected.message);
+  assert.equal(missing.body.code, "PAYMENT_REQUEST_REJECTED");
 
   const events = [];
   const failed = response();
   sendPaymentError(failed, Object.assign(new Error("SQL private detail"), { code: "P2021" }), {
-    error: (event) => events.push(event),
-  });
+    error: (event, metadata) => events.push({ event, ...metadata }),
+  }, { requestId: "payment-request" });
   assert.equal(failed.code, 500);
-  assert.deepEqual(events, [{
-    event: "payments.unexpected_error",
-    reference: failed.body.reference,
-    databaseCode: "P2021",
-  }]);
+  assert.deepEqual(events, [{ event: "payments.unexpected_error", requestId: "payment-request", actorId: undefined, code: "P2021", outcome: "error" }]);
 });

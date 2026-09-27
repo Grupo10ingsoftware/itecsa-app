@@ -5,6 +5,7 @@ API Express responsable de exponer servicios backend y validar access tokens Aut
 ## Ejecucion
 
 ```bash
+npm install --prefix ../tooling/prisma
 npm install
 npm start
 ```
@@ -40,6 +41,7 @@ npm run prisma:studio
 Crear un archivo `.env` local a partir de `env.example`:
 
 ```dotenv
+APP_ENV=development
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
 AUTH0_DOMAIN=<tenant-auth0>
@@ -48,15 +50,20 @@ AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
 AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
+RATE_LIMIT_SECRET=<32-bytes-base64>
+CURSOR_SECRET=<32-bytes-base64>
+SECURITY_LOG_HMAC_KEY=<32-bytes-base64>
 DB_HOST=<host-aiven>
 DB_PORT=<puerto-aiven>
 DB_USER=<usuario-aiven>
 DB_PASSWORD=
 DB_NAME=<nombre-bd>
 DB_SSL_CA_PATH=./certs/aiven-ca.pem
+DB_SSL_MODE=required
 DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
 ```
 
+- `APP_ENV`: entorno obligatorio (`development`, `test` o `production`) usado por decisiones de seguridad.
 - `PORT`: puerto HTTP del servidor.
 - `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
 - `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
@@ -83,26 +90,25 @@ El backend usa Prisma con `@prisma/adapter-mariadb` y SSL. Descargar el certific
 capaServidor/certs/aiven-ca.pem
 ```
 
-El archivo `.gitignore` evita versionar certificados `.pem` dentro de `capaServidor/certs/`. Para verificar la conexion sin consultar datos de negocio:
+El archivo `.gitignore` evita versionar certificados `.pem` dentro de `capaServidor/certs/`. Para verificar que el proceso HTTP está vivo sin consultar la base:
 
 ```bash
-curl http://localhost:3000/api/health/db
+curl http://localhost:3000/api/health/live
 ```
 
 Respuesta esperada:
 
 ```json
 {
-  "status": "ok",
-  "database": "mysql"
+  "status": "ok"
 }
 ```
 
-Si faltan variables, el certificado no existe o Aiven rechaza la conexion, el endpoint responde `500` con un mensaje generico sin exponer credenciales.
+La disponibilidad de base se consulta únicamente en `/internal/ready`, deshabilitado por defecto y protegido por `INTERNAL_HEALTH_TOKEN`; debe exponerse sólo en la red interna.
 
 ## Prisma ORM
 
-Prisma es la infraestructura de acceso a datos del backend. La creacion administrativa de usuarios, pedidos, clientes, productos, estados de pedido, estados de pago, detalles, registros de pago y documentos usan repositorios basados en Prisma cuando ejecutan contratos reales.
+Prisma es la infraestructura de acceso a datos del backend. La CLI está aislada en `tooling/prisma`; debe instalarse antes de ejecutar los scripts Prisma del servidor.
 
 La base indicada en `DB_NAME` debe existir en Aiven. Con esa precondicion, el flujo correcto es introspeccion y generacion de cliente:
 
@@ -125,11 +131,9 @@ npm run prisma:studio
 
 El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
 
-## Override Temporal De Seguridad
+## Dependencias De Seguridad
 
-`package.json` fuerza temporalmente `@hono/node-server` a `1.19.14` mediante `overrides` por el advisory `GHSA-92pp-h63x-v22m`.
-
-La cadena afectada es `prisma -> @prisma/dev -> @hono/node-server`. No ejecutar `npm audit fix --force` para este caso, porque npm propone bajar Prisma a una version mayor anterior. Mantener Prisma 7 y retirar el override solo cuando Prisma publique una version que resuelva `@hono/node-server >=1.19.13` sin override y `npm audit` quede limpio.
+El runtime no incluye Prisma CLI y su auditoría `--omit=dev` está limpia. La excepción temporal del CLI y las versiones forzadas se documentan en [DEPENDENCIAS.md](../docs/security/DEPENDENCIAS.md). No ejecutar `npm audit fix --force` sin revisar compatibilidad.
 
 ## Recursos Auth0 Esperados
 

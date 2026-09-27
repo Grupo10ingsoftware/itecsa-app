@@ -3,17 +3,25 @@ import getPrismaClient, { disconnectPrismaClient } from "../src/database/prisma.
 import OrderRepository from "../src/modules/orders/repo/orders.repo.js";
 import SalesNoteSourceService, { normalizeSalesNoteNumber } from "../src/modules/orders/service/salesNoteSource.service.js";
 import { Prisma } from "@prisma/client";
+import { readdir } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const db = getPrismaClient();
 try {
   const report = {};
+  const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const localMigrations = (await readdir(resolve(serverRoot, "prisma/migrations"), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
   try {
     const rows = await new OrderRepository({ prisma: db }).getAllOrders();
     report.kanbanRead = { ok: true, count: rows.length };
   } catch (error) {
     report.kanbanRead = { ok: false, code: error.code ?? error.name, column: error.meta?.column ?? null };
   }
-  const [state, payment, types, labels, columns, storedNumbers, otherColumns, appliedMigrations, noteColumn, noteIndexes, blankNotes, canonicalCollisions, documentNoteCount, stageCounts, serverVersion, roleCounts] = await Promise.all([
+  const [state, payment, types, labels, columns, storedNumbers, otherColumns, migrationHistory, noteColumn, noteIndexes, blankNotes, canonicalCollisions, documentNoteCount, stageCounts, serverVersion, roleCounts] = await Promise.all([
     db.$queryRaw`SELECT id_estado_pedido AS id, nombre_etapa AS name FROM Estado_Pedido WHERE id_estado_pedido = 1`,
     db.$queryRaw`SELECT id_estado_pago AS id, nombre_estado_pago AS name FROM Estado_Pago WHERE id_estado_pago = 1`,
     db.$queryRaw`SELECT nombre_producto AS name FROM Tipo_Producto WHERE nombre_producto IN ('Yoyo','Lanyard','Tarjeta') ORDER BY nombre_producto`,
@@ -21,7 +29,7 @@ try {
     db.$queryRaw`SELECT COLUMN_NAME AS name FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Detalle_pedido' AND COLUMN_NAME IN ('linea_origen','codigo_origen','producto_origen','familia_origen','subfamilia_origen') ORDER BY COLUMN_NAME`,
     db.$queryRaw`SELECT numero_nota_venta AS number FROM Pedidos WHERE numero_nota_venta IS NOT NULL`,
     db.$queryRaw`SELECT TABLE_NAME AS tableName, COLUMN_NAME AS name FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND ((TABLE_NAME = 'Registros' AND COLUMN_NAME = 'observacion') OR (TABLE_NAME = 'Tipo_Producto' AND COLUMN_NAME = 'capacidad_diaria')) ORDER BY TABLE_NAME`,
-    db.$queryRaw`SELECT migration_name AS name FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`,
+    db.$queryRaw`SELECT migration_name AS name, finished_at AS finishedAt, rolled_back_at AS rolledBackAt FROM _prisma_migrations ORDER BY started_at`,
     db.$queryRaw`SELECT COLLATION_NAME AS collation FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Pedidos' AND COLUMN_NAME = 'numero_nota_venta'`,
     db.$queryRaw`SELECT INDEX_NAME AS name, NON_UNIQUE AS nonUnique FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Pedidos' AND COLUMN_NAME = 'numero_nota_venta'`,
     db.$queryRaw`SELECT COUNT(*) AS total FROM Pedidos WHERE numero_nota_venta IS NULL OR TRIM(numero_nota_venta) = ''`,
@@ -56,7 +64,10 @@ try {
   }
   report.migrationPreflight = {
     otherColumns: otherColumns.map((row) => `${row.tableName}.${row.name}`),
-    appliedMigrations: appliedMigrations.map((row) => row.name),
+    appliedMigrations: migrationHistory.filter((row) => row.finishedAt && !row.rolledBackAt).map((row) => row.name),
+    pendingLocalMigrations: localMigrations.filter((name) => !migrationHistory.some((row) => row.name === name && row.finishedAt && !row.rolledBackAt)),
+    unknownDatabaseMigrations: migrationHistory.filter((row) => !localMigrations.includes(row.name)).map((row) => row.name),
+    failedOrRolledBackMigrations: migrationHistory.filter((row) => !row.finishedAt || row.rolledBackAt).map((row) => row.name),
     noteCollation: noteColumn[0]?.collation ?? null,
     noteIndexes: noteIndexes.map((row) => ({ name: row.name, unique: row.nonUnique === 0 })),
     blankOrMissingNotes: Number(blankNotes[0]?.total ?? 0),
@@ -72,7 +83,7 @@ try {
     if (!byTable.has(row.tableName)) byTable.set(row.tableName, new Set());
     byTable.get(row.tableName).add(row.name);
   }
-  const relevant = new Set(['Pedidos','Detalle_pedido','Cliente','Estado_Pedido','Estado_Pago','Tipo_Producto','Producto_Subproceso','Registros','Registro_Etapas','Pedido_Etiqueta','etiqueta','Pedido_Item_Sin_Seguimiento','Usuario','Mensaje','MENSAJE_USUARIO','Avance_Lanyard','registro_subprocesos']);
+  const relevant = new Set(['Pedidos','Detalle_pedido','Cliente','Estado_Pedido','Estado_Pago','Tipo_Producto','Producto_Subproceso','Registros','Registro_Etapas','Pedido_Etiqueta','etiqueta','Pedido_Item_Sin_Seguimiento','Usuario','Mensaje','MENSAJE_USUARIO','Avance_Lanyard','registro_subprocesos','SecurityThrottle','SecurityAuditEvent']);
   report.modelDrift = Prisma.dmmf.datamodel.models
     .filter((model) => relevant.has(model.name))
     .map((model) => {
@@ -88,6 +99,9 @@ try {
     && report.migrationPreflight.noteIndexes.some((index) => index.unique)
     && report.migrationPreflight.blankOrMissingNotes === 0
     && report.migrationPreflight.canonicalDuplicateGroups === 0
+    && report.migrationPreflight.pendingLocalMigrations.length === 0
+    && report.migrationPreflight.unknownDatabaseMigrations.length === 0
+    && report.migrationPreflight.failedOrRolledBackMigrations.length === 0
     && report.modelDrift.length === 0;
   report.sourceMode = 'local fixture';
   report.realOrdersReady = false;

@@ -7,7 +7,6 @@ const orderSummarySelect = {
     fecha_creacion: true,
     Cliente: {
         select: {
-            rut_cliente: true,
             nombre_cliente: true,
             razon_social: true,
         },
@@ -22,13 +21,12 @@ const orderSummarySelect = {
 };
 
 const orderDetailInclude = {
-    Cliente: true,
+    Cliente: { select: { nombre_cliente: true, razon_social: true } },
     Usuario: {
         select: {
             id_usuario: true,
             nombre_usuario: true,
             apellido_usuario: true,
-            correo_usuario: true,
         },
     },
     Estado_Pedido: true,
@@ -50,7 +48,6 @@ const orderDetailInclude = {
                     id_usuario: true,
                     nombre_usuario: true,
                     apellido_usuario: true,
-                    correo_usuario: true,
                 },
             },
             Registro_Etapas: {
@@ -88,17 +85,17 @@ export default class OrderHistoryRepository {
         return this.prisma;
     }
 
-    async list({ status, search, dateRange, page, perPage }) {
+    async list({ status, search, dateRange, cursor, limit }) {
         const searchConditions = search
             ? [
                 { numero_nota_venta: { contains: search } },
-                { Cliente: { is: { rut_cliente: { contains: search } } } },
                 { Cliente: { is: { nombre_cliente: { contains: search } } } },
                 { Cliente: { is: { razon_social: { contains: search } } } },
             ]
             : [];
 
         const where = {
+            ...(cursor ? { id_pedido: { lt: cursor.id } } : {}),
             ...(status
                 ? { Estado_Pedido: { is: { nombre_etapa: status } } }
                 : {}),
@@ -111,21 +108,12 @@ export default class OrderHistoryRepository {
             } : {}),
         };
 
-        const [orders, total] = await this.client.$transaction([
-            this.client.pedidos.findMany({
-                where,
-                select: orderSummarySelect,
-                orderBy: [
-                    { fecha_creacion: "desc" },
-                    { id_pedido: "desc" },
-                ],
-                skip: (page - 1) * perPage,
-                take: perPage,
-            }),
-            this.client.pedidos.count({ where }),
-        ]);
-
-        return { orders, total };
+        return this.client.pedidos.findMany({
+            where,
+            select: orderSummarySelect,
+            orderBy: { id_pedido: "desc" },
+            take: limit + 1,
+        });
     }
 
     async getById(orderId) {

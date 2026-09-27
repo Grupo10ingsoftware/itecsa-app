@@ -45,7 +45,9 @@ npm run preview
 Backend:
 
 ```bash
-cd capaServidor
+cd tooling/prisma
+npm install
+cd ../../capaServidor
 npm install
 npm start
 ```

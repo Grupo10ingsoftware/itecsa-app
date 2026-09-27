@@ -5,7 +5,6 @@ const EMPTY_FILTERS = Object.freeze({
   clientName: '',
   nv: '',
   productType: '',
-  seller: '',
 })
 
 export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
@@ -68,17 +67,6 @@ export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
                 placeholder="Ej. Colegio Andes"
                 type="text"
                 value={draftFilters.clientName}
-              />
-            </label>
-
-            <label>
-              <span>Vendedor</span>
-              <input
-                className="form-control"
-                onChange={(event) => updateFilter('seller', event.target.value)}
-                placeholder="Ej. Mariana Soto"
-                type="text"
-                value={draftFilters.seller}
               />
             </label>
 

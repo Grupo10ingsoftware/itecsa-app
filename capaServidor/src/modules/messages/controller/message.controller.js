@@ -1,5 +1,6 @@
 import { request, response } from "express";
 import MessageService from "../service/message.service.js";
+import { sendControllerError } from "../../../shared/httpResponse.js";
 
 class MessageController {
     constructor({ service } = {}) {
@@ -12,9 +13,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener los mensajes.",
-            });
+            return sendControllerError(req, res, error, "No fue posible obtener los mensajes.");
         }
     };
 
@@ -24,9 +23,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener las notificaciones.",
-            });
+            return sendControllerError(req, res, error, "No fue posible obtener las notificaciones.");
         }
     };
 
@@ -39,9 +36,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al obtener el mensaje.",
-            });
+            return sendControllerError(req, res, error, "No fue posible obtener el mensaje.");
         }
     };
 
@@ -54,9 +49,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al marcar el mensaje como leido.",
-            });
+            return sendControllerError(req, res, error, "No fue posible marcar el mensaje como leido.");
         }
     };
 
@@ -69,9 +62,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al ocultar la notificacion.",
-            });
+            return sendControllerError(req, res, error, "No fue posible ocultar la notificacion.");
         }
     };
 
@@ -81,9 +72,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al limpiar las notificaciones.",
-            });
+            return sendControllerError(req, res, error, "No fue posible limpiar las notificaciones.");
         }
     };
 }

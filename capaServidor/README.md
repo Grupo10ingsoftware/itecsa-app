@@ -50,6 +50,7 @@ AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
 AUTH0_MANAGEMENT_CLIENT_SECRET=
 AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
 AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
+AUTH0_REQUEST_TIMEOUT_MS=8000
 RATE_LIMIT_SECRET=<32-bytes-base64>
 CURSOR_SECRET=<32-bytes-base64>
 SECURITY_LOG_HMAC_KEY=<32-bytes-base64>
@@ -73,6 +74,7 @@ DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven
 - `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
 - `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
 - `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
+- `AUTH0_REQUEST_TIMEOUT_MS`: deadline por llamada saliente a Auth0; entero entre 100 y 30000 ms (por defecto 8000).
 - `DB_HOST`: host MySQL entregado por Aiven.
 - `DB_PORT`: puerto MySQL entregado por Aiven.
 - `DB_USER`: usuario MySQL entregado por Aiven.
@@ -265,20 +267,26 @@ Respuesta exitosa:
   "apellidoUsuario": "Perez",
   "rutUsuario": "12.345.678-9",
   "correoUsuario": "correo.controlado@example.cl",
-  "rolUsuario": "Ventas",
+  "rolUsuario": "Operario Ventas",
+  "outcome": "completed",
+  "recoverable": false,
+  "internalUserPersisted": true,
+  "roleAssignmentCompleted": true,
+  "pinProvisioned": true,
   "passwordSetupEmailRequested": true
 }
 ```
 
 Respuestas:
 
-- `201`: usuario creado, con `passwordSetupEmailRequested: true` si se solicito el correo.
-- `201` recuperable: cuenta Auth0 creada pero fallo la asignacion de rol, el registro interno o la solicitud de correo; no debe repetirse la creacion.
+- `201`: `outcome: completed` solo cuando persistencia interna, rol, PIN y solicitud de correo terminaron.
+- `201` recuperable: `outcome: failed_recoverable` identifica cada paso completado. La SPA conserva el detalle y no debe repetir el alta.
 - `400`: cuerpo inválido, rol no permitido o campos adicionales.
 - `401`: access token ausente o invalido.
 - `403`: usuario autenticado sin rol `Administrador` o `Soporte`.
 - `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
 - `500`: error controlado anterior a la creacion, sin detalles Auth0.
+- `503`: Auth0 no estuvo disponible, excedio el deadline o aplico rate limit; las escrituras no se reintentan automaticamente.
 
 ### `GET /api/admin/users`
 
@@ -296,7 +304,7 @@ Respuesta exitosa:
       "apellidoUsuario": "Perez",
       "rutUsuario": "12.345.678-9",
       "correoUsuario": "correo.controlado@example.cl",
-      "rolUsuario": "Ventas",
+      "rolUsuario": "Operario Ventas",
       "estadoUsuario": "Activo"
     }
   ],
@@ -308,15 +316,17 @@ Respuesta exitosa:
 
 ### `GET /api/admin/users/summary`
 
-Requiere rol `Administrador` o `Soporte`. Devuelve contadores internos de usuarios totales, vinculados y desvinculados.
+Requiere rol administrativo o `Soporte`. Devuelve contadores internos de usuarios totales, vinculados, desvinculados, pendientes de rol y no clasificados.
 
 ### `PATCH /api/admin/users/:userId`
 
-Requiere rol `Administrador` o `Soporte`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario` y `rolUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`.
+Requiere rol administrativo o `Soporte`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario` y `rolUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`. Un cambio de rol marca primero la identidad local como `Pendiente rol`, por lo que queda sin acceso hasta confirmar Auth0 y la actualización local.
 
 ### `PATCH /api/admin/users/:userId/status`
 
-Requiere rol `Administrador` o `Soporte`. Actualiza solo `estadoUsuario`, usado por la SPA para desvincular usuarios.
+Requiere rol administrativo o `Soporte` y PIN del actor. Al desvincular, niega primero el acceso local e invalida el PIN del objetivo antes de bloquearlo en Auth0. La reactivación sólo parte desde `Desvinculado`, invalida cualquier PIN anterior y provisiona uno nuevo; `Pendiente rol` no puede activarse por esta ruta.
+
+Las llamadas Auth0 usan `AUTH0_REQUEST_TIMEOUT_MS` y clasifican timeout, red, 5xx y 429. No hay retry automático de escrituras ni cache persistente de tokens. La implementación sigue los contratos oficiales de [roles de usuario](https://auth0.com/docs/api/management/v2/users/get-user-roles), [gestión de usuarios](https://auth0.com/docs/manage-users/user-accounts/manage-users-using-the-management-api) y [rate limits](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases).
 
 ### `POST /api/admin/users/password-setup-email`
 

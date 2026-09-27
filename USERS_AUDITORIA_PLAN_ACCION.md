@@ -1346,3 +1346,40 @@ Prompt de arranque sugerido para la siguiente sesión:
 **Seguimiento posterior al cierre:** los puntos anteriores describen el instante final de la auditoría. Luego, por instrucción expresa del usuario, comenzó la ejecución del plan: los addenda de USR-ACT-002 y USR-ACT-012 registran los cambios locales realizados. Ese trabajo posterior tampoco tocó BD, Auth0, correo ni PIN reales.
 
 La auditoría termina aquí. El siguiente paso seguro es obtener las decisiones/evidencias de §52 y abrir una implementación acotada conforme al orden de §49.
+
+## 55. Avance de implementación posterior — 2026-09-27
+
+Este apartado actualiza el estado histórico de §54 después de que el usuario ordenó continuar el plan. El punto de partida implementado quedó en el commit `3d86e04` (`fix(users): iniciar plan de seguridad y accesibilidad`). El lote posterior descrito aquí se verificó antes de su commit y mantuvo las restricciones de no intervenir servicios ni datos reales.
+
+### Implementado y verificado
+
+- **Lifecycle explícito y fail-closed:** estados compartidos entre frontend y backend; `Activo`/`Vinculado`, `Desvinculado` y `Pendiente rol` ya no se interpretan mediante comparaciones ambiguas. Estados desconocidos o pendientes no autorizan acceso.
+- **Cambios de rol y estado con compare-and-set:** una modificación de rol coloca primero la identidad local en `Pendiente rol`; desvincular niega localmente antes de bloquear en Auth0; reactivar invalida el PIN anterior y compensa a `Desvinculado` si no puede aprovisionar uno nuevo. Las carreras devuelven conflicto en vez de sobrescribir estado concurrente.
+- **Contratos parciales de alta:** la API informa por separado persistencia interna, rol, PIN y solicitud de correo. La UI conserva el resultado parcial, evita repetir la creación y solo ofrece el reenvío seguro cuando corresponde; el modal no se puede cerrar durante operaciones en curso.
+- **Minimización:** las consultas administrativas proyectan únicamente campos necesarios y excluyen hash, salt y cifrado del PIN. Los movimientos se cargan solo por acción explícita, sin prefetch por hover/foco y sin retener resultados completos en caché.
+- **Resumen y filtros:** una consulta agrupada distingue vinculados, desvinculados, pendientes y no clasificados; el frontend presenta las mismas categorías.
+- **Resiliencia Auth0:** deadline configurable y acotado, clasificación de timeout/red/429/5xx, respuesta HTTP 503 genérica, paginación oficial de roles y menor cantidad de llamadas cuando el rol no cambia. El servicio no propaga estados internos a Auth0.
+- **Código muerto:** se retiraron la página de alta sin referencias, su CSS y el método de repositorio sin consumidores; la redirección de la ruta histórica se conserva.
+- **Migraciones recuperadas:** se restauraron desde el historial Git, con sus contenidos originales, `20260814120000_remove_electronic_signatures`, `20260830100000_reconcile_aiven_pin_prerequisite` y `20260830103000_add_personal_pins`. No se ejecutó DDL ni `migrate deploy`.
+- **Documentación:** se actualizaron variables y contratos de Users, incluyendo estados parciales y referencias a la documentación oficial de Auth0 sobre roles y límites.
+
+### Evidencia final de este lote
+
+- Backend: **709 tests aprobados, 0 fallidos, 2 omitidos** (integraciones MySQL opt-in).
+- Frontend: **106 verificaciones de scripts y 17 tests aprobados**; lint y build aprobados.
+- Prisma: esquema válido mediante `prisma validate`.
+- Efectos externos: **ninguna escritura en BD, Auth0, correo o PIN real**. La inspección de BD usada para decidir fue read-only y no expuso PII en la salida.
+- Calidad del cambio: `git diff --check` y revisión del inventario de archivos se ejecutan como puerta previa al commit.
+
+### Bloqueos que permanecen abiertos
+
+- **USR-ACT-001 / DDL y auditoría durable:** `prisma migrate status` continúa sin diagnóstico operativo suficiente (`Schema engine error`). Faltan clon/staging, backup y restore ensayado antes de reconciliar o desplegar migraciones, índices y `SecurityAuditEvent`.
+- **Consistencia distribuida:** sigue faltando un ledger/outbox durable con `operationId`, idempotencia de alta y reconciliación de huérfanos. Los estados pendientes reducen el riesgo, pero no sustituyen ese mecanismo.
+- **Reemplazo externo de rol:** el flujo Auth0 conserva la secuencia actualmente soportada. No se cambia a add-before-remove ni se verifica convergencia sin tenant sandbox, scopes y pruebas de tokens/claims.
+- **RUT:** el chequeo agregado read-only encontró 12 registros: 6 con dígito verificador válido y 6 inválidos. No se activa validación estricta ni unicidad hasta acordar corrección, extranjeros, obligatoriedad y reversa con el dueño del dato y Legal/Privacidad.
+- **PIN:** falta proveedor/canal seguro real, política de secretos y retención/purga de desafíos expirados. El comportamiento por defecto permanece cerrado.
+- **Privacidad de movimientos:** falta aprobar finalidad, base, permisos, granularidad y retención con Privacidad/RR.HH./Producto.
+- **Resiliencia y escala:** token cache/retry seguro, pruebas de 10k y cualquier índice dependen de métricas y ambientes controlados.
+- **QA de accesibilidad:** quedan pendientes axe, lector de pantalla y navegación manual en navegador real.
+
+Estos bloqueos necesitan autoridad, decisiones o infraestructura que la instrucción de continuar no aporta por sí sola. El módulo queda endurecido y verificable en lo que puede resolverse localmente; no se declara cumplimiento legal ni cierre de producción mientras los puntos anteriores sigan abiertos.

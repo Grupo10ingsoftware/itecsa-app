@@ -4,6 +4,7 @@ import { API_ERROR_CODES } from '../../../services/api/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminUsersApi } from '../hooks/useAdminUsersApi'
 import { hasValidationErrors, validateUserCreateForm } from '../utils/userValidation'
+import { canRequestPasswordSetupEmail } from '../utils/userCreationOutcome'
 import styles from './UserCreateForm.module.css'
 
 const INITIAL_VALUES = Object.freeze({
@@ -82,10 +83,17 @@ function getErrorMessage(error) {
 }
 
 function buildCreatedUserMessage(user) {
-  if (user.passwordSetupEmailRequested) {
+  if (user.outcome === 'completed') {
     return {
       type: MESSAGE_TYPES.SUCCESS,
       text: 'Usuario creado correctamente. Auth0 solicitara el correo para establecer contraseña.',
+    }
+  }
+
+  if (user.internalUserPersisted === false) {
+    return {
+      type: MESSAGE_TYPES.WARNING,
+      text: 'La identidad fue creada en Auth0, pero falta registrarla en el sistema interno. No repitas el alta: requiere conciliacion administrativa.',
     }
   }
 
@@ -96,13 +104,20 @@ function buildCreatedUserMessage(user) {
     }
   }
 
+  if (user.pinProvisioned === false) {
+    return {
+      type: MESSAGE_TYPES.WARNING,
+      text: 'La cuenta y el rol fueron creados, pero falta aprovisionar el PIN. No se solicito el correo de contraseña.',
+    }
+  }
+
   return {
     type: MESSAGE_TYPES.WARNING,
     text: 'La cuenta fue creada, pero no se pudo solicitar el correo de establecimiento de contrasena.',
   }
 }
 
-export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = {}) {
+export default function UserCreateForm({ mode = 'page', onBusyChange, onCancel, onCreated } = {}) {
   const { loginWithRedirect, user: actor } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const [values, setValues] = useState(INITIAL_VALUES)
@@ -147,6 +162,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
     }
 
     setIsSubmitting(true)
+    onBusyChange?.(true)
 
     try {
       const user = await adminUsersApi.createUser(payload)
@@ -159,6 +175,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
       setMessage(getErrorMessage(error))
     } finally {
       setIsSubmitting(false)
+      onBusyChange?.(false)
     }
   }
 
@@ -168,6 +185,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
     }
 
     setIsRequestingPasswordEmail(true)
+    onBusyChange?.(true)
 
     try {
       const response = await adminUsersApi.requestPasswordSetupEmail({
@@ -196,12 +214,11 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
       })
     } finally {
       setIsRequestingPasswordEmail(false)
+      onBusyChange?.(false)
     }
   }
 
-  const canRequestPasswordSetupEmail =
-    createdUser?.passwordSetupEmailRequested === false &&
-    createdUser?.roleAssignmentCompleted !== false
+  const canRequestPasswordEmail = canRequestPasswordSetupEmail(createdUser)
   const isSessionInvalid = message?.requiresLogin === true
   const nombreUsuarioErrors = fieldErrors.nombreUsuario ?? []
   const apellidoUsuarioErrors = fieldErrors.apellidoUsuario ?? []
@@ -209,6 +226,7 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
   const correoUsuarioErrors = fieldErrors.correoUsuario ?? []
   const rolUsuarioErrors = fieldErrors.rolUsuario ?? []
   const isModalMode = mode === 'modal'
+  const isBusy = isSubmitting || isRequestingPasswordEmail
 
   return (
     <form
@@ -358,12 +376,12 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
 
       <footer className={styles.actions}>
         {onCancel && (
-          <button className={styles.cancelButton} disabled={isSubmitting} onClick={onCancel} type="button">
+          <button className={styles.cancelButton} disabled={isBusy} onClick={onCancel} type="button">
             Cancelar
           </button>
         )}
 
-        {canRequestPasswordSetupEmail && (
+        {canRequestPasswordEmail && (
           <button
             className={styles.secondaryButton}
             disabled={isRequestingPasswordEmail}
@@ -374,7 +392,11 @@ export default function UserCreateForm({ mode = 'page', onCancel, onCreated } = 
           </button>
         )}
 
-        <button className={styles.submitButton} disabled={isSubmitting} type="submit">
+        <button
+          className={styles.submitButton}
+          disabled={isSubmitting || Boolean(createdUser)}
+          type="submit"
+        >
           <i className="bi bi-plus-circle" aria-hidden="true" />
           {isSubmitting ? 'Creando usuario...' : 'Crear usuario'}
         </button>

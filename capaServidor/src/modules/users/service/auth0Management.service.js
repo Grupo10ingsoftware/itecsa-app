@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { OFFICIAL_ROLES, FUNCTIONAL_ROLES } from "../../../config/roles.js";
+import { USER_STATUS } from "../../../config/userLifecycle.js";
 
 const MANAGEMENT_VARIABLES = [
     "AUTH0_DOMAIN",
@@ -12,6 +13,13 @@ const PASSWORD_EMAIL_VARIABLES = [
     "AUTH0_DATABASE_CONNECTION",
     "AUTH0_PASSWORD_RESET_CLIENT_ID",
 ];
+const DEFAULT_AUTH0_REQUEST_TIMEOUT_MS = 8000;
+const MIN_AUTH0_REQUEST_TIMEOUT_MS = 100;
+const MAX_AUTH0_REQUEST_TIMEOUT_MS = 30000;
+const AUTH0_USER_STATUSES = new Set([
+    USER_STATUS.ACTIVE,
+    USER_STATUS.UNLINKED,
+]);
 export const AUTH0_MANAGEMENT_SCOPES = Object.freeze([
     "read:users",
     "create:users",
@@ -19,12 +27,55 @@ export const AUTH0_MANAGEMENT_SCOPES = Object.freeze([
     "read:roles",
 ]);
 export class Auth0ServiceError extends Error {
-    constructor(code, message, { status, details } = {}) {
+    constructor(code, message, { status, details, category, retryAfterSeconds } = {}) {
         super(message);
         this.name = "Auth0ServiceError";
         this.code = code;
         this.status = status;
         this.details = details;
+        this.category = category;
+        this.retryAfterSeconds = retryAfterSeconds;
+    }
+}
+
+function readRequestTimeout() {
+    const configuredValue = process.env.AUTH0_REQUEST_TIMEOUT_MS;
+
+    if (configuredValue === undefined || configuredValue.trim() === "") {
+        return DEFAULT_AUTH0_REQUEST_TIMEOUT_MS;
+    }
+
+    const timeout = Number(configuredValue);
+    if (
+        !Number.isInteger(timeout) ||
+        timeout < MIN_AUTH0_REQUEST_TIMEOUT_MS ||
+        timeout > MAX_AUTH0_REQUEST_TIMEOUT_MS
+    ) {
+        throw new Auth0ServiceError(
+            "AUTH0_CONFIGURATION_ERROR",
+            `AUTH0_REQUEST_TIMEOUT_MS debe ser un entero entre ${MIN_AUTH0_REQUEST_TIMEOUT_MS} y ${MAX_AUTH0_REQUEST_TIMEOUT_MS}.`,
+        );
+    }
+
+    return timeout;
+}
+
+async function fetchWithDeadline(url, options, { errorCode, errorMessage }) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, readRequestTimeout());
+
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } catch {
+        throw new Auth0ServiceError(errorCode, errorMessage, {
+            category: timedOut ? "timeout" : "network",
+        });
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -78,6 +129,14 @@ async function readJsonSafely(response) {
 }
 
 function getAuth0ErrorCode(defaultCode, response, body) {
+    if (response.status === 429) {
+        return "AUTH0_RATE_LIMITED";
+    }
+
+    if (response.status >= 500) {
+        return "AUTH0_UPSTREAM_ERROR";
+    }
+
     if (response.status === 403) {
         return "AUTH0_INSUFFICIENT_SCOPE";
     }
@@ -86,7 +145,10 @@ function getAuth0ErrorCode(defaultCode, response, body) {
         return "AUTH0_MANAGEMENT_UNAUTHORIZED";
     }
 
-    if (response.status === 409) {
+    if (
+        response.status === 409 &&
+        new Set(["AUTH0_CREATE_USER_FAILED", "AUTH0_UPDATE_USER_FAILED"]).has(defaultCode)
+    ) {
         return "USER_EMAIL_ALREADY_EXISTS";
     }
 
@@ -113,18 +175,28 @@ function buildAuth0Failure(defaultCode, defaultMessage, response, body) {
             ? "La aplicacion Machine to Machine de Auth0 no tiene permisos suficientes para esta operacion."
             : defaultMessage;
 
+    const category = response.status === 429
+        ? "rate_limit"
+        : response.status >= 500
+            ? "upstream"
+            : "client";
+    const retryAfterHeader = response.headers?.get?.("retry-after");
+    const parsedRetryAfter = Number(retryAfterHeader);
+    const retryAfterSeconds = Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0
+        ? parsedRetryAfter
+        : undefined;
+
     return new Auth0ServiceError(code, message, {
         status: response.status,
         details: body,
+        category,
+        retryAfterSeconds,
     });
 }
 
 async function requestManagementToken() {
     const configuration = readConfiguration(MANAGEMENT_VARIABLES);
-    let response;
-
-    try {
-        response = await fetch(`https://${configuration.AUTH0_DOMAIN}/oauth/token`, {
+    const response = await fetchWithDeadline(`https://${configuration.AUTH0_DOMAIN}/oauth/token`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -134,13 +206,10 @@ async function requestManagementToken() {
                 audience: `https://${configuration.AUTH0_DOMAIN}/api/v2/`,
                 scope: AUTH0_MANAGEMENT_SCOPES.join(" "),
             }),
+        }, {
+            errorCode: "AUTH0_TOKEN_REQUEST_FAILED",
+            errorMessage: "No fue posible solicitar autorizacion administrativa a Auth0.",
         });
-    } catch {
-        throw new Auth0ServiceError(
-            "AUTH0_TOKEN_REQUEST_FAILED",
-            "No fue posible solicitar autorizacion administrativa a Auth0.",
-        );
-    }
 
     const body = await readJsonSafely(response);
 
@@ -176,20 +245,14 @@ async function fetchAuth0Json({
     errorCode,
     errorMessage,
 }) {
-    let response;
-
-    try {
-        response = await fetch(`https://${domain}/api/v2/${path.replace(/^\/+/, "")}`, {
+    const response = await fetchWithDeadline(`https://${domain}/api/v2/${path.replace(/^\/+/, "")}`, {
             method,
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 ...(body === undefined ? {} : { "Content-Type": "application/json" }),
             },
             body: body === undefined ? undefined : JSON.stringify(body),
-        });
-    } catch {
-        throw new Auth0ServiceError(errorCode, errorMessage);
-    }
+        }, { errorCode, errorMessage });
 
     const responseBody = await readJsonSafely(response);
 
@@ -247,9 +310,10 @@ async function resolveRoleId({ domain, accessToken, roleName }) {
     }
 }
 
-async function resolveOfficialRoleIds({ domain, accessToken }) {
+async function resolveRoleReplacement({ domain, accessToken, roleName }) {
     const pageSize = 100;
-    const roleIds = [];
+    const officialRoleIds = [];
+    let selectedRoleId;
 
     for (let page = 0; ; page += 1) {
         const roles = await fetchAuth0Json({
@@ -268,22 +332,32 @@ async function resolveOfficialRoleIds({ domain, accessToken }) {
         }
 
         roles.forEach((role) => {
-            if (OFFICIAL_ROLES.has(role?.name) && typeof role.id === "string") {
-                roleIds.push(role.id);
-            }
+            if (typeof role?.id !== "string") return;
+            if (role.name === roleName) selectedRoleId = role.id;
+            if (OFFICIAL_ROLES.has(role.name)) officialRoleIds.push(role.id);
         });
 
         if (roles.length < pageSize) {
-            return roleIds;
+            if (!selectedRoleId) {
+                throw new Auth0ServiceError(
+                    "AUTH0_ROLE_NOT_FOUND",
+                    "El rol solicitado no existe en Auth0.",
+                );
+            }
+            return { roleId: selectedRoleId, officialRoleIds };
         }
     }
 }
 
-async function assignRoleToUser({ domain, accessToken, userId, roleId }) {
-    let response;
-
+async function assignRoleToUser({
+    domain,
+    accessToken,
+    userId,
+    roleId,
+    throwOnFailure = false,
+}) {
     try {
-        response = await fetch(
+        const response = await fetchWithDeadline(
             `https://${domain}/api/v2/users/${encodeURIComponent(userId)}/roles`,
             {
                 method: "POST",
@@ -293,19 +367,35 @@ async function assignRoleToUser({ domain, accessToken, userId, roleId }) {
                 },
                 body: JSON.stringify({ roles: [roleId] }),
             },
+            {
+                errorCode: "AUTH0_ROLE_ASSIGNMENT_FAILED",
+                errorMessage: "No fue posible asignar el rol del usuario en Auth0.",
+            },
         );
-    } catch {
+
+        if (!response.ok) {
+            const body = await readJsonSafely(response);
+            throw buildAuth0Failure(
+                "AUTH0_ROLE_ASSIGNMENT_FAILED",
+                "No fue posible asignar el rol del usuario en Auth0.",
+                response,
+                body,
+            );
+        }
+
+        return true;
+    } catch (error) {
+        if (throwOnFailure) throw error;
         return false;
     }
-
-    return response.ok;
 }
 
 async function replaceUserRole({ domain, accessToken, userId, roleName }) {
-    const [roleId, officialRoleIds] = await Promise.all([
-        resolveRoleId({ domain, accessToken, roleName }),
-        resolveOfficialRoleIds({ domain, accessToken }),
-    ]);
+    const { roleId, officialRoleIds } = await resolveRoleReplacement({
+        domain,
+        accessToken,
+        roleName,
+    });
 
     if (officialRoleIds.length > 0) {
         await fetchAuth0Json({
@@ -319,14 +409,13 @@ async function replaceUserRole({ domain, accessToken, userId, roleName }) {
         });
     }
 
-    const assigned = await assignRoleToUser({ domain, accessToken, userId, roleId });
-
-    if (!assigned) {
-        throw new Auth0ServiceError(
-            "AUTH0_ROLE_REPLACE_FAILED",
-            "No fue posible actualizar el rol del usuario en Auth0.",
-        );
-    }
+    await assignRoleToUser({
+        domain,
+        accessToken,
+        userId,
+        roleId,
+        throwOnFailure: true,
+    });
 }
 
 export async function createAuth0User({ email, rolUsuario }) {
@@ -342,10 +431,7 @@ export async function createAuth0User({ email, rolUsuario }) {
         roleName: normalizedUser.role,
     });
     const temporaryPassword = generateTemporaryPassword();
-    let response;
-
-    try {
-        response = await fetch(`https://${domain}/api/v2/users`, {
+    const response = await fetchWithDeadline(`https://${domain}/api/v2/users`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -356,25 +442,18 @@ export async function createAuth0User({ email, rolUsuario }) {
                 connection,
                 password: temporaryPassword,
             }),
+        }, {
+            errorCode: "AUTH0_CREATE_USER_FAILED",
+            errorMessage: "No fue posible crear el usuario en Auth0.",
         });
-    } catch {
-        throw new Auth0ServiceError(
-            "AUTH0_CREATE_USER_FAILED",
-            "No fue posible crear el usuario en Auth0.",
-        );
-    }
-
-    if (response.status === 409) {
-        throw new Auth0ServiceError(
-            "USER_EMAIL_ALREADY_EXISTS",
-            "Ya existe un usuario con ese correo.",
-        );
-    }
 
     if (!response.ok) {
-        throw new Auth0ServiceError(
+        const body = await readJsonSafely(response);
+        throw buildAuth0Failure(
             "AUTH0_CREATE_USER_FAILED",
             "Auth0 rechazo la creacion del usuario.",
+            response,
+            body,
         );
     }
 
@@ -404,6 +483,7 @@ export async function updateAuth0User({
     userId,
     correoUsuario,
     rolUsuario,
+    rolUsuarioAnterior,
 }) {
     if (!FUNCTIONAL_ROLES.includes(rolUsuario)) throw new Auth0ServiceError("INVALID_ROLE", "Rol no asignable mediante gestion funcional.");
     const normalizedUser = {
@@ -428,12 +508,14 @@ export async function updateAuth0User({
         errorMessage: "No fue posible actualizar el usuario en Auth0.",
     });
 
-    await replaceUserRole({
-        domain,
-        accessToken,
-        userId: normalizedUser.userId,
-        roleName: normalizedUser.role,
-    });
+    if (rolUsuarioAnterior !== normalizedUser.role) {
+        await replaceUserRole({
+            domain,
+            accessToken,
+            userId: normalizedUser.userId,
+            roleName: normalizedUser.role,
+        });
+    }
 
     return {
         idUsuarioAutenticacionExterna: normalizedUser.userId,
@@ -466,6 +548,14 @@ export async function getAuth0UserRole(userId) {
 export async function setAuth0UserStatus({ userId, estadoUsuario }) {
     const normalizedUserId = assertNonEmptyString(userId, "userId");
     const normalizedStatus = assertNonEmptyString(estadoUsuario, "estadoUsuario");
+
+    if (!AUTH0_USER_STATUSES.has(normalizedStatus)) {
+        throw new Auth0ServiceError(
+            "INVALID_STATUS",
+            "El estado no es asignable en Auth0.",
+        );
+    }
+
     const { domain, accessToken } = await requestManagementToken();
 
     await fetchAuth0Json({
@@ -474,7 +564,7 @@ export async function setAuth0UserStatus({ userId, estadoUsuario }) {
         path: `users/${encodeURIComponent(normalizedUserId)}`,
         method: "PATCH",
         body: {
-            blocked: normalizedStatus === "Desvinculado",
+            blocked: normalizedStatus === USER_STATUS.UNLINKED,
             app_metadata: { estadoUsuario: normalizedStatus },
         },
         errorCode: "AUTH0_UPDATE_USER_STATUS_FAILED",
@@ -490,10 +580,7 @@ export async function setAuth0UserStatus({ userId, estadoUsuario }) {
 export async function requestPasswordSetupEmail({ email }) {
     const normalizedEmail = assertNonEmptyString(email, "email");
     const configuration = readConfiguration(PASSWORD_EMAIL_VARIABLES);
-    let response;
-
-    try {
-        response = await fetch(
+    const response = await fetchWithDeadline(
             `https://${configuration.AUTH0_DOMAIN}/dbconnections/change_password`,
             {
                 method: "POST",
@@ -504,18 +591,19 @@ export async function requestPasswordSetupEmail({ email }) {
                     connection: configuration.AUTH0_DATABASE_CONNECTION,
                 }),
             },
+            {
+                errorCode: "AUTH0_PASSWORD_EMAIL_FAILED",
+                errorMessage: "No fue posible solicitar el correo de establecimiento de contrasena.",
+            },
         );
-    } catch {
-        throw new Auth0ServiceError(
-            "AUTH0_PASSWORD_EMAIL_FAILED",
-            "No fue posible solicitar el correo de establecimiento de contrasena.",
-        );
-    }
 
     if (!response.ok) {
-        throw new Auth0ServiceError(
+        const body = await readJsonSafely(response);
+        throw buildAuth0Failure(
             "AUTH0_PASSWORD_EMAIL_FAILED",
             "Auth0 rechazo la solicitud del correo de establecimiento de contrasena.",
+            response,
+            body,
         );
     }
 

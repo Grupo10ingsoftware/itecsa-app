@@ -11,20 +11,20 @@ import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
 import UserMovementsModal from '../components/UserMovementsModal'
 import UserSummaryCards from '../components/UserSummaryCards'
 import { createLatestRequestTracker } from '../utils/latestRequestTracker'
+import { isCompletedUserCreation } from '../utils/userCreationOutcome'
+import { displayUserStatus } from '../../../config/userLifecycle.js'
 import styles from './UserManagementPage.module.css'
 
 const EMPTY_SUMMARY = Object.freeze({
   totalUsuarios: 0,
   vinculados: 0,
   desvinculados: 0,
+  pendientes: 0,
+  noClasificados: 0,
 })
 
 const DEFAULT_PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 350
-
-function normalizeStatus(status) {
-  return status === 'Activo' ? 'Vinculado' : status
-}
 
 function firstWord(value) {
   return String(value ?? '').trim().split(/\s+/).filter(Boolean)[0] ?? ''
@@ -49,7 +49,7 @@ function mapApiUser(user) {
     rutUsuario: user.rutUsuario ?? 'No disponible',
     correoUsuario: user.correoUsuario ?? '',
     rolUsuario: user.rolUsuario ?? 'Sin rol asignado',
-    estadoUsuario: normalizeStatus(user.estadoUsuario ?? 'Vinculado'),
+    estadoUsuario: displayUserStatus(user.estadoUsuario ?? 'Vinculado'),
   }
 }
 
@@ -193,6 +193,8 @@ export default function UserManagementPage() {
         totalUsuarios: response.totalUsuarios ?? 0,
         vinculados: response.vinculados ?? 0,
         desvinculados: response.desvinculados ?? 0,
+        pendientes: response.pendientes ?? 0,
+        noClasificados: response.noClasificados ?? 0,
       })
       setSummaryState({ error: '', hasData: true, isLoading: false })
     } catch (error) {
@@ -277,10 +279,16 @@ export default function UserManagementPage() {
     }
   }
 
-  async function handleCreatedUser() {
-    setIsCreateModalOpen(false)
+  async function handleCreatedUser(user) {
+    const completed = isCompletedUserCreation(user)
+    if (completed) setIsCreateModalOpen(false)
     setPage(1)
-    await refreshAfterMutation({ type: 'success', text: 'Usuario creado correctamente.' })
+    await refreshAfterMutation({
+      type: completed ? 'success' : 'warning',
+      text: completed
+        ? 'Usuario creado correctamente.'
+        : 'El alta quedo incompleta y requiere conciliacion. Revisa el detalle antes de cerrar.',
+    })
   }
 
   return (
@@ -339,7 +347,6 @@ export default function UserManagementPage() {
             isLoading={isLoading}
             onEditUser={setEditingUser}
             onViewMovements={setMovementsUser}
-            onPrefetchMovements={(user) => adminUsersApi.prefetchMovements(user.idUsuarioAutenticacionExterna)}
             onPageChange={setPage}
             totalPages={totalPages}
             totalUsers={totalUsers}

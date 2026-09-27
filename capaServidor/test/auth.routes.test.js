@@ -53,7 +53,6 @@ function createUsersRepositoryMock({
     auth0User = null,
     onFindByEmail,
     onFindByAuth0Id,
-    onUpdateRoleByAuth0Id,
 } = {}) {
     return {
         async findByEmail(email) {
@@ -63,14 +62,6 @@ function createUsersRepositoryMock({
         async findByAuth0Id(auth0UserId) {
             await onFindByAuth0Id?.(auth0UserId);
             return auth0User;
-        },
-        async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
-            await onUpdateRoleByAuth0Id?.(auth0UserId, rolUsuario);
-            return {
-                ...(auth0User ?? {}),
-                idAuth0: auth0UserId,
-                rolUsuario,
-            };
         },
     };
 }
@@ -141,7 +132,6 @@ test("acepta Soporte como rol oficial sin identificarlo como Administrador Produ
 
 test("no sobrescribe el rol interno desde un token", async () => {
     let receivedLookup;
-    let receivedUpdate;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
@@ -150,9 +140,6 @@ test("no sobrescribe el rol interno desde un token", async () => {
             },
             onFindByAuth0Id(auth0UserId) {
                 receivedLookup = auth0UserId;
-            },
-            onUpdateRoleByAuth0Id(auth0UserId, rolUsuario) {
-                receivedUpdate = { auth0UserId, rolUsuario };
             },
         }),
         logger: {},
@@ -175,19 +162,14 @@ test("no sobrescribe el rol interno desde un token", async () => {
     assert.equal(res.body.rolUsuario, "Administrador Produccion");
     assert.equal(res.body.isAdministrador, true);
     assert.equal(receivedLookup, undefined);
-    assert.equal(receivedUpdate, undefined);
 });
 
 test("no actualiza el rol interno si ya coincide con Auth0", async () => {
-    let updateCalls = 0;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
                 rolUsuario: "Operario Ventas",
-            },
-            onUpdateRoleByAuth0Id() {
-                updateCalls += 1;
             },
         }),
         logger: {},
@@ -197,7 +179,6 @@ test("no actualiza el rol interno si ya coincide con Auth0", async () => {
     await handler({ auth: { payload: VALID_PAYLOAD } }, res);
 
     assert.equal(res.statusCode, 200);
-    assert.equal(updateCalls, 0);
 });
 
 

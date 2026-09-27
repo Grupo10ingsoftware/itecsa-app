@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
     validateAdminUserRequest,
+    validateAdminUserStatusRequest,
     validateAdminUserUpdateRequest,
     validateListUsersQuery,
 } from "../src/modules/users/validators/adminUsers.validator.js";
@@ -48,3 +49,20 @@ for (const role of ["Administrador Produccion", "Operario Produccion", "Operario
         assert.equal(validateListUsersQuery({ rolUsuario: role }).valid, valid);
     });
 }
+
+test('permite filtrar pendientes pero no asignarlos mediante cambio de estado', () => {
+    assert.deepEqual(validateListUsersQuery({ estadoUsuario: 'Pendiente rol' }), {
+        valid: true,
+        filters: {
+            page: 1,
+            perPage: 10,
+            search: '',
+            estadoUsuario: 'Pendiente rol',
+            rolUsuario: '',
+        },
+    });
+    assert.equal(
+        validateAdminUserStatusRequest({ estadoUsuario: 'Pendiente rol' }).valid,
+        false,
+    );
+});

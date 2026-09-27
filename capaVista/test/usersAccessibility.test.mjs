@@ -3,6 +3,10 @@ import { test } from 'node:test'
 
 import { nextModalFocusTarget } from '../src/modules/users/hooks/useModalDialog.js'
 import { createLatestRequestTracker } from '../src/modules/users/utils/latestRequestTracker.js'
+import {
+  canRequestPasswordSetupEmail,
+  isCompletedUserCreation,
+} from '../src/modules/users/utils/userCreationOutcome.js'
 
 test('modal focus wraps at both boundaries and recovers focus entering from outside', () => {
   const first = { id: 'first' }
@@ -32,4 +36,39 @@ test('summary request tracker accepts only the newest response and supports unmo
 
   const retry = tracker.begin()
   assert.equal(tracker.isLatest(retry), true)
+})
+
+test('partial user creation stays incomplete and only safe email recovery is enabled', () => {
+  const completed = {
+    outcome: 'completed',
+    internalUserPersisted: true,
+    roleAssignmentCompleted: true,
+    pinProvisioned: true,
+    passwordSetupEmailRequested: true,
+  }
+  assert.equal(isCompletedUserCreation(completed), true)
+  assert.equal(canRequestPasswordSetupEmail(completed), false)
+
+  for (const missingStep of [
+    'internalUserPersisted',
+    'roleAssignmentCompleted',
+    'pinProvisioned',
+  ]) {
+    const partial = {
+      ...completed,
+      outcome: 'failed_recoverable',
+      passwordSetupEmailRequested: false,
+      [missingStep]: false,
+    }
+    assert.equal(isCompletedUserCreation(partial), false)
+    assert.equal(canRequestPasswordSetupEmail(partial), false)
+  }
+
+  const emailOnlyPending = {
+    ...completed,
+    outcome: 'failed_recoverable',
+    passwordSetupEmailRequested: false,
+  }
+  assert.equal(isCompletedUserCreation(emailOnlyPending), false)
+  assert.equal(canRequestPasswordSetupEmail(emailOnlyPending), true)
 })

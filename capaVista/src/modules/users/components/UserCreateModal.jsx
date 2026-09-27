@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import UserCreateForm from './UserCreateForm'
 import { useModalDialog } from '../hooks/useModalDialog'
 import styles from '../pages/UserManagementPage.module.css'
@@ -6,15 +6,22 @@ import styles from '../pages/UserManagementPage.module.css'
 export default function UserCreateModal({ isOpen, onClose, onCreated }) {
   const modalRef = useRef(null)
   const titleRef = useRef(null)
+  const [isBusy, setIsBusy] = useState(false)
 
-  useModalDialog({ containerRef: modalRef, initialFocusRef: titleRef, isOpen, onClose })
+  useModalDialog({
+    canClose: !isBusy,
+    containerRef: modalRef,
+    initialFocusRef: titleRef,
+    isOpen,
+    onClose,
+  })
 
   if (!isOpen) {
     return null
   }
 
   function handleBackdropMouseDown(event) {
-    if (event.target === event.currentTarget) {
+    if (event.target === event.currentTarget && !isBusy) {
       onClose()
     }
   }
@@ -36,6 +43,7 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
           <button
             aria-label="Cerrar modal de creacion"
             className={styles.modalCloseButton}
+            disabled={isBusy}
             onClick={onClose}
             type="button"
           >
@@ -43,7 +51,12 @@ export default function UserCreateModal({ isOpen, onClose, onCreated }) {
           </button>
         </header>
         <div className={`${styles.modalBody} ${styles.createModalBody}`}>
-          <UserCreateForm mode="modal" onCancel={onClose} onCreated={onCreated} />
+          <UserCreateForm
+            mode="modal"
+            onBusyChange={setIsBusy}
+            onCancel={onClose}
+            onCreated={onCreated}
+          />
         </div>
       </section>
     </div>

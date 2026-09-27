@@ -1,3 +1,5 @@
+import { USER_STATUS } from '../../../config/userLifecycle.js'
+
 function buildQueryString(params) {
   const searchParams = new URLSearchParams()
 
@@ -12,29 +14,21 @@ function buildQueryString(params) {
 }
 
 export function createAdminUsersApi(apiClient) {
-  // Scoped to this API instance/session; bound both freshness and memory.
-  const movementsCache = new Map()
+  // Deduplicate only simultaneous reads. Completed activity is never retained:
+  // each deliberate reopen must be authorized by the backend again.
+  const movementsInFlight = new Map()
   function getMovements(userId, { page = 1, perPage = 10 } = {}) {
     const key = JSON.stringify([userId, page, perPage])
-    const cached = movementsCache.get(key)
-    if (cached && cached.expiresAt > Date.now()) return cached.promise
+    const inFlight = movementsInFlight.get(key)
+    if (inFlight) return inFlight
 
-    const entry = { expiresAt: Infinity }
-    entry.promise = apiClient.get(
+    const request = apiClient.get(
       `/admin/users/${encodeURIComponent(userId)}/movements${buildQueryString({ page, perPage })}`,
-    ).then((result) => {
-      entry.expiresAt = Date.now() + 15_000
-      return result
-    }).catch((error) => {
-      // Never retain failures: retry must reach the server.
-      if (movementsCache.get(key) === entry) movementsCache.delete(key)
-      if (error?.status === 401 || error?.status === 403) movementsCache.clear()
-      throw error
+    ).finally(() => {
+      if (movementsInFlight.get(key) === request) movementsInFlight.delete(key)
     })
-    movementsCache.delete(key)
-    movementsCache.set(key, entry)
-    if (movementsCache.size > 30) movementsCache.delete(movementsCache.keys().next().value)
-    return entry.promise
+    movementsInFlight.set(key, request)
+    return request
   }
 
   return {
@@ -47,9 +41,8 @@ export function createAdminUsersApi(apiClient) {
           estadoUsuario,
           rolUsuario,
         })}`,
-      ),
+    ),
     getMovements,
-    prefetchMovements: (userId) => { void getMovements(userId).catch(() => {}) },
     getSummary: () => apiClient.get('/admin/users/summary'),
     createUser: ({ nombreUsuario, apellidoUsuario, rutUsuario, correoUsuario, rolUsuario }) =>
       apiClient.post('/admin/users', {
@@ -76,7 +69,7 @@ export function createAdminUsersApi(apiClient) {
       }),
     unlinkUser: ({ idUsuarioAutenticacionExterna, pin }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}/status`, {
-        estadoUsuario: 'Desvinculado',
+        estadoUsuario: USER_STATUS.UNLINKED,
         pin,
       }),
     requestPasswordSetupEmail: ({ correoUsuario }) =>

@@ -59,7 +59,7 @@
 .summaryGrid {
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
 .summaryCard,
@@ -104,6 +104,16 @@
 .summaryIconunlinked {
   background: #ffe9ed;
   color: var(--users-red);
+}
+
+.summaryIconpending {
+  background: #fff7db;
+  color: #9a6700;
+}
+
+.summaryIconreview {
+  background: #f3e8ff;
+  color: #7e22ce;
 }
 
 .summaryContent {

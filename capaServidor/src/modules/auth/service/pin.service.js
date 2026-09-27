@@ -16,11 +16,14 @@ import {
     PinDeliveryUnavailableError,
 } from "./pinDelivery.service.js";
 import { currentAppEnvironment } from "../../../config/environment.js";
+import {
+    ACTIVE_USER_STATUSES,
+    isActiveUserStatus,
+} from "../../../config/userLifecycle.js";
 
 import { ROLES, roleFromPayload, can, PERMISSIONS } from "../../../../../shared/authorization.js";
 
 const scrypt = promisify(scryptCallback);
-const ACTIVE_STATUSES = new Set(["Activo", "Vinculado"]);
 const PIN_PATTERN = /^\d{6}$/;
 const RECOVERY_CODE_PATTERN = /^\d{6}$/;
 const MAX_ATTEMPTS = 5;
@@ -96,7 +99,7 @@ function pinStatus(user) {
 }
 
 function assertActiveUser(user) {
-    if (!user || !ACTIVE_STATUSES.has(user.estado_usuario)) {
+    if (!user || !isActiveUserStatus(user.estado_usuario)) {
         throw new PinServiceError(
             "PIN_USER_UNAVAILABLE",
             "El usuario autenticado no esta activo o no esta vinculado.",
@@ -372,7 +375,7 @@ export class PinService {
                         where: {
                             id_usuario: user.id_usuario,
                             rol_usuario: ROLES.SOPORTE,
-                            estado_usuario: { in: [...ACTIVE_STATUSES] },
+                            estado_usuario: { in: [...ACTIVE_USER_STATUSES] },
                             pin_hash: user.pin_hash,
                         },
                         data: credential.data,

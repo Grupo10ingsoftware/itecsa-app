@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: capaServidor/Dockerfile
+      target: development
+    env_file: ./capaServidor/.env
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      FRONTEND_ORIGIN: http://localhost:5173
+      DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem
+      TRUST_PROXY_HOPS: 0
+    secrets:
+      - source: database_ca
+        target: aiven-ca.pem
+    ports:
+      - "127.0.0.1:3000:3000"
+    init: true
+    stop_grace_period: 15s
+    develop:
+      watch:
+        - {action: sync, path: ./capaServidor/src, target: /app/capaServidor/src, initial_sync: true}
+        - {action: sync, path: ./capaServidor/data, target: /app/capaServidor/data, initial_sync: true}
+        - {action: sync, path: ./shared, target: /app/shared, initial_sync: true}
+        - {action: rebuild, path: ./capaServidor/package.json}
+        - {action: rebuild, path: ./capaServidor/package-lock.json}
+        - {action: rebuild, path: ./capaServidor/prisma}
+        - {action: rebuild, path: ./capaServidor/prisma.config.ts}
+  web:
+    build:
+      context: .
+      dockerfile: capaVista/Dockerfile
+      target: development
+    env_file: ./capaVista/.env
+    ports:
+      - "127.0.0.1:5173:5173"
+    init: true
+    develop:
+      watch:
+        - {action: sync, path: ./capaVista/src, target: /app/capaVista/src, initial_sync: true}
+        - {action: sync, path: ./capaVista/public, target: /app/capaVista/public, initial_sync: true}
+        - {action: sync, path: ./shared, target: /app/shared, initial_sync: true}
+        - {action: rebuild, path: ./capaVista/index.html}
+        - {action: rebuild, path: ./capaVista/vite.config.js}
+        - {action: rebuild, path: ./capaVista/package.json}
+        - {action: rebuild, path: ./capaVista/package-lock.json}
+secrets:
+  database_ca:
+    file: ${DB_CA_FILE:-./capaServidor/${DB_SSL_CA_PATH:-./certs/aiven-ca.pem}}

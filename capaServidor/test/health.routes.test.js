@@ -17,6 +17,14 @@ async function listen(app, t) {
   return server;
 }
 
+test('GET /api/health/live informa version sin consultar BD y sin cache', async t => {
+  const app = createTestApp(createHealthRouter({ version: 'a'.repeat(40), checkDatabase: () => { throw new Error('No consultar'); } }));
+  const server = await listen(app, t);
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/health/live`);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await response.json(), {status:'ok', version:'a'.repeat(40)});
+});
+
 test("GET /api/health/db responde ok si la base de datos conecta", async (t) => {
   const app = createTestApp(
     createHealthRouter({

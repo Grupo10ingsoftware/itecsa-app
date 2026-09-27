@@ -1,3 +1,4 @@
+import { runtimeConfig } from '../../config/runtimeConfig.js'
 import { Auth0Provider } from '@auth0/auth0-react'
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -23,11 +24,11 @@ export default function AppProviders({ children }) {
 
   return (
     <Auth0Provider
-      domain={import.meta.env.VITE_AUTH0_DOMAIN}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      domain={runtimeConfig.auth0Domain}
+      clientId={runtimeConfig.auth0ClientId}
       authorizationParams={{
         // Solicita access tokens destinados a la API ITECSA, no tokens Management.
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+        audience: runtimeConfig.auth0Audience,
         redirect_uri: window.location.origin,
       }}
       onRedirectCallback={handleRedirectCallback}

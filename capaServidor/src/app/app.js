@@ -1,5 +1,7 @@
 import { config } from "dotenv";
 import Server from "../server.js";
+import { disconnectPrismaClient } from "../database/prisma.js";
+import { registerShutdown } from './shutdown.js';
 
 config();
 
@@ -26,7 +28,8 @@ function validateEnvironment() {
     try {
         validateEnvironment();
         const server = new Server();
-        await server.listen()
+        const httpServer = await server.listen();
+        registerShutdown(httpServer, disconnectPrismaClient);
     } catch ( err ){
         console.log(' Fallo al iniciar la app:', err);
         process.exit(1);

@@ -1,3 +1,4 @@
+import { runtimeConfig } from '../../../config/runtimeConfig.js'
 export class PasswordResetApiError extends Error {
   constructor(message, { status, payload, cause } = {}) {
     super(message, { cause })
@@ -8,7 +9,7 @@ export class PasswordResetApiError extends Error {
 }
 
 function getBaseUrl() {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+  const baseUrl = runtimeConfig.apiBaseUrl?.trim()
 
   if (!baseUrl) {
     throw new PasswordResetApiError('VITE_API_BASE_URL no esta configurada.')

@@ -1,3 +1,4 @@
+import { runtimeConfig } from '../../config/runtimeConfig.js'
 export const API_ERROR_CODES = {
   CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
   HTTP_ERROR: 'HTTP_ERROR',
@@ -16,7 +17,7 @@ export class ApiClientError extends Error {
 }
 
 function getDefaultBaseUrl() {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+  const baseUrl = runtimeConfig.apiBaseUrl?.trim()
 
   if (!baseUrl) {
     throw new ApiClientError('VITE_API_BASE_URL no esta configurada.', {

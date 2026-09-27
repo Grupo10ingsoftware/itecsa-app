@@ -26,7 +26,15 @@ class Server {
   constructor() {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
-    this.port = process.env.PORT; // definido en .env
+    this.port = Number(process.env.PORT || 3000);
+    const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+    if (!Number.isInteger(this.port) || this.port < 1 || this.port > 65535) {
+      throw new Error('PORT debe ser un puerto TCP valido.');
+    }
+    if (!Number.isInteger(proxyHops) || proxyHops < 0) {
+      throw new Error('TRUST_PROXY_HOPS debe ser un entero no negativo.');
+    }
+    this.app.set('trust proxy', proxyHops);
     this.paths = {
         // Rutas cuando las tengamos
 
@@ -113,8 +121,12 @@ class Server {
   }
 
   listen() {
-    this.app.listen(this.port, () => {
-      console.log("Servidor corriendo en puerto", this.port);
+    return new Promise((resolve, reject) => {
+      this.httpServer = this.app.listen(this.port, '0.0.0.0', () => {
+        console.log("Servidor corriendo en puerto", this.port);
+        resolve(this.httpServer);
+      });
+      this.httpServer.once('error', reject);
     });
   }
 }

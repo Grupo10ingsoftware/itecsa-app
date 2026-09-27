@@ -302,11 +302,22 @@
   justify-content: space-between;
 }
 
+.orderIdentity,
 .orderClient {
   color: var(--kanban-text);
   font-size: 1rem;
   font-weight: 850;
   line-height: 1.25;
+}
+
+.orderIdentity {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.orderIdentity span {
+  overflow-wrap: anywhere;
 }
 
 .orderNv {

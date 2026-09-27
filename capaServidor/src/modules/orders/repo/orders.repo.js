@@ -55,27 +55,13 @@ function isPackagingSubprocess(process) {
   return normalizeProcessName(process?.Estado_Subprocesos?.nombre_estado).includes("empaquet");
 }
 
-function formatLanyardProgressObservation(progress, totalQuantity) {
-  if (!progress) return null;
-  const percentage = Number(progress.porcentaje_acumulado ?? 0);
-  const accumulated = Number(progress.cantidad_acumulada ?? 0);
-  const total = Number(totalQuantity ?? 0);
-
-  if (!Number.isFinite(percentage)) return null;
-
-  const roundedPercentage = Math.round(percentage);
-  const quantityText = Number.isFinite(total) && total > 0
-    ? ` (${accumulated}/${total} producidos)`
-    : "";
-
-  return `Avance Lanyard: ${roundedPercentage}%${quantityText}`;
-}
-
-function mergeObservation(comment, systemObservation) {
-  const trimmedComment = String(comment ?? "").trim();
-  const trimmedSystemObservation = String(systemObservation ?? "").trim();
-
-  return [trimmedComment, trimmedSystemObservation].filter(Boolean).join("\n") || null;
+function stripLanyardProgressObservation(value) {
+  return String(value ?? "")
+    .replace(/Avance Lanyard:\s*\d+%\s*(?:\(\d+\/\d+ producidos\))?/gi, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 function mapDetailSubprocesses(detail) {
@@ -191,13 +177,14 @@ function mapOrderComments(order) {
     : [];
   const subprocesses = Array.isArray(order?.Registros)
     ? order.Registros
-        .filter((record) => record?.registro_subprocesos && String(record?.observacion ?? "").trim())
+        .filter((record) => record?.registro_subprocesos && stripLanyardProgressObservation(record?.observacion))
         .map((record) => {
           const subprocess = record.registro_subprocesos;
+          const text = stripLanyardProgressObservation(record.observacion);
 
           return {
             id: `registro-${record.ID_REGISTRO}`,
-            text: String(record.observacion ?? "").trim(),
+            text,
             createdAt: record.FECHA_HORA ?? null,
             productType: subprocess.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
             responsible: personName(record.Usuario) || record.Usuario?.correo_usuario || null,
@@ -1245,10 +1232,7 @@ class OrderRepository {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
-        observacion: mergeObservation(
-          comment,
-          formatLanyardProgressObservation(latestLanyardProgress, detail.cantidad),
-        ),
+        observacion: String(comment ?? "").trim() || null,
       },
     });
 

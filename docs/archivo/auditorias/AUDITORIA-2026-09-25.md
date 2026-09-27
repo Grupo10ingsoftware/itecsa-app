@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 25-09-2026; commit auditado 0e6fb0a.
+> Ubicación original: `docs/auth0/AUDITORIA-2026-09-25.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../auth0/README.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Auditoría Auth0 ITECSA — 25 de septiembre de 2026
 
 ## Referencias

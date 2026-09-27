@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 25-09-2026; revisión 166593b051dfb04c8ec969f63b3a6541dcbf627f.
+> Ubicación original: `AUDITORIA_PREVIA_PROTECCION_DATOS_21719.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../PENDIENTES.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Auditoría previa de protección de datos — Ley N.º 21.719
 
 Fecha: 25 de septiembre de 2026. Revisión: `166593b051dfb04c8ec969f63b3a6541dcbf627f`. Modalidad: inspección técnica del repositorio y pruebas locales con datos sintéticos. **No constituye certificación jurídica ni acreditación de un despliegue productivo.**

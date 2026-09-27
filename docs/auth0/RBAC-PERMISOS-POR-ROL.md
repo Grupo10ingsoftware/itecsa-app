@@ -8,7 +8,7 @@ En Auth0: User Management → Roles → elegir rol → Permissions → Add Permi
 
 No seleccionar Auth0 Management API. No conceder permisos directos adicionales a usuarios. Cada usuario debe tener exactamente un rol ITECSA y coincidir con su registro interno. Soporte se asigna únicamente por el equipo técnico.
 
-Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en AUDITORIA-2026-09-25.md; generar este archivo no verifica Auth0.
+Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en [la auditoría histórica](../archivo/auditorias/AUDITORIA-2026-09-25.md); consultar [la guía vigente](README.md). Generar este archivo no verifica Auth0.
 
 El catálogo contiene 25 permisos funcionales. Soporte recibe los 25; nunca scopes de Management API. Renovar las sesiones después de cambiar asignaciones.
 

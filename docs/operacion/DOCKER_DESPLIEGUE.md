@@ -1,5 +1,7 @@
 # Docker y despliegue ITECSA
 
+Guía del flujo versionado en [docker.yml](../../.github/workflows/docker.yml). Consultar [configuración local](../desarrollo/README.md), [pruebas](../desarrollo/PRUEBAS.md) y [pendientes](../PENDIENTES.md). Los recursos externos deben verificarse en su ambiente; esta guía no acredita su activación.
+
 Dos imagenes Linux/amd64: API Express con Node 22 y cliente Prisma generado,
 y SPA compilada servida por Nginx sin privilegios. Ambas incluyen `shared/`.
 Aiven y Auth0 permanecen externos. Construir o iniciar contenedores **no ejecuta migraciones**.
@@ -63,7 +65,7 @@ VPN o tunel; eso depende de su red y no reemplaza credenciales ni validacion TLS
 
 Workflow: `.github/workflows/docker.yml`.
 
-- PR a `dev` o `main`: pruebas backend/frontend y del despliegue, build y smoke Docker.
+- PR a `dev` o `main`: enlaces documentales, pruebas backend/frontend y de scripts/despliegue, build y smoke Docker.
   No publica imagenes y no recibe credenciales de despliegue.
 - Push a `main`: mismas verificaciones, publicacion en GHCR de **las imagenes
   probadas** y actualizacion de Northflank si todo pasa.
@@ -79,7 +81,7 @@ Las operaciones manuales se ejecutan desde `main`. Los nombres son
 El despliegue utiliza `@sha256:<digest>`, no `latest`. Las imagenes permanecen
 privadas: no cambiar la visibilidad para resolver problemas de acceso.
 
-La integracion de esta rama sigue `migration/docker` → `dev` → `main`.
+El recorrido de integración previsto para la dockerización es `migration/docker` → `dev` → `main`; esa rama identifica la entrega original, no una condición de uso de la guía.
 Primero revisar la dockerizacion en un PR hacia `dev`; cuando esa integracion
 este validada, preparar el PR de `dev` hacia `main`. Integrar en `dev` verifica
 codigo, pero no publica imagenes ni despliega Northflank. La activacion externa
@@ -226,13 +228,12 @@ sin BD, dos configuraciones de la misma imagen web, serializacion segura, rutas
 directas SPA y SIGTERM. Los tests de despliegue simulan exito, commit obsoleto,
 version antigua, timeout ambiguo y restauracion de ambos servicios.
 
-La BD actual contiene datos de prueba y es compartida por desarrollo y demo.
+La guía de dockerización se preparó usando una BD compartida por desarrollo y demo; confirmar la clasificación y los datos del entorno antes de operarlo.
 Dockerizar no corrige el historial de migraciones ni habilita nuevas tablas.
 Mantener [procedimiento Orders](ORDERS_MIGRACION.md) como trabajo independiente.
 Las notas de venta siguen en fixture; el envio de recuperacion PIN no esta
 configurado con `NODE_ENV=production`. No usar modo development en demo para
-habilitar un flujo de debug. El lint previo tenia 7 errores y 1 advertencia;
-no se agrego como nuevo bloqueo del pipeline ni se deshabilitaron sus reglas.
+habilitar un flujo de debug. Los recuentos de lint de fases anteriores permanecen en los informes archivados; ejecutar `npm run lint` para conocer el estado actual. El lint no forma parte del bloqueo del pipeline existente y sus reglas no se deshabilitaron.
 
 Una restauracion de contenedores requiere compatibilidad del esquema con la
 version anterior. La migracion futura de Aiven a la BD del cliente necesita

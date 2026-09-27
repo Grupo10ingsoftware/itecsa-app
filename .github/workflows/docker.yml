@@ -41,6 +41,7 @@ jobs:
         env:
           RELEASE_SHA: ${{ github.sha }}
         run: |
+          node scripts/check-docs.mjs
           npm ci --prefix capaServidor
           npm run prisma:generate --prefix capaServidor
           npm test --prefix capaServidor
@@ -100,6 +101,7 @@ jobs:
       - name: Dependencies and tests
         if: inputs.operation != 'rollback'
         run: |
+          node scripts/check-docs.mjs
           npm ci --prefix capaServidor
           npm run prisma:generate --prefix capaServidor
           npm test --prefix capaServidor

@@ -131,8 +131,7 @@ test("persiste la observacion interna al crear el pedido", async () => {
     },
   });
 
-  const order = await service.createOrder(
-    {
+  const canonicalNote = {
       numeroNota: "24226",
       fechaEntregaTentativaOrigen: "2026-09-15",
       cliente: { rut: "76.123.456-7", nombre: "Cliente Demo" },
@@ -153,7 +152,10 @@ test("persiste la observacion interna al crear el pedido", async () => {
           tipoProducto: "Tarjeta",
         },
       ],
-    },
+    };
+  service.salesNoteSourceService = { async getByNumber() { return canonicalNote; } };
+  const order = await service.createOrder(
+    { numeroNota: "24226", observacionInterna: "Coordinar entrega con el cliente." },
     { auth0UserId: "auth0|sales-user" },
   );
 

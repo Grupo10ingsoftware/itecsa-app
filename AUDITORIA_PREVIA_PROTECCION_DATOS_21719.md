@@ -551,6 +551,8 @@ Severidad: impacto y probabilidad sobre el sistema observado; no multa legal ni 
 
 ### [H09] El alta confía en atributos de nota de venta enviados por el navegador
 
+**Actualización 27-09-2026:** corrección de código y pruebas locales completada para H09. El alta reconsulta la fuente desde backend y acepta del navegador sólo referencia, observación interna y prioridad. Véase [contrato, clasificación, límites y evidencia de H09](docs/H09-INTEGRIDAD-CREACION-PEDIDOS.md). El diagnóstico siguiente describe la revisión original, anterior a esta corrección.
+
 **Severidad:** ALTA
 
 **Estado actual:** createOrderFromSalesNote usa cliente, origen, observaciones e items del body sin recuperar la nota canónica en ese método; el flujo UI los reenvía. La reevaluación sí consulta la fuente.

@@ -1,3 +1,4 @@
+import { parseCreateOrderInput } from "./createOrderInput.js";
 import { AppError } from "../../../errors/AppError.js";
 import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
@@ -658,140 +659,44 @@ class OrderService {
   }
 
   async createOrder(data, options = {}) {
-    if (data?.numeroNota || data?.cliente || data?.items) {
-      return this.createOrderFromSalesNote(data, options);
-    }
-
-    const {
-      rut_cliente,
-      nombre_cliente,
-      razon_social,
-      estado_cliente,
-      id_etiqueta,
-      productos,
-    } = data;
-
-    const id_usuario = await this.resolveInternalUserId({ auth0UserId: options.auth0UserId });
-
-    if (
-      !id_usuario ||
-      !rut_cliente ||
-      !Array.isArray(productos) ||
-      productos.length === 0
-    ) {
-      const error = new AppError(400, "Faltan datos obligatorios para crear el pedido.");
-      throw error;
-    }
-
-    return this.runInTransaction(async ({
-      repo,
-      clientService,
-      orderDetailService,
-      productTypeService,
-    }) => {
-      const client = await clientService.findOrCreateClient({
-        rut_cliente,
-        nombre_cliente,
-        razon_social,
-        estado_cliente,
-      });
-
-      if (!client?.id_cliente) {
-        const error = new Error("No se pudo resolver el cliente del pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const id_estado_pago = 1;
-      const id_estado_pedido = 1;
-
-      const fecha_estimada_termino = productos.reduce((latestDate, product) => {
-        if (!product.fecha_estimada_termino) return latestDate;
-        if (!latestDate) return product.fecha_estimada_termino;
-
-        return new Date(product.fecha_estimada_termino) > new Date(latestDate)
-          ? product.fecha_estimada_termino
-          : latestDate;
-      }, null);
-
-      const order = await repo.create({
-        id_cliente: client.id_cliente,
-        id_usuario,
-        id_estado_pedido,
-        id_estado_pago,
-        id_etiqueta,
-        fecha_estimada_termino: toPrismaDate(fecha_estimada_termino),
-      });
-
-      if (!order?.id_pedido) {
-        const error = new Error("No se pudo crear el pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const details = [];
-
-      for (const product of productos) {
-        const { nombre_producto, cantidad, fecha_estimada_termino } = product;
-
-        if (!nombre_producto || cantidad === undefined) {
-          const error = new AppError(400, "Faltan datos obligatorios en un detalle del pedido.");
-          throw error;
-        }
-
-        const productType = await productTypeService.getProductTypeByName(
-          nombre_producto,
-        );
-
-        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productType.id_tipo_producto,
-          cantidad,
-          fecha_estimada_termino: toPrismaDate(fecha_estimada_termino) ?? null,
-          fecha_real_termino: null,
-        });
-
-        details.push(detail);
-      }
-
-      await repo.notifyCollectionsAdministrators({
-        orderId: order.id_pedido,
-        subject: "Nuevo pedido pendiente de confirmación de pago",
-        content: `Se registró el pedido ${order.numero_nota_venta ?? `#${order.id_pedido}`}. Está pendiente de confirmación de pago.`,
-      });
-
-      return {
-        ...order,
-        detalles: details,
-      };
-    });
+    return this.createOrderFromSalesNote(data, options);
   }
 
   async createOrderFromSalesNote(data, options = {}) {
-    const numeroNota = normalizeText(data.numeroNota);
-    const cliente = data.cliente ?? {};
-    const origen = data.origen ?? {};
-    const productionItems = normalizeProductionItems(data.items ?? []);
-    const untrackedItems = normalizeUntrackedItems(
-      data.itemsSinSeguimientoProductivo ?? data.itemsNoSoportados ?? [],
-    );
-
-    if (!numeroNota || !cliente.rut || !cliente.nombre || productionItems.length === 0) {
-      const error = new AppError(400, "Faltan datos obligatorios para registrar el pedido.");
-      throw error;
+    // Sólo la referencia y las decisiones internas cruzan desde el navegador.
+    const input = parseCreateOrderInput(data);
+    const salesNote = await this.salesNoteSourceService.getByNumber(input.numeroNota);
+    if (!salesNote) {
+      throw new AppError(404, "Nota de Venta no encontrada.");
     }
-
-    const invalidItem = productionItems.find(
-      (item) => !item.tipoProducto || !item.producto || item.cantidad === null,
-    );
-
-    if (invalidItem) {
-      const error = new AppError(400, "Hay productos sin tipo productivo, nombre o cantidad valida.");
-      throw error;
+    const numeroNota = normalizeSalesNoteNumber(salesNote.numeroNota);
+    if (numeroNota !== input.numeroNota) {
+      throw new AppError(400, "La fuente devolvio una Nota de Venta diferente.");
     }
+    const cliente = {
+      rut: normalizeText(salesNote.cliente?.rut),
+      nombre: normalizeText(salesNote.cliente?.nombre),
+    };
+    const origen = salesNote.origen ?? {};
+    if (!Array.isArray(salesNote.items) ||
+        !Array.isArray(salesNote.itemsSinSeguimientoProductivo ?? []) ||
+        [...salesNote.items, ...(salesNote.itemsSinSeguimientoProductivo ?? [])]
+          .some((item) => !item || typeof item !== "object" || Array.isArray(item))) {
+      throw new AppError(400, "Los productos de la Nota de Venta no son validos.");
+    }
+    const productionItems = normalizeProductionItems(salesNote.items);
+    const untrackedItems = normalizeUntrackedItems(salesNote.itemsSinSeguimientoProductivo ?? []);
 
+    if (!cliente.rut || !cliente.nombre || productionItems.length === 0) {
+      throw new AppError(400, "Faltan datos obligatorios para registrar el pedido.");
+    }
+    if (productionItems.some((item) => !normalizeText(item.tipoProducto) ||
+        !normalizeText(item.producto) || !Number.isInteger(item.cantidad) || item.cantidad <= 0) ||
+        untrackedItems.some((item) => !Number.isInteger(item.cantidad) || item.cantidad <= 0)) {
+      throw new AppError(400, "Hay productos sin tipo productivo, nombre o cantidad valida.");
+    }
     const resolvedUserId = await this.resolveInternalUserId({
       auth0UserId: options.auth0UserId,
-      id_usuario: data.id_usuario,
     });
     const estimatedCompletionDate = null;
 
@@ -822,7 +727,7 @@ class OrderService {
         throw error;
       }
 
-      const labelNames = normalizePriorityLabels(data.priority);
+      const labelNames = normalizePriorityLabels(input.priority);
       const labels = labelNames.length > 0
         ? await repoClient.etiqueta.findMany({
             where: {
@@ -842,8 +747,8 @@ class OrderService {
         fecha_estimada_termino: estimatedCompletionDate,
         numero_nota_venta: numeroNota,
         usuario_manager_origen: origen.usuarioManager ?? null,
-        observacion_origen: data.observaciones ?? null,
-        observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
+        observacion_origen: salesNote.observaciones ?? null,
+        observacion_interna: input.observacionInterna,
       }, { hydrate: false });
 
       if (!order?.id_pedido) {

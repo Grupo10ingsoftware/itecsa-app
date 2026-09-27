@@ -1,3 +1,4 @@
+import { buildCreateOrderPayload } from '../modules/orders/utils/createOrderPayload.js'
 import { useMemo, useState } from 'react'
 import { DEFAULT_ORDER_DRAFT } from '../modules/orders/mocks/orderCreate.mock'
 import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
@@ -30,20 +31,6 @@ function toDisplayRecord(salesNote) {
     seller: salesNote.origen?.usuarioManager ?? '-',
     dueDate: salesNote.fechaEntregaTentativaOrigen ?? '-',
     productType: productTypes.length > 1 ? 'Mixto' : productTypes[0] ?? '-',
-  }
-}
-
-function buildCreateOrderPayload(draft) {
-  return {
-    numeroNota: draft.managerRecord.numeroNota,
-    fechaEntregaTentativaOrigen: draft.managerRecord.fechaEntregaTentativaOrigen,
-    cliente: draft.managerRecord.cliente,
-    origen: draft.managerRecord.origen,
-    observaciones: draft.managerRecord.observaciones,
-    observacionInterna: draft.comments?.trim() || null,
-    priority: draft.priority,
-    items: draft.managerRecord.items,
-    itemsSinSeguimientoProductivo: draft.managerRecord.itemsSinSeguimientoProductivo,
   }
 }
 

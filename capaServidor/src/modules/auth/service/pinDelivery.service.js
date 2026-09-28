@@ -1,3 +1,5 @@
+import { parseAppEnvironment } from "../../../config/environment.js";
+
 export class PinDeliveryUnavailableError extends Error {
     constructor() {
         super("La entrega automatica de PIN no esta configurada.");
@@ -12,16 +14,22 @@ export const unavailablePinRecoveryDelivery = {
     },
 };
 
-export const developmentPinRecoveryDelivery = {
-    async sendCode({ to, code, expiresAt }) {
-        if (process.env.NODE_ENV === "production") {
-            throw new PinDeliveryUnavailableError();
-        }
+/**
+ * Recovery stays fail-closed until an approved provider is wired explicitly.
+ * Tests must inject a fake delivery into PinService; no environment may use a
+ * console adapter because recovery codes and email addresses are secrets/PII.
+ */
+export function createDefaultPinRecoveryDelivery(
+    appEnvironment = process.env.APP_ENV,
+) {
+    parseAppEnvironment(appEnvironment, { required: true });
+    return unavailablePinRecoveryDelivery;
+}
 
-        console.info("[PIN_RECOVERY_DEV]", {
-            to,
-            code,
-            expiresAt,
-        });
+// Resolve APP_ENV only when delivery is attempted. This keeps application
+// bootstrap responsible for reporting configuration errors consistently.
+export const defaultPinRecoveryDelivery = {
+    async sendCode(payload) {
+        return createDefaultPinRecoveryDelivery().sendCode(payload);
     },
 };

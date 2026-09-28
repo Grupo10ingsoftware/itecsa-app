@@ -72,8 +72,8 @@ test('matriz HTTP por rol, permisos y PIN: llamadas directas', async t => {
 test('gestion de usuarios: departamento, escalamiento y revinculacion RNF02',async t=>{
  let targetRole=OP, writes=0, listFilters;
  const target=()=>({idUsuario:2,idAuth0:'auth0|target',rolUsuario:targetRole,estadoUsuario:'Desvinculado',correoUsuario:'target@example.com'});
- const users={async findByAuth0Id(){return target();},async findByEmail(){return null;},async list(filters){listFilters=filters;return {usuarios:[],total:0};},async getSummary(){return {};},async updateStatusByAuth0Id(){writes++;return {...target(),estadoUsuario:'Vinculado'};},async updateByAuth0Id(){writes++;return target();}};
- const app=express();app.use(express.json());app.use('/admin',createAdminUsersRouter({authenticate,validatePin,users,updateStatus:async()=>{},updateUser:async()=>{},pins:{async ensureProvisioned(){}}}));
+ const users={async findByAuth0Id(){return target();},async findByEmail(){return null;},async list(filters){listFilters=filters;return {usuarios:[],total:0};},async getSummary(){return {};},async updateStatusIfCurrent(){writes++;return {...target(),estadoUsuario:'Vinculado'};},async updateByAuth0Id(){writes++;return target();}};
+ const app=express();app.use(express.json());app.use('/admin',createAdminUsersRouter({authenticate,validatePin,users,updateStatus:async()=>{},updateUser:async()=>{},pins:{async invalidateByAuth0Id(){},async ensureProvisioned(){}}}));
  const base=await listen(app,t);
  async function request(role,path,method='GET',body) {return fetch(base+'/admin'+path,{method,headers:{'x-test-role':role,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});}
  for(const actor of all) for(const deptRole of [OP,OV,OC,G,S]) await t.test(`${actor} revincula ${deptRole}`,async()=>{

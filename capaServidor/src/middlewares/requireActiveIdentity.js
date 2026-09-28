@@ -1,8 +1,8 @@
 import users from '../modules/users/repo/users.repo.js';
 import { getAuth0UserRole } from '../modules/users/service/auth0Management.service.js';
 import { roleFromPayload } from '../../../shared/authorization.js';
+import { isActiveUserStatus } from '../config/userLifecycle.js';
 
-const ACTIVE_STATUSES = new Set(['Activo', 'Vinculado']);
 const ACCESS_DENIED = 'Usuario desvinculado o rol desactualizado. Renueva tu sesion.';
 
 export function createRequireActiveIdentity({ repository = users, resolveAuth0Role = getAuth0UserRole } = {}) {
@@ -17,7 +17,7 @@ export function createRequireActiveIdentity({ repository = users, resolveAuth0Ro
 
     try {
       let user = await repository.findByAuth0Id(payload.sub);
-      if (!user || !ACTIVE_STATUSES.has(user.estadoUsuario)) {
+      if (!user || !isActiveUserStatus(user.estadoUsuario)) {
         return res.status(403).json({ message: ACCESS_DENIED });
       }
 
@@ -28,7 +28,7 @@ export function createRequireActiveIdentity({ repository = users, resolveAuth0Ro
           return res.status(403).json({ message: ACCESS_DENIED });
         }
         user = await repository.updateRoleIfCurrent(payload.sub, user.rolUsuario, role);
-        if (!user || !ACTIVE_STATUSES.has(user.estadoUsuario) || user.rolUsuario !== role) {
+        if (!user || !isActiveUserStatus(user.estadoUsuario) || user.rolUsuario !== role) {
           return res.status(403).json({ message: ACCESS_DENIED });
         }
       }

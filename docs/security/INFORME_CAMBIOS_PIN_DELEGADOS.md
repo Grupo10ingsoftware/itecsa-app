@@ -1,10 +1,10 @@
 # Informe de cambios PIN delegados
 
-Fecha de corte: 26-09-2026. Rama: `opt-historial`.
+Fecha de corte original: 26-09-2026. Avance actualizado el 27-09-2026 en rama `opt-users`.
 
 ## Decisión y alcance
 
-Los cambios de PIN del plan de cierre de la auditoría fueron **revertidos por completo** y quedaron asignados al otro equipo. En esta rama se conserva el comportamiento previo de código, variables, esquema Prisma, rutas y pruebas PIN. La migración de seguridad preparada tampoco contiene DDL de PIN.
+El rediseño criptográfico y de persistencia del PIN continúa asignado al otro equipo. Como primera medida de `USR-ACT-002`, esta rama sí retiró el adaptador que imprimía correo/código, unificó las decisiones de entorno en `APP_ENV` y dejó la recuperación fail-closed en todos los entornos hasta aprobar un proveedor. No se modificaron esquema Prisma, hashes, secretos, PIN ni datos reales.
 
 Este documento explica por qué se había propuesto el rediseño, su efecto técnico y su relación con las leyes y normas citadas por el proyecto. No es una implementación, una opinión legal, una certificación ISO ni evidencia de que los controles operen en producción.
 
@@ -21,7 +21,7 @@ Quedan, sin embargo, estas brechas:
 - un único `PIN_SECRET` cifra pendientes y deriva fingerprints, sin versión que permita rotación gradual;
 - lectura, incremento de intentos y consumo del reto no están serializados con bloqueo de fila, de modo que solicitudes concurrentes pueden perder incrementos o consumir el mismo estado observado;
 - se pueden crear varios retos activos por usuario y no existe una cuota persistente compartida para recuperación;
-- el adaptador de desarrollo registra correo y código si `NODE_ENV` no es exactamente `production`;
+- la entrega real sigue sin proveedor: el adaptador por defecto ahora responde indisponibilidad en todos los entornos y los tests inyectan un fake con datos sintéticos;
 - los eventos PIN no quedan en la nueva auditoría de seguridad transaccional.
 
 OWASP indica que scrypt debe usarse con una configuración mínima equivalente a `N=2^17, r=8, p=1` cuando Argon2id no está disponible. Esa recomendación es una buena práctica técnica y **no** un algoritmo ordenado por la legislación chilena: [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
@@ -37,7 +37,7 @@ OWASP indica que scrypt debe usarse con una configuración mínima equivalente a
 | Bloqueo transaccional de fila para validar, recuperar y aceptar | Evitar carreras en intentos, regeneración y consumo | Requiere transacciones MySQL reales, orden de bloqueos estable y pruebas concurrentes; puede aumentar espera bajo abuso |
 | Un reto activo por usuario, consumo compare-and-set, cinco intentos y quince minutos | Hacer inequívoco el reto vigente y garantizar un solo uso | Invalida retos previos al emitir uno nuevo; respuestas concurrentes sólo permiten un ganador; requiere índice y limpieza posterior |
 | Cuotas persistentes: 3 por usuario y 10 por IP cada hora | Frenar enumeración y fuerza bruta de recuperación en despliegues con varias instancias | Reutiliza `SecurityThrottle`, responde 429 con `Retry-After` y necesita política sobre proxy/IP; almacena identificadores seudonimizados por un plazo corto |
-| Entrega fail-closed en producción y proveedor falso en tests | Impedir que códigos o correos aparezcan en consola y evitar una falsa entrega productiva | Recuperación queda indisponible hasta aprobar/configurar proveedor; exige monitoreo sin registrar PIN, OTP ni correo claro |
+| Entrega fail-closed en todos los entornos y proveedor falso en tests — **implementado** | Impedir que códigos o correos aparezcan en consola y evitar una falsa entrega | Recuperación queda indisponible hasta aprobar/configurar proveedor; todavía exige monitoreo sin registrar PIN, OTP ni correo claro |
 | Auditoría de solicitud, denegación, confirmación y rotación | Permitir investigación y rendición de cuentas sin guardar el secreto | Registra sólo actor interno, acción, resultado, código seguro y `requestId`; debe ser append-only en la BD real y tener retención aprobada |
 
 ## Efecto en la legislación chilena

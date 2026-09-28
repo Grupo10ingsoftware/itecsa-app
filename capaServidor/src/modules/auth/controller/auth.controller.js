@@ -8,12 +8,12 @@ import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService, { PinServiceError } from "../service/pin.service.js";
 import { PinDeliveryUnavailableError } from "../service/pinDelivery.service.js";
 import { safeLogger } from "../../../shared/safeLogger.js";
+import { isActiveUserStatus } from "../../../config/userLifecycle.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ACTIVE_USER_STATUSES = new Set(["Activo", "Vinculado"]);
 const PASSWORD_RESET_ACCEPTED_MESSAGE =
     "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.";
 const VERIFY_SESSION_ERROR_MESSAGE =
@@ -233,7 +233,7 @@ export function createPasswordResetRequestHandler({
         try {
             const user = await users.findByEmail(email);
 
-            if (user && ACTIVE_USER_STATUSES.has(user.estadoUsuario)) {
+            if (user && isActiveUserStatus(user.estadoUsuario)) {
                 await requestPasswordEmail({ email });
             }
         } catch (error) {

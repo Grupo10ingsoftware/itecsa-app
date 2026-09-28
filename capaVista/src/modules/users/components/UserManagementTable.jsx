@@ -34,7 +34,6 @@ export default function UserManagementTable({
   isLoading,
   onEditUser,
   onViewMovements,
-  onPrefetchMovements,
   onPageChange,
   totalPages,
   totalUsers,
@@ -92,7 +91,12 @@ export default function UserManagementTable({
                     >
                       Editar
                     </UserButton>
-                    <UserButton className={styles.actionButton} icon="bi-clock-history" onMouseEnter={() => onPrefetchMovements?.(user)} onFocus={() => onPrefetchMovements?.(user)} onClick={() => onViewMovements(user)} variant="secondary">
+                    <UserButton
+                      className={styles.actionButton}
+                      icon="bi-clock-history"
+                      onClick={() => onViewMovements(user)}
+                      variant="secondary"
+                    >
                       Movimientos
                     </UserButton>
                     </div>
@@ -107,7 +111,6 @@ export default function UserManagementTable({
         isLoading={isLoading}
         onEditUser={onEditUser}
         onViewMovements={onViewMovements}
-        onPrefetchMovements={onPrefetchMovements}
         users={users}
       />
 

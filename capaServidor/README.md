@@ -26,3 +26,556 @@ La API usa `http://localhost:3000/api`. `npm start` inicia sin nodemon y `npm te
 Antes de ejecutar introspección o migraciones, revisar sus efectos y el entorno autorizado. `prisma:pull` modifica el schema local; no es un paso rutinario para arrancar el código versionado. Los secretos y el certificado CA permanecen fuera de Git.
 
 La CLI Prisma se instala por separado en `tooling/prisma`. Consultar las [dependencias](../docs/security/DEPENDENCIAS.md) y la [configuraci?n de seguridad](../docs/security/README.md).
+
+## Variables De Entorno
+
+Crear un archivo `.env` local a partir de `env.example`:
+
+```dotenv
+APP_ENV=development
+PORT=3000
+FRONTEND_ORIGIN=http://localhost:5173
+AUTH0_DOMAIN=<tenant-auth0>
+AUTH0_AUDIENCE=https://api.itecsa.local
+AUTH0_MANAGEMENT_CLIENT_ID=<client-id-m2m>
+AUTH0_MANAGEMENT_CLIENT_SECRET=
+AUTH0_DATABASE_CONNECTION=Username-Password-Authentication
+AUTH0_PASSWORD_RESET_CLIENT_ID=<client-id-spa>
+AUTH0_REQUEST_TIMEOUT_MS=8000
+RATE_LIMIT_SECRET=<32-bytes-base64>
+CURSOR_SECRET=<32-bytes-base64>
+SECURITY_LOG_HMAC_KEY=<32-bytes-base64>
+DB_HOST=<host-aiven>
+DB_PORT=<puerto-aiven>
+DB_USER=<usuario-aiven>
+DB_PASSWORD=
+DB_NAME=<nombre-bd>
+DB_SSL_CA_PATH=./certs/aiven-ca.pem
+DB_SSL_MODE=required
+DATABASE_URL=mysql://<usuario-aiven>:<password-aiven>@<host-aiven>:<puerto-aiven>/<nombre-bd>?sslcert=./certs/aiven-ca.pem&sslaccept=strict
+```
+
+- `APP_ENV`: entorno obligatorio (`development`, `test` o `production`) usado por decisiones de seguridad.
+- En `development` y `test`, las cuotas se mantienen en memoria para no depender de migraciones pendientes en la base compartida. En `production`, `SecurityThrottle` es obligatorio y las cuotas son persistentes entre instancias.
+- `PORT`: puerto HTTP del servidor.
+- `FRONTEND_ORIGIN`: unico origen permitido por CORS para la SPA local.
+- `AUTH0_DOMAIN`: tenant usado para construir el issuer validado.
+- `AUTH0_AUDIENCE`: identificador de la API que debe contener el access token.
+- `AUTH0_MANAGEMENT_CLIENT_ID`: identificador de la aplicacion M2M que debe estar autorizada con `create:users`, `read:roles`, `read:users` y `update:users`.
+- `AUTH0_MANAGEMENT_CLIENT_SECRET`: secret M2M local; debe mantenerse fuera del repositorio.
+- `AUTH0_DATABASE_CONNECTION`: conexion Database donde Auth0 crea usuarios.
+- `AUTH0_PASSWORD_RESET_CLIENT_ID`: identificador publico de la SPA habilitada en la conexion Database para solicitar correos de cambio de contrasena.
+- `AUTH0_REQUEST_TIMEOUT_MS`: deadline por llamada saliente a Auth0; entero entre 100 y 30000 ms (por defecto 8000).
+- `DB_HOST`: host MySQL entregado por Aiven.
+- `DB_PORT`: puerto MySQL entregado por Aiven.
+- `DB_USER`: usuario MySQL entregado por Aiven.
+- `DB_PASSWORD`: password MySQL local; debe mantenerse fuera del repositorio.
+- `DB_NAME`: nombre de la base de datos MySQL.
+- `DB_SSL_CA_PATH`: ruta local al certificado CA descargado desde Aiven, relativa a `capaServidor`.
+- `DATABASE_URL`: URL usada por Prisma para conectar a la misma base MySQL definida en `DB_NAME` y usar SSL con el certificado CA local.
+
+Ningun secret real debe quedar en el repositorio. Las variables Management son consumidas solo por el backend protegido.
+
+## Conexion Aiven MySQL
+
+El backend usa Prisma con `@prisma/adapter-mariadb` y SSL. Descargar el certificado CA desde Aiven y guardarlo localmente, por ejemplo:
+
+```txt
+capaServidor/certs/aiven-ca.pem
+```
+
+El archivo `.gitignore` evita versionar certificados `.pem` dentro de `capaServidor/certs/`. Para verificar que el proceso HTTP está vivo sin consultar la base:
+
+```bash
+curl http://localhost:3000/api/health/live
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+La disponibilidad de base se consulta únicamente en `/internal/ready`, deshabilitado por defecto y protegido por `INTERNAL_HEALTH_TOKEN`; debe exponerse sólo en la red interna.
+
+## Prisma ORM
+
+Prisma es la infraestructura de acceso a datos del backend. La CLI está aislada en `tooling/prisma`; debe instalarse antes de ejecutar los scripts Prisma del servidor.
+
+La base indicada en `DB_NAME` debe existir en Aiven. Con esa precondicion, el flujo correcto es introspeccion y generacion de cliente:
+
+```bash
+npm run prisma:pull
+npm run prisma:generate
+```
+
+Comandos disponibles:
+
+```bash
+npm run prisma:pull
+npm run prisma:generate
+npm run prisma:validate
+npm run prisma:migrate:status
+npm run prisma:studio
+```
+
+`npm run prisma:migrate:dev` existe en `package.json`, pero no debe ejecutarse contra la base existente sin una decision explicita de migraciones. Tampoco ejecutar `prisma migrate reset` ni `prisma db push` sobre esa base sin autorizacion del equipo, porque pueden modificar datos o estructura.
+
+El cliente Prisma se genera en `node_modules/@prisma/client`. Si cambia el esquema real de Aiven, ejecutar `npm run prisma:pull`, revisar `prisma/schema.prisma` y luego `npm run prisma:generate`.
+
+## Dependencias De Seguridad
+
+El runtime no incluye Prisma CLI y su auditoría `--omit=dev` está limpia. La excepción temporal del CLI y las versiones forzadas se documentan en [DEPENDENCIAS.md](../docs/security/DEPENDENCIAS.md). No ejecutar `npm audit fix --force` sin revisar compatibilidad.
+
+## Recursos Auth0 Esperados
+
+- SPA: `ITECSA Frontend Local`.
+- API `ITECSA API`: audience `https://api.itecsa.local`, firma `RS256` y RBAC con permisos en el access token. Catálogo y asignaciones: [matriz vigente](../docs/auth0/RBAC-PERMISOS-POR-ROL.md), generada desde `shared/authorization.js`.
+- M2M backend: `ITECSA Backend Management`, autorizada contra Auth0 Management API. El token M2M validado contiene `create:users`, `read:roles`, `read:users` y `update:users`.
+- Action Post Login: `ITECSA Add Claims`, enlazada al flujo Post Login.
+- Conexion Database: `Username-Password-Authentication`, administrada por Auth0.
+- Roles permitidos: `Administrador`, `Soporte`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
+
+La autorizacion de roles se basa en Auth0 RBAC. El backend valida los roles emitidos en el access token y expone `rolUsuario` como respuesta simplificada para la SPA. Cualquier `app_metadata.rolUsuario` heredado en usuarios existentes es auxiliar y no reemplaza RBAC.
+
+## Servicio Interno Auth0
+
+`src/modules/users/service/auth0Management.service.js` prepara dos operaciones backend:
+
+- `createAuth0User(...)` obtiene un token M2M, resuelve el rol Auth0 existente, crea un usuario Database solo con correo y contrasena temporal, asigna RBAC y mantiene la contrasena temporal aleatoria solo durante la llamada a Auth0.
+- `updateAuth0User(...)` actualiza correo, estado de bloqueo y rol RBAC del usuario Auth0 durante la edicion administrativa.
+- `setAuth0UserStatus(...)` vincula o desvincula una cuenta Auth0 sin modificar datos personales internos.
+- `requestPasswordSetupEmail(...)` solicita a Auth0 el envio del correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`.
+
+El servicio no devuelve contrasenas temporales, tokens, tickets ni enlaces de cambio de contrasena. Tampoco persiste nombre, apellido ni `app_metadata.rolUsuario` en Auth0; la autorizacion efectiva utiliza el rol Auth0 RBAC asignado y el claim `https://itecsa.local/roles`.
+
+ITECSA no recibe, almacena ni persiste contrasenas de usuarios. La contrasena temporal generada por el backend existe solo en memoria durante la llamada de creacion Auth0 y luego se solicita el correo de establecimiento/cambio de contrasena administrado por Auth0.
+
+## Endpoint De Autenticacion
+
+### `GET /api/auth/verify`
+
+Requiere:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+Valida el JWT con Auth0 y devuelve la identidad proyectada cuando el token contiene email y exactamente un rol oficial:
+
+```json
+{
+  "sub": "auth0|abc123",
+  "email": "usuario@ejemplo.cl",
+  "rolUsuario": "Administrador",
+  "isAdministrador": true,
+  "permissions": ["view:main-navigation"]
+}
+```
+
+Respuestas:
+
+- `200`: token valido con `https://itecsa.local/email` y un unico rol permitido en `https://itecsa.local/roles`.
+- `401`: bearer token ausente o invalido.
+- `403`: token autenticado sin email requerido, sin rol oficial unico, con multiples roles o con `permissions` malformado.
+
+### `POST /api/auth/password-reset/request`
+
+Endpoint publico usado por la pantalla `/recuperar-contrasena`. Acepta solo:
+
+```json
+{
+  "email": "correo.controlado@example.cl"
+}
+```
+
+El backend normaliza el correo, consulta la tabla interna `Usuario` y decide si corresponde solicitar a Auth0 el correo de cambio de contrasena mediante `requestPasswordSetupEmail(...)`.
+
+Reglas:
+
+- Usuario no registrado: no llama Auth0 y devuelve mensaje controlado.
+- Usuario `Desvinculado` o distinto de `Activo`: no llama Auth0 y devuelve mensaje de cuenta desactivada.
+- Usuario `Activo`: solicita a Auth0 el correo de cambio de contrasena.
+
+Respuesta de usuario no registrado:
+
+```json
+{
+  "status": "not_registered",
+  "message": "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunicate con el administrador."
+}
+```
+
+Respuesta de usuario desactivado:
+
+```json
+{
+  "status": "disabled",
+  "message": "Tu cuenta se encuentra desactivada. Comunicate con el administrador."
+}
+```
+
+Respuesta de usuario activo:
+
+```json
+{
+  "status": "sent",
+  "message": "Si la cuenta esta activa, enviaremos las instrucciones de recuperacion al correo indicado."
+}
+```
+
+Este endpoint no devuelve tickets, enlaces, tokens ni contrasenas. Aplica limite simple en memoria por IP y correo para reducir abuso local.
+
+## Endpoint Administrativo
+
+### `POST /api/admin/users`
+
+Requiere JWT, identidad activa y `manage:users`, con alcance departamental. Acepta JSON:
+
+```json
+{
+  "nombreUsuario": "Ana",
+  "apellidoUsuario": "Perez",
+  "rutUsuario": "12.345.678-9",
+  "correoUsuario": "correo.controlado@example.cl",
+  "rolUsuario": "Operario Ventas"
+}
+```
+
+El administrador sólo puede crear roles de su departamento. El backend valida duplicados, crea la identidad Auth0, registra el usuario interno, genera su PIN y solicita el correo para establecer contraseña. No se reciben archivos de firma.
+
+La contrasena no forma parte del cuerpo aceptado. Auth0 la gestiona mediante el correo de establecimiento/cambio de contrasena.
+
+Respuesta exitosa:
+
+```json
+{
+  "idUsuario": 1,
+  "idUsuarioAutenticacionExterna": "auth0|abc123",
+  "nombreUsuario": "Ana",
+  "apellidoUsuario": "Perez",
+  "rutUsuario": "12.345.678-9",
+  "correoUsuario": "correo.controlado@example.cl",
+  "rolUsuario": "Operario Ventas",
+  "outcome": "completed",
+  "recoverable": false,
+  "internalUserPersisted": true,
+  "roleAssignmentCompleted": true,
+  "pinProvisioned": true,
+  "passwordSetupEmailRequested": true
+}
+```
+
+Respuestas:
+
+- `201`: `outcome: completed` solo cuando persistencia interna, rol, PIN y solicitud de correo terminaron.
+- `201` recuperable: `outcome: failed_recoverable` identifica cada paso completado. La SPA conserva el detalle y no debe repetir el alta.
+- `400`: cuerpo inválido, rol no permitido o campos adicionales.
+- `401`: access token ausente o invalido.
+- `403`: usuario autenticado sin rol `Administrador` o `Soporte`.
+- `409`: correo ya existente en Auth0 o en la tabla interna `Usuario`.
+- `500`: error controlado anterior a la creacion, sin detalles Auth0.
+- `503`: Auth0 no estuvo disponible, excedio el deadline o aplico rate limit; las escrituras no se reintentan automaticamente.
+
+### `GET /api/admin/users`
+
+Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Lista usuarios desde la tabla interna `Usuario`, con filtros opcionales `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`.
+
+Respuesta exitosa:
+
+```json
+{
+  "usuarios": [
+    {
+      "idUsuario": 1,
+      "idUsuarioAutenticacionExterna": "auth0|abc123",
+      "nombreUsuario": "Ana",
+      "apellidoUsuario": "Perez",
+      "rutUsuario": "12.345.678-9",
+      "correoUsuario": "correo.controlado@example.cl",
+      "rolUsuario": "Operario Ventas",
+      "estadoUsuario": "Activo"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "perPage": 10
+}
+```
+
+### `GET /api/admin/users/summary`
+
+Requiere rol administrativo o `Soporte`. Devuelve contadores internos de usuarios totales, vinculados, desvinculados, pendientes de rol y no clasificados.
+
+### `PATCH /api/admin/users/:userId`
+
+Requiere rol administrativo o `Soporte`. Actualiza datos editables del usuario en Auth0 y en la tabla interna `Usuario`. Acepta JSON con `nombreUsuario`, `apellidoUsuario`, `correoUsuario` y `rolUsuario`; no acepta firma ni campos legacy como `primerNombre` o `apellidoPaterno`. Un cambio de rol marca primero la identidad local como `Pendiente rol`, por lo que queda sin acceso hasta confirmar Auth0 y la actualización local.
+
+### `PATCH /api/admin/users/:userId/status`
+
+Requiere rol administrativo o `Soporte` y PIN del actor. Al desvincular, niega primero el acceso local e invalida el PIN del objetivo antes de bloquearlo en Auth0. La reactivación sólo parte desde `Desvinculado`, invalida cualquier PIN anterior y provisiona uno nuevo; `Pendiente rol` no puede activarse por esta ruta.
+
+Las llamadas Auth0 usan `AUTH0_REQUEST_TIMEOUT_MS` y clasifican timeout, red, 5xx y 429. No hay retry automático de escrituras ni cache persistente de tokens. La implementación sigue los contratos oficiales de [roles de usuario](https://auth0.com/docs/api/management/v2/users/get-user-roles), [gestión de usuarios](https://auth0.com/docs/manage-users/user-accounts/manage-users-using-the-management-api) y [rate limits](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/rate-limit-use-cases).
+
+### `POST /api/admin/users/password-setup-email`
+
+Requiere un access token cuyo unico rol sea `Administrador` o `Soporte`. Acepta solo:
+
+```json
+{
+  "correoUsuario": "correo.controlado@example.cl"
+}
+```
+
+El backend solicita a Auth0 el correo de establecimiento/cambio de contrasena mediante `/dbconnections/change_password`. Este endpoint no crea usuarios, no asigna roles, no devuelve tickets, no devuelve enlaces y no retorna contrasenas.
+
+Respuesta exitosa:
+
+```json
+{
+  "correoUsuario": "correo.controlado@example.cl",
+  "passwordSetupEmailRequested": true
+}
+```
+
+Respuestas:
+
+- `200`: solicitud de correo aceptada por Auth0.
+- `400`: cuerpo invalido, correo invalido o campos adicionales.
+- `401`: access token ausente o invalido.
+- `403`: usuario autenticado sin rol `Administrador`.
+- `500`: error controlado al solicitar el correo, sin detalles Auth0.
+
+## Pruebas Manuales
+
+Login:
+
+1. Levantar backend con variables Auth0 locales y `FRONTEND_ORIGIN=http://localhost:5173`.
+2. Levantar frontend con `VITE_API_BASE_URL=http://localhost:3000/api`.
+3. Iniciar sesion desde la SPA mediante Universal Login con un usuario controlado.
+4. Verificar que la SPA vuelva a `http://localhost:5173` y no registre tokens, contrasenas ni datos personales en archivos.
+
+Sin token:
+
+```bash
+curl -i http://localhost:3000/api/auth/verify
+```
+
+Con token invalido:
+
+```bash
+curl -i -H "Authorization: Bearer <token-invalido>" http://localhost:3000/api/auth/verify
+```
+
+Con un access token obtenido mediante login controlado:
+
+```bash
+curl -i -H "Authorization: Bearer <access_token>" http://localhost:3000/api/auth/verify
+```
+
+Creacion administrativa con token Administrador y un correo controlado nuevo:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  --data '{"nombreUsuario":"Ana","apellidoUsuario":"Perez","rutUsuario":"12.345.678-9","correoUsuario":"correo.controlado@example.cl","rolUsuario":"Operario Ventas"}'
+```
+
+Repetir la misma solicitud permite verificar la respuesta `409`. Los casos recuperables se verifican mediante tests simulados para no causar cuentas o correos no deseados.
+
+Reenvio del correo de establecimiento/cambio de contrasena con token Administrador y un correo controlado:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"correo.controlado@example.cl"}'
+```
+
+Caso `400` del reenvio:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"no-es-correo"}'
+```
+
+Caso `401` del reenvio:
+
+```bash
+curl -i -X POST http://localhost:3000/api/admin/users/password-setup-email \
+  -H "Content-Type: application/json" \
+  -d '{"correoUsuario":"correo.controlado@example.cl"}'
+```
+
+Caso `403` del reenvio: repetir la solicitud valida con un access token autenticado cuyo unico rol no sea `Administrador`.
+
+Solicitud publica de recuperacion con un correo controlado:
+
+```bash
+curl -i -X POST http://localhost:3000/api/auth/password-reset/request \
+  -H "Content-Type: application/json" \
+  -d '{"email":"correo.controlado@example.cl"}'
+```
+
+Probar con tres casos controlados: correo inexistente, usuario `Desvinculado` y usuario `Activo`. Solo el usuario `Activo` debe disparar correo Auth0.
+
+No registrar tokens reales, contrasenas ni datos personales en archivos o documentacion.
+
+Antes de abrir una solicitud de cambios, ejecutar al menos:
+
+```bash
+npm test
+```
+
+Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
+
+## Endpoints De Pedidos, Pagos Y Kanban
+
+Estos endpoints usan datos reales desde MySQL/Aiven mediante Prisma. Todos requieren access token Auth0 valido, salvo las rutas publicas indicadas en autenticacion y documentos.
+
+### `GET /api/orders` y `GET /api/orders/kanban`
+
+Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago y número de Nota de Venta. No incluyen archivos ni firmas de pago. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
+
+Campos relevantes de respuesta:
+
+```json
+{
+  "id_pedido": 1,
+  "nombre_cliente": "Cliente",
+  "rut_cliente": "12.345.678-9",
+  "nombre_producto": "Lanyards",
+  "cantidad": 100,
+  "id_etapa_general": 1,
+  "nombre_etapa_general": "Listo para produccion",
+  "id_estado_pago": 2,
+  "estado_pago": "Confirmado",
+  "numero_nota_venta": "NV-2026-3001"
+}
+```
+
+### `GET /api/orders/:orderId`
+
+Devuelve un pedido real por ID. Responde `404` si no existe.
+
+### `POST /api/orders`
+
+Crea un pedido real con cliente y detalles de producto. La pantalla frontend `/ordenes/nuevo` no consume este contrato todavia.
+
+Payload JSON esperado:
+
+```json
+{
+  "rut_cliente": "12.345.678-9",
+  "nombre_cliente": "Cliente",
+  "razon_social": "Cliente SpA",
+  "estado_cliente": "Activo",
+  "id_usuario": 1,
+  "id_etiqueta": null,
+  "productos": [
+    {
+      "nombre_producto": "Lanyards",
+      "cantidad": 100,
+      "fecha_estimada_termino": "2026-06-30"
+    }
+  ]
+}
+```
+
+`productos[]` debe contener al menos un producto con `nombre_producto` y `cantidad`. El backend crea o reutiliza el cliente por RUT, crea el pedido, resuelve el tipo de producto por nombre y crea los detalles dentro de una transaccion.
+
+### `GET /api/payment-status`
+
+Lista estados reales de pago. IDs usados por la base actual:
+
+- `1`: `Pendiente`
+- `2`: `Confirmado`
+- `3`: `Rechazado`
+
+### `PATCH /api/orders/:orderId/payment-status`
+
+Requiere permiso `update:payment-status`.
+
+```json
+{
+  "paymentStatusId": 2,
+  "observacion": "Cambio de estado a Confirmado desde modulo de pagos."
+}
+```
+
+El backend resuelve `Registro_Pago.id_usuario` desde `req.auth.payload.sub` contra `Usuario.id_auth0`; el frontend no debe enviar `id_usuario`.
+
+- Si queda `Confirmado`, registra auditoria y mueve la orden a `Listo para produccion`.
+- Si queda `Pendiente` o `Rechazado`, registra auditoria y devuelve la orden a `Confirmacion de pago`.
+- Si el pago ya estaba `Confirmado`, no permite devolverlo a `Pendiente` ni `Rechazado`.
+- Sin permiso `update:payment-status`, responde `403`.
+
+### `GET /api/orders/:orderId/payment-records/preview`
+
+Requiere `read:payments`. Devuelve datos JSON para la vista previa de cobranza; no genera ni firma PDF.
+
+### `GET /api/orders/:orderId/payment-records`
+
+Lista registros de auditoria de pago asociados al pedido.
+
+### `PATCH /api/orders/:orderId/move`
+
+Mueve un pedido entre etapas Kanban.
+
+```json
+{
+  "generalStepId": 1
+}
+```
+
+Etapas reales por `orden_kanban`: `0` Confirmacion de pago, `1` Listo para produccion, `2` En produccion y `3` Listo para entrega.
+
+- No permite retroceder etapas.
+- No permite saltar etapas.
+- No permite avanzar si el pago no esta `Confirmado`.
+- Para mover a `En produccion`, exige permiso `move:kanban-to-production`.
+
+Si se intenta mover un pedido con pago distinto de `Confirmado`, responde `409`:
+
+```json
+{
+  "message": "Pedido en espera de confirmacion de pago"
+}
+```
+
+Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de permisos, cerrar sesion y volver a iniciar sesion con usuarios controlados para emitir access tokens nuevos.
+
+## Otros Endpoints De Negocio
+
+- `GET /api/order-status` y `POST /api/order-status`: estados Kanban.
+- `GET /api/orders/:orderId/details`, `GET /api/orders/:orderId/details/:detailId` y `POST /api/orders/:orderId/details`: detalles de pedido.
+- `GET /api/clients/:clientId`, `GET /api/clients/rut/:rutCliente` y `POST /api/clients`: clientes.
+- `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
+- El módulo de documentos/PDF fue retirado; `/api/documents/*` ya no se monta.
+
+### PIN debug para Soporte (desarrollo)
+
+Para habilitar el botón **Generar nuevo PIN (debug)** en el perfil, inicia la SPA
+con `npm run dev` y el backend con `APP_ENV=development npm run dev`.
+`POST /api/auth/pin/debug-reset` exige sesión activa, rol Soporte coincidente
+con la BD y permiso `manage:own-pin`; opera solo sobre el usuario autenticado.
+Reemplaza el PIN anterior e invalida códigos de recuperación pendientes. El nuevo
+PIN se muestra con el flujo habitual de entrega y su copia cifrada se elimina al
+aceptarlo. No requiere cambios en Auth0 ni en el esquema de BD.
+El endpoint rechaza cualquier entorno distinto de `development`, incluido uno
+sin `APP_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
+ese entorno; las compilaciones de producción de la SPA no muestran el botón.
+
+### Recuperación de PIN
+
+La entrega automática de códigos permanece deshabilitada de forma fail-closed
+en `development`, `test` y `production` hasta integrar y aprobar un proveedor.
+El backend nunca registra el correo ni el código en consola. Las pruebas deben
+inyectar un delivery falso y usar únicamente direcciones sintéticas. Mientras
+no exista proveedor, `POST /api/auth/pin-recovery/request` responde `503` con
+`PIN_RECOVERY_DELIVERY_UNAVAILABLE`; no se debe interpretar como entrega.

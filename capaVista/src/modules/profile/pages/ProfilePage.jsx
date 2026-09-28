@@ -322,7 +322,7 @@ export default function ProfilePage() {
                 <div className="modal-body">
                   {!recoveryRequested ? (
                     <p>
-                      En desarrollo el codigo temporal se registra en la consola del backend.
+                      El codigo se enviara por el canal de recuperacion configurado. Nunca se mostrara en esta aplicacion.
                     </p>
                   ) : (
                     <label className="form-label w-100">

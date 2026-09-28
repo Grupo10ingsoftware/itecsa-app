@@ -148,6 +148,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
         userId: CURRENT_ADMIN_ID,
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Administrador Produccion",
+        rolUsuarioAnterior: "Administrador Produccion",
     });
     assert.deepEqual(internalPayload, {
         userId: CURRENT_ADMIN_ID,

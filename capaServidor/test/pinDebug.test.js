@@ -40,14 +40,14 @@ async function fixture() {
 }
 
 test('debug PIN: environment, authorization, rotation and transaction', async (t) => {
-    const previous = process.env.NODE_ENV;
-    t.after(() => { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; });
+    const previous = process.env.APP_ENV;
+    t.after(() => { if (previous === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = previous; });
     const f = await fixture();
     for (const env of ['production', 'test', '', undefined]) {
-        if (env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = env;
+        if (env === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = env;
         await assert.rejects(f.service.debugReset(payload), { code: 'PIN_DEBUG_DISABLED' });
     }
-    process.env.NODE_ENV = 'development';
+    process.env.APP_ENV = 'development';
     for (const role of Object.values(ROLES).filter(r => r !== ROLES.SOPORTE)) {
         await assert.rejects(f.service.debugReset({ ...payload, [ROLES_CLAIM]: [role] }), { code: 'PIN_DEBUG_FORBIDDEN' });
     }

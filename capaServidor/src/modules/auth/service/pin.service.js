@@ -488,10 +488,9 @@ export class PinService {
                 data: { delivery_status: "delivered" },
             });
         } catch (error) {
-<<<<<<< HEAD
             this.logger.error?.("pin_recovery_delivery_failure");
             try {
-                await this.client.pinRecoveryChallenge.update({
+                await this.client.pinRecoveryChallenge.updateMany({
                     where: {
                         id_pin_recovery_challenge:
                             challenge.id_pin_recovery_challenge,
@@ -502,15 +501,6 @@ export class PinService {
                 // Do not expose persistence errors; confirmation only selects delivered challenges.
                 this.logger.error?.("pin_recovery_delivery_status_failed");
             }
-=======
-            await this.client.pinRecoveryChallenge.updateMany({
-                where: {
-                    id_pin_recovery_challenge:
-                        challenge.id_pin_recovery_challenge,
-                },
-                data: { delivery_status: "failed", used_at: now },
-            });
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
             if (error instanceof PinDeliveryUnavailableError) throw new PinDeliveryUnavailableError();
 

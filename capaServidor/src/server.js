@@ -1,10 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-<<<<<<< HEAD
 import { requestContext, errorHandler } from './errors/httpErrors.js';
-=======
 import { resolveEnvironmentConfig } from './config/environment.js';
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
 import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';

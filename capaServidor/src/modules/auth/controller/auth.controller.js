@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { respondError } from "../../../errors/httpErrors.js";
-import { createHash } from "node:crypto";
-=======
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 import {
     requestPasswordSetupEmail,
 } from "../../users/service/auth0Management.service.js";
@@ -15,21 +11,10 @@ const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACTIVE_USER_STATUSES = new Set(["Activo", "Vinculado"]);
-<<<<<<< HEAD
-const PASSWORD_RESET_NOT_REGISTERED_MESSAGE =
-    "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.";
-const PASSWORD_RESET_DISABLED_MESSAGE =
-    "Tu cuenta se encuentra desactivada. Comunícate con el administrador.";
-const PASSWORD_RESET_SENT_MESSAGE =
-    "Te enviamos un enlace para cambiar tu contraseña.";
-=======
 const PASSWORD_RESET_ACCEPTED_MESSAGE =
     "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.";
 const PASSWORD_RESET_ERROR_MESSAGE =
     "No fue posible solicitar el correo de recuperación de contraseña.";
-const VERIFY_SESSION_ERROR_MESSAGE =
-    "No fue posible verificar la sesion autenticada.";
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 
 function invalidPasswordResetRequest(message) {
     return { valid: false, message };
@@ -219,20 +204,9 @@ export function createPasswordResetRequestHandler({
             await requestPasswordEmail({ email });
             logPasswordResetAttempt(logger, "requested");
         } catch (error) {
-<<<<<<< HEAD
-            return respondError(error, req, res, { logger });
-=======
-            if (error instanceof Auth0ServiceError) {
-                logger.error?.("password_reset_auth0_error", {
-                    code: error.code,
-                    status: error.status,
-                });
-            } else {
-                logger.error?.("password_reset_delivery_error", {
-                    code: error?.code,
-                });
-            }
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
+            logger.error?.("password_reset_delivery_error", {
+                code: error?.code,
+            });
         }
 
         return acceptedPasswordResetResponse(res);

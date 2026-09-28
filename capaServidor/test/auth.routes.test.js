@@ -337,17 +337,10 @@ test("un error Auth0 no revela si la cuenta existe", async () => {
         },
     });
 
-<<<<<<< HEAD
-    assert.equal(res.statusCode, 500);
-    assert.equal(res.body.code, "INTERNAL_ERROR");
-    assert.equal(res.body.message, "Ocurrio un error interno.");
-    assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
-=======
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.status, "accepted");
     assert.equal(JSON.stringify(loggerCalls).includes("usuario@example.cl"), false);
     assert.equal(JSON.stringify(loggerCalls).includes("detalle interno"), false);
->>>>>>> 98444449 (Se solucionan los hallazgos H03, H04 y H05)
 });
 
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {

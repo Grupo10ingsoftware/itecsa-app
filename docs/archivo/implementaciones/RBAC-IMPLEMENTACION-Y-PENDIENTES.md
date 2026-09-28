@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 05-09-2026; contiene observaciones posteriores del 06 y 25-09-2026.
+> Ubicación original: `docs/RBAC-IMPLEMENTACION-Y-PENDIENTES.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../auth0/README.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # RBAC ITECSA: implementación y pendientes
 
 Fecha: 5 de septiembre de 2026, Chile (verificación del tenant: 6 de septiembre UTC).

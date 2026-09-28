@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 26-09-2026; implementación iniciada en 103eab8 sobre c60cdf9.
+> Ubicación original: `docs/PAYMENTS_IMPLEMENTACION_ESTADO.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../modulos/PAYMENTS.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Estado de implementación de Payments
 
 Este seguimiento complementa [la auditoría inicial](../PAYMENTS_AUDITORIA_PLAN_ACCION.md), que describe el sistema en `0b3d83e`. Sus hallazgos y su frase "implementación no iniciada" son históricos. La implementación comenzó en `103eab8`, sobre `c60cdf9`.

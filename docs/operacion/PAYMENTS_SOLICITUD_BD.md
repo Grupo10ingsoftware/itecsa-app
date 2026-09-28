@@ -1,6 +1,8 @@
 # Solicitud a responsables de base de datos: pruebas aisladas de Payments
 
-Esta solicitud prepara la validación de PAY-ACT-002, PAY-ACT-003 y la dependencia de esquema de PAY-ACT-006. **No autoriza cambios en `mydb` ni despliegue.** La aplicación está en la rama `opt-cobranzas`; el cambio de pago usa `SELECT ... FOR UPDATE`, revalida dentro de `$transaction` y registra el estado anterior prospectivamente.
+Esta solicitud prepara la validación de PAY-ACT-002, PAY-ACT-003 y la dependencia de esquema de PAY-ACT-006. **No autoriza cambios en `mydb` ni despliegue.** El cambio se incorporó originalmente en `opt-cobranzas`; el código de pago usa `SELECT ... FOR UPDATE`, revalida dentro de `$transaction` y registra el estado anterior prospectivamente.
+
+El estado de las acciones se mantiene en [pendientes](../PENDIENTES.md) y el comportamiento en [Payments](../modulos/PAYMENTS.md). Las ausencias de esquema descritas corresponden al preflight del 26-09-2026; volver a inspeccionarlas en el entorno autorizado.
 
 ## Entorno que se solicita
 

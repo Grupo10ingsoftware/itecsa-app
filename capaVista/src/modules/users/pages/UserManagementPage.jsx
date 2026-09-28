@@ -20,7 +20,6 @@ const EMPTY_SUMMARY = Object.freeze({
   vinculados: 0,
   desvinculados: 0,
   pendientes: 0,
-  noClasificados: 0,
 })
 
 const DEFAULT_PAGE_SIZE = 10
@@ -194,7 +193,6 @@ export default function UserManagementPage() {
         vinculados: response.vinculados ?? 0,
         desvinculados: response.desvinculados ?? 0,
         pendientes: response.pendientes ?? 0,
-        noClasificados: response.noClasificados ?? 0,
       })
       setSummaryState({ error: '', hasData: true, isLoading: false })
     } catch (error) {

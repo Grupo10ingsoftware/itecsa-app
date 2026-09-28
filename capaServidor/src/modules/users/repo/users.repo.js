@@ -239,10 +239,6 @@ export class UserRepository {
                 vinculados,
                 desvinculados,
                 pendientes,
-                noClasificados: Math.max(
-                    0,
-                    totalUsuarios - vinculados - desvinculados - pendientes,
-                ),
             };
         } catch (error) {
             throw mapRepositoryError(error);

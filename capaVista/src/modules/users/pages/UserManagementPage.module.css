@@ -106,16 +106,6 @@
   color: var(--users-red);
 }
 
-.summaryIconpending {
-  background: #fff7db;
-  color: #9a6700;
-}
-
-.summaryIconreview {
-  background: #f3e8ff;
-  color: #7e22ce;
-}
-
 .summaryContent {
   display: grid;
   gap: 0.15rem;

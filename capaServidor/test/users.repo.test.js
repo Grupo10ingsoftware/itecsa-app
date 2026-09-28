@@ -169,7 +169,7 @@ test('filtros de estado distinguen activos, pendientes y desvinculados', () => {
     });
 });
 
-test('summary explicita estados pendientes y no clasificados en una consulta', async () => {
+test('summary explicita estados visibles en una consulta', async () => {
     let receivedQuery;
     const repository = new UserRepository({ prisma: { usuario: {
         async groupBy(query) {
@@ -197,6 +197,5 @@ test('summary explicita estados pendientes y no clasificados en una consulta', a
         vinculados: 5,
         desvinculados: 1,
         pendientes: 4,
-        noClasificados: 2,
     });
 });

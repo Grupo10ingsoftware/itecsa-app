@@ -3,9 +3,7 @@ import styles from '../pages/UserManagementPage.module.css'
 const SUMMARY_CARDS = Object.freeze([
   { key: 'totalUsuarios', label: 'Total usuarios', icon: 'bi-people', tone: 'total' },
   { key: 'vinculados', label: 'Vinculados', icon: 'bi-check-lg', tone: 'linked' },
-  { key: 'pendientes', label: 'Pendientes', icon: 'bi-hourglass-split', tone: 'pending' },
   { key: 'desvinculados', label: 'Desvinculados', icon: 'bi-person-x', tone: 'unlinked' },
-  { key: 'noClasificados', label: 'Por revisar', icon: 'bi-exclamation-triangle', tone: 'review' },
 ])
 
 export default function UserSummaryCards({ isLoading = false, summary }) {

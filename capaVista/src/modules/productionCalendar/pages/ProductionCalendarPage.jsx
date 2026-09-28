@@ -28,6 +28,15 @@ function toCalendarDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
 }
 
+function monthRange(monthDate) {
+  const year = monthDate.getFullYear()
+  const month = monthDate.getMonth()
+  const first = new Date(year, month, 1)
+  const last = new Date(year, month + 1, 0)
+  const key = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return { from: key(first), to: key(last) }
+}
+
 function normalizeText(value) {
   return String(value ?? '')
     .trim()
@@ -93,7 +102,8 @@ export default function ProductionCalendarPage() {
     async function loadOrders() {
       try {
         setLoadError(null)
-        const orders = await ordersCalendarApi.getOrders()
+        const result = await ordersCalendarApi.getOrders(monthRange(monthDate))
+        const orders = result.items ?? []
 
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
@@ -102,8 +112,7 @@ export default function ProductionCalendarPage() {
                 .map(normalizeCalendarOrder)
             : [])
         }
-      } catch (error) {
-        console.error('Error cargando pedidos del calendario:', error)
+      } catch {
         if (isMounted) {
           setLoadError('No fue posible cargar los pedidos compartidos del calendario.')
         }
@@ -115,7 +124,7 @@ export default function ProductionCalendarPage() {
     return () => {
       isMounted = false
     }
-  }, [ordersCalendarApi])
+  }, [monthDate, ordersCalendarApi])
 
   useEffect(() => {
     if (!draggedItemId) return undefined

@@ -18,7 +18,7 @@ class PaymentStatusController {
             if ( !result ) return res.status( 404 ).json({msg:'Estado no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {
-            sendPaymentError(res, error)
+            return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
         }
     }
 
@@ -28,7 +28,7 @@ class PaymentStatusController {
 
             res.status(200).json(result);
         } catch (error) {
-            sendPaymentError(res, error)
+            return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
         }
     }
 

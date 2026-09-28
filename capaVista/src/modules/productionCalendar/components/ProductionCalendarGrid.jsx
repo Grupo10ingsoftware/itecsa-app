@@ -1,6 +1,6 @@
 import { useAuth } from "../../../hooks/useAuth";
 import { PERMISSIONS } from "../../../config/permissions";
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { WEEK_DAYS, buildMonthGrid, groupItemsByDate, isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
 
@@ -711,11 +711,12 @@ export default function ProductionCalendarGrid({
 
   const { hasPermission } = useAuth()
 
-  useEffect(() => {
+  const [previousSourceItems, setPreviousSourceItems] = useState(sourceItems)
+  if (sourceItems !== previousSourceItems) {
     const sourceItemIds = new Set(sourceItems.map((item) => String(item.id)))
-
+    setPreviousSourceItems(sourceItems)
     setTransferItemIds((currentIds) => currentIds.filter((itemId) => sourceItemIds.has(String(itemId))))
-  }, [sourceItems])
+  }
 
   function handleDropTransferItem(itemId) {
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import {
     Auth0ServiceError,
     requestPasswordSetupEmail,
@@ -7,20 +7,15 @@ import userRepository from "../../users/repo/users.repo.js";
 import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService, { PinServiceError } from "../service/pin.service.js";
 import { PinDeliveryUnavailableError } from "../service/pinDelivery.service.js";
+import { safeLogger } from "../../../shared/safeLogger.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ACTIVE_USER_STATUSES = new Set(["Activo", "Vinculado"]);
-const PASSWORD_RESET_NOT_REGISTERED_MESSAGE =
-    "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.";
-const PASSWORD_RESET_DISABLED_MESSAGE =
-    "Tu cuenta se encuentra desactivada. Comunícate con el administrador.";
-const PASSWORD_RESET_SENT_MESSAGE =
-    "Te enviamos un enlace para cambiar tu contraseña.";
-const PASSWORD_RESET_ERROR_MESSAGE =
-    "No fue posible solicitar el correo de recuperación de contraseña.";
+const PASSWORD_RESET_ACCEPTED_MESSAGE =
+    "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.";
 const VERIFY_SESSION_ERROR_MESSAGE =
     "No fue posible verificar la sesion autenticada.";
 
@@ -51,19 +46,21 @@ function validatePasswordResetRequest(body) {
 }
 
 function hashEmail(email) {
-    return createHash("sha256").update(email).digest("hex");
+    const key = process.env.SECURITY_LOG_HMAC_KEY ?? process.env.RATE_LIMIT_SECRET;
+    if (!key) return "unavailable";
+    return createHmac("sha256", key).update(email).digest("hex");
 }
 
 function logPasswordResetAttempt(logger, { email, status }) {
     logger.info?.("password_reset_request", {
-        emailHash: hashEmail(email),
-        status,
+        correlationId: hashEmail(email),
+        outcome: status,
     });
 }
 
 export function createVerifyAuthSessionHandler({
     pins = { async ensureProvisioned() { return "active"; } },
-    logger = console,
+    logger = safeLogger,
 } = {}) {
     return async function verifyAuthSessionHandler(req, res) {
         const payload = req.auth?.payload;
@@ -113,9 +110,9 @@ export function createVerifyAuthSessionHandler({
             });
         } catch (error) {
             logger.error?.("auth_verify_role_sync_error", {
-                auth0UserId: payload.sub,
-                rolUsuario,
+                actorId: req.currentUser?.idUsuario,
                 code: error?.code,
+                outcome: "error",
             });
 
             if (error instanceof PinServiceError && error.status === 403) {
@@ -125,7 +122,7 @@ export function createVerifyAuthSessionHandler({
                 });
             }
 
-            return res.status(500).json({ message: VERIFY_SESSION_ERROR_MESSAGE });
+            return res.status(500).json({ code: "INTERNAL_ERROR", message: VERIFY_SESSION_ERROR_MESSAGE, requestId: req.requestId });
         }
     };
 }
@@ -217,9 +214,13 @@ export function createConfirmPinRecoveryHandler({ pins = pinService } = {}) {
 export function createPasswordResetRequestHandler({
     users = userRepository,
     requestPasswordEmail = requestPasswordSetupEmail,
-    logger = console,
+    logger = safeLogger,
+    sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    minimumDelayMs = 600,
+    random = Math.random,
 } = {}) {
     return async function passwordResetRequestHandler(req, res) {
+        const startedAt = Date.now();
         const validatedRequest = validatePasswordResetRequest(req.body);
 
         if (!validatedRequest.valid) {
@@ -227,43 +228,33 @@ export function createPasswordResetRequestHandler({
         }
 
         const { email } = validatedRequest;
+        let outcome = "accepted";
 
         try {
             const user = await users.findByEmail(email);
 
-            if (!user) {
-                logPasswordResetAttempt(logger, { email, status: "not_registered" });
-                return res.status(200).json({
-                    status: "not_registered",
-                    message: PASSWORD_RESET_NOT_REGISTERED_MESSAGE,
-                });
+            if (user && ACTIVE_USER_STATUSES.has(user.estadoUsuario)) {
+                await requestPasswordEmail({ email });
             }
-
-            if (!ACTIVE_USER_STATUSES.has(user.estadoUsuario)) {
-                logPasswordResetAttempt(logger, { email, status: "disabled" });
-                return res.status(200).json({
-                    status: "disabled",
-                    message: PASSWORD_RESET_DISABLED_MESSAGE,
-                });
-            }
-
-            await requestPasswordEmail({ email });
-            logPasswordResetAttempt(logger, { email, status: "sent" });
-
-            return res.status(200).json({
-                status: "sent",
-                message: PASSWORD_RESET_SENT_MESSAGE,
-            });
         } catch (error) {
+            outcome = "delivery_error";
             if (error instanceof Auth0ServiceError) {
                 logger.error?.("password_reset_auth0_error", {
                     code: error.code,
-                    status: error.status,
+                    outcome: "error",
                 });
             }
-
-            return res.status(500).json({ message: PASSWORD_RESET_ERROR_MESSAGE });
         }
+
+        logPasswordResetAttempt(logger, { email, status: outcome });
+        const targetDelay = minimumDelayMs + Math.floor(random() * 200);
+        const remaining = targetDelay - (Date.now() - startedAt);
+        if (remaining > 0) await sleep(remaining);
+
+        return res.status(202).json({
+            status: "accepted",
+            message: PASSWORD_RESET_ACCEPTED_MESSAGE,
+        });
     };
 }
 
@@ -285,7 +276,7 @@ export function createGetProfileHandler({ users = userRepository } = {}) {
                 records,
             });
         } catch {
-            return res.status(503).json({ message: "No fue posible cargar tu perfil. Intenta nuevamente." });
+            return res.status(503).json({ code: "INTERNAL_ERROR", message: "No fue posible cargar tu perfil. Intenta nuevamente.", requestId: req.requestId });
         }
     };
 }

@@ -36,7 +36,11 @@ export function createRequireActiveIdentity({ repository = users, resolveAuth0Ro
       req.currentUser = user;
       return next();
     } catch {
-      return res.status(503).json({ message: 'No fue posible verificar el acceso.' });
+      return res.status(503).json({
+        code: 'INTERNAL_ERROR',
+        message: 'No fue posible verificar el acceso.',
+        requestId: req.requestId,
+      });
     }
   };
 }

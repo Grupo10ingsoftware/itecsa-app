@@ -5,6 +5,7 @@ import OrderDetailRepo from "../repo/orderDetail.repo.js";
 import OrderDetailService from "./orderDetail.service.js";
 import ProductTypeRepo from "../../products/repo/product.repo.js";
 import ProductTypeService from "../../products/service/product.service.js";
+import SecurityAuditRepository from "../../security/repo/securityAudit.repo.js";
 
 // La inyeccion de fuente/repositorios nunca desactiva esta transaccion.
 // Los tests pueden proporcionar explicitamente otra unidad de trabajo.
@@ -14,6 +15,7 @@ export function createSalesOrderTransaction(getClient) {
     clientService: new ClientService({ repo: new ClientRepo({ prisma: tx }) }),
     orderDetailService: new OrderDetailService({ repo: new OrderDetailRepo({ prisma: tx }) }),
     productTypeService: new ProductTypeService({ repo: new ProductTypeRepo({ prisma: tx }) }),
+    securityAudit: new SecurityAuditRepository({ prisma: tx }),
     repoClient: tx,
   }), { timeout: 20000, maxWait: 10000 });
 }

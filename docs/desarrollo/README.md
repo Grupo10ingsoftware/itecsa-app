@@ -11,6 +11,7 @@ Desde la raíz:
 ```bash
 cp -n capaServidor/env.example capaServidor/.env
 cp -n capaVista/env.example capaVista/.env
+npm ci --prefix tooling/prisma
 npm ci --prefix capaServidor
 npm ci --prefix capaVista
 ```
@@ -34,6 +35,8 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 | API: `PORT`, `FRONTEND_ORIGIN` | Puerto HTTP y origen permitido por CORS |
 | API: `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` | Issuer y audience del JWT; obligatorios en el arranque |
 | API: `AUTH0_MANAGEMENT_CLIENT_ID`, `AUTH0_MANAGEMENT_CLIENT_SECRET`, `AUTH0_DATABASE_CONNECTION`, `AUTH0_PASSWORD_RESET_CLIENT_ID` | Gestión de identidades y solicitud de correos; exclusivos del servidor |
+| API: `APP_ENV` | Entorno obligatorio: `development`, `test` o `production`; las cuotas son persistentes en producci?n |
+| API: `RATE_LIMIT_SECRET`, `CURSOR_SECRET`, `SECURITY_LOG_HMAC_KEY` | Claves de seguridad del servidor; consultar las plantillas y la [gu?a de seguridad](../security/README.md) |
 | API: `PIN_SECRET` | Obligatorio; exactamente 32 bytes en base64 para cifrado y huellas de PIN |
 | API: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL_CA_PATH` | Adaptador MariaDB/MySQL con CA y TLS |
 | Prisma CLI: `DATABASE_URL` | Conexión definida en `prisma.config.ts`; debe corresponder a la misma base del runtime |

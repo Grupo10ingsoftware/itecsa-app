@@ -11,10 +11,6 @@ class OrderStatusService {
 
 
         const { nombre_etapa, orden_kanban, descripcion_estado} = data;
-        console.log(nombre_etapa);
-        console.log(orden_kanban);
-        console.log( descripcion_estado);
-
         if (!nombre_etapa || orden_kanban === undefined) {
             const error = new Error("Faltan datos obligatorios");
             error.statusCode = 400;

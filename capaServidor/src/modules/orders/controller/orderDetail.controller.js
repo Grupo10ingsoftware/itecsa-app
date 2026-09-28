@@ -15,7 +15,7 @@ class OrderDetailController {
 
       res.status(201).json(detail);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+      return sendOrderOperationError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 
@@ -27,7 +27,7 @@ class OrderDetailController {
 
       res.status(200).json(detail);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+      return sendOrderOperationError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 
@@ -39,7 +39,7 @@ class OrderDetailController {
 
       res.status(200).json(details);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+      return sendOrderOperationError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 }

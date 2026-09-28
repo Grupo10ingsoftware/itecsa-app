@@ -14,7 +14,7 @@ class PaymentRecordController {
 
       res.status(200).json(record);
     } catch (error) {
-      sendPaymentError(res, error);
+      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 
@@ -25,7 +25,7 @@ class PaymentRecordController {
 
       res.status(200).json(records);
     } catch (error) {
-      sendPaymentError(res, error);
+      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 
@@ -36,7 +36,7 @@ class PaymentRecordController {
 
       res.status(200).json(details);
     } catch (error) {
-      sendPaymentError(res, error);
+      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
     }
   };
 }

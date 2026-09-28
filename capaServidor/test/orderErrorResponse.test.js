@@ -17,10 +17,11 @@ test("un fallo interno en Orders no revela el mensaje de la base", async () => {
     getPaymentWorkspace: async () => { throw new Error("SQL private detail"); },
   } });
   const res = response();
-  await controller.getPaymentWorkspace({}, res);
+  await controller.getPaymentWorkspace({ requestId: "request-1" }, res);
   assert.equal(res.code, 500);
   assert.doesNotMatch(JSON.stringify(res.body), /SQL private detail/);
-  assert.ok(res.body.reference);
+  assert.equal(res.body.requestId, "request-1");
+  assert.equal(res.body.code, "INTERNAL_ERROR");
 });
 
 test("un fallo interno en el detalle no revela el mensaje de la base", async () => {

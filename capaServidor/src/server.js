@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 
-import authRoutes from './modules/auth/routes/auth.routes.js';
+import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
 import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
+import { createInternalHealthRouter } from './modules/health/routes/health.routes.js';
 import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
 import productionCapacityRoutes from './modules/productionCapacity/routes/productionCapacity.routes.js';
 import productionLoadRoutes from './modules/productionLoad/routes/productionLoad.routes.js';
@@ -22,11 +23,18 @@ import clientsRoutes from './modules/clients/routes/clients.routes.js';
 import messageRoutes from './modules/messages/routes/message.routes.js';
 import orderHistoryRoutes from './modules/history/routes/orderHistory.routes.js';
 import metricsRoutes from './modules/metrics/routes/metrics.routes.js';
+import requestContext from './middlewares/requestContext.js';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
+import { safeLogger } from './shared/safeLogger.js';
+import supportAudit from './middlewares/supportAudit.js';
 class Server {
-  constructor() {
+  constructor({ appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
     this.port = process.env.PORT; // definido en .env
+    this.appEnvironment = appEnvironment;
+    this.logger = logger;
     this.paths = {
         // Rutas cuando las tengamos
 
@@ -67,12 +75,17 @@ class Server {
   // aca mismo podemos tener una función asincrona para conectar a la base de datos cuando este disponible
   middlewares() {
 
+    this.app.set('trust proxy', parseTrustedProxy(process.env.TRUST_PROXY));
+    this.app.disable('x-powered-by');
+    this.app.use(requestContext);
+    this.app.use(supportAudit);
+
     // Cors
     this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
-    this.app.use( express.json() );
+    this.app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '100kb' }));
 
     // Directorio publico
     this.app.use(express.static("public"));
@@ -91,10 +104,13 @@ class Server {
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API
      */
-    this.app.use( this.paths.auth, authRoutes)
+    this.app.use(this.paths.auth, createAuthRouter())
     this.app.use( this.paths.admin, adminUsersRoutes)
-    this.app.use( this.paths.demoOrders, demoOrdersRoutes)
+    if (this.appEnvironment === 'development' || this.appEnvironment === 'test') {
+      this.app.use(this.paths.demoOrders, demoOrdersRoutes)
+    }
     this.app.use( this.paths.health, healthRoutes)
+    this.app.use('/internal', createInternalHealthRouter({ logger: this.logger }))
     this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.history, orderHistoryRoutes)
     this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
@@ -109,13 +125,20 @@ class Server {
 
     this.app.use(this.paths.client, clientsRoutes)
 
+    this.app.use(notFoundHandler)
+    this.app.use(errorHandler)
+
 
   }
 
   listen() {
-    this.app.listen(this.port, () => {
-      console.log("Servidor corriendo en puerto", this.port);
+    const httpServer = this.app.listen(this.port, () => {
+      this.logger.info("server.started", { outcome: "ok" });
     });
+    httpServer.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS ?? 15000);
+    httpServer.headersTimeout = Number(process.env.HTTP_HEADERS_TIMEOUT_MS ?? 10000);
+    httpServer.keepAliveTimeout = Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS ?? 5000);
+    return httpServer;
   }
 }
 

@@ -28,7 +28,7 @@ const validatePin = createRequirePin({pins:{async validate(sub,pin) {
   return {idUsuario:1};
 }}});
 const ok = (_req,res) => res.sendStatus(204);
-const controller = Object.fromEntries(['summary','getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
+const controller = Object.fromEntries(['summary','getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','listOrderEvents','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
 async function listen(app,t) {const s=app.listen(0); t.after(()=>s.close()); await once(s,'listening'); return `http://127.0.0.1:${s.address().port}`;}
 
 // Expected access is literal and independent of ROLE_PERMISSIONS. Tokens deliberately
@@ -46,7 +46,7 @@ const endpoints = [
  ['GET','/capacity',all],['PATCH','/capacity',[AP,S]],
  ['GET','/load/today',all],['PATCH','/load/today',[AP,S]],
  ['POST','/calendar/operational-load',[AP,AV,OV,S]],
- ['GET','/history/orders',all],['GET','/history/orders/1',all],
+ ['GET','/history/orders',all],['GET','/history/orders/1',all],['GET','/history/orders/1/events',all],
  ['GET','/messages',all],['GET','/messages/notifications',all],['GET','/messages/1',all],
  ['PATCH','/messages/notifications',all],['PATCH','/messages/notifications/1',all],['PATCH','/messages/1/read',all],
 ];

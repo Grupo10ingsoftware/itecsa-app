@@ -173,7 +173,6 @@ export default function KanbanOffCanvas({
   onRollbackSubprocess,
   onReevaluate,
   onCancelProduction,
-  onUpdateOrder,
   onSendToReview,
   order,
 }) {

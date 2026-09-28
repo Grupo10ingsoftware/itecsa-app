@@ -1,0 +1,89 @@
+name: Security and quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main, opt-historial]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+          MYSQL_DATABASE: itecsa_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ptest-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: test
+      AUTH0_DOMAIN: test.invalid
+      AUTH0_AUDIENCE: https://api.itecsa.local
+      FRONTEND_ORIGIN: http://localhost:5173
+      PIN_SECRET: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+      RATE_LIMIT_SECRET: BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ=
+      SECURITY_LOG_HMAC_KEY: CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: test-password
+      DB_NAME: itecsa_test
+      DB_SSL_MODE: disabled
+      DATABASE_URL: mysql://root:test-password@127.0.0.1:3306/itecsa_test
+      RUN_MYSQL_INTEGRATION: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            capaServidor/package-lock.json
+            capaVista/package-lock.json
+            tooling/prisma/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci --prefix tooling/prisma
+          npm ci --prefix capaServidor
+          npm ci --prefix capaVista
+      - name: Validate Prisma and materialize the complete schema in disposable MySQL
+        run: |
+          npm run prisma:validate --prefix capaServidor
+          tooling/prisma/node_modules/.bin/prisma migrate diff --config capaServidor/prisma.config.ts --from-empty --to-schema capaServidor/prisma/schema.prisma --script | tooling/prisma/node_modules/.bin/prisma db execute --config capaServidor/prisma.config.ts --stdin
+          tooling/prisma/node_modules/.bin/prisma migrate diff --config capaServidor/prisma.config.ts --from-config-datasource --to-schema capaServidor/prisma/schema.prisma --exit-code
+          npm run prisma:generate --prefix capaServidor
+      - name: Backend tests including MySQL concurrency
+        run: npm test --prefix capaServidor
+      - name: Frontend tests, lint and build
+        run: |
+          npm test --prefix capaVista
+          npm run lint --prefix capaVista
+          npm run build --prefix capaVista
+      - name: Runtime dependency audit
+        run: |
+          npm audit --omit=dev --audit-level=high --prefix capaServidor
+          npm audit --omit=dev --audit-level=high --prefix capaVista
+          npm audit --audit-level=critical --prefix tooling/prisma
+      - name: Reject protected data artifacts
+        run: scripts/verify-data-artifacts.sh
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan git history for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.2 git /repo --redact --gitleaks-ignore-path /repo/.gitleaksignore --log-opts="--all"

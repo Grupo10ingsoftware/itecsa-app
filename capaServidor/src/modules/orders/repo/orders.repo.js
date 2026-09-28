@@ -1,6 +1,6 @@
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
-import { createLineSnapshots } from "../service/salesOrder.snapshot.js";
+import { createLineSnapshots, salesNoteLineIdentity } from "../service/salesOrder.snapshot.js";
 import { missingSnapshotOmit, snapshotData, snapshotOmit, supportsOrderSnapshots } from "./orderSnapshotSchema.js";
 
 
@@ -148,69 +148,9 @@ function mapUntrackedItem(item) {
   };
 }
 
-function personName(user) {
-  return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ").trim();
-}
-
-function mapOrderComments(order) {
-  const originObservation = String(order?.observacion_origen ?? "").trim();
-  const internalObservation = String(order?.observacion_interna ?? "").trim();
-  const source = originObservation
-    ? [
-        {
-          id: `pedido-${order.id_pedido}-observacion-origen`,
-          text: originObservation,
-          createdAt: order.fecha_creacion ?? null,
-          type: "source",
-        },
-      ]
-    : [];
-  const system = internalObservation
-    ? [
-        {
-          id: `pedido-${order.id_pedido}-observacion-interna`,
-          text: internalObservation,
-          createdAt: order.fecha_creacion ?? null,
-          type: "system",
-        },
-      ]
-    : [];
-  const subprocesses = Array.isArray(order?.Registros)
-    ? order.Registros
-        .filter((record) => record?.registro_subprocesos && stripLanyardProgressObservation(record?.observacion))
-        .map((record) => {
-          const subprocess = record.registro_subprocesos;
-          const text = stripLanyardProgressObservation(record.observacion);
-
-          return {
-            id: `registro-${record.ID_REGISTRO}`,
-            text,
-            createdAt: record.FECHA_HORA ?? null,
-            productType: subprocess.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
-            responsible: personName(record.Usuario) || record.Usuario?.correo_usuario || null,
-            subprocessName: subprocess.Estado_Subprocesos?.nombre_estado ?? "Subproceso",
-            type: "subprocess",
-          };
-        })
-        .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0))
-    : [];
-
-  const all = [...source, ...system, ...subprocesses]
-    .filter((comment) => String(comment.text ?? "").trim())
-    .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0));
-
-  return {
-    all,
-    source,
-    subprocesses,
-    system,
-  };
-}
-
 function toOrderSummaryDTO(order, paymentStatusName = null) {
   if (!order) return null;
 
-  const mappedComments = mapOrderComments(order);
   const detallePedido = Array.isArray(order.Detalle_pedido) ? order.Detalle_pedido : [];
   const totalProductNames = detallePedido.length > 0 ? uniqueProductNames(detallePedido) : undefined;
   const descripcionProducto = detallePedido.length > 0 ? uniqueProductDescriptions(detallePedido) : undefined;
@@ -223,12 +163,7 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
     fecha_creacion: order.fecha_creacion ?? null,
     fecha_estimada_termino: order.fecha_estimada_termino ?? null,
     dueDate: order.fecha_estimada_termino ?? null,
-    id_cliente: order.id_cliente ?? null,
-    id_usuario: order.id_usuario ?? null,
-    usuario_manager_origen: order.usuario_manager_origen ?? null,
-    nombre_cliente: order.Cliente?.nombre_cliente ?? null,
-    rut_cliente: order.Cliente?.rut_cliente ?? null,
-    razon_social: order.Cliente?.razon_social ?? null,
+    nombre_cliente: order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
     nombre_producto: totalProductNames,
     product: totalProductNames,
     descripcion_producto: descripcionProducto,
@@ -249,8 +184,6 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(order.Pedido_Item_Sin_Seguimiento)
       ? order.Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
-    comments: mappedComments.all,
-    commentGroups: mappedComments,
   };
 }
 
@@ -259,8 +192,6 @@ function toOrderDetailDTO(order, paymentStatusName = null) {
 
   return {
     ...toOrderSummaryDTO(order, paymentStatusName),
-    observacion_origen: order.observacion_origen ?? null,
-    observacion_interna: order.observacion_interna ?? null,
   };
 }
 
@@ -290,20 +221,14 @@ function mapPaymentOrderRow(order) {
 
 const orderReadSelect = {
   id_pedido: true,
-  id_cliente: true,
-  id_usuario: true,
   id_estado_pedido: true,
   id_estado_pago: true,
   numero_nota_venta: true,
   fecha_creacion: true,
   fecha_estimada_termino: true,
-  observacion_origen: true,
-  observacion_interna: true,
-  usuario_manager_origen: true,
   Cliente: {
     select: {
       nombre_cliente: true,
-      rut_cliente: true,
       razon_social: true,
     },
   },
@@ -371,40 +296,6 @@ const orderReadSelect = {
       subfamilia: true,
     },
   },
-  Registros: {
-    where: {
-      observacion: { not: null },
-      registro_subprocesos: { isNot: null },
-    },
-    orderBy: [
-      { FECHA_HORA: "asc" },
-      { ID_REGISTRO: "asc" },
-    ],
-    select: {
-      ID_REGISTRO: true,
-      FECHA_HORA: true,
-      observacion: true,
-      Usuario: {
-        select: {
-          nombre_usuario: true,
-          apellido_usuario: true,
-          correo_usuario: true,
-        },
-      },
-      registro_subprocesos: {
-        select: {
-          Estado_Subprocesos: { select: { nombre_estado: true } },
-          Detalle_pedido: {
-            select: {
-              Tipo_Producto: {
-                select: { nombre_producto: true },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
 };
 
 const legacyDetailSelect = { ...orderReadSelect.Detalle_pedido.select };
@@ -447,10 +338,34 @@ class OrderRepository {
     return Boolean(order);
   }
 
-  async getAllOrders() {
+  async getAllOrders({ limit = 50, cursor, status, search, productType, from, to } = {}) {
+    const where = {
+      ...(cursor ? { id_pedido: { lt: cursor.id } } : {}),
+      ...(status ? { Estado_Pedido: { is: { nombre_etapa: status } } } : {}),
+      ...(search ? {
+        OR: [
+          { numero_nota_venta: { contains: search } },
+          { Cliente: { is: { nombre_cliente: { contains: search } } } },
+          { Cliente: { is: { razon_social: { contains: search } } } },
+        ],
+      } : {}),
+      ...(productType ? {
+        Detalle_pedido: {
+          some: { Tipo_Producto: { is: { nombre_producto: { contains: productType } } } },
+        },
+      } : {}),
+      ...((from || to) ? {
+        fecha_estimada_termino: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lt: to } : {}),
+        },
+      } : {}),
+    };
     const orders = await this.client.pedidos.findMany({
+      where,
       select: await readSelect(this.client),
       orderBy: { id_pedido: "desc" },
+      take: limit + 1,
     });
 
     return orders.map((order) => mapOrderRow(order));
@@ -858,7 +773,16 @@ class OrderRepository {
     const snapshotsSupported = await supportsOrderSnapshots(this.client);
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(orderId) },
-      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" }, ...snapshotOmit(snapshotsSupported) } },
+      include: {
+        Detalle_pedido: {
+          orderBy: { id_detalle_pedido: "asc" },
+          include: {
+            Avance_Lanyard: { orderBy: { id_avance_lanyard: "desc" }, take: 1 },
+            _count: { select: { Comentario_Produccion: true, registro_subprocesos: true, Avance_Lanyard: true } },
+          },
+          ...snapshotOmit(snapshotsSupported),
+        },
+      },
     });
     if (!order) return null;
 
@@ -882,16 +806,54 @@ class OrderRepository {
       },
     });
 
-    // Adaptacion del nuevo contrato de persistencia; la correspondencia productiva
-    // por posicion sigue pendiente de auditoria transversal (OBS-ORD-002).
     const snapshots = createLineSnapshots(salesNote.items ?? []);
+    const incomingByIdentity = new Map();
+    for (const [index, item] of (salesNote.items ?? []).entries()) {
+      const identity = salesNoteLineIdentity(item);
+      if (incomingByIdentity.has(identity)) {
+        const error = new Error("La Nota de Venta contiene lineas productivas ambiguas o duplicadas.");
+        error.statusCode = 409;
+        throw error;
+      }
+      incomingByIdentity.set(identity, { item, index });
+    }
+    const existingByIdentity = new Map();
+    for (const detail of order.Detalle_pedido) {
+      const identity = salesNoteLineIdentity(detail);
+      if (existingByIdentity.has(identity)) {
+        const error = new Error("El pedido contiene lineas de origen ambiguas y requiere revision manual.");
+        error.statusCode = 409;
+        throw error;
+      }
+      existingByIdentity.set(identity, detail);
+    }
+
+    const removed = [...existingByIdentity.entries()].filter(([identity]) => !incomingByIdentity.has(identity));
+    for (const [, detail] of removed) {
+      const activityCount = Number(detail._count?.Comentario_Produccion ?? 0) +
+        Number(detail._count?.registro_subprocesos ?? 0) + Number(detail._count?.Avance_Lanyard ?? 0);
+      if (activityCount > 0 || detail.fecha_real_termino) {
+        const error = new Error("No se puede eliminar una linea con progreso o historial productivo.");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
     for (const [index, item] of (salesNote.items ?? []).entries()) {
       const type = await this.client.tipo_Producto.findFirst({
         where: { nombre_producto: item.tipoProducto },
       });
       if (!type) continue;
-      const existing = order.Detalle_pedido[index];
+      const existing = existingByIdentity.get(salesNoteLineIdentity(item));
       if (existing) {
+        const accumulated = Number(existing.Avance_Lanyard?.[0]?.cantidad_acumulada ?? 0);
+        if (Number(item.cantidad) < accumulated ||
+          (existing.id_tipo_producto && Number(existing.id_tipo_producto) !== Number(type.id_tipo_producto) &&
+            (Number(existing._count?.registro_subprocesos ?? 0) > 0 || accumulated > 0))) {
+          const error = new Error("La reevaluacion es incompatible con el progreso productivo existente.");
+          error.statusCode = 409;
+          throw error;
+        }
         await this.client.detalle_pedido.update({
           where: { id_detalle_pedido: existing.id_detalle_pedido },
           data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate }, snapshotsSupported),
@@ -908,6 +870,12 @@ class OrderRepository {
           id_estado_subproceso: first?.id_estado_subproceso ?? null,
         }, ...snapshotOmit(snapshotsSupported) });
       }
+    }
+
+    if (removed.length > 0) {
+      await this.client.detalle_pedido.deleteMany({
+        where: { id_detalle_pedido: { in: removed.map(([, detail]) => detail.id_detalle_pedido) } },
+      });
     }
 
     const updated = await this.transitionGeneralStage({

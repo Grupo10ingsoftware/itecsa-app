@@ -1,4 +1,5 @@
 import MetricsService from "../service/metrics.service.js";
+import { sendControllerError } from "../../../shared/httpResponse.js";
 
 export default class MetricsController {
     constructor({ service } = {}) {
@@ -9,9 +10,7 @@ export default class MetricsController {
         try {
             return res.status(200).json(await this.service.summary(req.query));
         } catch (error) {
-            return res.status(error.statusCode ?? 500).json({
-                message: error.message || "Error al consultar las metricas.",
-            });
+            return sendControllerError(req, res, error, "No fue posible consultar las metricas.");
         }
     };
 }

@@ -11,60 +11,34 @@ import { pinRecoveryFixture } from './helpers/pinRecoveryFixture.js';
 const response = () => ({ status(n) { this.statusCode = n; return this; }, json(body) { this.body = body; return this; } });
 
 for (const env of [
-    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'test' },
+    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'fake' },
+    { NODE_ENV: 'development', PIN_DELIVERY_PROVIDER: 'fake' },
+    { PIN_DELIVERY_PROVIDER: 'fake' },
+    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'resend' },
+    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'resend', RESEND_API_KEY: 'synthetic' },
+    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'resend', PIN_EMAIL_FROM: 'test@example.invalid' },
+    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'unknown' },
     { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'console' },
-    { NODE_ENV: 'development', PIN_DELIVERY_PROVIDER: 'test' },
-    { PIN_DELIVERY_PROVIDER: 'test' },
-    { PIN_DELIVERY_PROVIDER: 'email' },
-    { NODE_ENV: 'staging' },
-    { NODE_ENV: 'development', PIN_DELIVERY_PROVIDER: 'unknown' },
 ]) {
-    test(`rejects invalid explicit delivery configuration ${JSON.stringify(env)}`, () => {
-        assert.throws(() => createPinRecoveryDelivery({ env, testDelivery: createPinDeliveryFake().provider }),
-            { code: 'PIN_DELIVERY_CONFIGURATION_INVALID' });
+    test(`rejects invalid delivery configuration ${JSON.stringify(env)}`, () => {
+        assert.throws(() => createPinRecoveryDelivery({ env }), { code: 'PIN_DELIVERY_CONFIGURATION_INVALID' });
     });
 }
 
-for (const env of [{}, { NODE_ENV: 'production' }, { NODE_ENV: 'development' }, { NODE_ENV: 'test' },
-    { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'email' },
-    { NODE_ENV: 'development', PIN_DELIVERY_PROVIDER: 'email' }]) {
-    test(`missing delivery fails closed ${JSON.stringify(env)}`, async () => {
-        await assert.rejects(createPinRecoveryDelivery({ env }).sendCode({}), { code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE' });
-    });
-}
+test('missing provider remains disabled without an insecure fallback', async () => {
+    assert.deepEqual(readPinDeliveryConfiguration({}), { environment: null, provider: 'disabled' });
+    await assert.rejects(createPinRecoveryDelivery({ env: {} }).sendCode({}), { code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE' });
+});
 
-test('test provider requires in-process injection and retains code only until consumed by test', async () => {
-    const env = { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'test' };
-    assert.throws(() => createPinRecoveryDelivery({ env }), { code: 'PIN_DELIVERY_CONFIGURATION_INVALID' });
+test('fake accepts only minimal fields, sends once and stores in process memory', async () => {
     const fake = createPinDeliveryFake();
     const input = { to: 'synthetic@example.invalid', code: '123456', expiresAt: new Date() };
-    await createPinRecoveryDelivery({ env, testDelivery: fake.provider }).sendCode(input);
+    const provider = createPinRecoveryDelivery({ env: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'fake' }, testDelivery: fake.provider });
+    assert.equal(await provider.sendCode({ ...input, extra: 'discard' }), undefined);
+    assert.equal(fake.provider.messages.length, 1);
     assert.deepEqual(fake.takeDelivery(), input);
     assert.equal(fake.takeDelivery(), undefined);
-});
-
-test('development email requires explicit activation; adapter result is never returned', async () => {
-    let count = 0;
-    const emailDelivery = { async sendCode() { count++; return { code: '123456' }; } };
-    await assert.rejects(createPinRecoveryDelivery({ env: { NODE_ENV: 'development' }, emailDelivery }).sendCode({}),
-        { code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE' });
-    assert.equal(count, 0);
-    const provider = createPinRecoveryDelivery({ env: { NODE_ENV: 'development', PIN_DELIVERY_PROVIDER: 'email' }, emailDelivery });
-    assert.equal(await provider.sendCode({ to: 'synthetic@example.invalid', code: '123456', expiresAt: new Date() }), undefined);
-    assert.equal(count, 1);
-});
-
-test('production email interface delegates only the minimal fields when a real adapter is supplied', async () => {
-    let payload;
-    const provider = createPinRecoveryDelivery({ env: { NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: 'email' },
-        emailDelivery: { async sendCode(input) { payload = input; } } });
-    const expiresAt = new Date();
-    await provider.sendCode({ to: 'synthetic@example.invalid', code: '123456', expiresAt, secret: 'not-forwarded' });
-    assert.deepEqual(payload, { to: 'synthetic@example.invalid', code: '123456', expiresAt });
-});
-
-test('missing environment never defaults to development', () => {
-    assert.deepEqual(readPinDeliveryConfiguration({}), { environment: null, provider: 'disabled' });
+    await createPinRecoveryDelivery({ env: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'fake' } }).sendCode(input);
 });
 
 test('RF07 creates challenge, passes existing expiry, rejects invalid code, generates new PIN, rejects sequential reuse', async () => {
@@ -160,7 +134,7 @@ test('stdout and stderr contain neither OTP nor recipient on successful/failed r
 
 test.todo('H05: concurrent single-use guarantee awaits teammate implementation; sequential reuse is covered above');
 
-for (const provider of ['test', 'console']) {
+for (const provider of ['fake', 'console']) {
     test(`application startup rejects production with ${provider} before opening server`, async () => {
         const childEnv = { ...process.env, NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: provider,
             AUTH0_DOMAIN: 'synthetic.invalid', AUTH0_AUDIENCE: 'https://api.synthetic.invalid',

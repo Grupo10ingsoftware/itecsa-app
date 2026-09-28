@@ -40,7 +40,7 @@ async function fixture() {
         $transaction: async operations => Promise.all(operations),
     };
     const service = new PinService({ prisma: client, secret: Buffer.alloc(32, 7).toString('base64'),
-        now: () => now, deliveryEnvironment: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'test' }, delivery: { sendCode: async ({ code }) => { delivered = code; } } });
+        now: () => now, deliveryEnvironment: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'fake' }, delivery: { sendCode: async ({ code }) => { delivered = code; } } });
     const credential = await service.buildCredential();
     Object.assign(user, credential.data);
     return { service, user, credential, client,

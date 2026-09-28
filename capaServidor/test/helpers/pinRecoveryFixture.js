@@ -34,7 +34,7 @@ export function pinRecoveryFixture({ delivery, env, logger = { error() {} } } = 
     };
     const service = new PinService({ prisma, secret: Buffer.alloc(32, 7).toString('base64'),
         now: () => clock, delivery: delivery ?? fake.provider,
-        deliveryEnvironment: env ?? { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'test' }, logger });
+        deliveryEnvironment: env ?? { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'fake' }, logger });
     return { service, user, challenges, takeDelivery: fake.takeDelivery,
         expire: () => { clock = new Date(+clock + 15 * 60 * 1000); },
         failStatus: () => { failStatus = true; } };

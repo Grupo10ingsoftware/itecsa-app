@@ -1,123 +1,80 @@
-# H07 — Entrega segura del código de recuperación
+# H07 / RF07 — Entrega de recuperación de PIN con Resend
 
-## Resultado y alcance
+## Excepción temporal solicitada para desarrollo
 
-Se elimina el proveedor de consola y su selección implícita cuando NODE_ENV no era
-production. Se conserva RF07 (challenge, verificación y nuevo PIN), con entrega
-inyectable y configuración explícita. **PROVEEDOR DE CORREO PENDIENTE**: RF07 no está
-disponible para usuarios reales hasta implementar/configurar un adaptador real.
-Seleccionar `email` por sí solo no habilita envíos.
+Se conserva íntegramente Resend. Mientras se obtiene el dominio de la empresa, se permite seleccionar explícitamente:
 
-No hay migraciones ni cambios en Usuario, Prisma, dependencias, roles o permisos.
-Los cambios previos de hashing H06 permanecen; no se modifica algoritmo ni TTL.
-H05 sigue siendo trabajo de otro compañero. No se modifica confirmRecovery ni se
-atribuye a H07 una garantía de uso único concurrente inexistente en esta revisión.
+```env
+NODE_ENV=development
+PIN_DELIVERY_PROVIDER=console
+```
 
-## Proveedor anterior y evaluación de correo
+El `.env` local quedó configurado así, conservando API key y remitente para volver a Resend. Reiniciar el backend después del cambio. La consola del servidor muestra el código y su vencimiento con la etiqueta SOLO DESARROLLO, sin correo ni PIN. El usuario ingresa ese código en el modal existente. No se envía correo en este modo; el mensaje funcional de envío significa entrega por el proveedor seleccionado.
 
-`developmentPinRecoveryDelivery.sendCode` imprimía destinatario, código completo y
-fecha de expiración en console.info. Se seleccionaba si NODE_ENV no era exactamente
-production, incluida su ausencia, y además la selección ocurría al importar el
-singleton antes de cargar dotenv. Se elimina por completo ese proveedor.
+`console` se rechaza en producción, test o sin entorno; jamás se activa automáticamente ni cuando falla Resend. Resend/fake continúan sin registrar códigos. Quien pueda leer la consola de desarrollo puede usar el OTP durante su vigencia: usar cuentas de prueba y no centralizar ni compartir estos logs. **H07 permanece pendiente de cierre operativo mientras se use esta excepción**. Antes de producción, verificar el dominio y volver a `PIN_DELIVERY_PROVIDER=resend`.
 
-No se encontró SMTP ni infraestructura transaccional reutilizable en los módulos
-actuales. `auth0Management.service.js:requestPasswordSetupEmail` utiliza
-`/dbconnections/change_password` para enlaces de establecimiento de contraseña;
-ese mecanismo existente no entrega el OTP generado por PinRecoveryChallenge.
-No se reutilizó para un propósito distinto ni se añadió una dependencia de correo.
-No se contactó a Auth0 ni a ningún destinatario durante la implementación.
+Se añadieron `developmentConsolePinDelivery.js` y su suite: recuperación con OTP capturado, consumo secuencial único, salida mínima, rechazo fuera de desarrollo y ausencia de fallback. Backend completo tras el cambio: 683 pruebas declaradas, 682 pasan, 0 fallos y 1 TODO previo de H05.
 
-## Configuración y comportamiento
+## Implementación de Resend conservada
 
-La validación central de este flujo está en `src/config/pinDelivery.js`. Se ejecuta
-antes de abrir el servidor y también al resolver el proveedor para una solicitud.
-La resolución ocurre después de dotenv, sin fallback basado en modo no productivo.
+Actualización: 27-09-2026. Implementación local y tests completados; habilitación operacional pendiente. No se enviaron correos reales.
 
-| NODE_ENV | PIN_DELIVERY_PROVIDER | Resultado |
-| --- | --- | --- |
-| Ausente/vacío | Ausente, vacío o disabled | Backend puede iniciar; RF07 devuelve 503 |
-| Ausente/vacío | email o test | Inicio rechazado |
-| development | Ausente o disabled | RF07 devuelve 503; no salida a consola |
-| development | email | Requiere adaptador real; sin él, 503 |
-| development | test o console | Inicio rechazado |
-| production | Ausente o disabled | RF07 devuelve 503; resto del backend disponible |
-| production | email | Requiere adaptador real; sin él, 503 |
-| production | test o console | Inicio rechazado |
-| test | test | Requiere fake inyectado en el proceso; sin fake, inicio/configuración rechazado |
-| Valor desconocido | Cualquiera | Inicio rechazado |
+## Arquitectura
 
-Los proveedores desconocidos se rechazan; `console` no existe. Los errores de
-configuración contienen texto fijo, sin interpolar el valor de la variable.
-`env.example` declara NODE_ENV=development y PIN_DELIVERY_PROVIDER=disabled.
-No se modifica `.env` local, no se exige cambiar el esquema ni se conecta a la BD.
+Antes existía una factory de entrega con `disabled`, `test` y `email`, sin adaptador de correo real. La salida insegura por consola ya había sido retirada en una corrección anterior.
 
-## Interfaces y mecanismo de prueba
+Ahora: `PinService` → `createPinRecoveryDelivery` → `ResendPinDeliveryProvider` o `FakePinDeliveryProvider`. Se conserva la interfaz `sendCode({ to, code, expiresAt }): Promise<void>`, equivalente a `sendRecoveryCode({ email, code, expiresAt })`. El servicio de PIN no conoce API keys ni detalles HTTP.
 
-Contrato del adaptador: `sendCode({ to, code, expiresAt }): Promise<void>`.
-Se pasan exclusivamente destinatario, código y expiración del challenge existente
-(15 minutos, sin cambiar su TTL). El adaptador futuro deberá enviar un mensaje
-mínimo de recuperación con ese código y vigencia; nunca PIN anterior, hash, llave,
-tokens ni datos adicionales. No debe registrar mensajes ni respuestas del proveedor.
+Se usa la API HTTPS oficial con fetch nativo, como las integraciones Auth0 existentes del backend. **No se agregó el paquete resend ni otras dependencias**; no hay versión de SDK instalada. Referencia: [Resend: Send Email](https://resend.com/docs/api-reference/emails/send-email).
 
-`createPinRecoveryDelivery` admite `emailDelivery` como punto de integración futuro;
-la instancia normal aún no tiene adaptador. No se consideran configuradas capacidades
-que todavía no existen. El wrapper descarta cualquier respuesta del adaptador y
-reemplaza sus excepciones por un error fijo, sin conservar message, cause o metadata.
+El adaptador realiza POST a `https://api.resend.com/emails`, Bearer backend, timeout de 10 segundos y rechazo de redirecciones. No reintenta automáticamente. Exige respuesta exitosa con ID de mensaje. Nunca devuelve el payload del proveedor ni propaga su error/cause. API key en campo privado, sin registro de headers o bodies.
 
-El fake vive solo en `test/helpers/pinDeliveryFake.js`, fuera de las importaciones de
-aplicación. `takeDelivery()` retira el último envío de una closure en memoria para
-que el test pueda confirmar el código. No persiste, imprime ni publica nada.
-El uso de testDelivery requiere NODE_ENV=test y PIN_DELIVERY_PROVIDER=test.
-La inyección antigua `new PinService({ delivery: fake })` requiere ahora también
-`deliveryEnvironment: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'test' }`.
+El correo es texto plano: solicitud de recuperación, código, vencimiento absoluto UTC y aviso para ignorarlo si no se solicitó. No incluye PIN anterior/nuevo, contraseñas, RUT, pedidos ni datos Auth0.
 
-## Logging, respuestas y fallos
+## Configuración
 
-Solo se registran eventos estáticos de fallo:
-- `pin_recovery_delivery_failure`
-- `pin_recovery_delivery_status_failed` si falla el marcado del challenge
+```env
+NODE_ENV=production
+PIN_DELIVERY_PROVIDER=resend
+RESEND_API_KEY=
+PIN_EMAIL_FROM=
+```
 
-No incluyen OTP ni fragmentos, destinatario, PIN, vencimiento, hash, token, cuerpo,
-respuesta del proveedor ni excepción. No se añade logging de éxito innecesario.
-La solicitud exitosa responde 202 con `{ status: 'sent' }`; no devuelve el OTP.
-La confirmación responde el estado de entrega del nuevo PIN, nunca el OTP.
-El nuevo PIN se revela en su modal mediante RF06, comportamiento funcional existente.
+- `PIN_DELIVERY_PROVIDER=resend`: requiere API key y remitente no vacíos. Una configuración inválida rechaza el arranque antes de abrir el servidor.
+- `RESEND_API_KEY`: secreto sólo backend, proporcionado por runtime; nunca frontend, Git o logs.
+- `PIN_EMAIL_FROM`: dirección autorizada/verificada en Resend, opcionalmente con nombre visible. No hay dominio productivo predeterminado. El proveedor comprueba su autorización efectiva.
+- Testing: `NODE_ENV=test`, `PIN_DELIVERY_PROVIDER=fake`. **Nunca utilizar el fake provider en producción.** Su constructor y la factory rechazan ambientes reales. Los tests pueden inyectarlo y consultar `messages`, sólo en RAM, sin escribir archivos ni imprimir mensajes.
+- Proveedor omitido o `disabled`: recuperación indisponible (503), sin fallback. Se conserva esta opción explícita para deshabilitar RF07.
+- `test`, `email` y valores desconocidos no son proveedores válidos. `console` es la excepción explícita de desarrollo descrita arriba. Migrar configuraciones anteriores a `fake` o `resend` según ambiente.
 
-Sin proveedor: 503 `PIN_RECOVERY_DELIVERY_UNAVAILABLE`.
-Ante fallo del adaptador: 503 `PIN_RECOVERY_DELIVERY_FAILED`, mensaje fijo.
-Se intenta marcar el challenge failed/used como antes. Si falla esa escritura,
-se registra únicamente el evento fijo y se conserva la respuesta sanitizada.
-La confirmación continúa seleccionando únicamente challenges delivered y no usados.
-No se amplía el trabajo a la normalización general H08.
+## Challenges y fallos
 
-## Pruebas y límites
+Se conserva generación aleatoria, hash/salt, vencimiento, verificación, nuevo PIN y revelación posterior. El código sólo existe en claro durante generación/envío y en memoria del fake en tests.
 
-`pinDelivery.test.js` cubre la matriz de configuración, fake explícito, interfaz de
-correo, expiración heredada, challenge sin código claro persistido, código válido,
-inválido y vencido, PIN generado, rechazo de reutilización secuencial, respuestas HTTP
-sin OTP y errores de proveedor/persistencia sin secretos. Un subproceso captura
-stdout y stderr reales; ambos se comparan con salidas permitidas exactas.
-Se prueba también el arranque real de app.js con production+test/console: termina
-con error antes de abrir el servidor. Las pruebas usan datos sintéticos y adaptadores
-inyectados, sin envíos reales ni modificaciones de datos externos.
+El challenge nace `pending`. Tras aceptación por la API pasa a `delivered`. En fallo de API, red, timeout, respuesta inválida o escritura del estado de éxito se intenta marcar `failed` y `used_at`. La confirmación sólo selecciona `delivered` sin uso. Si también falla guardar el estado de error, el challenge pendiente no es elegible. Se registran únicamente eventos constantes, sin datos personales ni errores crudos.
 
-Se conserva `pinDebug.test.js` para regresión de Soporte y `pinLifecycle.test.js`
-para compatibilidad H06/RF06/RF07; este último solo adapta la inyección explícita.
-Hay un TODO explícito para la regresión concurrente H05: no se declara verificada
-hasta integrar la implementación del compañero. La reutilización secuencial sí se prueba.
+`delivered` significa aceptación por API, **no comprobación de recepción en bandeja**. Un timeout puede ocurrir después de que Resend acepte el mensaje: el código se invalida por seguridad y el usuario deberá solicitar otro. No hay webhooks ni confirmación de recepción implementados en esta tarea.
 
-Las comprobaciones de subprocesos necesitan ejecutarse fuera del sandbox de esta
-sesión: dentro no se capturó su salida; fuera pasaron. La suite HTTP también requiere
-abrir sockets locales. Esto no implica conexión con infraestructura del cliente.
+No se alteró H05. La revisión actual conserva un TODO de consumo concurrente; no se acredita atomicidad ni política de único challenge activo todavía. Los tests comprueban consumo secuencial único, código incorrecto y vencimiento. No se tocaron hash, AES, fingerprint, longitud ni TTL del PIN (H06).
 
-Resultados finales:
-- H07 específico: 26 pruebas aprobadas, 0 fallos y 1 TODO de H05.
-- Backend completo: 626 entradas contadas por el runner; 625 aprobadas, 0 fallos,
-  0 omitidas y 1 TODO (incluye las entradas de carga de los dos helpers de prueba).
-- Frontend: 94 verificaciones declaradas por el runner y 2 entradas adicionales
-  de node --test aprobadas.
-- Build Vite aprobado; solo aviso informativo de tiempo de plugins CSS.
-- git diff --check sin errores.
+## Pruebas y archivos
 
-RF07 real sigue pendiente del proveedor externo. La ausencia del proveedor no
-expone el código y no impide iniciar el resto del backend con configuración segura.
+Nuevos: `src/modules/auth/service/resendPinDelivery.js`, `fakePinDelivery.js` y `test/resendPinDelivery.test.js` (rutas relativas a capaServidor).
+
+Modificados: factory `pinDelivery.service.js`, configuración `config/pinDelivery.js`, `pin.service.js` (retirada de inyección específica email), `env.example`, tests de entrega/ciclo de vida y helpers de recuperación/fake. No hay cambios de esquema, dependencias, frontend ni permisos.
+
+Tests cubren configuración ausente/inválida, fake prohibido en producción y arranque rechazado, fake sólo memoria, envío HTTPS único con campos mínimos, respuesta sin datos del proveedor, HTTP fallido, error de red, timeout simulado, JSON inválido, respuesta sin ID, invalidación del challenge y ausencia de OTP/API key/correo en respuestas y logs. RF07 cubre código generado contra hash, confirmación, PIN nuevo, código incorrecto, expiración y reutilización secuencial. La captura de stdout/stderr comprueba que no se imprimen OTP ni destinatarios con fake/Resend (la excepción console es deliberada y se prueba por separado).
+
+Backend completo: **678 pruebas declaradas; 677 pasan, 0 fallos, 0 omitidas, 0 canceladas y 1 TODO preexistente de H05**. Frontend completo: 103 verificaciones y 2 entradas node:test exitosas, sin fallos. `git diff --check` sin errores. Todas las llamadas HTTP de Resend se simulan; npm test no envía correos ni consume cuota. Las pruebas de persistencia usan dobles locales, no BD real.
+
+## Habilitación operacional y prueba manual opcional
+
+**PENDIENTE OPERACIONAL: verificar dominio/remitente en Resend antes del despliegue productivo.**
+
+1. Verificar el dominio y registros DNS indicados por Resend; seleccionar remitente autorizado.
+2. Crear credencial de envío y almacenarla como secreto backend de runtime. Configurar las tres variables, sin pegarlas en tickets ni documentación.
+3. Reiniciar y comprobar que el arranque valida la configuración. Mantener el acceso operativo al proveedor restringido, ya que procesa correos y códigos.
+4. Con cuenta y destinatario de prueba controlados, solicitar recuperación desde el modal, revisar recepción y expiración, ingresar el código y comprobar que se muestra el PIN nuevo en el flujo existente.
+5. Verificar que el código usado se rechaza y que API/logs no contienen OTP ni API key. Revisar disponibilidad, rechazo/bounce y límites desde el proveedor con acceso autorizado.
+
+No se ejecutó esta prueba manual ni se configuraron secretos reales. No se considera acreditada la entrega productiva hasta completarla.

@@ -507,6 +507,10 @@ Severidad: impacto y probabilidad sobre el sistema observado; no multa legal ni 
 
 ### [H07] Proveedor de recuperación imprime códigos y el modo seguro no es obligatorio
 
+**Excepción temporal posterior solicitada para desarrollo:** se habilitó `PIN_DELIVERY_PROVIDER=console` únicamente con `NODE_ENV=development`, mostrando OTP y vencimiento. Producción lo rechaza. Resend se conserva. H07 permanece pendiente de cierre operacional hasta retirar el uso de consola y validar entrega por correo con dominio autorizado.
+
+**Actualización 27-09-2026:** implementado adaptador Resend por HTTPS, fake exclusivo de tests, configuración validada y fallos saneados. La salida por consola ya había sido retirada. Véase [implementación y pendientes operacionales H07](docs/security/H07-pin-recovery-delivery.md). Falta verificar dominio/remitente, configurar secreto y validar entrega real; el diagnóstico siguiente es histórico.
+
 **Severidad:** ALTA
 
 **Estado actual:** Cuando NODE_ENV no es production, delivery registra correo/código. No existe proveedor productivo implementado. Desarrollo está protegido sólo por configuración.

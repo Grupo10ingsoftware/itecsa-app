@@ -116,7 +116,6 @@ export class PinService {
         prisma,
         secret,
         delivery,
-        emailDelivery,
         deliveryEnvironment = process.env,
         logger = console,
         now = () => new Date(),
@@ -124,7 +123,6 @@ export class PinService {
         this.prisma = prisma;
         this.secretValue = secret;
         this.testDelivery = delivery;
-        this.emailDelivery = emailDelivery;
         this.deliveryEnvironment = deliveryEnvironment;
         this.logger = logger;
         this.now = now;
@@ -135,7 +133,6 @@ export class PinService {
         return createPinRecoveryDelivery({
             env: this.deliveryEnvironment,
             testDelivery: this.testDelivery,
-            emailDelivery: this.emailDelivery,
         });
     }
 

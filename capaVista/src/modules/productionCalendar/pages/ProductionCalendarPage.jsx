@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
-import CalendarSummaryCards from '../components/CalendarSummaryCards'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
-import { isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -162,11 +160,6 @@ export default function ProductionCalendarPage() {
     })
   }, [calendarItems, filters])
 
-  const scheduledMonthItems = useMemo(
-    () => filteredItems.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
-    [filteredItems, monthDate],
-  )
-
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
   }
@@ -206,23 +199,22 @@ export default function ProductionCalendarPage() {
 
           {loadError && <div className="alert alert-warning mb-0">{loadError}</div>}
 
-          <CalendarSummaryCards items={scheduledMonthItems} />
-
           <section className={styles.calendarPanel}>
-            <CalendarToolbar
-              isDraggingOrder={Boolean(draggedItemId)}
-              monthDate={monthDate}
-              onNavigateNextDuringDrag={() => changeMonth(1)}
-              onNextMonth={() => changeMonth(1)}
-              onPreviousMonth={() => changeMonth(-1)}
-            />
             <ProductionCalendarGrid
+              allItems={calendarItems}
               draggedItemId={draggedItemId}
               items={filteredItems}
               monthDate={monthDate}
               onChangeDeliveryDate={updateItemDeliveryDate}
               onDragEnd={() => setDraggedItemId(null)}
               onDragStart={setDraggedItemId}
+              toolbar={(
+                <CalendarToolbar
+                  monthDate={monthDate}
+                  onNextMonth={() => changeMonth(1)}
+                  onPreviousMonth={() => changeMonth(-1)}
+                />
+              )}
             />
           </section>
         </div>

@@ -48,7 +48,7 @@ if(process.argv[1] === fileURLToPath(import.meta.url)) {
   '**API:** ITECSA API · **Identifier:** `https://api.itecsa.local`.', '',
   'En Auth0: User Management → Roles → elegir rol → Permissions → Add Permissions → ITECSA API. Asignar exactamente la lista del rol. Los nombres técnicos usan `Produccion` sin tilde.', '',
   'No seleccionar Auth0 Management API. No conceder permisos directos adicionales a usuarios. Cada usuario debe tener exactamente un rol ITECSA y coincidir con su registro interno. Soporte se asigna únicamente por el equipo técnico.', '',
-  'Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en AUDITORIA-2026-09-25.md; generar este archivo no verifica Auth0.', '',
+  'Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en [la auditoría histórica](../archivo/auditorias/AUDITORIA-2026-09-25.md); consultar [la guía vigente](README.md). Generar este archivo no verifica Auth0.', '',
   `El catálogo contiene ${BUSINESS_PERMISSIONS.length} permisos funcionales. Soporte recibe los ${BUSINESS_PERMISSIONS.length}; nunca scopes de Management API. Renovar las sesiones después de cambiar asignaciones.`, '',
   'Kanban usa read:orders y Pagos usa read:payments. view:kanban-module y view:payments-module son permisos retirados. Guardar carga operativa acepta manage:production-load o manage:production-capacity.', '',
   'En Applications → APIs → ITECSA API, verificar RS256, Enable RBAC y Add Permissions in the Access Token. Verificar la Action vinculada a Post Login y el claim https://itecsa.local/roles.', ''];

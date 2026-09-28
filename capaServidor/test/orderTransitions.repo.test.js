@@ -223,8 +223,67 @@ test("lanyard parcial repite flujo antes de empaquetado", async () => {
         id_estado_subproceso: 4,
         fecha_real_termino: null,
     });
-    assert.match(registryPayload.observacion, /Costura parcial/);
-    assert.match(registryPayload.observacion, /Avance Lanyard: 40%/);
+    assert.equal(registryPayload.observacion, "Costura parcial");
+});
+
+test("lanyard parcial sin comentario no crea observacion de subproceso", async () => {
+    let registryPayload;
+    const repo = new OrderRepository({
+        prisma: {
+            async $queryRaw() { return []; },
+            avance_Lanyard: {
+                async findFirst() {
+                    return { porcentaje_acumulado: 40 };
+                },
+            },
+            detalle_pedido: {
+                async findFirst() {
+                    return {
+                        id_detalle_pedido: 2,
+                        id_estado_subproceso: 5,
+                        fecha_real_termino: null,
+                        Tipo_Producto: {
+                            nombre_producto: "Lanyard",
+                            Producto_Subproceso: [
+                                { id_estado_subproceso: 4, Estado_Subprocesos: { nombre_estado: "Impresion" } },
+                                { id_estado_subproceso: 5, Estado_Subprocesos: { nombre_estado: "Costura" } },
+                                { id_estado_subproceso: 6, Estado_Subprocesos: { nombre_estado: "Empaquetado" } },
+                            ],
+                        },
+                    };
+                },
+                async updateMany() {
+                    return { count: 1 };
+                },
+            },
+            registro_subprocesos: {
+                async findFirst() { return null; },
+                async create() {},
+            },
+            registro_Etapas: {
+                async findFirst() {
+                    return { fecha_hora_entrada: new Date("2026-09-24T09:00:00Z") };
+                },
+            },
+            registros: {
+                async create(payload) {
+                    registryPayload = payload.data;
+                    return { ID_REGISTRO: 33 };
+                },
+            },
+        },
+    });
+    repo.get = async () => ({ id_pedido: 6, id_etapa_general: 2, estado_pago: "Confirmado" });
+
+    await repo.completeSubprocess({
+        orderId: 6,
+        detailId: 2,
+        subprocessId: 5,
+        userId: 10,
+        comment: "",
+    });
+
+    assert.equal(registryPayload.observacion, null);
 });
 
 test("enviar a revision notifica al usuario de Ventas responsable", async () => {

@@ -1,3 +1,7 @@
+> **Informe histórico archivado.** Contexto: 26-09-2026; commit inicial 0b3d83e.
+> Ubicación original: `PAYMENTS_AUDITORIA_PLAN_ACCION.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../modulos/PAYMENTS.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
 # Auditoría técnica y plan de acción — Payments / Cobranzas / Pagos
 
 ## 1. Metadatos de auditoría

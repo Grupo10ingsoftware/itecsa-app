@@ -55,27 +55,13 @@ function isPackagingSubprocess(process) {
   return normalizeProcessName(process?.Estado_Subprocesos?.nombre_estado).includes("empaquet");
 }
 
-function formatLanyardProgressObservation(progress, totalQuantity) {
-  if (!progress) return null;
-  const percentage = Number(progress.porcentaje_acumulado ?? 0);
-  const accumulated = Number(progress.cantidad_acumulada ?? 0);
-  const total = Number(totalQuantity ?? 0);
-
-  if (!Number.isFinite(percentage)) return null;
-
-  const roundedPercentage = Math.round(percentage);
-  const quantityText = Number.isFinite(total) && total > 0
-    ? ` (${accumulated}/${total} producidos)`
-    : "";
-
-  return `Avance Lanyard: ${roundedPercentage}%${quantityText}`;
-}
-
-function mergeObservation(comment, systemObservation) {
-  const trimmedComment = String(comment ?? "").trim();
-  const trimmedSystemObservation = String(systemObservation ?? "").trim();
-
-  return [trimmedComment, trimmedSystemObservation].filter(Boolean).join("\n") || null;
+function stripLanyardProgressObservation(value) {
+  return String(value ?? "")
+    .replace(/Avance Lanyard:\s*\d+%\s*(?:\(\d+\/\d+ producidos\))?/gi, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 function mapDetailSubprocesses(detail) {
@@ -1214,10 +1200,7 @@ class OrderRepository {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
-        observacion: mergeObservation(
-          comment,
-          formatLanyardProgressObservation(latestLanyardProgress, detail.cantidad),
-        ),
+        observacion: String(comment ?? "").trim() || null,
       },
     });
 

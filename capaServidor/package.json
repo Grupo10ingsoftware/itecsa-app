@@ -4,16 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "APP_ENV=test node --test",
+    "test": "node --import ./test/setup.mjs --test",
     "start": "node src/app/app.js",
     "dev": "nodemon src/app/app.js",
-    "prisma:pull": "../tooling/prisma/node_modules/.bin/prisma db pull",
-    "prisma:generate": "../tooling/prisma/node_modules/.bin/prisma generate",
-    "prisma:validate": "../tooling/prisma/node_modules/.bin/prisma validate",
-    "prisma:migrate:dev": "../tooling/prisma/node_modules/.bin/prisma migrate dev",
-    "prisma:migrate:status": "../tooling/prisma/node_modules/.bin/prisma migrate status",
+    "prisma:pull": "node ../tooling/prisma/node_modules/prisma/build/index.js db pull",
+    "prisma:generate": "node ../tooling/prisma/node_modules/prisma/build/index.js generate",
+    "prisma:validate": "node ../tooling/prisma/node_modules/prisma/build/index.js validate",
+    "prisma:migrate:dev": "node ../tooling/prisma/node_modules/prisma/build/index.js migrate dev",
+    "prisma:migrate:status": "node ../tooling/prisma/node_modules/prisma/build/index.js migrate status",
     "orders:preflight": "node scripts/ordersPreflight.mjs",
-    "prisma:studio": "../tooling/prisma/node_modules/.bin/prisma studio"
+    "prisma:studio": "node ../tooling/prisma/node_modules/prisma/build/index.js studio"
   },
   "keywords": [],
   "author": "",

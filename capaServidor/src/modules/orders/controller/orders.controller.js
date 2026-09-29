@@ -1,12 +1,9 @@
-import { sendOrderError, sendOrderOperationError } from "../service/salesOrder.errors.js";
+import { respondError } from "../../../errors/httpErrors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
 
 import OrderService from "../service/order.service.js";
-import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 
-const errorContext = (req) => ({ requestId: req.requestId, actorId: req.currentUser?.idUsuario });
 
 
 class OrderController {
@@ -20,7 +17,7 @@ class OrderController {
             const orders = await this.service.getAllOrders(req.query)
             res.status( 200 ).json( orders );
         } catch ( error ) {
-            return sendControllerError(req, res, error, "Error al obtener pedidos");
+            return respondError(error, req, res);
         }
     }
 
@@ -29,7 +26,7 @@ class OrderController {
             const workspace = await this.service.getPaymentWorkspace();
             res.status(200).json(workspace);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -38,11 +35,11 @@ class OrderController {
             const { orderId } = req.params;
             const order = await this.service.getOrderById(orderId);
 
-            if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
+            if (!order) return res.status(404).json({ code: 'ORDER_NOT_FOUND', message: 'Pedido no encontrado' });
 
             res.status(200).json(order);
         } catch ( error ) {
-            return sendOrderError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -53,7 +50,7 @@ class OrderController {
 
             res.status(200).json(salesNote);
         } catch (error) {
-            return sendOrderError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -67,7 +64,7 @@ class OrderController {
 
             res.status(201).json(order);
         } catch (error) {
-            return sendOrderError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -102,7 +99,7 @@ class OrderController {
 
             res.status(200).json(result);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -130,10 +127,7 @@ class OrderController {
 
             res.status( 200 ).json(result);
         } catch ( error ) {
-            if (error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE) {
-                return res.status(409).json({ message: error.message });
-            }
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -146,7 +140,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -159,7 +153,7 @@ class OrderController {
             );
             return res.status(200).json(result);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -170,7 +164,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -180,7 +174,7 @@ class OrderController {
                 auth0UserId: req.auth?.payload?.sub,
             }));
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -195,7 +189,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -216,7 +210,7 @@ class OrderController {
 
             res.status(200).json(updatedOrder);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 
@@ -229,7 +223,7 @@ class OrderController {
             });
             return res.status(200).json(result);
         } catch (error) {
-            return sendOrderOperationError(res, error, undefined, errorContext(req));
+            return respondError(error, req, res);
         }
     }
 

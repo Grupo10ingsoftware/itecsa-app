@@ -21,6 +21,8 @@ Punto de entrada para el equipo técnico. Las guías describen el código del re
 
 Entradas de código: [frontend](../capaVista/README.md), [backend](../capaServidor/README.md), [Orders](../capaVista/src/modules/orders/README.md), [Payments](../capaVista/src/modules/payments/README.md), [datos de desarrollo](../data/README.md) y [mockups de muestras](../mockups-muestras/README.md).
 
+- [Integración de fix/21709 con dev](INTEGRACION_FIX_21709.md): decisiones de resolución, configuración y límites de validación.
+
 ## Mantenimiento
 
 - Mantener una referencia por tema. Los README locales orientan y enlazan; evitar copiar contratos, matrices o variables entre guías.

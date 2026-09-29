@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { createHmac } from "node:crypto";
 import {
     Auth0ServiceError,
@@ -5,8 +6,7 @@ import {
 } from "../../users/service/auth0Management.service.js";
 import userRepository from "../../users/repo/users.repo.js";
 import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
-import pinService, { PinServiceError } from "../service/pin.service.js";
-import { PinDeliveryUnavailableError } from "../service/pinDelivery.service.js";
+import pinService from "../service/pin.service.js";
 import { safeLogger } from "../../../shared/safeLogger.js";
 import { isActiveUserStatus } from "../../../config/userLifecycle.js";
 
@@ -16,8 +16,6 @@ const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_ACCEPTED_MESSAGE =
     "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.";
-const VERIFY_SESSION_ERROR_MESSAGE =
-    "No fue posible verificar la sesion autenticada.";
 
 function invalidPasswordResetRequest(message) {
     return { valid: false, message };
@@ -109,47 +107,12 @@ export function createVerifyAuthSessionHandler({
                 pinStatus,
             });
         } catch (error) {
-            logger.error?.("auth_verify_role_sync_error", {
-                actorId: req.currentUser?.idUsuario,
-                code: error?.code,
-                outcome: "error",
-            });
-
-            if (error instanceof PinServiceError && error.status === 403) {
-                return res.status(403).json({
-                    code: error.code,
-                    message: error.message,
-                });
-            }
-
-            return res.status(500).json({ code: "INTERNAL_ERROR", message: VERIFY_SESSION_ERROR_MESSAGE, requestId: req.requestId });
+            return respondError(error, req, res, { logger });
         }
     };
 }
 
 export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
-
-function pinErrorResponse(error, res) {
-    if (error instanceof PinDeliveryUnavailableError) {
-        return res.status(503).json({
-            code: error.code,
-            message: error.message,
-        });
-    }
-
-    if (error instanceof PinServiceError) {
-        return res.status(error.status).json({
-            code: error.code,
-            message: error.message,
-            ...(error.details ?? {}),
-        });
-    }
-
-    return res.status(500).json({
-        code: "PIN_OPERATION_FAILED",
-        message: "No fue posible completar la operacion de PIN.",
-    });
-}
 
 export function createRevealPinHandler({ pins = pinService } = {}) {
     return async function revealPinHandler(req, res) {
@@ -159,7 +122,7 @@ export function createRevealPinHandler({ pins = pinService } = {}) {
                 pin: await pins.reveal(req.auth?.payload?.sub),
             });
         } catch (error) {
-            return pinErrorResponse(error, res);
+            return respondError(error, req, res);
         }
     };
 }
@@ -170,7 +133,7 @@ export function createDebugResetPinHandler({ pins = pinService } = {}) {
         try {
             return res.status(200).json({ pinStatus: await pins.debugReset(req.auth?.payload) });
         } catch (error) {
-            return pinErrorResponse(error, res);
+            return respondError(error, req, res);
         }
     };
 }
@@ -181,7 +144,7 @@ export function createAcknowledgePinHandler({ pins = pinService } = {}) {
             await pins.acknowledge(req.auth?.payload?.sub);
             return res.status(204).end();
         } catch (error) {
-            return pinErrorResponse(error, res);
+            return respondError(error, req, res);
         }
     };
 }
@@ -192,7 +155,7 @@ export function createRequestPinRecoveryHandler({ pins = pinService } = {}) {
             await pins.requestRecovery(req.auth?.payload?.sub);
             return res.status(202).json({ status: "sent" });
         } catch (error) {
-            return pinErrorResponse(error, res);
+            return respondError(error, req, res);
         }
     };
 }
@@ -206,7 +169,7 @@ export function createConfirmPinRecoveryHandler({ pins = pinService } = {}) {
             );
             return res.status(200).json({ pinStatus });
         } catch (error) {
-            return pinErrorResponse(error, res);
+            return respondError(error, req, res);
         }
     };
 }
@@ -275,8 +238,8 @@ export function createGetProfileHandler({ users = userRepository } = {}) {
                 estadoUsuario: user.estadoUsuario,
                 records,
             });
-        } catch {
-            return res.status(503).json({ code: "INTERNAL_ERROR", message: "No fue posible cargar tu perfil. Intenta nuevamente.", requestId: req.requestId });
+        } catch (error) {
+            return respondError(error, req, res);
         }
     };
 }

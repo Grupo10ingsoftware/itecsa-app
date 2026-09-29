@@ -219,7 +219,7 @@ export default function ProfilePage() {
                 {pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
               </p>
             </div>
-            {import.meta.env.DEV && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
+            {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ROUTES === 'true' && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
               <div>
                 <button className="btn btn-outline-warning" type="button" disabled={isPinBusy} onClick={debugResetPin}>
                   {isPinBusy ? 'Generando...' : 'Generar nuevo PIN (debug)'}
@@ -322,7 +322,7 @@ export default function ProfilePage() {
                 <div className="modal-body">
                   {!recoveryRequested ? (
                     <p>
-                      El codigo se enviara por el canal de recuperacion configurado. Nunca se mostrara en esta aplicacion.
+                      Solicita un codigo de verificacion en tu correo para generar un nuevo PIN.
                     </p>
                   ) : (
                     <label className="form-label w-100">

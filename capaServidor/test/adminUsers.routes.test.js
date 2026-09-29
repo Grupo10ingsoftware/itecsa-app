@@ -811,8 +811,8 @@ test("responde 500 generico si falla el reenvio de correo", async () => {
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, {
         code: "INTERNAL_ERROR",
-        message: "No fue posible solicitar el correo de establecimiento de contrasena.",
-        requestId: undefined,
+        message: "Ocurrio un error interno.",
+        requestId: res.body.requestId,
     });
     assert.equal(JSON.stringify(res.body).includes("Auth0"), false);
 });
@@ -995,8 +995,8 @@ test("responde 500 generico sin exponer fallos internos de Auth0", async () => {
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, {
         code: "INTERNAL_ERROR",
-        message: "No fue posible crear el usuario.",
-        requestId: undefined,
+        message: "Ocurrio un error interno.",
+        requestId: res.body.requestId,
     });
     assert.equal(JSON.stringify(res.body).includes("tenant"), false);
 });

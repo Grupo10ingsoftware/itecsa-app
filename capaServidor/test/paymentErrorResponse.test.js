@@ -31,7 +31,7 @@ test("los cinco endpoints de Payments ocultan errores internos", async () => {
       const res = response();
       await controller[handler]({ requestId: "payment-request", params: { orderId: "1", paymentRecordId: "2", id: "2" } }, res);
       assert.equal(res.code, 500, handler);
-      assert.equal(res.body.requestId, "payment-request");
+      assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
       assert.equal(res.body.code, "INTERNAL_ERROR");
       assert.doesNotMatch(JSON.stringify(res.body), /SQL private|P2021/);
     }

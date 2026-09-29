@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import OrderHistoryService from "../service/orderHistory.service.js";
 import { can, PERMISSIONS, roleFromPayload } from "../../../../../shared/authorization.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 
 function mayReadPayments(req) {
     const payload = req.auth?.payload;
@@ -16,7 +16,7 @@ export default class OrderHistoryController {
         try {
             return res.status(200).json(await this.service.listOrders(req.query));
         } catch (error) {
-            return sendControllerError(req, res, error, "Error al obtener el historial de pedidos.");
+            return respondError(error, req, res);
         }
     };
 
@@ -28,7 +28,7 @@ export default class OrderHistoryController {
                 }),
             );
         } catch (error) {
-            return sendControllerError(req, res, error, "Error al obtener el historial del pedido.");
+            return respondError(error, req, res);
         }
     };
 
@@ -40,7 +40,7 @@ export default class OrderHistoryController {
                 }),
             );
         } catch (error) {
-            return sendControllerError(req, res, error, "Error al obtener los eventos del pedido.");
+            return respondError(error, req, res);
         }
     };
 }

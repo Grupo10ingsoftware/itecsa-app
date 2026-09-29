@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { createRequestPinRecoveryHandler } from "../src/modules/auth/controller/auth.controller.js";
 import { PinService } from "../src/modules/auth/service/pin.service.js";
 import {
-    createDefaultPinRecoveryDelivery,
+    createPinRecoveryDelivery,
     PinDeliveryUnavailableError,
     unavailablePinRecoveryDelivery,
 } from "../src/modules/auth/service/pinDelivery.service.js";
@@ -29,12 +29,20 @@ function createRecoveryFixture(delivery) {
     };
     const writes = [];
     const prisma = {
+        $queryRaw: async () => [{ ...user }],
+        $transaction: async callback => callback(prisma),
         usuario: {
             async findUnique({ where }) {
                 return where.id_auth0 === user.id_auth0 ? { ...user } : null;
             },
         },
         pinRecoveryChallenge: {
+            async updateMany({ where, data }) {
+                if (!where.id_pin_recovery_challenge) return { count: 0 };
+                Object.assign(challenge, data);
+                writes.push({ operation: "update", data: { ...data } });
+                return { count: 1 };
+            },
             async create({ data }) {
                 Object.assign(challenge, data);
                 writes.push({ operation: "create", data: { ...data } });
@@ -58,6 +66,7 @@ function createRecoveryFixture(delivery) {
             prisma,
             secret: TEST_SECRET,
             delivery,
+            deliveryEnvironment: { NODE_ENV: "test", PIN_DELIVERY_PROVIDER: delivery === unavailablePinRecoveryDelivery ? "disabled" : "fake" },
             now: () => TEST_NOW,
         }),
         user,
@@ -87,7 +96,7 @@ test("default PIN recovery delivery fails closed in every application environmen
 
     try {
         for (const environment of ["development", "test", "production"]) {
-            const delivery = createDefaultPinRecoveryDelivery(environment);
+            const delivery = createPinRecoveryDelivery({ env: { NODE_ENV: environment } });
             assert.equal(delivery, unavailablePinRecoveryDelivery);
             await assert.rejects(
                 delivery.sendCode({
@@ -107,12 +116,12 @@ test("default PIN recovery delivery fails closed in every application environmen
 
     assert.equal(consoleCalls, 0);
     assert.throws(
-        () => createDefaultPinRecoveryDelivery(""),
-        /APP_ENV debe ser development, test o production/,
+        () => createPinRecoveryDelivery({ env: { NODE_ENV: "", PIN_DELIVERY_PROVIDER: "fake" } }),
+        /Configuracion de entrega de PIN invalida/,
     );
     assert.throws(
-        () => createDefaultPinRecoveryDelivery("preview"),
-        /APP_ENV debe ser development, test o production/,
+        () => createPinRecoveryDelivery({ env: { NODE_ENV: "preview" } }),
+        /Configuracion de entrega de PIN invalida/,
     );
 });
 
@@ -167,6 +176,7 @@ test("unavailable PIN delivery consumes the synthetic challenge and maps to HTTP
     assert.equal(response.statusCode, 503);
     assert.deepEqual(response.body, {
         code: "PIN_RECOVERY_DELIVERY_UNAVAILABLE",
-        message: "La entrega automatica de PIN no esta configurada.",
+        message: "La entrega del codigo de recuperacion de PIN no esta configurada.",
+        requestId: response.body.requestId,
     });
 });

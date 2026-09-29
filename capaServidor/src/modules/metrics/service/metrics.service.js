@@ -1,8 +1,8 @@
+import { AppError } from "../../../errors/AppError.js";
 import MetricsRepository from "../repo/metrics.repo.js";
 
 function httpError(statusCode, message) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
+    const error = new AppError(statusCode, message);
     return error;
 }
 

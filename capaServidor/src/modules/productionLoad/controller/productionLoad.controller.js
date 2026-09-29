@@ -1,5 +1,5 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import ProductionLoadService from "../service/productionLoad.service.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 
 export default class ProductionLoadController {
   constructor({ service } = {}) {
@@ -10,7 +10,7 @@ export default class ProductionLoadController {
     try {
       return res.status(200).json(await this.service.getDailyLoad({ date: req.query?.date }));
     } catch (error) {
-      return sendControllerError(req, res, error, "No fue posible consultar la carga operativa.");
+        return respondError(error, req, res);
     }
   };
 
@@ -22,7 +22,7 @@ export default class ProductionLoadController {
         auth0UserId: req.auth?.payload?.sub,
       }));
     } catch (error) {
-      return sendControllerError(req, res, error, "No fue posible guardar la carga operativa.");
+        return respondError(error, req, res);
     }
   };
 }

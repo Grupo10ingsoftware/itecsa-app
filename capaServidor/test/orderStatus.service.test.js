@@ -25,5 +25,5 @@ test("el controlador responde 500 si falla la lectura de estados", async () => {
 
   await controller.getOrderStatuses({}, res);
   assert.equal(res.code, 500);
-  assert.equal(res.body.message, "Error al obtener estados");
+  assert.equal(res.body.message, "Ocurrio un error interno.");
 });

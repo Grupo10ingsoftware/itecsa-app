@@ -1,7 +1,7 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { response, request } from "express";
 
 import PaymentStatusService from "../service/paymentStatus.service.js";
-import { sendPaymentError } from "./paymentError.js";
 
 
 class PaymentStatusController {
@@ -18,7 +18,7 @@ class PaymentStatusController {
             if ( !result ) return res.status( 404 ).json({msg:'Estado no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {
-            return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
+            return respondError(error, req, res);
         }
     }
 
@@ -28,7 +28,7 @@ class PaymentStatusController {
 
             res.status(200).json(result);
         } catch (error) {
-            return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
+            return respondError(error, req, res);
         }
     }
 

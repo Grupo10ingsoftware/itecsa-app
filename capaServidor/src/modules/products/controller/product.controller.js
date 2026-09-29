@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import ProductTypeService from "../service/product.service.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 
 class ProductTypeController {
   constructor() {
@@ -13,7 +13,7 @@ class ProductTypeController {
 
       res.status(200).json(productTypes);
     } catch (error) {
-      return sendControllerError(req, res, error, "Error al obtener tipos de producto");
+        return respondError(error, req, res);
     }
   };
 
@@ -25,7 +25,7 @@ class ProductTypeController {
 
       res.status(200).json(productType);
     } catch (error) {
-      return sendControllerError(req, res, error, "Error al obtener tipo de producto");
+        return respondError(error, req, res);
     }
   };
 
@@ -35,7 +35,7 @@ class ProductTypeController {
 
       res.status(201).json(productType);
     } catch (error) {
-      return sendControllerError(req, res, error, "Error al crear tipo de producto");
+        return respondError(error, req, res);
     }
   };
 
@@ -49,7 +49,7 @@ class ProductTypeController {
 
       res.status(200).json(productType);
     } catch (error) {
-      return sendControllerError(req, res, error, "Error al obtener tipo de producto por nombre");
+        return respondError(error, req, res);
     }
   };
 }

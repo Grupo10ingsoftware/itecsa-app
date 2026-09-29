@@ -23,6 +23,7 @@ export function createAuthRouter({
     requestPasswordEmail,
     logger,
     pins = pinService,
+    includeDebugRoutes = false,
     passwordResetMinimumDelayMs,
     passwordResetRandom,
 } = {}) {
@@ -36,7 +37,9 @@ export function createAuthRouter({
         requireCapability(P.READ_PROFILE),
         createVerifyAuthSessionHandler({ users, pins, logger }),
     );
-    router.post("/pin/debug-reset", authenticate, requireCapability(P.MANAGE_PIN), createDebugResetPinHandler({ pins }));
+    if (includeDebugRoutes) {
+        router.post("/pin/debug-reset", authenticate, requireCapability(P.MANAGE_PIN), createDebugResetPinHandler({ pins }));
+    }
     router.post("/pin/reveal", authenticate, requireCapability(P.MANAGE_PIN), createRevealPinHandler({ pins }));
     router.post("/pin/acknowledge", authenticate, requireCapability(P.MANAGE_PIN), createAcknowledgePinHandler({ pins }));
     router.post(

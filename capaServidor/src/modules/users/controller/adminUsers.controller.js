@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { roleFromPayload, manageableRoles, canManageUser } from "../../../../../shared/authorization.js";
 import {
     Auth0ServiceError,
@@ -93,12 +94,8 @@ function createdResponse(user, createdUser, {
     };
 }
 
-function internalError(req, res, message) {
-    return res.status(500).json({
-        code: "INTERNAL_ERROR",
-        message,
-        requestId: req.requestId,
-    });
+function internalError(req, res) {
+    return respondError(new Error(), req, res);
 }
 
 function externalIdentityError(req, res, error, message) {

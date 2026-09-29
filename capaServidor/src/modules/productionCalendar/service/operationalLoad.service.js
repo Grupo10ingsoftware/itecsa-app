@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 const LANYARD_DAILY_CAPACITY = 1200;
 
 function parseDateKey(value) {
@@ -116,8 +117,7 @@ export function calculateOperationalLoadByDate({
   const toDate = parseDateKey(to);
 
   if (!fromDate || !toDate || fromDate > toDate) {
-    const error = new Error("El rango de fechas no es valido.");
-    error.statusCode = 400;
+    const error = new AppError(400, "El rango de fechas no es valido.");
     throw error;
   }
 

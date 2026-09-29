@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import ClientRepo from "../repo/clients.repo.js";
 
 class ClientService {
@@ -28,8 +29,7 @@ class ClientService {
     const { rut_cliente, nombre_cliente, razon_social, estado_cliente } = data;
 
     if (!rut_cliente) {
-      const error = new Error("El RUT del cliente es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El RUT del cliente es obligatorio");
       throw error;
     }
 
@@ -52,16 +52,14 @@ class ClientService {
 
   async getClientByRut(rutCliente) {
     if (!rutCliente) {
-      const error = new Error("El RUT del cliente es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El RUT del cliente es obligatorio");
       throw error;
     }
 
     const client = await this.repo.getByRut(rutCliente);
 
     if (!client) {
-      const error = new Error("Cliente no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Cliente no encontrado");
       throw error;
     }
 

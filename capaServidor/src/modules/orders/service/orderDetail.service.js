@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import OrderDetailRepo from "../repo/orderDetail.repo.js";
 
 class OrderDetailService {
@@ -15,14 +16,12 @@ class OrderDetailService {
     } = data;
 
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     if (!id_tipo_producto || cantidad === undefined) {
-      const error = new Error("Faltan datos obligatorios del detalle");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan datos obligatorios del detalle");
       throw error;
     }
 
@@ -42,16 +41,14 @@ class OrderDetailService {
 
   async getOrderDetail(orderId, detailId) {
     if (!orderId || !detailId) {
-      const error = new Error("Faltan IDs obligatorios");
-      error.statusCode = 400;
+      const error = new AppError(400, "Faltan IDs obligatorios");
       throw error;
     }
 
     const detail = await this.repo.getByOrderIdAndDetailId(orderId, detailId);
 
     if (!detail) {
-      const error = new Error("Detalle de pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Detalle de pedido no encontrado");
       throw error;
     }
 
@@ -60,8 +57,7 @@ class OrderDetailService {
 
   async getDetailsByOrderId(orderId) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 

@@ -1,5 +1,7 @@
 import "dotenv/config";
 import Server from "../server.js";
+import pinService from "../modules/auth/service/pin.service.js";
+import { resolveEnvironmentConfig } from "../config/environment.js";
 import { currentAppEnvironment } from "../config/environment.js";
 import { safeLogger } from "../shared/safeLogger.js";
 import { startTemporaryDataCleanup } from "../modules/security/service/temporaryDataCleanup.service.js";
@@ -15,6 +17,8 @@ const requiredEnvironmentVariables = [
 ];
 
 function validateEnvironment() {
+    resolveEnvironmentConfig(process.env);
+
     const appEnvironment = currentAppEnvironment({ required: true });
     const missingVariables = requiredEnvironmentVariables.filter(
         (variable) => !process.env[variable]?.trim(),
@@ -33,6 +37,7 @@ function validateEnvironment() {
 
 (async () => {
     try {
+        void pinService.delivery;
         validateEnvironment();
         const appEnvironment = currentAppEnvironment({ required: true });
         const server = new Server({ appEnvironment });

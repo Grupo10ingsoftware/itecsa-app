@@ -2,6 +2,8 @@
 
 Fecha de corte original: 26-09-2026. Avance actualizado el 27-09-2026 en rama `opt-users`.
 
+> Actualización 29-09-2026: este informe conserva la propuesta previa. La integración de `fix/21709` incorpora hashes versionados, transacciones, consumo único de retos y adaptadores explícitos de entrega. El estado vigente y las limitaciones están en [la nota de integración](../INTEGRACION_FIX_21709.md).
+
 ## Decisión y alcance
 
 El rediseño criptográfico y de persistencia del PIN continúa asignado al otro equipo. Como primera medida de `USR-ACT-002`, esta rama sí retiró el adaptador que imprimía correo/código, unificó las decisiones de entorno en `APP_ENV` y dejó la recuperación fail-closed en todos los entornos hasta aprobar un proveedor. No se modificaron esquema Prisma, hashes, secretos, PIN ni datos reales.

@@ -20,7 +20,7 @@ test("un fallo interno en Orders no revela el mensaje de la base", async () => {
   await controller.getPaymentWorkspace({ requestId: "request-1" }, res);
   assert.equal(res.code, 500);
   assert.doesNotMatch(JSON.stringify(res.body), /SQL private detail/);
-  assert.equal(res.body.requestId, "request-1");
+  assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
   assert.equal(res.body.code, "INTERNAL_ERROR");
 });
 

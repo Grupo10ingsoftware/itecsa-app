@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import { requestContext, errorHandler } from './errors/httpErrors.js';
+import { resolveEnvironmentConfig } from './config/environment.js';
 
 import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
@@ -23,18 +25,20 @@ import clientsRoutes from './modules/clients/routes/clients.routes.js';
 import messageRoutes from './modules/messages/routes/message.routes.js';
 import orderHistoryRoutes from './modules/history/routes/orderHistory.routes.js';
 import metricsRoutes from './modules/metrics/routes/metrics.routes.js';
-import requestContext from './middlewares/requestContext.js';
-import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { notFoundHandler } from './middlewares/errorHandler.js';
 import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
 import { safeLogger } from './shared/safeLogger.js';
 import supportAudit from './middlewares/supportAudit.js';
 class Server {
-  constructor({ appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
+  constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
-    this.port = process.env.PORT; // definido en .env
+    this.port = env.PORT; // definido en .env
     this.appEnvironment = appEnvironment;
     this.logger = logger;
+    this.app.locals.errorLogger = logger;
+    this.env = env;
+    this.environment = resolveEnvironmentConfig(env);
     this.paths = {
         // Rutas cuando las tengamos
 
@@ -81,7 +85,7 @@ class Server {
     this.app.use(supportAudit);
 
     // Cors
-    this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
+    this.app.use(cors( {origin : this.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
@@ -104,9 +108,14 @@ class Server {
 
      * Esto se definira cuando tengamos nuestros rutas definidas para cada API
      */
-    this.app.use(this.paths.auth, createAuthRouter())
+    this.app.use(
+      this.paths.auth,
+      createAuthRouter({
+        includeDebugRoutes: this.environment.demoFeaturesEnabled && this.appEnvironment !== "production",
+      }),
+    )
     this.app.use( this.paths.admin, adminUsersRoutes)
-    if (this.appEnvironment === 'development' || this.appEnvironment === 'test') {
+    if (this.environment.demoFeaturesEnabled && this.appEnvironment !== "production") {
       this.app.use(this.paths.demoOrders, demoOrdersRoutes)
     }
     this.app.use( this.paths.health, healthRoutes)

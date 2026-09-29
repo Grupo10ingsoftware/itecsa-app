@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import MessageService from "../service/message.service.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 
 class MessageController {
     constructor({ service } = {}) {
@@ -13,7 +13,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible obtener los mensajes.");
+            return respondError(error, req, res);
         }
     };
 
@@ -23,7 +23,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible obtener las notificaciones.");
+            return respondError(error, req, res);
         }
     };
 
@@ -36,7 +36,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible obtener el mensaje.");
+            return respondError(error, req, res);
         }
     };
 
@@ -49,7 +49,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible marcar el mensaje como leido.");
+            return respondError(error, req, res);
         }
     };
 
@@ -62,7 +62,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible ocultar la notificacion.");
+            return respondError(error, req, res);
         }
     };
 
@@ -72,7 +72,7 @@ class MessageController {
 
             return res.status(200).json(result);
         } catch (error) {
-            return sendControllerError(req, res, error, "No fue posible limpiar las notificaciones.");
+            return respondError(error, req, res);
         }
     };
 }

@@ -1,7 +1,7 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { response, request } from "express";
 
 import ClientService from "../service/clients.service.js";
-import { sendControllerError } from "../../../shared/httpResponse.js";
 /**
  *
  *  = async ( req = request, res = response ) => {}
@@ -29,12 +29,10 @@ class ClientController {
                 estado_cliente
             })
 
-            if( !result ) return res.status( 500 ).json({
-                message:'Error al crear cliente - controlador'
-            })
+            if( !result ) return respondError(new Error(), req, res)
             res.status( 200 ).json( result );
         } catch (error) {
-            return sendControllerError(req, res, error, "Error al crear cliente");
+            return respondError(error, req, res);
         }
     }
 
@@ -47,7 +45,7 @@ class ClientController {
             if ( !result ) return res.status( 404 ).json({msg:'Cliente no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {
-            return sendControllerError(req, res, error, "Error al obtener cliente");
+            return respondError(error, req, res);
         }
     }
 
@@ -59,7 +57,7 @@ class ClientController {
 
             res.status( 200 ).json( client );
         } catch ( error ) {
-            return sendControllerError(req, res, error, "Error al buscar cliente por RUT");
+            return respondError(error, req, res);
         }
     };
 

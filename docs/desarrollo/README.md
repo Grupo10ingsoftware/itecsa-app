@@ -35,8 +35,8 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 | API: `PORT`, `FRONTEND_ORIGIN` | Puerto HTTP y origen permitido por CORS |
 | API: `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` | Issuer y audience del JWT; obligatorios en el arranque |
 | API: `AUTH0_MANAGEMENT_CLIENT_ID`, `AUTH0_MANAGEMENT_CLIENT_SECRET`, `AUTH0_DATABASE_CONNECTION`, `AUTH0_PASSWORD_RESET_CLIENT_ID` | Gestión de identidades y solicitud de correos; exclusivos del servidor |
-| API: `APP_ENV` | Entorno obligatorio: `development`, `test` o `production`; las cuotas son persistentes en producci?n |
-| API: `RATE_LIMIT_SECRET`, `CURSOR_SECRET`, `SECURITY_LOG_HMAC_KEY` | Claves de seguridad del servidor; consultar las plantillas y la [gu?a de seguridad](../security/README.md) |
+| API: `APP_ENV`, `NODE_ENV` | Deben coincidir. Entorno obligatorio: `development`, `test` o `production`; las cuotas son persistentes en producción |
+| API: `RATE_LIMIT_SECRET`, `CURSOR_SECRET`, `SECURITY_LOG_HMAC_KEY` | Claves de seguridad del servidor; consultar las plantillas y la [guía de seguridad](../security/README.md) |
 | API: `PIN_SECRET` | Obligatorio; exactamente 32 bytes en base64 para cifrado y huellas de PIN |
 | API: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL_CA_PATH` | Adaptador MariaDB/MySQL con CA y TLS |
 | Prisma CLI: `DATABASE_URL` | Conexión definida en `prisma.config.ts`; debe corresponder a la misma base del runtime |
@@ -46,6 +46,19 @@ Guardar la CA local, por ejemplo, en `capaServidor/certs/aiven-ca.pem`. El runti
 Conservar el mismo `PIN_SECRET` al usar la misma base, incluidos reinicios y rollback. Generar uno con `openssl rand -base64 32` solo al preparar un entorno nuevo e independiente. No rotarlo como parte de una instalación rutinaria.
 
 La SPA toma la configuración desde `import.meta.env.VITE_*`. Estos valores se incorporan al compilar con Vite; cambiar la configuración de una build requiere recompilarla. Ningún valor de Management, base o PIN debe pasar al frontend.
+
+### PIN y demo
+
+La API usa `PIN_DELIVERY_PROVIDER=resend`, `RESEND_API_KEY` y `PIN_EMAIL_FROM`
+para enviar códigos por correo. Sin proveedor explícito, recuperación responde
+indisponibilidad. `fake` solo se admite en tests y `console` únicamente en desarrollo
+con selección explícita. Consultar [entrega de PIN](../security/H07-pin-recovery-delivery.md).
+
+Las rutas demo y las notas de venta fixture requieren `ENABLE_DEMO_ROUTES=true`;
+el control debug de la SPA necesita además `VITE_ENABLE_DEMO_ROUTES=true`.
+Ambos permanecen desactivados por defecto. La API rechaza demos en producción
+y discrepancias entre `APP_ENV` y `NODE_ENV`. `npm run dev` completa los valores
+de entorno ausentes; `npm start` exige ambos explícitos.
 
 ## Prisma y base existente
 

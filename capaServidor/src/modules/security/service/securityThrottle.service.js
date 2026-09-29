@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import getPrismaClient from "../../../database/prisma.js";
 import { AppError } from "../../../shared/appError.js";
 
@@ -92,14 +92,19 @@ export class SecurityThrottleService {
 }
 
 export class MemoryThrottleService {
-    constructor({ now = () => new Date(), entries = new Map() } = {}) {
+    constructor({ now = () => new Date(), entries = new Map(), maxEntries = 10000 } = {}) {
         this.now = now;
         this.entries = entries;
+        this.maxEntries = maxEntries;
     }
 
     async consume({ scope, subject, limit, windowMs }) {
         const now = this.now();
-        const key = `${scope}:${subject}`;
+        await this.purgeExpired();
+        const key = createHash("sha256").update(`${scope}:${subject}`).digest("hex");
+        if (!this.entries.has(key) && this.entries.size >= this.maxEntries) {
+            throw new RateLimitExceededError(Math.max(1, Math.ceil(windowMs / 1000)));
+        }
         let state = this.entries.get(key);
         if (!state || state.expiresAt <= now.getTime()) {
             state = { count: 0, expiresAt: now.getTime() + windowMs };

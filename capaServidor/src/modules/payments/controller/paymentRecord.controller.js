@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import PaymentRecordService from "../service/paymentRecord.service.js";
-import { sendPaymentError } from "./paymentError.js";
 
 class PaymentRecordController {
   constructor({ service } = {}) {
@@ -14,7 +14,7 @@ class PaymentRecordController {
 
       res.status(200).json(record);
     } catch (error) {
-      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
+        return respondError(error, req, res);
     }
   };
 
@@ -25,7 +25,7 @@ class PaymentRecordController {
 
       res.status(200).json(records);
     } catch (error) {
-      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
+        return respondError(error, req, res);
     }
   };
 
@@ -36,7 +36,7 @@ class PaymentRecordController {
 
       res.status(200).json(details);
     } catch (error) {
-      return sendPaymentError(res, error, undefined, { requestId: req.requestId, actorId: req.currentUser?.idUsuario });
+        return respondError(error, req, res);
     }
   };
 }

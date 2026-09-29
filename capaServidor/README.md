@@ -25,7 +25,7 @@ La API usa `http://localhost:3000/api`. `npm start` inicia sin nodemon y `npm te
 
 Antes de ejecutar introspección o migraciones, revisar sus efectos y el entorno autorizado. `prisma:pull` modifica el schema local; no es un paso rutinario para arrancar el código versionado. Los secretos y el certificado CA permanecen fuera de Git.
 
-La CLI Prisma se instala por separado en `tooling/prisma`. Consultar las [dependencias](../docs/security/DEPENDENCIAS.md) y la [configuraci?n de seguridad](../docs/security/README.md).
+La CLI Prisma se instala por separado en `tooling/prisma`. Consultar las [dependencias](../docs/security/DEPENDENCIAS.md) y la [configuración de seguridad](../docs/security/README.md).
 
 ## Variables De Entorno
 
@@ -33,6 +33,8 @@ Crear un archivo `.env` local a partir de `env.example`:
 
 ```dotenv
 APP_ENV=development
+NODE_ENV=development
+ENABLE_DEMO_ROUTES=false
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
 AUTH0_DOMAIN=<tenant-auth0>
@@ -558,24 +560,23 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 - `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
 - El módulo de documentos/PDF fue retirado; `/api/documents/*` ya no se monta.
 
-### PIN debug para Soporte (desarrollo)
+### PIN, recuperación y herramientas demo
 
-Para habilitar el botón **Generar nuevo PIN (debug)** en el perfil, inicia la SPA
-con `npm run dev` y el backend con `APP_ENV=development npm run dev`.
-`POST /api/auth/pin/debug-reset` exige sesión activa, rol Soporte coincidente
-con la BD y permiso `manage:own-pin`; opera solo sobre el usuario autenticado.
-Reemplaza el PIN anterior e invalida códigos de recuperación pendientes. El nuevo
-PIN se muestra con el flujo habitual de entrega y su copia cifrada se elimina al
-aceptarlo. No requiere cambios en Auth0 ni en el esquema de BD.
-El endpoint rechaza cualquier entorno distinto de `development`, incluido uno
-sin `APP_ENV`. Para desactivar esta herramienta, reinicia el backend fuera de
-ese entorno; las compilaciones de producción de la SPA no muestran el botón.
+`APP_ENV` y `NODE_ENV` deben coincidir (`development`, `test` o `production`).
+`npm run dev` completa los valores ausentes; `npm start` exige configuración explícita.
+Las rutas demo y la fuente fixture requieren `ENABLE_DEMO_ROUTES=true` y quedan
+prohibidas en producción. El control visual de debug requiere además
+`VITE_ENABLE_DEMO_ROUTES=true` en la SPA de desarrollo. Debug conserva la validación
+de Soporte, sesión activa y permiso `manage:own-pin`.
 
-### Recuperación de PIN
+La recuperación usa `PIN_DELIVERY_PROVIDER=resend` con `RESEND_API_KEY` y
+`PIN_EMAIL_FROM` configurados. Sin proveedor explícito permanece deshabilitada.
+El proveedor `fake` solo funciona en tests; `console` imprime el OTP únicamente
+si se selecciona expresamente en desarrollo. Nunca usar ese proveedor en producción.
+Las validaciones del PIN serializan por usuario; los retos anteriores se invalidan
+y la confirmación consume el reto y cambia el PIN en una transacción.
 
-La entrega automática de códigos permanece deshabilitada de forma fail-closed
-en `development`, `test` y `production` hasta integrar y aprobar un proveedor.
-El backend nunca registra el correo ni el código en consola. Las pruebas deben
-inyectar un delivery falso y usar únicamente direcciones sintéticas. Mientras
-no exista proveedor, `POST /api/auth/pin-recovery/request` responde `503` con
-`PIN_RECOVERY_DELIVERY_UNAVAILABLE`; no se debe interpretar como entrega.
+Referencias: [ciclo de vida](../docs/security/H06-pin-lifecycle.md),
+[entrega](../docs/security/H07-pin-recovery-delivery.md),
+[errores HTTP](../docs/security/H08-http-errors.md) y
+[entornos demo](../docs/DEMO-ENVIRONMENTS.md).

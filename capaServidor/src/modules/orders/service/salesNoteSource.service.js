@@ -1,6 +1,8 @@
+import { AppError } from "../../../errors/AppError.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDemoFeatureEnabled } from "../../../config/environment.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -105,16 +107,24 @@ export class SalesNoteRepository {
 }
 
 export class FixtureSalesNoteRepository extends SalesNoteRepository {
-  constructor({ fixturePath = DEFAULT_FIXTURE_PATH, cacheTtlMs = 5 * 60 * 1000, now = Date.now } = {}) {
+  constructor({ fixturePath = DEFAULT_FIXTURE_PATH, cacheTtlMs = 5 * 60 * 1000, now = Date.now, demoFeatureEnabled = isDemoFeatureEnabled } = {}) {
     super();
     this.fixturePath = fixturePath;
     this.cacheTtlMs = cacheTtlMs;
     this.now = now;
+    this.demoFeatureEnabled = demoFeatureEnabled;
     this.cache = null;
     fixtureRepositories.add(this);
   }
 
   async getSalesNotes() {
+    if (!this.demoFeatureEnabled()) {
+      const error = new Error("La fuente demo de Notas de Venta no esta habilitada.");
+      error.statusCode = 503;
+      error.code = "DEMO_FEATURES_DISABLED";
+      throw error;
+    }
+
     const stats = await fs.stat(this.fixturePath);
     const version = `${stats.mtimeMs}:${stats.size}`;
 
@@ -149,8 +159,7 @@ export class FixtureSalesNoteRepository extends SalesNoteRepository {
     const normalizedNumber = normalizeSalesNoteNumber(numeroNota);
 
     if (!normalizedNumber) {
-      const error = new Error("El numero de Nota de Venta es obligatorio.");
-      error.statusCode = 400;
+      const error = new AppError(400, "El numero de Nota de Venta es obligatorio.");
       throw error;
     }
 
@@ -158,8 +167,7 @@ export class FixtureSalesNoteRepository extends SalesNoteRepository {
     const record = this.cache.byNumber.get(normalizedNumber);
 
     if (!record) {
-      const error = new Error("Nota de Venta no encontrada.");
-      error.statusCode = 404;
+      const error = new AppError(404, "Nota de Venta no encontrada.");
       throw error;
     }
 

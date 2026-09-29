@@ -1,3 +1,4 @@
+import { buildCreateOrderPayload } from '../src/modules/orders/utils/createOrderPayload.js'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -33,7 +34,7 @@ function mount(api) {
   }
   const hook = runInNewContext(`${source}\nuseOrderCreateFlow`, {
     useState, useRef, useEffect, useMemo: (fn) => fn(),
-    useOrdersApi: () => api, canContinueFromSalesNote, validateSalesNoteStep, normalizeSalesNoteCode,
+    buildCreateOrderPayload, useOrdersApi: () => api, canContinueFromSalesNote, validateSalesNoteStep, normalizeSalesNoteCode,
   })
   return {
     render() { cursor = 0; return hook({ navigate() {} }) },

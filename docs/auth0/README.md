@@ -36,9 +36,9 @@ El alta administrativa acepta JSON con nombre, apellido, RUT, correo y rol. El s
 
 Edición de correo/rol/estado se sincroniza con Auth0; nombre, apellido y RUT son datos internos. Edición y cambio de estado exigen PIN y alcance departamental. Una creación con `recoverable: true` indica que hubo creación externa parcial: no repetir ciegamente el alta. Consultar [contratos API](../desarrollo/API.md).
 
-El PIN personal es independiente de la contraseña Auth0. Su entrega, aceptación y recuperación operan sobre el actor autenticado. `PIN_SECRET` es exclusivo del servidor y debe conservarse para la misma base. La recuperación de PIN en producción no tiene proveedor configurado; el proveedor de desarrollo imprime el código. Consultar los [pendientes de seguridad](../PENDIENTES.md) antes de usar ese flujo fuera de desarrollo.
+El PIN personal es independiente de la contraseña Auth0. Su entrega, aceptación y recuperación operan sobre el actor autenticado. `PIN_SECRET` es exclusivo del servidor y debe conservarse para la misma base. La recuperación dispone de un adaptador Resend que requiere credenciales y remitente verificado. Sin selección explícita queda deshabilitada; `console` solo se admite expresamente en desarrollo. Consultar los [pendientes de seguridad](../PENDIENTES.md) antes de usar ese flujo fuera de desarrollo.
 
-El reset debug requiere `NODE_ENV=development`, Soporte coincidente con la base y `manage:own-pin`. Opera solo sobre el usuario autenticado. La SPA compilada para producción no muestra el botón.
+El reset debug requiere `APP_ENV=NODE_ENV=development`, `ENABLE_DEMO_ROUTES=true` (y `VITE_ENABLE_DEMO_ROUTES=true` en la SPA), Soporte coincidente con la base y `manage:own-pin`. Opera solo sobre el usuario autenticado. La SPA compilada para producción no muestra el botón.
 
 ## Recuperación de contraseña y plantillas
 

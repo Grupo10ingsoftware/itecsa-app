@@ -120,6 +120,26 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
                     },
                   },
                 },
+                {
+                  ID_REGISTRO: 10,
+                  FECHA_HORA: new Date("2026-06-11T11:30:00.000Z"),
+                  observacion: "Avance Lanyard: 40% (100/250 producidos)",
+                  Usuario: {
+                    nombre_usuario: "Ana",
+                    apellido_usuario: "Perez",
+                    correo_usuario: "ana@example.com",
+                  },
+                  registro_subprocesos: {
+                    Estado_Subprocesos: {
+                      nombre_estado: "Costura",
+                    },
+                    Detalle_pedido: {
+                      Tipo_Producto: {
+                        nombre_producto: "Lanyard",
+                      },
+                    },
+                  },
+                },
               ],
             },
           ];
@@ -131,45 +151,15 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
   const orders = await repo.getAllOrders();
 
   assert.equal(orders[0].nombre_cliente, "Mall Plaza");
-  assert.equal(orders[0].rut_cliente, "76.812.440-5");
+  assert.equal("rut_cliente" in orders[0], false);
   assert.equal(orders[0].nombre_producto, "Lanyard");
   assert.equal(orders[0].descripcion_producto, "Lanyard sublimado");
   assert.equal(orders[0].cantidad, 250);
   assert.equal(orders[0].id_etapa_general, 1);
   assert.equal(orders[0].nombre_etapa_general, "Listo para produccion");
-  assert.deepEqual(orders[0].comments, [
-    {
-      createdAt: new Date("2026-06-10T00:00:00.000Z"),
-      id: "pedido-2-observacion-origen",
-      text: "Observacion desde Manager.",
-      type: "source",
-    },
-    {
-      createdAt: new Date("2026-06-10T00:00:00.000Z"),
-      id: "pedido-2-observacion-interna",
-      text: "Coordinar entrega con el cliente.",
-      type: "system",
-    },
-    {
-      createdAt: new Date("2026-06-11T10:30:00.000Z"),
-      id: "registro-9",
-      productType: "Lanyard",
-      responsible: "Ana Perez",
-      subprocessName: "Impresion",
-      text: "Subproceso terminado sin observaciones adicionales.",
-      type: "subprocess",
-    },
-  ]);
-  assert.deepEqual(orders[0].commentGroups.source, [
-    {
-      createdAt: new Date("2026-06-10T00:00:00.000Z"),
-      id: "pedido-2-observacion-origen",
-      text: "Observacion desde Manager.",
-      type: "source",
-    },
-  ]);
-  assert.equal(orders[0].commentGroups.system.length, 1);
-  assert.equal(orders[0].commentGroups.subprocesses[0].subprocessName, "Impresion");
+  assert.equal("comments" in orders[0], false);
+  assert.equal("commentGroups" in orders[0], false);
+  assert.doesNotMatch(JSON.stringify(orders[0]), /Observacion desde Manager|Coordinar entrega/);
   assert.deepEqual(orders[0].detalles, [
     {
       id_detalle_pedido: 5,

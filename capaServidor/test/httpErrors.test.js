@@ -101,7 +101,7 @@ test('untrusted status/message and synthetic Prisma metadata are not public', ()
 test('existing user repository duplicate constraint maps to a functional conflict', async () => {
     const users = new UserRepository({ prisma: { usuario: { async update() { throw Object.assign(Error(SECRET), { code: 'P2002', meta: { target: ['secret_table'] } }); } } } });
     const f = fixture();
-    try { await users.updateStatusByAuth0Id('auth0|test', 'Activo'); assert.fail('Expected constraint error'); }
+    try { await users.updateByAuth0Id('auth0|test', { correoUsuario: 'test@example.invalid' }); assert.fail('Expected constraint error'); }
     catch (error) { respondError(error, f.req, f.res); }
     assert.equal(f.res.statusCode, 409);
     assert.equal(f.res.body.code, 'USER_ALREADY_EXISTS');

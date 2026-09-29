@@ -8,9 +8,13 @@ En Auth0: User Management → Roles → elegir rol → Permissions → Add Permi
 
 No seleccionar Auth0 Management API. No conceder permisos directos adicionales a usuarios. Cada usuario debe tener exactamente un rol ITECSA y coincidir con su registro interno. Soporte se asigna únicamente por el equipo técnico.
 
-Estado: el usuario confirmó la configuración manual del dashboard. El MCP no ofrece herramientas de roles, por lo que las asociaciones no se han releído de forma independiente. Falta validar sesiones nuevas.
+Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en [la auditoría histórica](../archivo/auditorias/AUDITORIA-2026-09-25.md); consultar [la guía vigente](README.md). Generar este archivo no verifica Auth0.
 
-Los ocho scopes antiguos ya se eliminaron de ITECSA API por solicitud del usuario. El catálogo contiene exactamente estos 24 permisos. Asignar las listas a los roles y renovar las sesiones. Soporte debe recibir los 24; nunca scopes de Management API.
+El catálogo contiene 25 permisos funcionales. Soporte recibe los 25; nunca scopes de Management API. Renovar las sesiones después de cambiar asignaciones.
+
+Kanban usa read:orders y Pagos usa read:payments. view:kanban-module y view:payments-module son permisos retirados. Guardar carga operativa acepta manage:production-load o manage:production-capacity.
+
+En Applications → APIs → ITECSA API, verificar RS256, Enable RBAC y Add Permissions in the Access Token. Verificar la Action vinculada a Post Login y el claim https://itecsa.local/roles.
 
 ## Administrador Produccion
 
@@ -28,11 +32,13 @@ Rol funcional. Mínimo privilegio según requisitos vigentes.
 - `start:production`
 - `rollback:production-subprocesses`
 - `manage:production-capacity`
+- `manage:production-load`
 - `manage:order-tags`
 - `review:orders`
 - `cancel:orders`
 - `read:production-calendar`
 - `update:order-delivery-date`
+- `view:metrics`
 
 ## Administrador Ventas
 
@@ -116,10 +122,11 @@ Rol funcional. Mínimo privilegio según requisitos vigentes.
 - `read:production-capacity`
 - `read:own-messages`
 - `update:own-messages`
+- `view:metrics`
 
 ## Soporte
 
-Rol técnico de desarrollo/testing. Todos los **24 permisos funcionales**; conserva PIN y reglas de estado. No se ofrece en formularios.
+Rol técnico de desarrollo/testing. Todos los **25 permisos funcionales**; conserva PIN y reglas de estado. No se ofrece en formularios.
 
 - `read:own-profile`
 - `manage:own-pin`
@@ -139,6 +146,7 @@ Rol técnico de desarrollo/testing. Todos los **24 permisos funcionales**; conse
 - `update:production-subprocesses`
 - `rollback:production-subprocesses`
 - `manage:production-capacity`
+- `manage:production-load`
 - `manage:order-tags`
 - `review:orders`
 - `cancel:orders`
@@ -168,8 +176,10 @@ Rol técnico de desarrollo/testing. Todos los **24 permisos funcionales**; conse
 | `update:production-subprocesses` | RF21–22; PIN, producción y pago confirmado |
 | `rollback:production-subprocesses` | RF30; PIN y motivo |
 | `manage:production-capacity` | RF24 |
+| `manage:production-load` | Gestionar la carga operativa diaria de producción |
 | `manage:order-tags` | RF26–27 |
 | `review:orders` | RF28 |
 | `cancel:orders` | RF29; PIN y motivo |
 | `read:production-calendar` | RF49, RF52; AV/OV solo lectura |
 | `update:order-delivery-date` | RF51 y decisión del usuario: PIN obligatorio |
+| `view:metrics` | Consultar el resumen e indicadores de métricas |

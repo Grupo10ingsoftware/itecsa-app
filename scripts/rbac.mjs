@@ -10,6 +10,8 @@ export const requirements = {
  'revise:payment-status':'RF40; AC, motivo y PIN; aprobaciones pendientes fuera de alcance',
  'move:orders':'RF19; PIN; solo transiciones manuales', 'start:production':'RF19 y decisión del usuario: AP',
  'update:production-subprocesses':'RF21–22; PIN, producción y pago confirmado', 'rollback:production-subprocesses':'RF30; PIN y motivo',
+ 'view:metrics':'Consultar el resumen e indicadores de métricas',
+ 'manage:production-load':'Gestionar la carga operativa diaria de producción',
  'manage:production-capacity':'RF24', 'manage:order-tags':'RF26–27', 'review:orders':'RF28',
  'cancel:orders':'RF29; PIN y motivo', 'read:production-calendar':'RF49, RF52; AV/OV solo lectura',
  'update:order-delivery-date':'RF51 y decisión del usuario: PIN obligatorio',
@@ -46,10 +48,12 @@ if(process.argv[1] === fileURLToPath(import.meta.url)) {
   '**API:** ITECSA API · **Identifier:** `https://api.itecsa.local`.', '',
   'En Auth0: User Management → Roles → elegir rol → Permissions → Add Permissions → ITECSA API. Asignar exactamente la lista del rol. Los nombres técnicos usan `Produccion` sin tilde.', '',
   'No seleccionar Auth0 Management API. No conceder permisos directos adicionales a usuarios. Cada usuario debe tener exactamente un rol ITECSA y coincidir con su registro interno. Soporte se asigna únicamente por el equipo técnico.', '',
-  'Estado: el usuario confirmó la configuración manual del dashboard. El MCP no ofrece herramientas de roles, por lo que las asociaciones no se han releído de forma independiente. Falta validar sesiones nuevas.', '',
-  'Los ocho scopes antiguos ya se eliminaron de ITECSA API por solicitud del usuario. El catálogo contiene exactamente estos 23 permisos. Asignar las listas a los roles y renovar las sesiones. Soporte debe recibir los 23; nunca scopes de Management API.', ''];
+  'Esta matriz describe la configuración esperada del código. La evidencia del tenant se registra por separado con fecha y commit en [la auditoría histórica](../archivo/auditorias/AUDITORIA-2026-09-25.md); consultar [la guía vigente](README.md). Generar este archivo no verifica Auth0.', '',
+  `El catálogo contiene ${BUSINESS_PERMISSIONS.length} permisos funcionales. Soporte recibe los ${BUSINESS_PERMISSIONS.length}; nunca scopes de Management API. Renovar las sesiones después de cambiar asignaciones.`, '',
+  'Kanban usa read:orders y Pagos usa read:payments. view:kanban-module y view:payments-module son permisos retirados. Guardar carga operativa acepta manage:production-load o manage:production-capacity.', '',
+  'En Applications → APIs → ITECSA API, verificar RS256, Enable RBAC y Add Permissions in the Access Token. Verificar la Action vinculada a Post Login y el claim https://itecsa.local/roles.', ''];
   for(const [role,permissions] of Object.entries(ROLE_PERMISSIONS)) {
-   lines.push('## '+role,'',role===ROLES.SOPORTE?'Rol técnico de desarrollo/testing. Todos los **23 permisos funcionales**; conserva PIN y reglas de estado. No se ofrece en formularios.':'Rol funcional. Mínimo privilegio según requisitos vigentes.','',...permissions.map(p=>'- `'+p+'`'),'');
+   lines.push('## '+role,'',role===ROLES.SOPORTE?`Rol técnico de desarrollo/testing. Todos los **${BUSINESS_PERMISSIONS.length} permisos funcionales**; conserva PIN y reglas de estado. No se ofrece en formularios.`:'Rol funcional. Mínimo privilegio según requisitos vigentes.','',...permissions.map(p=>'- `'+p+'`'),'');
   }
   lines.push('## Trazabilidad del catálogo','','| Permission | Justificación / condición |','| --- | --- |',...BUSINESS_PERMISSIONS.map(p=>'| `'+p+'` | '+requirements[p]+' |'),'');
   writeFileSync(new URL('../docs/auth0/RBAC-PERMISOS-POR-ROL.md',import.meta.url),lines.join('\n'));

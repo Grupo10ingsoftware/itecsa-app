@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
-import CalendarSummaryCards from '../components/CalendarSummaryCards'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
-import { isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -28,6 +26,15 @@ function getStatusByStep(stepId) {
 
 function toCalendarDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
+}
+
+function monthRange(monthDate) {
+  const year = monthDate.getFullYear()
+  const month = monthDate.getMonth()
+  const first = new Date(year, month, 1)
+  const last = new Date(year, month + 1, 0)
+  const key = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return { from: key(first), to: key(last) }
 }
 
 function normalizeText(value) {
@@ -95,7 +102,8 @@ export default function ProductionCalendarPage() {
     async function loadOrders() {
       try {
         setLoadError(null)
-        const orders = await ordersCalendarApi.getOrders()
+        const result = await ordersCalendarApi.getOrders(monthRange(monthDate))
+        const orders = result.items ?? []
 
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
@@ -104,8 +112,7 @@ export default function ProductionCalendarPage() {
                 .map(normalizeCalendarOrder)
             : [])
         }
-      } catch (error) {
-        console.error('Error cargando pedidos del calendario:', error)
+      } catch {
         if (isMounted) {
           setLoadError('No fue posible cargar los pedidos compartidos del calendario.')
         }
@@ -117,7 +124,7 @@ export default function ProductionCalendarPage() {
     return () => {
       isMounted = false
     }
-  }, [ordersCalendarApi])
+  }, [monthDate, ordersCalendarApi])
 
   useEffect(() => {
     if (!draggedItemId) return undefined
@@ -152,11 +159,6 @@ export default function ProductionCalendarPage() {
       return matchesSearch && matchesStatus && matchesProduct
     })
   }, [calendarItems, filters])
-
-  const scheduledMonthItems = useMemo(
-    () => filteredItems.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
-    [filteredItems, monthDate],
-  )
 
   function changeMonth(offset) {
     setMonthDate((currentDate) => new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1))
@@ -197,23 +199,22 @@ export default function ProductionCalendarPage() {
 
           {loadError && <div className="alert alert-warning mb-0">{loadError}</div>}
 
-          <CalendarSummaryCards items={scheduledMonthItems} />
-
           <section className={styles.calendarPanel}>
-            <CalendarToolbar
-              isDraggingOrder={Boolean(draggedItemId)}
-              monthDate={monthDate}
-              onNavigateNextDuringDrag={() => changeMonth(1)}
-              onNextMonth={() => changeMonth(1)}
-              onPreviousMonth={() => changeMonth(-1)}
-            />
             <ProductionCalendarGrid
+              allItems={calendarItems}
               draggedItemId={draggedItemId}
               items={filteredItems}
               monthDate={monthDate}
               onChangeDeliveryDate={updateItemDeliveryDate}
               onDragEnd={() => setDraggedItemId(null)}
               onDragStart={setDraggedItemId}
+              toolbar={(
+                <CalendarToolbar
+                  monthDate={monthDate}
+                  onNextMonth={() => changeMonth(1)}
+                  onPreviousMonth={() => changeMonth(-1)}
+                />
+              )}
             />
           </section>
         </div>

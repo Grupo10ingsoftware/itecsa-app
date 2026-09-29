@@ -25,28 +25,29 @@ export default function OrderHistoryPage() {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [dateRange, setDateRange] = useState({ from: '', to: '' })
-  const [page, setPage] = useState(1)
-  const [meta, setMeta] = useState({ total: 0, totalPages: 0 })
+  const [cursorStack, setCursorStack] = useState([null])
+  const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
-    api.listOrders({ status, search, from: dateRange.from, to: dateRange.to, page, perPage: 20 })
+    const cursor = cursorStack.at(-1)
+    api.listOrders({ status, search, from: dateRange.from, to: dateRange.to, cursor, limit: 50 })
       .then((result) => {
         if (!active) return
-        setOrders(result.orders ?? [])
-        setMeta({ total: result.total ?? 0, totalPages: result.totalPages ?? 0 })
+        setOrders(result.items ?? [])
+        setPageInfo(result.pageInfo ?? { nextCursor: null, hasMore: false })
       })
       .catch((requestError) => active && setError(errorMessage(requestError)))
       .finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [api, dateRange.from, dateRange.to, page, search, status])
+  }, [api, cursorStack, dateRange.from, dateRange.to, search, status])
 
   function updateDate(name, value) {
     setLoading(true)
     setError('')
-    setPage(1)
+    setCursorStack([null])
     setDateRange((current) => ({ ...current, [name]: value }))
   }
 
@@ -56,7 +57,7 @@ export default function OrderHistoryPage() {
     if (nextSearch === search) return
     setLoading(true)
     setError('')
-    setPage(1)
+    setCursorStack([null])
     setSearch(nextSearch)
   }
 
@@ -65,17 +66,25 @@ export default function OrderHistoryPage() {
     if (resolvedStatus === status) return
     setLoading(true)
     setError('')
-    setPage(1)
+    setCursorStack([null])
     setStatus(resolvedStatus)
   }
 
-  function changePage(nextPage) {
+  function nextPage() {
+    if (!pageInfo.nextCursor) return
     setLoading(true)
     setError('')
-    setPage(nextPage)
+    setCursorStack((current) => [...current, pageInfo.nextCursor])
   }
 
-  const noRegisteredOrders = !loading && !error && meta.total === 0 && !status && !search && !dateRange.from && !dateRange.to
+  function previousPage() {
+    if (cursorStack.length === 1) return
+    setLoading(true)
+    setError('')
+    setCursorStack((current) => current.slice(0, -1))
+  }
+
+  const noRegisteredOrders = !loading && !error && orders.length === 0 && cursorStack.length === 1 && !status && !search && !dateRange.from && !dateRange.to
 
   return (
     <main className={`container-fluid ${styles.page}`}>
@@ -85,7 +94,7 @@ export default function OrderHistoryPage() {
           <h1>Historial de pedidos</h1>
           <p>Consulta pedidos y revisa su trazabilidad consolidada.</p>
         </div>
-        <strong>{meta.total} pedidos</strong>
+        <strong>{orders.length} resultados en esta página</strong>
       </header>
 
       <section className={styles.panel}>
@@ -103,7 +112,7 @@ export default function OrderHistoryPage() {
           <input
             aria-label="Buscar pedidos"
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Nota de Venta, RUT o nombre del cliente"
+            placeholder="Nota de Venta o nombre del cliente"
             type="search"
             value={searchInput}
           />
@@ -119,7 +128,7 @@ export default function OrderHistoryPage() {
             <span>Hasta</span>
             <input min={dateRange.from || undefined} onChange={(event) => updateDate('to', event.target.value)} type="date" value={dateRange.to} />
           </label>
-          <button onClick={() => setDateRange({ from: '', to: '' })} type="button">
+          <button onClick={() => { setLoading(true); setError(''); setCursorStack([null]); setDateRange({ from: '', to: '' }) }} type="button">
             <i className="bi bi-arrow-counterclockwise" aria-hidden="true" /> Restablecer fechas
           </button>
         </div>
@@ -132,12 +141,11 @@ export default function OrderHistoryPage() {
         ) : (
           <div className={styles.tableWrap}>
             <table>
-              <thead><tr><th>Nota de Venta</th><th>RUT cliente</th><th>Cliente</th><th>Estado actual</th><th>Fecha creación</th><th>Acción</th></tr></thead>
+              <thead><tr><th>Nota de Venta</th><th>Cliente</th><th>Estado actual</th><th>Fecha creación</th><th>Acción</th></tr></thead>
               <tbody>
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td><strong>{order.salesNoteNumber ?? `Pedido #${order.id}`}</strong></td>
-                    <td>{order.clientRut ?? 'No disponible'}</td>
                     <td>{order.clientName ?? 'No disponible'}</td>
                     <td><span className={styles.status}>{order.status ?? 'Sin estado'}</span></td>
                     <td>{formatDate(order.createdAt)}</td>
@@ -153,11 +161,11 @@ export default function OrderHistoryPage() {
           </div>
         )}
 
-        {meta.totalPages > 1 && (
+        {(cursorStack.length > 1 || pageInfo.hasMore) && (
           <nav className={styles.pagination} aria-label="Paginación">
-            <button disabled={page === 1} onClick={() => changePage(page - 1)} type="button">Anterior</button>
-            <span>Página {page} de {meta.totalPages}</span>
-            <button disabled={page >= meta.totalPages} onClick={() => changePage(page + 1)} type="button">Siguiente</button>
+            <button disabled={cursorStack.length === 1} onClick={previousPage} type="button">Anterior</button>
+            <span>Página {cursorStack.length}</span>
+            <button disabled={!pageInfo.hasMore} onClick={nextPage} type="button">Siguiente</button>
           </nav>
         )}
       </section>

@@ -30,6 +30,11 @@ model Comentario_Produccion {
 
 model Detalle_pedido {
   id_detalle_pedido      Int                     @id @default(autoincrement())
+  linea_origen          String?                 @db.VarChar(100)
+  codigo_origen         String?                 @db.VarChar(50)
+  producto_origen       String?                 @db.VarChar(255)
+  familia_origen        String?                 @db.VarChar(100)
+  subfamilia_origen      String?                 @db.VarChar(100)
   cantidad               Int?
   fecha_estimada_termino DateTime?               @db.DateTime(0)
   fecha_real_termino     DateTime?               @db.DateTime(0)
@@ -117,7 +122,7 @@ model Pedidos {
   id_cliente                  Int?
   id_etiqueta                 Int?
   observacion                 String?                       @db.Text
-  numero_nota_venta           String?                       @db.VarChar(50)
+  numero_nota_venta           String?                       @unique(map: "Pedidos_numero_nota_venta_UNIQUE") @db.VarChar(50)
   usuario_manager_origen      String?                       @db.VarChar(100)
   observacion_origen          String?                       @db.Text
   observacion_interna         String?                       @db.Text
@@ -137,6 +142,7 @@ model Pedidos {
   @@index([id_estado_pedido], map: "id_estado_pedido_idx")
   @@index([id_etiqueta], map: "id_etiqueta_idx")
   @@index([id_usuario], map: "id_usuario_idx")
+  @@index([id_pedido(sort: Desc)], map: "idx_orders_cursor")
 }
 
 model Producto_Subproceso {
@@ -209,6 +215,7 @@ model Usuario {
   Pedidos                Pedidos[]
   PinRecoveryChallenge   PinRecoveryChallenge[]
   Registros              Registros[]
+  SecurityAuditEvent     SecurityAuditEvent[]
 }
 
 model etiqueta {
@@ -311,6 +318,37 @@ model PinRecoveryChallenge {
   @@index([id_usuario, created_at], map: "idx_pin_recovery_user_created")
 }
 
+model SecurityThrottle {
+  id_security_throttle Int      @id @default(autoincrement())
+  scope                String   @db.VarChar(50)
+  subject_hash         String   @db.Char(64)
+  window_started_at    DateTime @db.DateTime(3)
+  request_count        Int      @default(0)
+  expires_at           DateTime @db.DateTime(3)
+  updated_at           DateTime @db.DateTime(3)
+
+  @@unique([scope, subject_hash], map: "scope_subject_hash")
+  @@index([expires_at], map: "idx_security_throttle_expiry")
+}
+
+model SecurityAuditEvent {
+  id_security_audit_event BigInt   @id @default(autoincrement())
+  occurred_at             DateTime @default(now()) @db.DateTime(3)
+  event_type              String   @db.VarChar(80)
+  actor_user_id           Int?
+  action                  String?  @db.VarChar(80)
+  resource_type           String?  @db.VarChar(60)
+  resource_id             String?  @db.VarChar(120)
+  request_id              String?  @db.Char(36)
+  outcome                 String   @db.VarChar(30)
+  reason_code             String?  @db.VarChar(80)
+  Usuario                 Usuario? @relation(fields: [actor_user_id], references: [id_usuario], onDelete: SetNull, onUpdate: NoAction, map: "fk_security_audit_user")
+
+  @@index([occurred_at], map: "idx_security_audit_occurred")
+  @@index([actor_user_id, occurred_at], map: "idx_security_audit_actor")
+  @@index([request_id], map: "idx_security_audit_request")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Registros {
   ID_REGISTRO          Int                   @id @default(autoincrement())
@@ -326,6 +364,7 @@ model Registros {
 
   @@index([id_pedido], map: "Registros_Pedidos_FK")
   @@index([id_usuario], map: "Registros_Usuario_FK")
+  @@index([id_pedido, FECHA_HORA(sort: Desc), ID_REGISTRO(sort: Desc)], map: "idx_records_order_cursor")
 }
 
 model Pedido_Item_Sin_Seguimiento {

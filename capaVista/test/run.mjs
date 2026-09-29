@@ -3,6 +3,7 @@ import { createServer } from 'vite'
 const server = await createServer({
   server: { middlewareMode: true, ws: false, hmr: false },
   appType: 'custom',
+  define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://localhost:3000/api') },
 })
 
 try {
@@ -10,6 +11,7 @@ try {
   const payments = await server.ssrLoadModule('/test/payment.cases.jsx')
 
   const profile = await server.ssrLoadModule('/test/profile.cases.jsx')
+  const orders = await server.ssrLoadModule('/test/orders.cases.jsx')
 
   const apiErrors = await server.ssrLoadModule('/test/apiErrors.cases.js')
   await apiErrors.run()
@@ -20,6 +22,7 @@ try {
   profile.run()
   authorization.run()
   payments.run()
+  orders.run()
 } finally {
   await server.close()
 }

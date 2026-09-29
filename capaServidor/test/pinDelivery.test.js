@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFile } from 'node:child_process';
@@ -132,16 +134,16 @@ test('stdout and stderr contain neither OTP nor recipient on successful/failed r
     assert.equal(stderr, 'pin_recovery_delivery_failure\n');
 });
 
-test.todo('H05: concurrent single-use guarantee awaits teammate implementation; sequential reuse is covered above');
+// Concurrent single-use and rollback are covered in pinConcurrency.test.js.
 
 for (const provider of ['fake', 'console']) {
     test(`application startup rejects production with ${provider} before opening server`, async () => {
-        const childEnv = { ...process.env, NODE_ENV: 'production', PIN_DELIVERY_PROVIDER: provider,
+        const childEnv = { ...process.env, NODE_ENV: 'production', APP_ENV: 'production', ENABLE_DEMO_ROUTES: 'false', PIN_DELIVERY_PROVIDER: provider, RATE_LIMIT_SECRET: Buffer.alloc(32, 8).toString('base64'), SECURITY_LOG_HMAC_KEY: 'synthetic',
             AUTH0_DOMAIN: 'synthetic.invalid', AUTH0_AUDIENCE: 'https://api.synthetic.invalid',
             FRONTEND_ORIGIN: 'https://frontend.synthetic.invalid', PIN_SECRET: Buffer.alloc(32, 7).toString('base64') };
         delete childEnv.NODE_TEST_CONTEXT;
         const application = new URL('../src/app/app.js', import.meta.url);
-        await assert.rejects(promisify(execFile)(process.execPath, [application.pathname], { env: childEnv, cwd: '/tmp', timeout: 10000 }), error => {
+        await assert.rejects(promisify(execFile)(process.execPath, [fileURLToPath(application)], { env: childEnv, cwd: tmpdir(), timeout: 10000 }), error => {
             assert.equal(error.code, 1);
             assert.match(error.stdout + error.stderr, /PIN_DELIVERY_CONFIGURATION_INVALID/);
             assert.equal((error.stdout + error.stderr).includes('Servidor corriendo'), false);

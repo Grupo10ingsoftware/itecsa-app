@@ -14,7 +14,6 @@ class ClientRepo {
   }
 
   async create(data) {
-    try {
       const {
         rut_cliente,
         nombre_cliente,
@@ -30,37 +29,22 @@ class ClientRepo {
           estado_cliente,
         },
       });
-    } catch (error) {
-      throw error;
-    }
   }
 
   async get(id) {
-    try {
       return this.client.cliente.findUnique({
         where: { id_cliente: Number(id) },
       });
-    } catch (error) {
-      throw error;
-    }
   }
 
   async getAll() {
-    try {
       return this.client.cliente.findMany();
-    } catch (error) {
-      throw error;
-    }
   }
 
   async getByRut(rutCliente) {
-    try {
       return this.client.cliente.findUnique({
         where: { rut_cliente: rutCliente },
       });
-    } catch (error) {
-      throw error;
-    }
   }
 }
 

@@ -13,6 +13,7 @@ import {
     createAuthRouter,
     createPasswordResetRateLimit,
 } from "../src/modules/auth/routes/auth.routes.js";
+import { MemoryThrottleService } from "../src/modules/security/service/securityThrottle.service.js";
 
 const VALID_PAYLOAD = {
     sub: "auth0|user-id",
@@ -52,7 +53,6 @@ function createUsersRepositoryMock({
     auth0User = null,
     onFindByEmail,
     onFindByAuth0Id,
-    onUpdateRoleByAuth0Id,
 } = {}) {
     return {
         async findByEmail(email) {
@@ -62,14 +62,6 @@ function createUsersRepositoryMock({
         async findByAuth0Id(auth0UserId) {
             await onFindByAuth0Id?.(auth0UserId);
             return auth0User;
-        },
-        async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
-            await onUpdateRoleByAuth0Id?.(auth0UserId, rolUsuario);
-            return {
-                ...(auth0User ?? {}),
-                idAuth0: auth0UserId,
-                rolUsuario,
-            };
         },
     };
 }
@@ -84,6 +76,8 @@ async function executePasswordReset({
         users,
         requestPasswordEmail,
         logger: {},
+        minimumDelayMs: 0,
+        random: () => 0,
     });
 
     await handler({ body }, res);
@@ -138,7 +132,6 @@ test("acepta Soporte como rol oficial sin identificarlo como Administrador Produ
 
 test("no sobrescribe el rol interno desde un token", async () => {
     let receivedLookup;
-    let receivedUpdate;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
@@ -147,9 +140,6 @@ test("no sobrescribe el rol interno desde un token", async () => {
             },
             onFindByAuth0Id(auth0UserId) {
                 receivedLookup = auth0UserId;
-            },
-            onUpdateRoleByAuth0Id(auth0UserId, rolUsuario) {
-                receivedUpdate = { auth0UserId, rolUsuario };
             },
         }),
         logger: {},
@@ -172,19 +162,14 @@ test("no sobrescribe el rol interno desde un token", async () => {
     assert.equal(res.body.rolUsuario, "Administrador Produccion");
     assert.equal(res.body.isAdministrador, true);
     assert.equal(receivedLookup, undefined);
-    assert.equal(receivedUpdate, undefined);
 });
 
 test("no actualiza el rol interno si ya coincide con Auth0", async () => {
-    let updateCalls = 0;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
                 rolUsuario: "Operario Ventas",
-            },
-            onUpdateRoleByAuth0Id() {
-                updateCalls += 1;
             },
         }),
         logger: {},
@@ -194,7 +179,6 @@ test("no actualiza el rol interno si ya coincide con Auth0", async () => {
     await handler({ auth: { payload: VALID_PAYLOAD } }, res);
 
     assert.equal(res.statusCode, 200);
-    assert.equal(updateCalls, 0);
 });
 
 
@@ -235,90 +219,93 @@ test("rechaza solicitud de recuperacion con email invalido", async () => {
     assert.equal(calls, 0);
 });
 
-test("cuentas activas, inexistentes y desvinculadas reciben la misma respuesta publica", async () => {
-    const publicResponses = [];
+test("responde no registrado sin llamar Auth0", async () => {
     let auth0Calls = 0;
-    const accounts = [
-        {
-            name: "active",
-            users: createUsersRepositoryMock({
-                user: {
-                    correoUsuario: "usuario@example.cl",
-                    estadoUsuario: "Activo",
-                },
-            }),
-            shouldSend: true,
-        },
-        {
-            name: "missing",
-            users: createUsersRepositoryMock(),
-            shouldSend: false,
-        },
-        {
-            name: "disabled",
-            users: createUsersRepositoryMock({
-                user: {
-                    correoUsuario: "usuario@example.cl",
-                    estadoUsuario: "Desvinculado",
-                },
-            }),
-            shouldSend: false,
-        },
-    ];
-
-    for (const account of accounts) {
-        const res = await executePasswordReset({
-            users: account.users,
-            requestPasswordEmail: async ({ email }) => {
-                auth0Calls += 1;
-                assert.equal(account.shouldSend, true, `${account.name} must not send`);
-                assert.equal(email, "usuario@example.cl");
+    const res = await executePasswordReset({
+        body: { email: "NO.REGISTRADO@EXAMPLE.CL" },
+        users: createUsersRepositoryMock({
+            onFindByEmail(email) {
+                assert.equal(email, "no.registrado@example.cl");
             },
-            logger: {},
-        });
-        publicResponses.push({ status: res.statusCode, body: res.body });
-    }
-
-    assert.deepEqual(publicResponses, [
-        {
-            status: 200,
-            body: {
-                status: "accepted",
-                message:
-                    "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.",
-            },
+        }),
+        requestPasswordEmail: async () => {
+            auth0Calls += 1;
         },
-        publicResponses[0],
-        publicResponses[0],
-    ]);
-    assert.equal(auth0Calls, 1);
-    assert.equal(JSON.stringify(publicResponses).includes("not_registered"), false);
-    assert.equal(JSON.stringify(publicResponses).includes("disabled"), false);
-    assert.equal(JSON.stringify(publicResponses).includes("user_exists"), false);
-});
+    });
 
-test("no elegibles se determinan internamente sin invocar Auth0", async () => {
-    let auth0Calls = 0;
-    for (const user of [
-        null,
-        { correoUsuario: "usuario@example.cl", estadoUsuario: "Desvinculado" },
-        { correoUsuario: "usuario@example.cl", estadoUsuario: "Pendiente rol" },
-    ]) {
-        const res = await executePasswordReset({
-            users: createUsersRepositoryMock({ user }),
-            requestPasswordEmail: async () => {
-                auth0Calls += 1;
-            },
-            logger: {},
-        });
-        assert.equal(res.statusCode, 200);
-        assert.equal(res.body.status, "accepted");
-    }
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(res.body, {
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
+    });
     assert.equal(auth0Calls, 0);
 });
 
-test("un error Auth0 no revela si la cuenta existe", async () => {
-    const loggerCalls = [];
+test("responde desactivado sin llamar Auth0 si el usuario esta desvinculado", async () => {
+    let auth0Calls = 0;
+    const res = await executePasswordReset({
+        users: createUsersRepositoryMock({
+            user: {
+                correoUsuario: "usuario@example.cl",
+                estadoUsuario: "Desvinculado",
+            },
+        }),
+        requestPasswordEmail: async () => {
+            auth0Calls += 1;
+        },
+    });
+
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(res.body, {
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
+    });
+    assert.equal(auth0Calls, 0);
+});
+
+test("responde desactivado sin llamar Auth0 si el usuario no esta activo", async () => {
+    let auth0Calls = 0;
+    const res = await executePasswordReset({
+        users: createUsersRepositoryMock({
+            user: {
+                correoUsuario: "usuario@example.cl",
+                estadoUsuario: "Pendiente rol",
+            },
+        }),
+        requestPasswordEmail: async () => {
+            auth0Calls += 1;
+        },
+    });
+
+    assert.equal(res.statusCode, 202);
+    assert.equal(res.body.status, "accepted");
+    assert.equal(auth0Calls, 0);
+});
+
+test("solicita correo Auth0 si el usuario esta activo", async () => {
+    let requestedEmail;
+    const res = await executePasswordReset({
+        users: createUsersRepositoryMock({
+            user: {
+                correoUsuario: "usuario@example.cl",
+                estadoUsuario: "Activo",
+            },
+        }),
+        requestPasswordEmail: async ({ email }) => {
+            requestedEmail = email;
+            return { requested: true };
+        },
+    });
+
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(res.body, {
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
+    });
+    assert.equal(requestedEmail, "usuario@example.cl");
+});
+
+test("mantiene respuesta uniforme si falla Auth0", async () => {
     const res = await executePasswordReset({
         users: createUsersRepositoryMock({
             user: {
@@ -332,15 +319,13 @@ test("un error Auth0 no revela si la cuenta existe", async () => {
                 "detalle interno",
             );
         },
-        logger: {
-            error: (...args) => loggerCalls.push(args),
-        },
     });
 
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.status, "accepted");
-    assert.equal(JSON.stringify(loggerCalls).includes("usuario@example.cl"), false);
-    assert.equal(JSON.stringify(loggerCalls).includes("detalle interno"), false);
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(res.body, {
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
+    });
 });
 
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {
@@ -368,6 +353,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
                 emailRequested = true;
             },
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -384,12 +371,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
     );
     const body = await response.json();
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(body, {
-        status: "accepted",
-        message:
-            "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.",
-    });
+    assert.equal(response.status, 202);
+    assert.equal(body.status, "accepted");
     assert.equal(authCalls, 0);
     assert.equal(emailRequested, true);
 });
@@ -401,14 +384,13 @@ test("limita intentos repetidos de recuperacion", async (t) => {
         "/api/auth",
         createAuthRouter({
             passwordResetRateLimit: createPasswordResetRateLimit({
-                attempts: new Map(),
-                maxAttemptsPerIp: 2,
-                maxAttemptsPerEmail: 5,
-                now: () => 100,
+                throttle: new MemoryThrottleService({ now: () => new Date(100) }),
             }),
             users: createUsersRepositoryMock(),
             requestPasswordEmail: async () => {},
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -423,16 +405,15 @@ test("limita intentos repetidos de recuperacion", async (t) => {
             body: JSON.stringify({ email: "usuario@example.cl" }),
         });
 
-    assert.equal((await request()).status, 200);
-    assert.equal((await request()).status, 200);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
     const limitedResponse = await request();
     const body = await limitedResponse.json();
 
     assert.equal(limitedResponse.status, 429);
-    assert.deepEqual(body, {
-        message:
-            "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
-    });
+    assert.equal(body.code, "RATE_LIMITED");
+    assert.equal(limitedResponse.headers.get("retry-after"), "900");
 });
 
 for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"]) {

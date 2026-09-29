@@ -5,6 +5,7 @@ import { response, request } from "express";
 import OrderService from "../service/order.service.js";
 
 
+
 class OrderController {
 
     constructor({ service } = {}) {
@@ -13,7 +14,7 @@ class OrderController {
 
     getOrders = async ( req = request, res = response) => {
         try {
-            const orders = await this.service.getAllOrders()
+            const orders = await this.service.getAllOrders(req.query)
             res.status( 200 ).json( orders );
         } catch ( error ) {
             return respondError(error, req, res);
@@ -57,6 +58,8 @@ class OrderController {
         try {
             const order = await this.service.createOrder(req.body ?? {}, {
                 auth0UserId: req.auth?.payload?.sub,
+                actorId: req.currentUser?.idUsuario,
+                requestId: req.requestId,
             });
 
             res.status(201).json(order);

@@ -1,6 +1,5 @@
 import { buildCreateOrderPayload } from '../modules/orders/utils/createOrderPayload.js'
-import { useMemo, useState } from 'react'
-import { DEFAULT_ORDER_DRAFT } from '../modules/orders/mocks/orderCreate.mock'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
 import { canContinueFromSalesNote, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
 import { normalizeSalesNoteCode } from '../modules/orders/utils/orderCreateFormatters'
@@ -12,7 +11,7 @@ export const ORDER_CREATE_VIEW_MODE = Object.freeze({
 
 function createInitialDraft() {
   return {
-    ...DEFAULT_ORDER_DRAFT,
+    salesNoteCode: '', comments: '', managerRecord: null, priority: null,
   }
 }
 
@@ -44,16 +43,36 @@ export function useOrderCreateFlow({ navigate }) {
   const [registeredOrder, setRegisteredOrder] = useState(null)
   const [isSearching, setIsSearching] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
+  const requestVersion = useRef(0)
+  const submitting = useRef(false)
+  const confirmedPayload = useRef(null)
+  const mounted = useRef(false)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      requestVersion.current += 1
+    }
+  }, [])
 
   const salesNoteIsValid = useMemo(
     () => canContinueFromSalesNote({
       managerRecord: draft.managerRecord,
       salesNoteCode: draft.salesNoteCode,
+      comments: draft.comments,
     }),
-    [draft.managerRecord, draft.salesNoteCode],
+    [draft.managerRecord, draft.salesNoteCode, draft.comments],
   )
 
   function updateDraftField(field, value) {
+    if (submitting.current) return
+    confirmedPayload.current = null
+    setShowConfirmModal(false)
+    if (field === 'salesNoteCode') {
+      requestVersion.current += 1
+      setIsSearching(false)
+    }
     setDraft((previous) => {
       const nextValue = field === 'salesNoteCode' ? normalizeSalesNoteCode(value) : value
       const nextDraft = { ...previous, [field]: nextValue }
@@ -73,6 +92,7 @@ export function useOrderCreateFlow({ navigate }) {
   }
 
   async function handleSearchSalesNote() {
+    if (submitting.current) return
     const code = normalizeSalesNoteCode(draft.salesNoteCode)
 
     setNotice(null)
@@ -85,15 +105,18 @@ export function useOrderCreateFlow({ navigate }) {
     if (draft.managerRecord) return
 
     setErrors((previous) => ({ ...previous, salesNoteCode: null }))
+    const version = ++requestVersion.current
     setIsSearching(true)
 
     try {
       const salesNote = await ordersApi.getSalesNote(code)
+      if (!mounted.current || version !== requestVersion.current) return
       const managerRecord = toDisplayRecord(salesNote)
 
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord }))
       setErrors((previous) => ({ ...previous, salesNoteCode: null }))
     } catch (error) {
+      if (!mounted.current || version !== requestVersion.current) return
       const message = getErrorMessage(error, `No se encontro informacion para ${code}.`)
       setDraft((previous) => ({ ...previous, salesNoteCode: code, managerRecord: null }))
       setErrors((previous) => ({
@@ -101,11 +124,14 @@ export function useOrderCreateFlow({ navigate }) {
         salesNoteCode: message,
       }))
     } finally {
-      setIsSearching(false)
+      if (mounted.current && version === requestVersion.current) setIsSearching(false)
     }
   }
 
   function updatePriority(priority) {
+    if (submitting.current) return
+    confirmedPayload.current = null
+    setShowConfirmModal(false)
     setDraft((previous) => ({
       ...previous,
       priority: previous.priority === priority ? null : priority,
@@ -113,6 +139,7 @@ export function useOrderCreateFlow({ navigate }) {
   }
 
   function handleOpenConfirmModal() {
+    if (submitting.current) return
     const salesNoteErrors = validateSalesNoteStep(draft)
 
     if (Object.keys(salesNoteErrors).length > 0) {
@@ -124,27 +151,46 @@ export function useOrderCreateFlow({ navigate }) {
       return
     }
 
+    confirmedPayload.current = Object.freeze(buildCreateOrderPayload(draft))
     setShowConfirmModal(true)
   }
 
   async function handleConfirmRegister() {
+    if (submitting.current || !confirmedPayload.current) return
+    submitting.current = true
+    const payload = confirmedPayload.current
     setIsRegistering(true)
     try {
-      const order = await ordersApi.createOrder(buildCreateOrderPayload(draft))
+      const order = await ordersApi.createOrder(payload)
+      if (!mounted.current) return
 
       setRegisteredOrder(order)
       setShowConfirmModal(false)
       setViewMode(ORDER_CREATE_VIEW_MODE.SUCCESS)
     } catch (error) {
+      if (!mounted.current) return
       const message = getErrorMessage(error, 'No fue posible registrar el pedido.')
       setShowConfirmModal(false)
       setNotice({ type: 'error', message })
     } finally {
-      setIsRegistering(false)
+      submitting.current = false
+      confirmedPayload.current = null
+      if (mounted.current) setIsRegistering(false)
     }
   }
 
+  function closeConfirmModal() {
+    if (submitting.current) return
+    confirmedPayload.current = null
+    setShowConfirmModal(false)
+  }
+
   function resetFlow() {
+    if (submitting.current) return
+    requestVersion.current += 1
+    confirmedPayload.current = null
+    setIsSearching(false)
+    setShowConfirmModal(false)
     setDraft(createInitialDraft())
     setErrors({})
     setNotice(null)
@@ -172,7 +218,7 @@ export function useOrderCreateFlow({ navigate }) {
       handleOpenConfirmModal,
       handleSearchSalesNote,
       resetFlow,
-      setShowConfirmModal,
+      closeConfirmModal,
       updateDraftField,
       updatePriority,
     },

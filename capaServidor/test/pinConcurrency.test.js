@@ -153,6 +153,7 @@ async function createFixture() {
         prisma: client,
         secret: SECRET,
         now: () => new Date(now),
+        deliveryEnvironment: { NODE_ENV: "test", PIN_DELIVERY_PROVIDER: "fake" },
         delivery: {
             async sendCode({ code }) {
                 deliveredCodes.push(code);

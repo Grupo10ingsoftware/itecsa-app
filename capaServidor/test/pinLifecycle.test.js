@@ -1,3 +1,4 @@
+import { matchesRow, applyRow } from './helpers/pinPersistenceFake.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { scryptSync } from 'node:crypto';
@@ -34,10 +35,15 @@ async function fixture() {
         pinRecoveryChallenge: {
             create: async ({ data }) => (challenge = { ...data, id_pin_recovery_challenge: 1, failed_attempts: 0 }),
             update: async ({ data }) => Object.assign(challenge, data),
-            updateMany: async ({ data }) => Object.assign(challenge, data),
+            updateMany: async ({ where, data }) => {
+                if (!challenge || !matchesRow(challenge, where)) return { count: 0 };
+                applyRow(challenge, data); return { count: 1 };
+            },
+            findUnique: async () => challenge,
             findFirst: async () => challenge?.used_at ? null : { ...challenge },
         },
-        $transaction: async operations => Promise.all(operations),
+        $queryRaw: async () => [{ ...user }],
+        $transaction: async operations => typeof operations === "function" ? operations(client) : Promise.all(operations),
     };
     const service = new PinService({ prisma: client, secret: Buffer.alloc(32, 7).toString('base64'),
         now: () => now, deliveryEnvironment: { NODE_ENV: 'test', PIN_DELIVERY_PROVIDER: 'fake' }, delivery: { sendCode: async ({ code }) => { delivered = code; } } });

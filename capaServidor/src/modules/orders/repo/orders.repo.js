@@ -1,6 +1,8 @@
 import { AppError } from "../../../errors/AppError.js";
 import { ROLES } from "../../../config/roles.js";
 import getPrismaClient from "../../../database/prisma.js";
+import { createLineSnapshots, salesNoteLineIdentity } from "../service/salesOrder.snapshot.js";
+import { missingSnapshotOmit, snapshotData, snapshotOmit, supportsOrderSnapshots } from "./orderSnapshotSchema.js";
 
 
 const ORDER_UPDATE_FIELDS = new Set([
@@ -54,27 +56,13 @@ function isPackagingSubprocess(process) {
   return normalizeProcessName(process?.Estado_Subprocesos?.nombre_estado).includes("empaquet");
 }
 
-function formatLanyardProgressObservation(progress, totalQuantity) {
-  if (!progress) return null;
-  const percentage = Number(progress.porcentaje_acumulado ?? 0);
-  const accumulated = Number(progress.cantidad_acumulada ?? 0);
-  const total = Number(totalQuantity ?? 0);
-
-  if (!Number.isFinite(percentage)) return null;
-
-  const roundedPercentage = Math.round(percentage);
-  const quantityText = Number.isFinite(total) && total > 0
-    ? ` (${accumulated}/${total} producidos)`
-    : "";
-
-  return `Avance Lanyard: ${roundedPercentage}%${quantityText}`;
-}
-
-function mergeObservation(comment, systemObservation) {
-  const trimmedComment = String(comment ?? "").trim();
-  const trimmedSystemObservation = String(systemObservation ?? "").trim();
-
-  return [trimmedComment, trimmedSystemObservation].filter(Boolean).join("\n") || null;
+function stripLanyardProgressObservation(value) {
+  return String(value ?? "")
+    .replace(/Avance Lanyard:\s*\d+%\s*(?:\(\d+\/\d+ producidos\))?/gi, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 function mapDetailSubprocesses(detail) {
@@ -126,6 +114,13 @@ function mapLanyardProgress(detail) {
 
 function mapOrderDetail(detail) {
   return {
+    ...(detail.linea_origen ? {
+      linea_origen: detail.linea_origen,
+      codigo: detail.codigo_origen ?? null,
+      producto: detail.producto_origen ?? null,
+      familia: detail.familia_origen ?? null,
+      subfamilia: detail.subfamilia_origen ?? null,
+    } : {}),
     id_detalle_pedido: detail.id_detalle_pedido ?? null,
     id: detail.id_detalle_pedido ? String(detail.id_detalle_pedido) : null,
     id_tipo_producto: detail.id_tipo_producto ?? null,
@@ -154,68 +149,9 @@ function mapUntrackedItem(item) {
   };
 }
 
-function personName(user) {
-  return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ").trim();
-}
-
-function mapOrderComments(order) {
-  const originObservation = String(order?.observacion_origen ?? "").trim();
-  const internalObservation = String(order?.observacion_interna ?? "").trim();
-  const source = originObservation
-    ? [
-        {
-          id: `pedido-${order.id_pedido}-observacion-origen`,
-          text: originObservation,
-          createdAt: order.fecha_creacion ?? null,
-          type: "source",
-        },
-      ]
-    : [];
-  const system = internalObservation
-    ? [
-        {
-          id: `pedido-${order.id_pedido}-observacion-interna`,
-          text: internalObservation,
-          createdAt: order.fecha_creacion ?? null,
-          type: "system",
-        },
-      ]
-    : [];
-  const subprocesses = Array.isArray(order?.Registros)
-    ? order.Registros
-        .filter((record) => record?.registro_subprocesos && String(record?.observacion ?? "").trim())
-        .map((record) => {
-          const subprocess = record.registro_subprocesos;
-
-          return {
-            id: `registro-${record.ID_REGISTRO}`,
-            text: String(record.observacion ?? "").trim(),
-            createdAt: record.FECHA_HORA ?? null,
-            productType: subprocess.Detalle_pedido?.Tipo_Producto?.nombre_producto ?? null,
-            responsible: personName(record.Usuario) || record.Usuario?.correo_usuario || null,
-            subprocessName: subprocess.Estado_Subprocesos?.nombre_estado ?? "Subproceso",
-            type: "subprocess",
-          };
-        })
-        .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0))
-    : [];
-
-  const all = [...source, ...system, ...subprocesses]
-    .filter((comment) => String(comment.text ?? "").trim())
-    .sort((left, right) => new Date(left.createdAt ?? 0) - new Date(right.createdAt ?? 0));
-
-  return {
-    all,
-    source,
-    subprocesses,
-    system,
-  };
-}
-
 function toOrderSummaryDTO(order, paymentStatusName = null) {
   if (!order) return null;
 
-  const mappedComments = mapOrderComments(order);
   const detallePedido = Array.isArray(order.Detalle_pedido) ? order.Detalle_pedido : [];
   const totalProductNames = detallePedido.length > 0 ? uniqueProductNames(detallePedido) : undefined;
   const descripcionProducto = detallePedido.length > 0 ? uniqueProductDescriptions(detallePedido) : undefined;
@@ -228,12 +164,7 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
     fecha_creacion: order.fecha_creacion ?? null,
     fecha_estimada_termino: order.fecha_estimada_termino ?? null,
     dueDate: order.fecha_estimada_termino ?? null,
-    id_cliente: order.id_cliente ?? null,
-    id_usuario: order.id_usuario ?? null,
-    usuario_manager_origen: order.usuario_manager_origen ?? null,
-    nombre_cliente: order.Cliente?.nombre_cliente ?? null,
-    rut_cliente: order.Cliente?.rut_cliente ?? null,
-    razon_social: order.Cliente?.razon_social ?? null,
+    nombre_cliente: order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
     nombre_producto: totalProductNames,
     product: totalProductNames,
     descripcion_producto: descripcionProducto,
@@ -254,8 +185,6 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
     itemsSinSeguimientoProductivo: Array.isArray(order.Pedido_Item_Sin_Seguimiento)
       ? order.Pedido_Item_Sin_Seguimiento.map(mapUntrackedItem)
       : [],
-    comments: mappedComments.all,
-    commentGroups: mappedComments,
   };
 }
 
@@ -264,8 +193,6 @@ function toOrderDetailDTO(order, paymentStatusName = null) {
 
   return {
     ...toOrderSummaryDTO(order, paymentStatusName),
-    observacion_origen: order.observacion_origen ?? null,
-    observacion_interna: order.observacion_interna ?? null,
   };
 }
 
@@ -295,25 +222,24 @@ function mapPaymentOrderRow(order) {
 
 const orderReadSelect = {
   id_pedido: true,
-  id_cliente: true,
-  id_usuario: true,
   id_estado_pedido: true,
   id_estado_pago: true,
   numero_nota_venta: true,
   fecha_creacion: true,
   fecha_estimada_termino: true,
-  observacion_origen: true,
-  observacion_interna: true,
-  usuario_manager_origen: true,
   Cliente: {
     select: {
       nombre_cliente: true,
-      rut_cliente: true,
       razon_social: true,
     },
   },
   Detalle_pedido: {
     select: {
+      linea_origen: true,
+      codigo_origen: true,
+      producto_origen: true,
+      familia_origen: true,
+      subfamilia_origen: true,
       id_detalle_pedido: true,
       id_tipo_producto: true,
       cantidad: true,
@@ -371,41 +297,18 @@ const orderReadSelect = {
       subfamilia: true,
     },
   },
-  Registros: {
-    where: {
-      observacion: { not: null },
-      registro_subprocesos: { isNot: null },
-    },
-    orderBy: [
-      { FECHA_HORA: "asc" },
-      { ID_REGISTRO: "asc" },
-    ],
-    select: {
-      ID_REGISTRO: true,
-      FECHA_HORA: true,
-      observacion: true,
-      Usuario: {
-        select: {
-          nombre_usuario: true,
-          apellido_usuario: true,
-          correo_usuario: true,
-        },
-      },
-      registro_subprocesos: {
-        select: {
-          Estado_Subprocesos: { select: { nombre_estado: true } },
-          Detalle_pedido: {
-            select: {
-              Tipo_Producto: {
-                select: { nombre_producto: true },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
 };
+
+const legacyDetailSelect = { ...orderReadSelect.Detalle_pedido.select };
+for (const column of Object.keys(missingSnapshotOmit)) delete legacyDetailSelect[column];
+const legacyOrderReadSelect = {
+  ...orderReadSelect,
+  Detalle_pedido: { ...orderReadSelect.Detalle_pedido, select: legacyDetailSelect },
+};
+
+async function readSelect(client) {
+  return (await supportsOrderSnapshots(client)) ? orderReadSelect : legacyOrderReadSelect;
+}
 
 class OrderRepository {
   constructor({ prisma } = {}) {
@@ -423,7 +326,7 @@ class OrderRepository {
   async getBySalesNoteNumber(numeroNota) {
     return this.client.pedidos.findFirst({
       where: { numero_nota_venta: String(numeroNota) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
   }
 
@@ -436,10 +339,34 @@ class OrderRepository {
     return Boolean(order);
   }
 
-  async getAllOrders() {
+  async getAllOrders({ limit = 50, cursor, status, search, productType, from, to } = {}) {
+    const where = {
+      ...(cursor ? { id_pedido: { lt: cursor.id } } : {}),
+      ...(status ? { Estado_Pedido: { is: { nombre_etapa: status } } } : {}),
+      ...(search ? {
+        OR: [
+          { numero_nota_venta: { contains: search } },
+          { Cliente: { is: { nombre_cliente: { contains: search } } } },
+          { Cliente: { is: { razon_social: { contains: search } } } },
+        ],
+      } : {}),
+      ...(productType ? {
+        Detalle_pedido: {
+          some: { Tipo_Producto: { is: { nombre_producto: { contains: productType } } } },
+        },
+      } : {}),
+      ...((from || to) ? {
+        fecha_estimada_termino: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lt: to } : {}),
+        },
+      } : {}),
+    };
     const orders = await this.client.pedidos.findMany({
-      select: orderReadSelect,
+      where,
+      select: await readSelect(this.client),
       orderBy: { id_pedido: "desc" },
+      take: limit + 1,
     });
 
     return orders.map((order) => mapOrderRow(order));
@@ -494,10 +421,21 @@ class OrderRepository {
     return mapPaymentOrderRow(orders[0]);
   }
 
+  async lockPaymentOrder(id) {
+    // Esta lectura debe ser la primera consulta dentro de la transaccion de pago.
+    // La fila queda bloqueada hasta que se escriban estado, auditoria y avisos.
+    const rows = await this.client.$queryRaw`
+      SELECT id_pedido FROM Pedidos
+      WHERE id_pedido = ${Number(id)}
+      FOR UPDATE
+    `;
+    return rows.length > 0;
+  }
+
   async get(id) {
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(id) },
-      select: orderReadSelect,
+      select: await readSelect(this.client),
     });
 
     return toOrderDetailDTO(order);
@@ -527,6 +465,21 @@ class OrderRepository {
       estado_pago: order.Estado_Pago?.nombre_estado_pago ?? null,
       paymentStatus: order.Estado_Pago?.nombre_estado_pago ?? null,
     };
+  }
+
+  async recordCreation({ orderId, userId, stateId, now = new Date() }) {
+    const registry = await this.client.registros.create({ data: {
+      FECHA_HORA: now,
+      id_pedido: Number(orderId),
+      id_usuario: Number(userId),
+      observacion: "Pedido registrado desde Nota de Venta.",
+    } });
+    await this.client.registro_Etapas.create({ data: {
+      id_registro: registry.ID_REGISTRO,
+      fecha_hora_entrada: now,
+      fecha_hora_salida: null,
+      id_estado_pedido: Number(stateId),
+    } });
   }
 
   async create(data, { hydrate = true } = {}) {
@@ -816,9 +769,19 @@ class OrderRepository {
   }
 
   async reevaluateFromSalesNote({ orderId, salesNote, userId }) {
+    const snapshotsSupported = await supportsOrderSnapshots(this.client);
     const order = await this.client.pedidos.findUnique({
       where: { id_pedido: Number(orderId) },
-      include: { Detalle_pedido: { orderBy: { id_detalle_pedido: "asc" } } },
+      include: {
+        Detalle_pedido: {
+          orderBy: { id_detalle_pedido: "asc" },
+          include: {
+            Avance_Lanyard: { orderBy: { id_avance_lanyard: "desc" }, take: 1 },
+            _count: { select: { Comentario_Produccion: true, registro_subprocesos: true, Avance_Lanyard: true } },
+          },
+          ...snapshotOmit(snapshotsSupported),
+        },
+      },
     });
     if (!order) return null;
 
@@ -842,27 +805,72 @@ class OrderRepository {
       },
     });
 
+    const snapshots = createLineSnapshots(salesNote.items ?? []);
+    const incomingByIdentity = new Map();
+    for (const [index, item] of (salesNote.items ?? []).entries()) {
+      const identity = salesNoteLineIdentity(item);
+      if (incomingByIdentity.has(identity)) {
+        const error = new AppError(409, "La Nota de Venta contiene lineas productivas ambiguas o duplicadas.");
+        throw error;
+      }
+      incomingByIdentity.set(identity, { item, index });
+    }
+    const existingByIdentity = new Map();
+    for (const detail of order.Detalle_pedido) {
+      const identity = salesNoteLineIdentity(detail);
+      if (existingByIdentity.has(identity)) {
+        const error = new AppError(409, "El pedido contiene lineas de origen ambiguas y requiere revision manual.");
+        throw error;
+      }
+      existingByIdentity.set(identity, detail);
+    }
+
+    const removed = [...existingByIdentity.entries()].filter(([identity]) => !incomingByIdentity.has(identity));
+    for (const [, detail] of removed) {
+      const activityCount = Number(detail._count?.Comentario_Produccion ?? 0) +
+        Number(detail._count?.registro_subprocesos ?? 0) + Number(detail._count?.Avance_Lanyard ?? 0);
+      if (activityCount > 0 || detail.fecha_real_termino) {
+        const error = new AppError(409, "No se puede eliminar una linea con progreso o historial productivo.");
+        throw error;
+      }
+    }
+
     for (const [index, item] of (salesNote.items ?? []).entries()) {
       const type = await this.client.tipo_Producto.findFirst({
         where: { nombre_producto: item.tipoProducto },
       });
       if (!type) continue;
-      const existing = order.Detalle_pedido[index];
+      const existing = existingByIdentity.get(salesNoteLineIdentity(item));
       if (existing) {
+        const accumulated = Number(existing.Avance_Lanyard?.[0]?.cantidad_acumulada ?? 0);
+        if (Number(item.cantidad) < accumulated ||
+          (existing.id_tipo_producto && Number(existing.id_tipo_producto) !== Number(type.id_tipo_producto) &&
+            (Number(existing._count?.registro_subprocesos ?? 0) > 0 || accumulated > 0))) {
+          const error = new AppError(409, "La reevaluacion es incompatible con el progreso productivo existente.");
+          throw error;
+        }
         await this.client.detalle_pedido.update({
           where: { id_detalle_pedido: existing.id_detalle_pedido },
-          data: { cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate },
+          data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate }, snapshotsSupported),
+          ...snapshotOmit(snapshotsSupported),
         });
       } else {
         const first = await this.client.producto_Subproceso.findFirst({
           where: { id_tipo_producto: type.id_tipo_producto }, orderBy: { orden_flujo: "asc" },
         });
         await this.client.detalle_pedido.create({ data: {
+          ...snapshotData(snapshots[index], snapshotsSupported),
           id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
           cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
           id_estado_subproceso: first?.id_estado_subproceso ?? null,
-        } });
+        }, ...snapshotOmit(snapshotsSupported) });
       }
+    }
+
+    if (removed.length > 0) {
+      await this.client.detalle_pedido.deleteMany({
+        where: { id_detalle_pedido: { in: removed.map(([, detail]) => detail.id_detalle_pedido) } },
+      });
     }
 
     const updated = await this.transitionGeneralStage({
@@ -1054,6 +1062,7 @@ class OrderRepository {
   async completeSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: {
         id_pedido: Number(orderId),
         id_detalle_pedido: Number(detailId),
@@ -1181,10 +1190,7 @@ class OrderRepository {
         FECHA_HORA: now,
         id_pedido: Number(orderId),
         id_usuario: Number(userId),
-        observacion: mergeObservation(
-          comment,
-          formatLanyardProgressObservation(latestLanyardProgress, detail.cantidad),
-        ),
+        observacion: String(comment ?? "").trim() || null,
       },
     });
 
@@ -1203,6 +1209,7 @@ class OrderRepository {
   async rollbackSubprocess({ orderId, detailId, subprocessId, userId, comment }) {
     await this.lockProductionOrder(orderId);
     const detail = await this.client.detalle_pedido.findFirst({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: { id_pedido: Number(orderId), id_detalle_pedido: Number(detailId) },
       include: { Tipo_Producto: { include: { Producto_Subproceso: { orderBy: { orden_flujo: "asc" } } } } },
     });

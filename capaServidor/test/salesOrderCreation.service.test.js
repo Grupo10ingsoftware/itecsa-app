@@ -79,7 +79,7 @@ test("persiste la observacion interna al crear el pedido", async () => {
   let productTypeQueries = 0;
   let subprocessQueries = 0;
   let createdDetails = 0;
-  const service = new OrderService({
+  const dependencies = {
     repo: {
       async existsBySalesNoteNumber() {
         duplicateChecks += 1;
@@ -91,6 +91,9 @@ test("persiste la observacion interna al crear el pedido", async () => {
         assert.deepEqual(options, { hydrate: false });
         persistedOrderData = data;
         return { id_pedido: 101 };
+      },
+      async recordCreation(audit) {
+        assert.deepEqual(audit, { orderId: 101, userId: 8, stateId: 1 });
       },
       async getProductSubprocesses() {
         subprocessQueries += 1;
@@ -129,9 +132,9 @@ test("persiste la observacion interna al crear el pedido", async () => {
         return { idUsuario: 8 };
       },
     },
-  });
+  };
 
-  const canonicalNote = {
+  const sourceNote = {
       numeroNota: "24226",
       fechaEntregaTentativaOrigen: "2026-09-15",
       cliente: { rut: "76.123.456-7", nombre: "Cliente Demo" },
@@ -153,11 +156,15 @@ test("persiste la observacion interna al crear el pedido", async () => {
         },
       ],
     };
-  service.salesNoteSourceService = { async getByNumber() { return canonicalNote; } };
-  const order = await service.createOrder(
-    { numeroNota: "24226", observacionInterna: "Coordinar entrega con el cliente." },
-    { auth0UserId: "auth0|sales-user" },
-  );
+  const service = new OrderService({
+    ...dependencies,
+    salesNoteSourceService: { async getByNumber() { return sourceNote; } },
+    salesOrderTransaction: (operation) => operation(dependencies),
+  });
+  const order = await service.createOrder({
+    numeroNota: sourceNote.numeroNota,
+    observacionInterna: sourceNote.observacionInterna,
+  }, { auth0UserId: "auth0|sales-user" });
 
   assert.equal(
     persistedOrderData.observacion_interna,

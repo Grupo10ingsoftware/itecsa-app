@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { APP_ROUTES } from '../../../config/routes'
 import { useOrderHistoryApi } from '../hooks/useOrderHistoryApi'
@@ -19,22 +19,57 @@ export default function OrderHistoryDetailPage() {
   const api = useOrderHistoryApi()
   const [type, setType] = useState('all')
   const [order, setOrder] = useState(null)
+  const [cursor, setCursor] = useState(null)
+  const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const summaryOrderId = useRef(null)
 
   useEffect(() => {
     let active = true
-    api.getOrderHistory(orderId, type)
-      .then((result) => active && setOrder(result))
+    const hasSummary = summaryOrderId.current === orderId
+    const request = hasSummary
+      ? api.listOrderEvents(orderId, { type, cursor, limit: 50 })
+      : api.getOrderHistory(orderId, { type, cursor, limit: 50 })
+    request
+      .then((result) => {
+        if (!active) return
+        if (!hasSummary) summaryOrderId.current = orderId
+        setOrder((current) => hasSummary && current
+          ? {
+              ...current,
+              events: cursor
+                ? [...current.events, ...(result.events ?? [])]
+                : (result.events ?? []),
+            }
+          : result)
+        setPageInfo(result.pageInfo ?? { nextCursor: null, hasMore: false })
+      })
       .catch((requestError) => active && setError(requestError?.payload?.message ?? 'No fue posible cargar el historial.'))
-      .finally(() => active && setLoading(false))
+      .finally(() => {
+        if (!active) return
+        setLoading(false)
+        setLoadingMore(false)
+      })
     return () => { active = false }
-  }, [api, orderId, type])
+  }, [api, cursor, orderId, type])
 
   function selectType(nextType) {
+    if (nextType === type) return
     setLoading(true)
     setError('')
+    setCursor(null)
+    setPageInfo({ nextCursor: null, hasMore: false })
+    setOrder((current) => current ? { ...current, events: [] } : current)
     setType(nextType)
+  }
+
+  function loadMore() {
+    if (!pageInfo.hasMore || !pageInfo.nextCursor || loadingMore) return
+    setLoadingMore(true)
+    setError('')
+    setCursor(pageInfo.nextCursor)
   }
 
   if (loading && !order) return <main className={styles.state}>Cargando historial…</main>
@@ -52,8 +87,8 @@ export default function OrderHistoryDetailPage() {
         <>
           <section className={styles.summary} aria-label="Información del pedido">
             <article><span>Estado actual</span><strong>{order.status ?? 'Sin estado'}</strong><small>Pago: {order.paymentStatus ?? 'Sin estado'}</small></article>
-            <article><span>Cliente</span><strong>{order.client.name ?? 'No disponible'}</strong><small>{order.client.rut ?? 'RUT no disponible'}</small></article>
-            <article><span>Vendedor asociado</span><strong>{order.seller.name ?? 'No disponible'}</strong><small>{order.seller.email ?? ''}</small></article>
+            <article><span>Cliente</span><strong>{order.client.name ?? 'No disponible'}</strong></article>
+            <article><span>Vendedor asociado</span><strong>{order.seller.name ?? 'No disponible'}</strong></article>
             <article><span>Fecha de creación</span><strong>{formatDate(order.createdAt)}</strong><small>Entrega: {formatDate(order.estimatedCompletionAt)}</small></article>
           </section>
 
@@ -90,7 +125,9 @@ export default function OrderHistoryDetailPage() {
                         {' '}lanyards ({event.lanyardProgress.percentage}%)
                       </p>
                     )}
-                    {event.previousStatus && <p>{event.previousStatus} → {event.nextStatus ?? 'Sin estado'}</p>}
+                    {event.type === 'payment' && (
+                      <p>{event.previousStatus ?? 'Estado anterior desconocido'} → {event.nextStatus ?? 'Sin estado'}</p>
+                    )}
                     {formatDuration(event.durationSeconds) && (
                       <strong>
                         Tiempo transcurrido{event.isOngoing ? ' (en curso)' : ''}: {formatDuration(event.durationSeconds)}
@@ -99,6 +136,11 @@ export default function OrderHistoryDetailPage() {
                   </article>
                 </li>
               ))}</ol>
+            )}
+            {pageInfo.hasMore && (
+              <button className={styles.loadMore} disabled={loadingMore} onClick={loadMore} type="button">
+                {loadingMore ? 'Cargando registros…' : 'Cargar más registros'}
+              </button>
             )}
           </section>
         </>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import PaymentRecordRepo from "../src/modules/payments/repo/paymentRecord.repo.js";
+import PaymentRecordService from "../src/modules/payments/service/paymentRecord.service.js";
 
 test("create registra auditoria de pago enlazada a Registros", async () => {
   const calls = [];
@@ -29,6 +30,7 @@ test("create registra auditoria de pago enlazada a Registros", async () => {
   const record = await repo.create(3, {
     fecha_registro: registryCreatedAt,
     id_usuario: 4,
+    id_estado_pago_anterior: 1,
     id_estado_pago: 2,
     observacion: "Cambio de estado a Confirmado desde modulo de pagos.",
   });
@@ -47,12 +49,43 @@ test("create registra auditoria de pago enlazada a Registros", async () => {
       id_registro: 18,
       fecha_registro: registryCreatedAt,
       observacion: "Cambio de estado a Confirmado desde modulo de pagos.",
+      id_estado_pago_anterior: 1,
       id_estado_pago_nuevo: 2,
     },
     include: {
       Registros: true,
     },
   });
+});
+
+test("el registro exige un estado anterior distinto y lo pasa al repositorio", async () => {
+  const calls = [];
+  const service = new PaymentRecordService({
+    repo: { async create(orderId, data) { calls.push({ orderId, data }); return data; } },
+  });
+
+  await assert.rejects(
+    service.createPaymentRecord(3, { id_usuario: 4, id_estado_pago: 2 }),
+    { statusCode: 400 },
+  );
+  await assert.rejects(
+    service.createPaymentRecord(3, {
+      id_usuario: 4, id_estado_pago_anterior: 2, id_estado_pago: 2,
+    }),
+    { statusCode: 400 },
+  );
+  assert.equal(calls.length, 0);
+
+  await service.createPaymentRecord(3, {
+    id_usuario: 4, id_estado_pago_anterior: 1, id_estado_pago: 2,
+  });
+  assert.deepEqual(calls, [{ orderId: 3, data: {
+    fecha_registro: undefined,
+    observacion: undefined,
+    id_usuario: 4,
+    id_estado_pago_anterior: 1,
+    id_estado_pago: 2,
+  } }]);
 });
 
 test("consulta el detalle del modal en una sola lectura parametrizada", async () => {
@@ -70,7 +103,9 @@ test("consulta el detalle del modal en una sola lectura parametrizada", async ()
             nombre_cliente: "Cliente Demo 013",
             razon_social: "Cliente Demo 013 SpA",
             rut_cliente: "RUT-DEMO-013",
-            correo_usuario: "vendedor@itecsa.cl",
+            id_usuario: 7,
+            nombre_usuario: "Ana",
+            apellido_usuario: "Perez",
             id_detalle_pedido: 38,
             cantidad: 100,
             nombre_producto: "Lanyard",
@@ -84,8 +119,9 @@ test("consulta el detalle del modal en una sola lectura parametrizada", async ()
   const source = await repo.getConfirmationSource(33);
 
   assert.match(query, /LEFT JOIN Detalle_pedido/);
-  assert.deepEqual(values, [33]);
-  assert.equal(source.Usuario.correo_usuario, "vendedor@itecsa.cl");
+  assert.match(values[0].strings.join(""), /dp\.codigo_origen/);
+  assert.equal(values[1], 33);
+  assert.deepEqual(source.Usuario, { id_usuario: 7, nombre_usuario: "Ana", apellido_usuario: "Perez" });
   assert.deepEqual(source.Detalle_pedido, [
     {
       id_detalle_pedido: 38,

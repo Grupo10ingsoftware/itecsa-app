@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import UserButton from './UserButton'
+import { useModalDialog } from '../hooks/useModalDialog'
 import styles from '../pages/UserManagementPage.module.css'
 
 export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, user }) {
@@ -7,6 +8,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const pinInputRef = useRef(null)
+  const modalRef = useRef(null)
 
   const resetFields = useCallback(() => {
     setPin('')
@@ -18,28 +20,13 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
     onClose()
   }, [onClose, resetFields])
 
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined
-    }
-
-    const previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => pinInputRef.current?.focus(), 0)
-
-    function handleEscape(event) {
-      if (event.key === 'Escape' && !isSubmitting) {
-        handleClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      window.clearTimeout(focusTimer)
-      document.body.style.overflow = previousBodyOverflow
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [handleClose, isOpen, isSubmitting])
+  useModalDialog({
+    canClose: !isSubmitting,
+    containerRef: modalRef,
+    initialFocusRef: pinInputRef,
+    isOpen: Boolean(isOpen && user),
+    onClose: handleClose,
+  })
 
   const canSubmit = useMemo(() => /^\d{6}$/.test(pin.trim()), [pin])
 
@@ -74,14 +61,17 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
   }
 
   return (
-    <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
+    <div className={styles.modalLayer} data-modal-layer="true" onMouseDown={handleBackdropMouseDown} role="presentation">
       <form
+        aria-describedby="user-unlink-modal-description"
         aria-labelledby="user-unlink-modal-title"
         aria-modal="true"
         className={styles.confirmModal}
         noValidate
         onSubmit={handleSubmit}
+        ref={modalRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header className={styles.modalHeader}>
           <div>
@@ -100,7 +90,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
         </header>
 
         <div className={styles.modalBody}>
-          <p className={styles.confirmText}>
+          <p className={styles.confirmText} id="user-unlink-modal-description">
             Ingrese su PIN para hacer efectiva la desvinculacion de {user.nombreCompleto}.
           </p>
           <div className={styles.confirmFields}>
@@ -123,7 +113,7 @@ export default function UserUnlinkConfirmModal({ isOpen, onClose, onConfirm, use
               />
             </label>
           </div>
-          {error && <p className={styles.confirmError}>{error}</p>}
+          {error && <p className={styles.confirmError} role="alert">{error}</p>}
         </div>
 
         <footer className={styles.modalFooter}>

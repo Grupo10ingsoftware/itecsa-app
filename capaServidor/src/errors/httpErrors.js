@@ -1,3 +1,5 @@
+import { SalesOrderError } from '../modules/orders/service/salesOrder.errors.js';
+import { AppError as SecurityAppError } from '../shared/appError.js';
 import { randomUUID } from 'node:crypto';
 import { UnauthorizedError, InvalidRequestError, InsufficientScopeError } from 'express-oauth2-jwt-bearer';
 import { AppError } from './AppError.js';
@@ -43,6 +45,8 @@ export function requestContext(req, res, next) {
 }
 
 function publicError(error) {
+    if (error instanceof SalesOrderError && error.statusCode >= 400 && error.statusCode < 500) return { status: error.statusCode, code: "ORDER_REQUEST_REJECTED", message: error.message };
+    if (error instanceof SecurityAppError && error.expose !== false && error.status >= 400 && error.status < 500) return { status: error.status, code: error.code, message: error.message };
     if (error instanceof AppError && error.statusCode >= 400 && error.statusCode < 500) {
         return { status: error.statusCode, code: error.code, message: error.message };
     }

@@ -1,4 +1,6 @@
 import getPrismaClient from "../../../database/prisma.js";
+import { Prisma } from "@prisma/client";
+import { supportsOrderSnapshots } from "../../orders/repo/orderSnapshotSchema.js";
 
 const paymentRecordSelect = {
   id_registro: true,
@@ -54,6 +56,7 @@ class PaymentRecordRepo {
       fecha_registro,
       observacion,
       id_usuario,
+      id_estado_pago_anterior,
       id_estado_pago,
     } = data;
     const createdAt = fecha_registro ?? new Date();
@@ -72,6 +75,7 @@ class PaymentRecordRepo {
         id_registro: registry.ID_REGISTRO,
         fecha_registro: createdAt,
         observacion: observacion ?? null,
+        id_estado_pago_anterior: Number(id_estado_pago_anterior),
         id_estado_pago_nuevo: Number(id_estado_pago),
       },
       include: {
@@ -115,6 +119,9 @@ class PaymentRecordRepo {
   }
 
   async getConfirmationSource(orderId) {
+    const snapshotColumns = (await supportsOrderSnapshots(this.client))
+      ? Prisma.raw("dp.linea_origen, dp.codigo_origen, dp.producto_origen")
+      : Prisma.raw("NULL AS linea_origen, NULL AS codigo_origen, NULL AS producto_origen");
     const rows = await this.client.$queryRaw`
       SELECT
         p.id_pedido,
@@ -122,9 +129,12 @@ class PaymentRecordRepo {
         c.nombre_cliente,
         c.razon_social,
         c.rut_cliente,
-        u.correo_usuario,
+        u.id_usuario,
+        u.nombre_usuario,
+        u.apellido_usuario,
         dp.id_detalle_pedido,
         dp.cantidad,
+        ${snapshotColumns},
         tp.nombre_producto,
         tp.descripcion_producto
       FROM Pedidos p
@@ -148,14 +158,23 @@ class PaymentRecordRepo {
         razon_social: order.razon_social ?? null,
         rut_cliente: order.rut_cliente ?? null,
       },
-      Usuario: order.correo_usuario
-        ? { correo_usuario: order.correo_usuario }
+      Usuario: order.id_usuario
+        ? {
+            id_usuario: order.id_usuario,
+            nombre_usuario: order.nombre_usuario,
+            apellido_usuario: order.apellido_usuario,
+          }
         : null,
       Detalle_pedido: rows
         .filter((row) => row.id_detalle_pedido !== null)
         .map((row) => ({
           id_detalle_pedido: row.id_detalle_pedido,
           cantidad: row.cantidad,
+          ...(row.linea_origen ? {
+            linea_origen: row.linea_origen,
+            codigo_origen: row.codigo_origen ?? null,
+            producto_origen: row.producto_origen ?? null,
+          } : {}),
           Tipo_Producto: {
             nombre_producto: row.nombre_producto ?? null,
             descripcion_producto: row.descripcion_producto ?? null,

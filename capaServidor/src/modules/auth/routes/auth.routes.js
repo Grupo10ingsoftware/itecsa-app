@@ -1,8 +1,8 @@
-import { createHash } from "node:crypto";
 import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requireCapability.js";
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import pinService from "../service/pin.service.js";
+import { createPasswordResetRateLimit } from "../../../middlewares/rateLimit.js";
 import {
     createGetProfileHandler,
     createDebugResetPinHandler,
@@ -14,87 +14,7 @@ import {
     createVerifyAuthSessionHandler,
 } from "../controller/auth.controller.js";
 
-const PASSWORD_RESET_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const PASSWORD_RESET_RATE_LIMIT_MAX_ATTEMPTS_PER_IP = 20;
-const PASSWORD_RESET_RATE_LIMIT_MAX_ATTEMPTS_PER_EMAIL = 5;
-const PASSWORD_RESET_RATE_LIMIT_MAX_ENTRIES = 10000;
-const PASSWORD_RESET_EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordResetAttempts = new Map();
-
-export function purgeExpiredPasswordResetAttempts(attempts, currentTime = Date.now()) {
-    for (const [key, attempt] of attempts) {
-        if (attempt.expiresAt <= currentTime) attempts.delete(key);
-    }
-}
-
-const passwordResetAttemptsCleanup = setInterval(
-    () => purgeExpiredPasswordResetAttempts(passwordResetAttempts),
-    60 * 1000,
-);
-passwordResetAttemptsCleanup.unref();
-
-function getRateLimitKey(scope, value) {
-    const digest = createHash("sha256").update(value).digest("hex");
-    return `${scope}:${digest}`;
-}
-
-export function createPasswordResetRateLimit({
-    attempts = passwordResetAttempts,
-    windowMs = PASSWORD_RESET_RATE_LIMIT_WINDOW_MS,
-    maxAttemptsPerIp = PASSWORD_RESET_RATE_LIMIT_MAX_ATTEMPTS_PER_IP,
-    maxAttemptsPerEmail = PASSWORD_RESET_RATE_LIMIT_MAX_ATTEMPTS_PER_EMAIL,
-    maxEntries = PASSWORD_RESET_RATE_LIMIT_MAX_ENTRIES,
-    now = Date.now,
-} = {}) {
-    return function passwordResetRateLimit(req, res, next) {
-        const currentTime = now();
-        purgeExpiredPasswordResetAttempts(attempts, currentTime);
-
-        const clientIp = req.ip ?? req.socket?.remoteAddress ?? "unknown";
-        const keys = [
-            {
-                key: getRateLimitKey("ip", clientIp),
-                limit: maxAttemptsPerIp,
-            },
-        ];
-        const email =
-            typeof req.body?.email === "string"
-                ? req.body.email.trim().toLowerCase()
-                : "";
-
-        if (PASSWORD_RESET_EMAIL_FORMAT.test(email)) {
-            keys.push({
-                key: getRateLimitKey("email", email),
-                limit: maxAttemptsPerEmail,
-            });
-        }
-
-        if (keys.some(({ key, limit }) => (attempts.get(key)?.count ?? 0) >= limit)) {
-            return res.status(429).json({
-                message:
-                    "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
-            });
-        }
-
-        const newKeys = keys.filter(({ key }) => !attempts.has(key)).length;
-        if (attempts.size + newKeys > maxEntries) {
-            return res.status(429).json({
-                message:
-                    "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
-            });
-        }
-
-        for (const { key } of keys) {
-            const currentAttempt = attempts.get(key);
-            attempts.set(key, {
-                count: (currentAttempt?.count ?? 0) + 1,
-                expiresAt: currentAttempt?.expiresAt ?? currentTime + windowMs,
-            });
-        }
-
-        return next();
-    };
-}
+export { createPasswordResetRateLimit } from "../../../middlewares/rateLimit.js";
 
 export function createAuthRouter({
     authenticate = checkJwt,
@@ -104,6 +24,8 @@ export function createAuthRouter({
     logger,
     pins = pinService,
     includeDebugRoutes = false,
+    passwordResetMinimumDelayMs,
+    passwordResetRandom,
 } = {}) {
     const router = Router();
 
@@ -135,7 +57,13 @@ export function createAuthRouter({
     router.post(
         "/password-reset/request",
         passwordResetRateLimit,
-        createPasswordResetRequestHandler({ users, requestPasswordEmail, logger }),
+        createPasswordResetRequestHandler({
+            users,
+            requestPasswordEmail,
+            logger,
+            minimumDelayMs: passwordResetMinimumDelayMs,
+            random: passwordResetRandom,
+        }),
     );
 
     return router;

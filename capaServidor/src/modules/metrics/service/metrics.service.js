@@ -12,19 +12,21 @@ function dateRange(from, to) {
             throw httpError(400, `${field} debe tener formato YYYY-MM-DD.`);
         }
         const date = new Date(`${value}T00:00:00.000Z`);
-        if (Number.isNaN(date.getTime())) throw httpError(400, `${field} no es una fecha valida.`);
+        if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw httpError(400, `${field} no es una fecha valida.`);
         return date;
     };
 
     const start = parse(from, "from");
     const selectedEnd = parse(to, "to");
     if (start > selectedEnd) throw httpError(400, "from no puede ser posterior a to.");
+    const rangeDays = Math.floor((selectedEnd - start) / (24 * 60 * 60 * 1000)) + 1;
+    if (rangeDays > 366) throw httpError(400, "El intervalo de metricas no puede superar 366 dias.");
 
     return { start, end: new Date(selectedEnd.getTime() + 24 * 60 * 60 * 1000) };
 }
 
 function sellerName(user) {
-    return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ") || user?.correo_usuario || "Sin vendedor";
+    return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ") || "Sin vendedor";
 }
 
 function latestDate(values) {

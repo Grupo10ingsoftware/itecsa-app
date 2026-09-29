@@ -1,3 +1,4 @@
+import { matchesRow, applyRow } from './pinPersistenceFake.js';
 import { PinService } from '../../src/modules/auth/service/pin.service.js';
 import { createPinDeliveryFake } from './pinDeliveryFake.js';
 
@@ -22,15 +23,20 @@ export function pinRecoveryFixture({ delivery, env, logger = { error() {} } } = 
                 if (failStatus) throw Error('private database failure');
                 return Object.assign(challenges.find(c => c.id_pin_recovery_challenge === where.id_pin_recovery_challenge), data);
             },
-            updateMany: async ({ data }) => {
-                for (const c of challenges.filter(c => c.used_at === null)) Object.assign(c, data);
+            updateMany: async ({ where, data }) => {
+                if (failStatus && data.delivery_status) throw Error("private database failure");
+                const selected = challenges.filter(c => matchesRow(c, where));
+                selected.forEach(c => applyRow(c, data));
+                return { count: selected.length };
             },
+            findUnique: async ({ where }) => challenges.find(c => matchesRow(c, where)) ?? null,
             findFirst: async () => {
                 const c = challenges.findLast(c => c.used_at === null && c.delivery_status === 'delivered');
                 return c ? { ...c } : null;
             },
         },
-        $transaction: async operations => Promise.all(operations),
+        $queryRaw: async () => [{ ...user }],
+        $transaction: async operations => typeof operations === "function" ? operations(prisma) : Promise.all(operations),
     };
     const service = new PinService({ prisma, secret: Buffer.alloc(32, 7).toString('base64'),
         now: () => clock, delivery: delivery ?? fake.provider,

@@ -1,5 +1,8 @@
-import { parseCreateOrderInput } from "./createOrderInput.js";
 import { AppError } from "../../../errors/AppError.js";
+import SalesOrderCreationService, { DUPLICATE_SALES_NOTE_MESSAGE } from "./salesOrderCreation.service.js";
+import { createSalesOrderTransaction } from "./salesOrder.transaction.js";
+import { toSalesNotePreview } from "./salesOrder.validator.js";
+import { SalesOrderError } from "./salesOrder.errors.js";
 import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
   KANBAN_EN_PRODUCCION_STEP,
@@ -24,11 +27,11 @@ import getPrismaClient from "../../../database/prisma.js";
 import SalesNoteSourceService, {
   normalizeSalesNoteNumber,
 } from "./salesNoteSource.service.js";
+import { decodeCursor, pageResult, parseLimit } from "../../../shared/pagination.js";
 
 export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
   "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
-export const DUPLICATE_SALES_NOTE_MESSAGE =
-  "Esta Nota de Venta ya fue registrada en el sistema y no puede volver a ingresarse.";
+export { DUPLICATE_SALES_NOTE_MESSAGE };
 
 function toPrismaDate(value) {
   if (!value) return null;
@@ -46,48 +49,6 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeQuantity(value) {
-  const quantity = Number(value);
-
-  return Number.isFinite(quantity) ? quantity : null;
-}
-
-function normalizePriorityLabels(priority) {
-  if (!priority) return [];
-
-  const priorities = Array.isArray(priority) ? priority : [priority];
-  const labelNames = new Set();
-
-  for (const item of priorities) {
-    if (item === "urgent") labelNames.add("Urgencia");
-    if (item === "contract") labelNames.add("Prioridad por contrato");
-  }
-
-  return [...labelNames];
-}
-
-function normalizeProductionItems(items = []) {
-  return items.map((item) => ({
-    codigo: item.codigo ?? null,
-    producto: item.producto ?? null,
-    cantidad: normalizeQuantity(item.cantidad),
-    familia: item.familia ?? null,
-    subfamilia: item.subfamilia ?? null,
-    tipoProducto: item.tipoProducto ?? item.nombre_producto ?? null,
-  }));
-}
-
-function normalizeUntrackedItems(items = []) {
-  return items
-    .map((item) => ({
-      codigo: item.codigo ?? null,
-      producto: item.producto ?? null,
-      cantidad: normalizeQuantity(item.cantidad),
-      subfamilia: item.subfamilia ?? null,
-    }))
-    .filter((item) => normalizeText(item.producto));
-}
-
 class OrderService {
   constructor({
     repo,
@@ -100,6 +61,7 @@ class OrderService {
     salesNoteSourceService,
     repoClient,
     prisma,
+    salesOrderTransaction,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
     this.clientService = clientService ?? new ClientService();
@@ -112,6 +74,7 @@ class OrderService {
       salesNoteSourceService ?? new SalesNoteSourceService();
     this.repoClient = repoClient ?? null;
     this.prisma = prisma;
+    this.salesOrderTransaction = salesOrderTransaction;
     this.hasInjectedDependencies = Boolean(
       repo ||
         clientService ||
@@ -424,8 +387,31 @@ class OrderService {
     });
   }
 
-  async getAllOrders() {
-    return this.repo.getAllOrders();
+  async getAllOrders(query = {}) {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const status = String(query.status ?? "").trim().slice(0, 100) || null;
+    const search = String(query.search ?? "").trim().slice(0, 100) || null;
+    const productType = String(query.productType ?? "").trim().slice(0, 100) || null;
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+        const error = new AppError(400, "Las fechas deben tener formato YYYY-MM-DD."); throw error;
+      }
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) { const error = new AppError(400, "La fecha no es valida."); throw error; }
+      return end ? new Date(date.getTime() + 24 * 60 * 60 * 1000) : date;
+    };
+    const rows = await this.repo.getAllOrders({
+      limit,
+      cursor,
+      status,
+      search,
+      productType,
+      from: parseDate(query.from),
+      to: parseDate(query.to, true),
+    });
+    return pageResult(rows, limit);
   }
 
   async getPaymentWorkspace() {
@@ -448,11 +434,10 @@ class OrderService {
     ]);
 
     if (isAlreadyRegistered) {
-      const error = new AppError(409, DUPLICATE_SALES_NOTE_MESSAGE);
-      throw error;
+      throw new SalesOrderError(DUPLICATE_SALES_NOTE_MESSAGE, 409);
     }
 
-    return salesNote;
+    return toSalesNotePreview(salesNote);
   }
 
   async reevaluateOrder(orderId, { auth0UserId } = {}) {
@@ -523,7 +508,7 @@ class OrderService {
       throw error;
     }
 
-    const [paymentStatus, currentOrder] = await Promise.all([
+    const [paymentStatus, observedOrder] = await Promise.all([
       this.paymentRepo.get(paymentStatusId),
       this.repo.getPaymentOrder(orderId),
     ]);
@@ -533,74 +518,82 @@ class OrderService {
       throw error;
     }
 
-    if (!currentOrder) {
+    if (!observedOrder) {
       const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 
-    const currentPaymentStatus = currentOrder.estado_pago;
     const nextPaymentStatus = paymentStatus.nombre_estado_pago;
-    const isSamePaymentStatus =
-      Number(currentOrder.id_estado_pago) === paymentStatusId;
-    const isResolvedPayment = currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE;
-
-    if (isSamePaymentStatus) {
-      return currentOrder;
-    }
-
-    if (isResolvedPayment) {
-      if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
-        const error = new AppError(403,
-          "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
-        );
-        throw error;
-      }
-
-      if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
-        const error = new AppError(409, RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
-        throw error;
-      }
-
-      if (!String(observacion ?? "").trim()) {
-        const error = new AppError(400, "El motivo del cambio de pago es obligatorio.");
-        throw error;
-      }
-    }
-
     const KANBAN_CONFIRMACION_PAGO = 0;
     const KANBAN_LISTO_PRODUCCION = 1;
     const KANBAN_EN_PRODUCCION = 2;
     const KANBAN_CANCELADO = 5;
-    const resolvedUserId =
-      actor?.idUsuario ??
-      await this.resolveInternalUserId({
-        auth0UserId,
-        id_usuario,
-      });
 
-    const currentKanbanOrder = Number(currentOrder.id_etapa_general);
-    const isConfirmedToRejected =
-      currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
-      nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
-    const cancelsReadyOrder =
-      isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
-    const requiresProductionCancellation =
-      isConfirmedToRejected &&
-      currentKanbanOrder === KANBAN_EN_PRODUCCION;
-    const nextKanbanOrder =
-      nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
-        ? KANBAN_LISTO_PRODUCCION
-        : cancelsReadyOrder
-          ? KANBAN_CANCELADO
-          : isConfirmedToRejected
-            ? null
-            : KANBAN_CONFIRMACION_PAGO;
-
-    // La transicion de pago es atomica: mueve Kanban y registra auditoria.
+    // La lectura inicial solo detecta conflictos; la decision usa la fila bloqueada.
     return this.runInTransaction(async ({
       repo,
       paymentRecordService,
     }) => {
+      if (!await repo.lockPaymentOrder(orderId)) {
+        const error = new AppError(404, "Pedido no encontrado");
+        throw error;
+      }
+      const currentOrder = await repo.getPaymentOrder(orderId);
+      if (!currentOrder) {
+        const error = new AppError(404, "Pedido no encontrado");
+        throw error;
+      }
+
+      // Dos solicitudes con el mismo destino son idempotentes. Si cambio a otro
+      // estado desde la lectura inicial, la segunda debe volver a decidir.
+      if (Number(currentOrder.id_estado_pago) === paymentStatusId) {
+        return currentOrder;
+      }
+      if (Number(currentOrder.id_estado_pago) !== Number(observedOrder.id_estado_pago)) {
+        const error = new AppError(409, "El estado de pago cambio. Actualiza el pedido e intenta nuevamente.");
+        throw error;
+      }
+
+      const currentPaymentStatus = currentOrder.estado_pago;
+      if (currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE) {
+        if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
+          const error = new AppError(403,
+            "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
+          );
+          throw error;
+        }
+
+        if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
+          const error = new AppError(409, RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
+          throw error;
+        }
+
+        if (!String(observacion ?? "").trim()) {
+          const error = new AppError(400, "El motivo del cambio de pago es obligatorio.");
+          throw error;
+        }
+      }
+
+      const resolvedUserId =
+        actor?.idUsuario ??
+        await this.resolveInternalUserId({ auth0UserId, id_usuario });
+      const currentKanbanOrder = Number(currentOrder.id_etapa_general);
+      const isConfirmedToRejected =
+        currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
+        nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
+      const cancelsReadyOrder =
+        isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
+      const requiresProductionCancellation =
+        isConfirmedToRejected && currentKanbanOrder === KANBAN_EN_PRODUCCION;
+      const nextKanbanOrder =
+        nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
+          ? KANBAN_LISTO_PRODUCCION
+          : cancelsReadyOrder
+            ? KANBAN_CANCELADO
+            : isConfirmedToRejected
+              ? null
+              : KANBAN_CONFIRMACION_PAGO;
+
       const updatedOrder = await repo.updatePaymentStatus(
         orderId,
         paymentStatusId,
@@ -615,6 +608,7 @@ class OrderService {
 
       await paymentRecordService.createPaymentRecord(orderId, {
         id_usuario: resolvedUserId,
+        id_estado_pago_anterior: currentOrder.id_estado_pago,
         id_estado_pago: paymentStatusId,
         observacion,
       });
@@ -663,173 +657,12 @@ class OrderService {
   }
 
   async createOrderFromSalesNote(data, options = {}) {
-    // Sólo la referencia y las decisiones internas cruzan desde el navegador.
-    const input = parseCreateOrderInput(data);
-    const salesNote = await this.salesNoteSourceService.getByNumber(input.numeroNota);
-    if (!salesNote) {
-      throw new AppError(404, "Nota de Venta no encontrada.");
-    }
-    const numeroNota = normalizeSalesNoteNumber(salesNote.numeroNota);
-    if (numeroNota !== input.numeroNota) {
-      throw new AppError(400, "La fuente devolvio una Nota de Venta diferente.");
-    }
-    const cliente = {
-      rut: normalizeText(salesNote.cliente?.rut),
-      nombre: normalizeText(salesNote.cliente?.nombre),
-    };
-    const origen = salesNote.origen ?? {};
-    if (!Array.isArray(salesNote.items) ||
-        !Array.isArray(salesNote.itemsSinSeguimientoProductivo ?? []) ||
-        [...salesNote.items, ...(salesNote.itemsSinSeguimientoProductivo ?? [])]
-          .some((item) => !item || typeof item !== "object" || Array.isArray(item))) {
-      throw new AppError(400, "Los productos de la Nota de Venta no son validos.");
-    }
-    const productionItems = normalizeProductionItems(salesNote.items);
-    const untrackedItems = normalizeUntrackedItems(salesNote.itemsSinSeguimientoProductivo ?? []);
-
-    if (!cliente.rut || !cliente.nombre || productionItems.length === 0) {
-      throw new AppError(400, "Faltan datos obligatorios para registrar el pedido.");
-    }
-    if (productionItems.some((item) => !normalizeText(item.tipoProducto) ||
-        !normalizeText(item.producto) || !Number.isInteger(item.cantidad) || item.cantidad <= 0) ||
-        untrackedItems.some((item) => !Number.isInteger(item.cantidad) || item.cantidad <= 0)) {
-      throw new AppError(400, "Hay productos sin tipo productivo, nombre o cantidad valida.");
-    }
-    const resolvedUserId = await this.resolveInternalUserId({
-      auth0UserId: options.auth0UserId,
+    const service = new SalesOrderCreationService({
+      source: this.salesNoteSourceService,
+      userRepo: this.userRepo,
+      runInTransaction: this.salesOrderTransaction ?? createSalesOrderTransaction(() => this.client),
     });
-    const estimatedCompletionDate = null;
-
-    return this.runInTransaction(async ({
-      repo,
-      clientService,
-      orderDetailService,
-      productTypeService,
-      repoClient,
-    }) => {
-      const duplicateOrder = await repo.existsBySalesNoteNumber(numeroNota);
-
-      if (duplicateOrder) {
-        const error = new AppError(409, DUPLICATE_SALES_NOTE_MESSAGE);
-        throw error;
-      }
-
-      const client = await clientService.findOrCreateClient({
-        rut_cliente: cliente.rut,
-        nombre_cliente: cliente.nombre,
-        razon_social: cliente.nombre,
-        estado_cliente: "ACTIVO",
-      });
-
-      if (!client?.id_cliente) {
-        const error = new Error("No se pudo resolver el cliente del pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const labelNames = normalizePriorityLabels(input.priority);
-      const labels = labelNames.length > 0
-        ? await repoClient.etiqueta.findMany({
-            where: {
-              nombre_etiqueta: { in: labelNames },
-              esta_activa: 1,
-            },
-          })
-        : [];
-      const primaryLabelId = labels[0]?.id_etiqueta ?? null;
-
-      const order = await repo.create({
-        id_cliente: client.id_cliente,
-        id_usuario: resolvedUserId,
-        id_estado_pedido: 1,
-        id_estado_pago: 1,
-        id_etiqueta: primaryLabelId,
-        fecha_estimada_termino: estimatedCompletionDate,
-        numero_nota_venta: numeroNota,
-        usuario_manager_origen: origen.usuarioManager ?? null,
-        observacion_origen: salesNote.observaciones ?? null,
-        observacion_interna: input.observacionInterna,
-      }, { hydrate: false });
-
-      if (!order?.id_pedido) {
-        const error = new Error("No se pudo crear el pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      if (labels.length > 0) {
-        await repo.addLabels(
-          order.id_pedido,
-          labels.map((label) => label.id_etiqueta),
-          resolvedUserId,
-        );
-      }
-
-      const details = [];
-      const productContextByName = new Map();
-
-      for (const item of productionItems) {
-        let productContext = productContextByName.get(item.tipoProducto);
-
-        if (!productContext) {
-          const productType = await productTypeService.getProductTypeByName(
-            item.tipoProducto,
-          );
-          const subprocesses = await repo.getProductSubprocesses(
-            productType.id_tipo_producto,
-          );
-
-          productContext = {
-            productType,
-            firstSubprocess: subprocesses[0] ?? null,
-          };
-          productContextByName.set(item.tipoProducto, productContext);
-        }
-
-        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productContext.productType.id_tipo_producto,
-          cantidad: item.cantidad,
-          fecha_estimada_termino: estimatedCompletionDate,
-          fecha_real_termino: null,
-          id_estado_subproceso:
-            productContext.firstSubprocess?.id_estado_subproceso ?? null,
-        });
-
-        details.push({
-          ...detail,
-          codigo: item.codigo,
-          producto: item.producto,
-          familia: item.familia,
-          subfamilia: item.subfamilia,
-          tipoProducto: item.tipoProducto,
-        });
-      }
-
-      const createdUntrackedItems = await repo.createUntrackedItems(
-        order.id_pedido,
-        untrackedItems,
-      );
-
-      await repo.notifyCollectionsAdministrators({
-        orderId: order.id_pedido,
-        subject: "Nuevo pedido pendiente de confirmación de pago",
-        content: `Se registró el pedido ${numeroNota}. Está pendiente de confirmación de pago.`,
-      });
-
-      await repo.notifyProductionAdministrators({
-        orderId: order.id_pedido,
-        subject: "Pedido pendiente de programacion",
-        content: `Se registro el pedido ${numeroNota}. Debe asignarse una fecha habil en el calendario de produccion.`,
-      });
-
-      const fullOrder = await repo.get(order.id_pedido);
-
-      return {
-        ...fullOrder,
-        detalles: details,
-        itemsSinSeguimientoProductivo: createdUntrackedItems,
-      };
-    });
+    return service.create(data, options);
   }
 
   async getOrderById(orderId) {

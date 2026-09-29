@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs"
+    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs",
+    "test:payments:browser": "node test/paymentPin.browser.mjs"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.17.0",
@@ -30,5 +31,9 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "vite": "^8.0.12"
+  },
+  "overrides": {
+    "browserslist": "4.29.1",
+    "baseline-browser-mapping": "2.11.26"
   }
 }

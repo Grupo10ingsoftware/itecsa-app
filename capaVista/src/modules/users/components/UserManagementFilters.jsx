@@ -6,6 +6,7 @@ import styles from '../pages/UserManagementPage.module.css'
 const STATUS_FILTERS = Object.freeze([
   { value: '', label: 'Todos', countKey: 'totalUsuarios' },
   { value: 'Vinculado', label: 'Vinculados', countKey: 'vinculados' },
+  { value: 'Pendiente rol', label: 'Pendientes', countKey: 'pendientes' },
   { value: 'Desvinculado', label: 'Desvinculados', countKey: 'desvinculados' },
 ])
 
@@ -70,7 +71,7 @@ export default function UserManagementFilters({
                   type="button"
                 >
                   <span>{filter.label}</span>
-                  <strong>{summary[filter.countKey] ?? 0}</strong>
+                  <strong>{summary?.[filter.countKey] ?? '—'}</strong>
                 </button>
               ))}
             </div>

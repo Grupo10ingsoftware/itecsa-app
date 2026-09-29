@@ -11,11 +11,6 @@ class ClientService {
       const { rut_cliente, nombre_cliente, razon_social, estado_cliente } =
         data;
 
-      console.log(rut_cliente);
-      console.log(nombre_cliente);
-      console.log(razon_social);
-      console.log(estado_cliente);
-
       return await this.repo.create({
         rut_cliente,
         nombre_cliente,

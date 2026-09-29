@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { actionCode, compare, expected } from '../../scripts/rbac.mjs';
 import { RECOGNIZED_ROLES, ROLES_CLAIM } from '../../shared/authorization.js';
 test('Action solo emite identidad ITECSA con un rol oficial y audience de negocio',async()=>{
@@ -19,4 +20,13 @@ test('auditoria declarativa falla ante asociaciones desconocidas, scopes extra y
  assert.ok(compare({resourceServer:expected.resourceServer}).some(s=>s.includes('Soporte: sin verificar')));
  const full={...expected,actionCode,postLoginBound:true};assert.deepEqual(compare(full),[]);
  assert.ok(compare({...full,roles:{...full.roles,Soporte:[...full.roles.Soporte,'delete:users']}}).some(s=>s.includes('sobra delete:users')));
+});
+
+
+test('catálogo generado coincide con el modelo y no contiene permisos visuales retirados',()=>{
+ assert.equal(expected.resourceServer.scopes.length,25);
+ for(const scope of expected.resourceServer.scopes) assert.ok(scope.description?.trim(),scope.value);
+ for(const permission of ['view:kanban-module','view:payments-module']) assert.equal(expected.resourceServer.scopes.some(s=>s.value===permission),false);
+ const saved=JSON.parse(readFileSync(new URL('../../docs/auth0/rbac.expected.json',import.meta.url),'utf8'));
+ assert.deepEqual(saved,expected);
 });

@@ -72,7 +72,8 @@ test("production no monta demo ni debug y conserva rutas reales para Soporte", a
 
   assert.deepEqual(ROLE_PERMISSIONS[ROLES.SOPORTE], BUSINESS_PERMISSIONS);
 
-  server.app.use(
+  const app = express();
+  app.use(
     "/support-test/orders",
     createOrderRouter({
       authenticate(req, _res, next) {
@@ -87,7 +88,8 @@ test("production no monta demo ni debug y conserva rutas reales para Soporte", a
     }),
   );
 
-  const baseUrl = await listen(server.app, t);
+  app.use(server.app);
+  const baseUrl = await listen(app, t);
   const demoResponses = await Promise.all([
     fetch(`${baseUrl}/api/demo-orders`),
     fetch(`${baseUrl}/api/demo-orders/payment-orders`),
@@ -191,4 +193,10 @@ test("la fixture de Notas de Venta falla cerrada sin demo habilitado", async () 
   });
   const note = await enabled.getByNumber("NV-2026-22405");
   assert.equal(note.numeroNota, "22405");
+});
+
+test("rechaza configuraciones divergentes de APP_ENV y NODE_ENV", () => {
+  for (const [APP_ENV, NODE_ENV] of [["production", "development"], ["development", "production"], ["test", "development"]]) {
+    assert.throws(() => resolveEnvironmentConfig({ APP_ENV, NODE_ENV }), /deben coincidir/);
+  }
 });

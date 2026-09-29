@@ -11,8 +11,8 @@ export function createPaymentRecordRouter({
   const router = Router({ mergeParams: true });
 
   router.get("/preview", authenticate, requireCapability(P.READ_PAYMENTS), controller.getConfirmationDetails);
-  router.get("/", authenticate, requireCapability(P.READ_ORDERS), controller.getPaymentRecordsByOrderId);
-  router.get("/:paymentRecordId", authenticate, requireCapability(P.READ_ORDERS), controller.getPaymentRecord);
+  router.get("/", authenticate, requireCapability(P.READ_PAYMENTS), controller.getPaymentRecordsByOrderId);
+  router.get("/:paymentRecordId", authenticate, requireCapability(P.READ_PAYMENTS), controller.getPaymentRecord);
   router.post("/", authenticate, (_req,res) => res.status(403).json({message:"Operacion interna; utiliza el flujo de negocio autorizado."}));
 
   return router;

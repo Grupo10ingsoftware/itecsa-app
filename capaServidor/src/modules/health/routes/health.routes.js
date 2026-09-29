@@ -1,19 +1,45 @@
-import { respondError } from "../../../errors/httpErrors.js";
 import { Router } from "express";
 import { checkDatabaseConnection } from "../../../database/prisma.js";
+import { timingSafeEqual } from "node:crypto";
 
 export function createHealthRouter({
-  checkDatabase = checkDatabaseConnection,
-  logError = console.error,
 } = {}) {
   const router = Router();
 
-  router.get("/db", async (req, res) => {
+  router.get("/live", (_req, res) => res.status(200).json({ status: "ok" }));
+
+  return router;
+}
+
+function tokenMatches(received, expected) {
+  const receivedBuffer = Buffer.from(String(received ?? ""));
+  const expectedBuffer = Buffer.from(String(expected ?? ""));
+  return receivedBuffer.length === expectedBuffer.length &&
+    receivedBuffer.length > 0 && timingSafeEqual(receivedBuffer, expectedBuffer);
+}
+
+export function createInternalHealthRouter({
+  enabled = process.env.ENABLE_INTERNAL_READINESS === "true",
+  token = process.env.INTERNAL_HEALTH_TOKEN,
+  checkDatabase = checkDatabaseConnection,
+  logger = { error() {} },
+} = {}) {
+  const router = Router();
+
+  router.get("/ready", async (req, res) => {
+    if (!enabled || !tokenMatches(req.get("X-Health-Token"), token)) {
+      return res.status(404).json({ message: "Recurso no encontrado." });
+    }
+
     try {
       const isConnected = await checkDatabase();
 
       if (!isConnected) {
-        return respondError(new Error(), req, res, { logger: { error: logError } });
+        return res.status(500).json({
+          code: "INTERNAL_ERROR",
+          message: "No fue posible conectar con la base de datos.",
+          requestId: req.requestId,
+        });
       }
 
       return res.status(200).json({
@@ -21,7 +47,17 @@ export function createHealthRouter({
         database: "mysql",
       });
     } catch (error) {
-      return respondError(error, req, res, { logger: { error: logError } });
+      logger.error?.("health.database_unavailable", {
+        requestId: req.requestId,
+        code: error?.code ?? "DATABASE_HEALTHCHECK_ERROR",
+        outcome: "error",
+      });
+
+      return res.status(500).json({
+        code: "INTERNAL_ERROR",
+        message: "No fue posible conectar con la base de datos.",
+        requestId: req.requestId,
+      });
     }
   });
 

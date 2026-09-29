@@ -1,6 +1,7 @@
 import { AppError } from "../../../errors/AppError.js";
 import getPrismaClient from "../../../database/prisma.js";
 import { Prisma } from "@prisma/client";
+import { snapshotOmit, supportsOrderSnapshots } from "../../orders/repo/orderSnapshotSchema.js";
 
 const LANYARD_DAILY_CAPACITY = 1200;
 const KANBAN_EN_PRODUCCION_STEP = 2;
@@ -105,6 +106,7 @@ export default class ProductionLoadRepository {
   async listLanyardDetails(dateKey) {
     const date = toDateOnly(dateKey);
     const details = await this.client.detalle_pedido.findMany({
+      ...snapshotOmit(await supportsOrderSnapshots(this.client)),
       where: {
         Tipo_Producto: { nombre_producto: { contains: "Lanyard" } },
         Pedidos: { Estado_Pedido: { orden_kanban: KANBAN_EN_PRODUCCION_STEP } },
@@ -145,6 +147,7 @@ export default class ProductionLoadRepository {
     return this.client.$transaction(async (tx) => {
       const detailIds = normalizedEntries.map((entry) => entry.detailId);
       const details = await tx.detalle_pedido.findMany({
+        ...snapshotOmit(await supportsOrderSnapshots(tx)),
         where: { id_detalle_pedido: { in: detailIds } },
         include: {
           Tipo_Producto: true,

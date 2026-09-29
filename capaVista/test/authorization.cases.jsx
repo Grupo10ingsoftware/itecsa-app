@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthContext } from '../src/app/providers/authContext'
+import { PERMISSIONS } from '../src/config/permissions'
 import RoleGuard from '../src/shared/components/navigation/RoleGuard'
 import PaymentRowActions from '../src/modules/payments/components/PaymentRowActions'
 import { PAYMENT_STATUS } from '../src/config/status'
@@ -23,6 +24,14 @@ export function run() {
  for(const role of Object.values(ROLES)) {
   assert.equal(manageableRoles(role).includes(S),false);count++
   const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(role,[])}><RoleGuard requiredPermission="read:orders"><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
+  assert.equal(html.includes('contenido-autorizado'),false);count++
+ }
+ for(const role of [AP,ROLES.GERENCIA,S]) {
+  const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(role,BUSINESS_PERMISSIONS.filter(p=>p!=='view:metrics'))}><RoleGuard requiredPermission={PERMISSIONS.VIEW_METRICS}><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
+  assert.equal(html.includes('contenido-autorizado'),false);count++
+ }
+ for(const [permission,retired] of [[PERMISSIONS.VIEW_KANBAN_MODULE,'view:kanban-module'],[PERMISSIONS.VIEW_PAYMENTS_MODULE,'view:payments-module']]) {
+  const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(S,[retired])}><RoleGuard requiredPermission={permission}><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
   assert.equal(html.includes('contenido-autorizado'),false);count++
  }
  for(const role of [AV,OV]) {assert.equal(can(role,ROLE_PERMISSIONS[role],'read:production-calendar'),true);assert.equal(can(role,ROLE_PERMISSIONS[role],'update:order-delivery-date'),false);count+=2}

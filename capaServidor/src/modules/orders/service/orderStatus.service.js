@@ -12,10 +12,6 @@ class OrderStatusService {
 
 
         const { nombre_etapa, orden_kanban, descripcion_estado} = data;
-        console.log(nombre_etapa);
-        console.log(orden_kanban);
-        console.log( descripcion_estado);
-
         if (!nombre_etapa || orden_kanban === undefined) {
             const error = new AppError(400, "Faltan datos obligatorios");
             throw error;
@@ -29,14 +25,8 @@ class OrderStatusService {
     }
 
     async getAll() {
-        try {
-            const statuses = await this.repo.getAll()
-            return statuses || []
-
-        } catch (error) {
-            throw error;
-
-        }
+        const statuses = await this.repo.getAll()
+        return statuses || []
     }
 
     async getById( statusId ) {

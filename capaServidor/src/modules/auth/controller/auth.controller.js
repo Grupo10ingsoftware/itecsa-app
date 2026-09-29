@@ -1,20 +1,21 @@
 import { respondError } from "../../../errors/httpErrors.js";
+import { createHmac } from "node:crypto";
 import {
+    Auth0ServiceError,
     requestPasswordSetupEmail,
 } from "../../users/service/auth0Management.service.js";
 import userRepository from "../../users/repo/users.repo.js";
 import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService from "../service/pin.service.js";
+import { safeLogger } from "../../../shared/safeLogger.js";
+import { isActiveUserStatus } from "../../../config/userLifecycle.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ACTIVE_USER_STATUSES = new Set(["Activo", "Vinculado"]);
 const PASSWORD_RESET_ACCEPTED_MESSAGE =
-    "Si existe una cuenta habilitada asociada a este correo, recibirás instrucciones para restablecer tu contraseña.";
-const PASSWORD_RESET_ERROR_MESSAGE =
-    "No fue posible solicitar el correo de recuperación de contraseña.";
+    "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.";
 
 function invalidPasswordResetRequest(message) {
     return { valid: false, message };
@@ -42,20 +43,22 @@ function validatePasswordResetRequest(body) {
     return { valid: true, email };
 }
 
-function logPasswordResetAttempt(logger, outcome) {
-    logger.info?.("password_reset_request", { outcome });
+function hashEmail(email) {
+    const key = process.env.SECURITY_LOG_HMAC_KEY ?? process.env.RATE_LIMIT_SECRET;
+    if (!key) return "unavailable";
+    return createHmac("sha256", key).update(email).digest("hex");
 }
 
-function acceptedPasswordResetResponse(res) {
-    return res.status(200).json({
-        status: "accepted",
-        message: PASSWORD_RESET_ACCEPTED_MESSAGE,
+function logPasswordResetAttempt(logger, { email, status }) {
+    logger.info?.("password_reset_request", {
+        correlationId: hashEmail(email),
+        outcome: status,
     });
 }
 
 export function createVerifyAuthSessionHandler({
     pins = { async ensureProvisioned() { return "active"; } },
-    logger = console,
+    logger = safeLogger,
 } = {}) {
     return async function verifyAuthSessionHandler(req, res) {
         const payload = req.auth?.payload;
@@ -174,9 +177,13 @@ export function createConfirmPinRecoveryHandler({ pins = pinService } = {}) {
 export function createPasswordResetRequestHandler({
     users = userRepository,
     requestPasswordEmail = requestPasswordSetupEmail,
-    logger = console,
+    logger = safeLogger,
+    sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    minimumDelayMs = 600,
+    random = Math.random,
 } = {}) {
     return async function passwordResetRequestHandler(req, res) {
+        const startedAt = Date.now();
         const validatedRequest = validatePasswordResetRequest(req.body);
 
         if (!validatedRequest.valid) {
@@ -184,32 +191,33 @@ export function createPasswordResetRequestHandler({
         }
 
         const { email } = validatedRequest;
-
-        let user;
-        try {
-            user = await users.findByEmail(email);
-        } catch (error) {
-            logger.error?.("password_reset_lookup_error", {
-                code: error?.code,
-            });
-            return res.status(500).json({ message: PASSWORD_RESET_ERROR_MESSAGE });
-        }
-
-        if (!user || !ACTIVE_USER_STATUSES.has(user.estadoUsuario)) {
-            logPasswordResetAttempt(logger, "not_eligible");
-            return acceptedPasswordResetResponse(res);
-        }
+        let outcome = "accepted";
 
         try {
-            await requestPasswordEmail({ email });
-            logPasswordResetAttempt(logger, "requested");
+            const user = await users.findByEmail(email);
+
+            if (user && isActiveUserStatus(user.estadoUsuario)) {
+                await requestPasswordEmail({ email });
+            }
         } catch (error) {
-            logger.error?.("password_reset_delivery_error", {
-                code: error?.code,
-            });
+            outcome = "delivery_error";
+            if (error instanceof Auth0ServiceError) {
+                logger.error?.("password_reset_auth0_error", {
+                    code: error.code,
+                    outcome: "error",
+                });
+            }
         }
 
-        return acceptedPasswordResetResponse(res);
+        logPasswordResetAttempt(logger, { email, status: outcome });
+        const targetDelay = minimumDelayMs + Math.floor(random() * 200);
+        const remaining = targetDelay - (Date.now() - startedAt);
+        if (remaining > 0) await sleep(remaining);
+
+        return res.status(202).json({
+            status: "accepted",
+            message: PASSWORD_RESET_ACCEPTED_MESSAGE,
+        });
     };
 }
 

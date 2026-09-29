@@ -25,7 +25,7 @@ La API usa `http://localhost:3000/api`. `npm start` inicia sin nodemon y `npm te
 
 Antes de ejecutar introspección o migraciones, revisar sus efectos y el entorno autorizado. `prisma:pull` modifica el schema local; no es un paso rutinario para arrancar el código versionado. Los secretos y el certificado CA permanecen fuera de Git.
 
-La CLI Prisma se instala por separado en `tooling/prisma`. Consultar las [dependencias](../docs/security/DEPENDENCIAS.md) y la [configuraci?n de seguridad](../docs/security/README.md).
+La CLI Prisma se instala por separado en `tooling/prisma`. Consultar las [dependencias](../docs/security/DEPENDENCIAS.md) y la [configuración de seguridad](../docs/security/README.md).
 
 ## Variables De Entorno
 
@@ -560,21 +560,21 @@ Los permisos de cada rol se administran en Auth0 RBAC. Para probar cambios de pe
 - `GET /api/products`, `GET /api/products/:productTypeId`, `GET /api/products/name/:nombreProducto` y `POST /api/products`: tipos de producto.
 - El módulo de documentos/PDF fue retirado; `/api/documents/*` ya no se monta.
 
-### PIN, recuperaci?n y herramientas demo
+### PIN, recuperación y herramientas demo
 
 `APP_ENV` y `NODE_ENV` deben coincidir (`development`, `test` o `production`).
-`npm run dev` completa los valores ausentes; `npm start` exige configuraci?n expl?cita.
+`npm run dev` completa los valores ausentes; `npm start` exige configuración explícita.
 Las rutas demo y la fuente fixture requieren `ENABLE_DEMO_ROUTES=true` y quedan
-prohibidas en producci?n. El control visual de debug requiere adem?s
-`VITE_ENABLE_DEMO_ROUTES=true` en la SPA de desarrollo. Debug conserva la validaci?n
-de Soporte, sesi?n activa y permiso `manage:own-pin`.
+prohibidas en producción. El control visual de debug requiere además
+`VITE_ENABLE_DEMO_ROUTES=true` en la SPA de desarrollo. Debug conserva la validación
+de Soporte, sesión activa y permiso `manage:own-pin`.
 
-La recuperaci?n usa `PIN_DELIVERY_PROVIDER=resend` con `RESEND_API_KEY` y
-`PIN_EMAIL_FROM` configurados. Sin proveedor expl?cito permanece deshabilitada.
-El proveedor `fake` solo funciona en tests; `console` imprime el OTP ?nicamente
-si se selecciona expresamente en desarrollo. Nunca usar ese proveedor en producci?n.
+La recuperación usa `PIN_DELIVERY_PROVIDER=resend` con `RESEND_API_KEY` y
+`PIN_EMAIL_FROM` configurados. Sin proveedor explícito permanece deshabilitada.
+El proveedor `fake` solo funciona en tests; `console` imprime el OTP únicamente
+si se selecciona expresamente en desarrollo. Nunca usar ese proveedor en producción.
 Las validaciones del PIN serializan por usuario; los retos anteriores se invalidan
-y la confirmaci?n consume el reto y cambia el PIN en una transacci?n.
+y la confirmación consume el reto y cambia el PIN en una transacción.
 
 Referencias: [ciclo de vida](../docs/security/H06-pin-lifecycle.md),
 [entrega](../docs/security/H07-pin-recovery-delivery.md),

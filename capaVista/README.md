@@ -22,4 +22,4 @@ La SPA local usa `http://localhost:5173`. Los comandos `npm test`, `npm run lint
 
 El borrador de Orders vive en memoria React y su confirmación llama `POST /api/orders`. Payments usa el workspace y preview JSON de la API; el flujo de PDF y firmas fue retirado. Las variables `VITE_*` son públicas: nunca incluir secretos de la API, de la base o de Auth0 Management.
 
-Las herramientas demo requieren `VITE_ENABLE_DEMO_ROUTES=true` en desarrollo y `ENABLE_DEMO_ROUTES=true` en la API. La compilaci?n de producci?n oculta esos controles.
+Las herramientas demo requieren `VITE_ENABLE_DEMO_ROUTES=true` en desarrollo y `ENABLE_DEMO_ROUTES=true` en la API. La compilación de producción oculta esos controles.

@@ -54,7 +54,7 @@ FASE 11 FINAL-01 — reauditoría y cierre ECSS
 
 ## T.2 Paralelización segura
 
-La secuencia entre fases es estricta. Dentro de una fase sólo se paralelizan cambios que no compartan archivos ni contratos y cuya entrada obligatoria ya esté satisfecha. `TRACE-01` se actualiza transversalmente; inventarios, análisis de seguridad y preparación de ambientes pueden adelantarse, pero no permiten declarar cerrada una fase posterior. Los archivos centrales (`server.js`, `schema.prisma`, workflows, clientes API y utilidades de error) deben tener un único owner durante cada ventana.
+La secuencia entre fases es estricta. Dentro de una fase sólo se paralelizan cambios que no compartan archivos ni contratos y cuya entrada obligatoria ya esté satisfecha. En cada ficha, `SIGUIENTE` identifica dependientes técnicos, pero nunca autoriza saltar una puerta de fase. `TRACE-01` se actualiza transversalmente; inventarios, análisis de seguridad y preparación de ambientes pueden adelantarse, pero no permiten declarar cerrada una fase posterior. Los archivos centrales (`server.js`, `schema.prisma`, workflows, clientes API y utilidades de error) deben tener un único owner durante cada ventana.
 
 ---
 
@@ -110,6 +110,8 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 
 **SIGUIENTE FASE PERMITIDA:** Fase 1.
 
+**AVANCE GOV-01:** la captura local del candidato `488fc51c1bebaacac37cb29a675be533aaf0fe49` y sus resultados están en [el expediente de línea base](docs/evidence/GOV-01/README.md). Falta reproducción por otra persona y aprobación del responsable; por ello la fase sigue pendiente.
+
 ## CAMBIO GOV-01 — Congelar baseline y expediente de evidencia
 
 **OBJETIVO:** establecer una referencia reproducible antes de corregir.
@@ -143,7 +145,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **RIESGO:** evidencia incompleta o asociada a otro commit.
 **ROLLBACK:** eliminar únicamente el expediente defectuoso y regenerar; no alterar producto.
 **CIERRE:** baseline firmado/fechado, reproducido y sin secretos.
-**SIGUIENTE:** TAILOR-01, TRACE-01, DB-01, INT-01, AUTH-01 y STD-01.
+**SIGUIENTE:** TAILOR-01 y TRACE-01 de la fase 1, una vez aprobada la puerta de salida de fase 0.
 
 # FASE 1 — APLICABILIDAD, TAILORING Y TRAZABILIDAD
 
@@ -167,7 +169,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **CAUSA:** categoría, sensibilidad e independencia no aportadas.
 **PRIORIDAD / SEVERIDAD:** P0 / Alta.
 **DEPENDENCIAS:** GOV-01.
-**PARALELO:** Sí, con DB/Manager/Auth0.
+**PARALELO:** Sí, con TRACE-01 dentro de la fase 1; sólo se preparan inventarios de fases posteriores.
 **COMPONENTES:** checklist y criterios técnicos; la documentación formal se asume disponible.
 
 **ESTADO ACTUAL:** 21 IDs en tailoring y controles adicionales por cláusula.
@@ -247,7 +249,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **REQUISITOS:** E40 5.5/5.8; Q80 6.2.6 y configuration control.
 **PRIORIDAD / SEVERIDAD:** P0 / Crítica.
 **DEPENDENCIAS:** GOV-01.
-**PARALELO:** Sí con acciones no DB.
+**PARALELO:** No con DB-02 ni DB-03, que dependen de este diagnóstico; se permiten inventarios read-only de la fase 2.
 **COMPONENTES:** `schema.prisma`, todas las migraciones, `_prisma_migrations`, copia de DB.
 **NO MODIFICAR:** DB compartida durante diagnóstico.
 
@@ -356,7 +358,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **REQUISITOS:** E40 5.4–5.6; Q80 6.2.7/6.2.9.
 **PRIORIDAD / SEVERIDAD:** P0 / Alta.
 **DEPENDENCIAS:** GOV-01; coordinación Manager.
-**PARALELO:** Sí con DB-01.
+**PARALELO:** No antes del cierre de la fase 2; dentro de la fase 3 puede coordinarse con CAL-01 y AUTH-01.
 **COMPONENTES:** interfaz `SalesNoteRepository`, configuración y schemas de respuesta.
 
 **PASOS:**
@@ -465,7 +467,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **RIESGO:** cambio externo de alto impacto.
 **ROLLBACK:** export previo y restauración controlada.
 **CIERRE:** catálogo, tenant, tokens y tabla interna coinciden.
-**SIGUIENTE:** ENV-01/FINAL-01.
+**SIGUIENTE:** VER-03 debe usar el tenant reconciliado; cierre definitivo en FINAL-01. `ENV-001` es un hallazgo, no un cambio del plan.
 
 # FASE 4 — ESTÁNDAR DE CÓDIGO, MÉTRICAS Y BUILD
 
@@ -986,7 +988,7 @@ Para declarar una fase terminada deben existir: cambios integrados, pruebas verd
 **RIESGO:** acciones externas; usar cuentas/datos dedicados.
 **ROLLBACK:** destruir entorno aislado y restaurar snapshot.
 **CIERRE:** resultados dentro de targets y evidencia asociada al release.
-**SIGUIENTE:** CI-01, SEC-02.
+**SIGUIENTE:** SEC-02 sobre el mismo candidato y después FINAL-01; CI-01 ya debe estar cerrado desde la fase 7.
 
 ## CAMBIO SEC-02 — Ciclo completo de vulnerabilidades y pentest
 

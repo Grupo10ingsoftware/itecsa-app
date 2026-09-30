@@ -1,0 +1,1062 @@
+
+> capaservidor@1.0.0 test
+> node --import ./test/setup.mjs --test
+
+http_error {
+  requestId: '0b40c9e7-2cb6-4b6f-a2f0-0f3fda1e3706',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.511Z'
+}
+✔ movements returns records and empty history for users in the department (2.044567ms)
+✔ movements denies another department and handles missing users without querying records (0.290698ms)
+✔ movements validates pagination and reports database errors (4.108092ms)
+✔ movement repository filters by user, sorts and paginates while preserving profile defaults (0.95673ms)
+http_error {
+  requestId: 'ba5bd7e7-9458-4ab6-a133-bd28a8433322',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.770Z'
+}
+http_error {
+  requestId: '3be78b19-573f-4b5e-a240-f1bc8f5d3b76',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.777Z'
+}
+http_error {
+  requestId: 'f9bdf89f-b79a-434a-8c85-f1e005220a79',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.778Z'
+}
+http_error {
+  requestId: 'bd9cb78a-34d3-4c86-9720-95ac446af197',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.783Z'
+}
+http_error {
+  requestId: 'faa3dcb6-0987-476d-b3a5-28dab061ec47',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:20.789Z'
+}
+✔ responde 200 con listado interno y filtros normalizados (5.272498ms)
+✔ rechaza filtros de listado no oficiales (0.346005ms)
+✔ responde 200 con resumen interno de usuarios (0.369748ms)
+✔ actualiza usuario en Auth0 y tabla interna con contrato final (3.004111ms)
+✔ un fallo externo durante cambio de rol deja la identidad local pendiente (3.024378ms)
+✔ correo duplicado externo revierte la marca pendiente antes de responder 409 (0.68175ms)
+✔ conflicto local despues de Auth0 informa conciliacion pendiente (0.456963ms)
+✔ editar sin cambiar rol no abre una transicion pendiente (0.369411ms)
+✔ rechaza actualizacion con campos legacy (2.022557ms)
+✔ desvincula usuario actualizando Auth0 y tabla interna (0.800941ms)
+✔ un fallo de Auth0 al desvincular conserva la denegacion local y el PIN invalidado (0.465703ms)
+✔ reactiva desde desvinculado con PIN nuevo y compensa si el aprovisionamiento falla (0.502573ms)
+✔ reactiva desde desvinculado sin reutilizar el PIN anterior (0.823933ms)
+✔ no permite activar directamente un usuario pendiente de rol (0.164778ms)
+✔ rechaza autodesvinculacion por endpoint de estado (0.167653ms)
+✔ rechaza cambio de estado desde edicion completa (0.155849ms)
+✔ responde 201 cuando asigna rol y solicita correo (1.370266ms)
+✔ persiste el usuario interno activo antes de solicitar correo (0.685649ms)
+✔ crea usuario sin firma electronica (0.307763ms)
+✔ responde 409 si el correo ya existe internamente sin llamar Auth0 (0.325172ms)
+✔ responde 200 cuando solicita reenvio de correo de contrasena (0.440792ms)
+✔ responde 400 y no llama Auth0 si el reenvio de correo es invalido (0.244937ms)
+✔ responde 500 generico si falla el reenvio de correo (1.868095ms)
+✔ responde 201 recuperable si falla el correo tras crear y asignar rol (0.601532ms)
+✔ responde 201 recuperable y no solicita correo si falla la asignacion RBAC (0.630519ms)
+✔ responde 201 recuperable si falla la persistencia interna tras crear Auth0 (0.272093ms)
+✔ responde 201 recuperable y no solicita correo si falla el PIN (0.25586ms)
+✔ responde 400 para payload incompleto, correo invalido, rol no permitido o campo extra (1.146574ms)
+✔ responde 409 para correo ya registrado en Auth0 (0.211572ms)
+✔ responde 500 generico sin exponer fallos internos de Auth0 (0.343398ms)
+✔ clasifica indisponibilidad temporal de Auth0 como 503 sin filtrar detalles (0.190489ms)
+✔ monta autenticacion y autorizacion antes de crear el usuario (216.330047ms)
+✔ monta autenticacion y autorizacion antes de reenviar correo (37.422966ms)
+✔ rechaza que un administrador edite su propio rol (32.987714ms)
+✔ rechaza que un usuario de Soporte edite su propio rol (0.320501ms)
+✔ permite que un administrador edite sus datos si conserva su rol (0.462225ms)
+✔ rechaza Soporte al crear usuarios (2.424293ms)
+✔ rechaza Soporte al actualizar usuarios (0.404317ms)
+✔ rechaza Soporte al filtrar usuarios (0.234099ms)
+✔ valida vigencia de Administrador Produccion en creación, edición y filtros (0.273864ms)
+✔ valida vigencia de Operario Produccion en creación, edición y filtros (0.155801ms)
+✔ valida vigencia de Operario Ventas en creación, edición y filtros (0.242263ms)
+✔ valida vigencia de Operario Cobranzas en creación, edición y filtros (0.901574ms)
+✔ valida vigencia de Gerencia en creación, edición y filtros (0.154571ms)
+✔ valida vigencia de Soporte en creación, edición y filtros (2.505888ms)
+✔ valida vigencia de Administrador Producción en creación, edición y filtros (0.25503ms)
+✔ valida vigencia de Operario Producción en creación, edición y filtros (0.134254ms)
+✔ valida vigencia de Administrador en creación, edición y filtros (1.37979ms)
+✔ valida vigencia de Producción en creación, edición y filtros (0.121683ms)
+✔ valida vigencia de Ventas en creación, edición y filtros (0.081762ms)
+✔ valida vigencia de Cobranzas en creación, edición y filtros (0.853331ms)
+✔ valida vigencia de Administración Cobranzas en creación, edición y filtros (0.332308ms)
+✔ valida vigencia de Administrador Ventas en creación, edición y filtros (14.07726ms)
+✔ permite filtrar pendientes pero no asignarlos mediante cambio de estado (1.328707ms)
+✔ devuelve permisos Auth0 en la verificacion de sesion (2.348265ms)
+✔ devuelve permisos vacios si Auth0 no incluye permissions (1.001626ms)
+✔ acepta Soporte como rol oficial sin identificarlo como Administrador Produccion (0.870337ms)
+✔ no sobrescribe el rol interno desde un token (0.433704ms)
+✔ no actualiza el rol interno si ya coincide con Auth0 (0.276905ms)
+✔ rechaza permissions malformado (0.187393ms)
+✔ rechaza solicitud de recuperacion con email invalido (0.703715ms)
+✔ responde no registrado sin llamar Auth0 (0.533304ms)
+✔ responde desactivado sin llamar Auth0 si el usuario esta desvinculado (2.157421ms)
+✔ responde desactivado sin llamar Auth0 si el usuario no esta activo (1.298262ms)
+✔ solicita correo Auth0 si el usuario esta activo (8.333528ms)
+✔ mantiene respuesta uniforme si falla Auth0 (1.395922ms)
+✔ monta recuperacion de contrasena como ruta publica sin checkJwt (283.947218ms)
+✔ limita intentos repetidos de recuperacion (75.199955ms)
+✔ verifica el rol oficial Administrador Produccion (0.268252ms)
+✔ verifica el rol oficial Operario Produccion (0.079647ms)
+✔ verifica el rol oficial Operario Ventas (0.063167ms)
+✔ verifica el rol oficial Operario Cobranzas (0.283141ms)
+✔ verifica el rol oficial Gerencia (0.086768ms)
+✔ verifica el rol oficial Soporte (0.063085ms)
+✔ rechaza en sesión el rol no vigente Administrador Producción (0.113768ms)
+✔ rechaza en sesión el rol no vigente Operario Producción (0.086434ms)
+✔ rechaza en sesión el rol no vigente Administrador (0.059465ms)
+✔ rechaza en sesión el rol no vigente Producción (0.055229ms)
+✔ rechaza en sesión el rol no vigente Ventas (0.048644ms)
+✔ rechaza en sesión el rol no vigente Cobranzas (0.047667ms)
+✔ rechaza en sesión el rol no vigente Administración Cobranzas (0.047287ms)
+✔ Action solo emite identidad ITECSA con un rol oficial y audience de negocio (3.121446ms)
+✔ auditoria declarativa falla ante asociaciones desconocidas, scopes extra y binding sin verificar (0.582647ms)
+✔ catálogo generado coincide con el modelo y no contiene permisos visuales retirados (0.60185ms)
+✔ consulta el rol asignado en Auth0 y exige uno solo reconocido (3.179366ms)
+✔ rechaza una respuesta parcial de roles de Auth0 (1.344896ms)
+✔ resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena (2.385046ms)
+✔ normaliza el correo duplicado para un futuro HTTP 409 (20.145417ms)
+✔ clasifica indisponibilidad temporal al crear antes de persistir localmente (0.722807ms)
+✔ no crea usuario si el rol solicitado no existe en Auth0 (0.772775ms)
+✔ reporta asignacion RBAC incompleta si falla despues de crear usuario (0.873757ms)
+✔ actualiza correo, estado y rol de usuario Auth0 (3.513269ms)
+✔ pagina el catalogo de roles una sola vez al reemplazar un rol (0.959944ms)
+✔ conserva la categoria temporal si falla la asignacion del nuevo rol (1.867599ms)
+✔ no consulta ni reemplaza RBAC cuando el rol no cambia (0.423876ms)
+✔ actualiza solo el estado de usuario Auth0 (0.712257ms)
+✔ rechaza estados internos que no deben propagarse a Auth0 (0.301014ms)
+✔ solicita el correo sin retornar tickets ni enlaces (0.391789ms)
+✔ rechaza la creacion si falta configuracion Management requerida (0.259094ms)
+✔ normaliza fallos de Auth0 al solicitar correo (0.452139ms)
+✔ aplica deadline y clasifica timeout sin reintentar el correo (101.112372ms)
+✔ clasifica red y rate limit, y conserva Retry-After (0.99734ms)
+✔ rechaza un deadline Auth0 fuera del rango seguro (1.223258ms)
+✔ test/authorization.fixture.js (85.562829ms)
+✔ valida NODE_ENV explícito y opt-in demo estricto (2.186986ms)
+✔ production no monta demo ni debug y conserva rutas reales para Soporte (229.900413ms)
+{
+  event: 'http_error',
+  timestamp: '2026-09-30T14:00:22.177Z',
+  requestId: '06a3f9dd-3f68-4821-be89-3279d2b2f0aa',
+  code: 'UNAUTHENTICATED'
+}
+{
+  event: 'http_error',
+  timestamp: '2026-09-30T14:00:22.183Z',
+  requestId: '8bd3dd3b-c2da-4561-91ad-393d69e02751',
+  code: 'UNAUTHENTICATED'
+}
+✔ demo requiere opt-in explícito en development y test (66.629541ms)
+✔ Soporte conserva acceso a la ruta demo cuando se habilita explícitamente (6.684207ms)
+✔ la fixture de Notas de Venta falla cerrada sin demo habilitado (6.278522ms)
+✔ rechaza configuraciones divergentes de APP_ENV y NODE_ENV (1.085194ms)
+✔ GET /api/demo-orders lista los 15 pedidos compartidos (130.963091ms)
+✔ PATCH delivery-date actualiza la fecha compartida del pedido (42.536195ms)
+✔ PATCH delivery-date rechaza fines de semana (10.96373ms)
+✔ GET payment-orders expone pedidos demo para cobranza (29.001745ms)
+✔ PATCH payment-status confirma pago y la desconfirmacion requiere solicitud y aprobacion (65.521786ms)
+✔ PATCH payment-status exige credenciales (5.35065ms)
+✔ PATCH payment-status no permite desconfirmar directo un pago confirmado (7.430872ms)
+✔ GET announcements lista anuncios demo del kanban (3.94897ms)
+✔ PATCH move a en produccion registra anuncio de cambio de columna (53.5969ms)
+✔ console explicita de desarrollo entrega OTP valido sin correo ni secretos adicionales (483.537602ms)
+✔ console rechazada fuera de development: production (1.194316ms)
+✔ console rechazada fuera de development: test (0.57419ms)
+✔ console rechazada fuera de development: undefined (0.222376ms)
+✔ development sin seleccion no activa consola como fallback (0.340258ms)
+✔ GET /api/health/live responde sin consultar base de datos (115.623755ms)
+✔ GET /internal/ready responde ok con configuracion y token (24.328526ms)
+✔ GET /internal/ready no expone detalles si falla la conexion (23.3812ms)
+✔ test/helpers/pinDeliveryFake.js (85.389885ms)
+✔ test/helpers/pinPersistenceFake.js (77.915364ms)
+✔ test/helpers/pinRecoveryFixture.js (284.00126ms)
+✔ OrderController hides unexpected service errors (23.942645ms)
+✔ ClientController hides unexpected service errors (0.425827ms)
+✔ PaymentRecordController hides unexpected service errors (0.298693ms)
+✔ MessageController hides unexpected service errors (0.318646ms)
+✔ OrderHistoryController hides unexpected service errors (1.093386ms)
+✔ MetricsController hides unexpected service errors (0.415766ms)
+✔ ProductionCapacityController hides unexpected service errors (0.260593ms)
+✔ ProductionLoadController hides unexpected service errors (0.241603ms)
+✔ auth profile and admin failures use the same internal policy (5.417069ms)
+✔ real order service keeps missing order 404 and validation 400 (0.481244ms)
+✔ typed business error preserves 400 (0.184095ms)
+✔ typed business error preserves 403 (0.098392ms)
+✔ typed business error preserves 409 (1.050657ms)
+✔ untrusted status/message and synthetic Prisma metadata are not public (2.594683ms)
+✔ existing user repository duplicate constraint maps to a functional conflict (0.712125ms)
+✔ request IDs are unique, backend-generated and reused for one request (0.320389ms)
+✔ H07: controlled PIN error permits only numeric retry and never logs OTP or raw details (0.185354ms)
+✔ Express async rejection and parser errors reach the final handler without NODE_ENV (157.638008ms)
+✔ real Server mounts handler after routes and parses malformed JSON safely (13.246568ms)
+✔ JWT error keeps 401 without token/debug details (0.240412ms)
+✔ JWT error keeps 403 without token/debug details (0.105181ms)
+✔ already-sent response is closed without passing secrets to Express default logger (0.199812ms)
+✔ diagnostic code is logged only from a closed allowlist and never exposed publicly (0.257402ms)
+✔ GET /api/orders/kanban devuelve ordenes mock (143.425987ms)
+✔ PATCH move devuelve el mensaje de pago pendiente si el pago no esta confirmado (61.938333ms)
+✔ PATCH move permite Listo para produccion si el pago esta confirmado (19.315874ms)
+✔ PATCH move devuelve el mensaje si se intenta saltar etapas (9.237274ms)
+✔ monta checkJwt antes de listar bandeja de mensajes (223.991319ms)
+✔ monta checkJwt antes de listar notificaciones (21.919916ms)
+✔ monta checkJwt antes de marcar un mensaje como leido (33.856664ms)
+✔ monta checkJwt antes de ocultar una notificacion (9.892405ms)
+✔ monta checkJwt antes de ocultar todas las notificaciones (16.141177ms)
+✔ getInbox resuelve usuario interno y normaliza filtros (8.66113ms)
+✔ getNotifications consulta mensajes visibles y contador sin leer (0.398306ms)
+✔ markAsRead marca solo mensajes existentes no leidos (0.312458ms)
+✔ hideNotification oculta solo mensajes existentes (0.26888ms)
+✔ markAsRead rechaza un mensaje ajeno sin ejecutar la escritura (0.716334ms)
+✔ hideNotification rechaza un mensaje ajeno sin ejecutar la escritura (0.159598ms)
+﹣ MySQL serializa cuotas persistentes concurrentes (0.569851ms) # SKIP
+﹣ MySQL revierte el evento de seguridad junto con el cambio de negocio (0.121334ms) # SKIP
+http_error {
+  requestId: '65139fa8-7d84-4953-9946-b10e70186cbb',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:24.386Z'
+}
+http_error {
+  requestId: '0d0b0f89-9e29-446c-902e-399faf27f91f',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:24.390Z'
+}
+✔ un fallo interno en Orders no revela el mensaje de la base (7.330297ms)
+✔ un fallo interno en el detalle no revela el mensaje de la base (0.637924ms)
+✔ los errores de negocio conservan estado y mensaje (0.262ms)
+✔ detalle de historial proyecta cabecera e items con consultas pequenas en paralelo (3.764173ms)
+✔ eventos usan una consulta paginada, filtro SQL y redaccion de pagos (0.683612ms)
+✔ protege listado y detalle con checkJwt (195.502307ms)
+✔ lista pedidos y normaliza filtros de estado, busqueda y paginacion (3.20432ms)
+✔ consolida y filtra cronologia por tipo de registro (1.307457ms)
+✔ pagina eventos con cursor temporal firmado y limite maximo (2.129702ms)
+✔ rechaza IDs y tipos de evento invalidos (0.34002ms)
+✔ lista pedidos sin depender de Documento/Nota_Venta legacy (2.888272ms)
+✔ lista pedidos con productos y cliente usando relaciones vigentes (1.999971ms)
+✔ crea un pedido sin hidratar relaciones cuando el flujo no las necesita aun (0.313439ms)
+✔ notifyProductionAdministrators: filtra destinatarios y asigna un solo mensaje por lote (4.049961ms)
+✔ notifyProductionAdministrators: no crea mensajes sin destinatarios (0.215409ms)
+✔ notifyCollectionsAdministrators: filtra destinatarios y asigna un solo mensaje por lote (0.231945ms)
+✔ notifyCollectionsAdministrators: no crea mensajes sin destinatarios (0.123735ms)
+✔ Orders lee y crea detalles cuando aun faltan las columnas de snapshot (4.602362ms)
+✔ Cobranzas proyecta NULL para snapshots ausentes sin consultar columnas inexistentes (0.790115ms)
+http_error {
+  requestId: '976994bf-c0d1-45e3-854b-742c36d3834e',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:25.408Z'
+}
+✔ la lectura de estados propaga errores del repositorio al controlador (1.294545ms)
+✔ el controlador responde 500 si falla la lectura de estados (2.88383ms)
+✔ cambio de etapa actualiza pedido y crea registro con actor y comentario (13.275849ms)
+✔ subproceso usa la salida anterior como inicio y no genera duración cero (1.567818ms)
+✔ subproceso duplicado se rechaza antes de crear un segundo registro (4.265054ms)
+✔ lanyard parcial repite flujo antes de empaquetado (0.603339ms)
+✔ lanyard parcial sin comentario no crea observacion de subproceso (0.469671ms)
+✔ enviar a revision notifica al usuario de Ventas responsable (0.512641ms)
+✔ movimiento concurrente se rechaza sin escribir auditoria (0.577245ms)
+✔ lectura de validacion conserva etapa y pago sin cargar detalles (1.841474ms)
+✔ actualiza solo el pago cuando la etapa debe mantenerse (0.958492ms)
+✔ reutiliza el pedido validado despues de actualizar el pago (0.421511ms)
+✔ lista cobranzas sin cargar relaciones productivas (0.431682ms)
+✔ notifica a todos los administradores de Produccion activos (1.652426ms)
+✔ terminar incluso el último detalle mantiene producción sin notificar (1.621888ms)
+✔ mover manualmente a entrega notifica una sola vez al responsable (0.586751ms)
+✔ fallo de notificación manual se propaga para revertir la transacción (0.27595ms)
+✔ permite devolver el último subproceso de un detalle terminado mientras el pedido sigue en producción (0.712935ms)
+✔ impide mover a entrega cuando queda cualquier detalle pendiente (0.211707ms)
+✔ valida todos los detalles y rechaza pedidos sin detalles (0.235499ms)
+✔ bloquea por PK el pedido de pago antes de releerlo (0.42943ms)
+✔ usa el endpoint liviano y protegido para cargar cobranzas (127.379463ms)
+✔ monta checkJwt antes de listar pedidos (14.585192ms)
+✔ monta checkJwt antes de requirePermission y de actualizar pago (32.744796ms)
+✔ monta checkJwt y requirePin antes de completar subproceso (13.32564ms)
+✔ monta autenticacion y rol administrativo antes de enviar a revision (122.205097ms)
+✔ exige autenticacion, rol Administrador Produccion y PIN antes de cancelar (16.182312ms)
+✔ responde 403 si el token no contiene update:payment-status (6.829154ms)
+✔ carga pedidos y estados del espacio de cobranzas en paralelo (5.490696ms)
+✔ al confirmar pago mueve la orden a Listo para produccion (1.335068ms)
+✔ bloquea volver a Pendiente desde un pago rechazado (1.58431ms)
+✔ al rechazar pago usa el estado real 3 y registra auditoria (0.75416ms)
+✔ bloquea devolver un pago confirmado a pendiente sin crear auditoria (0.563479ms)
+✔ rechazar un pago confirmado y listo para produccion cancela el pedido (0.526302ms)
+✔ rechazar un pago en produccion conserva la etapa y solicita cancelacion (0.306587ms)
+✔ operario cobranzas no puede modificar una decision de pago (0.30018ms)
+✔ confirmar un pago rechazado sigue el flujo normal a Listo para produccion (0.529753ms)
+✔ no registra auditoria si el pago ya estaba confirmado (0.32443ms)
+✔ dos decisiones concurrentes sobre Pendiente dejan solo una auditoria (0.755334ms)
+✔ dos confirmaciones concurrentes son idempotentes (0.336097ms)
+✔ resuelve usuario interno desde Auth0 al registrar pago (0.720631ms)
+✔ bloquea mover a Listo para produccion con pago pendiente (0.683322ms)
+✔ permite mover a Listo para produccion con pago confirmado (0.162791ms)
+✔ bloquea mover a En produccion sin permiso admin (0.325751ms)
+✔ permite mover a En produccion con el permiso requerido (0.974573ms)
+✔ envia pedido a revision con usuario y comentario (0.86782ms)
+✔ cancela produccion con actor PIN y deja observacion (0.540998ms)
+✔ rechaza cancelacion sin observacion (0.25322ms)
+✔ bloquea saltar desde Confirmacion de pago directo a En produccion (0.209242ms)
+✔ bloquea saltar desde Listo para produccion directo a Listo para entrega (0.203415ms)
+✔ permite mover manualmente de producción a listo para entrega con PIN (0.161856ms)
+✔ password reset limits independent emails sharing one IP (2.867024ms)
+✔ password reset normalizes email across IPs and expires the quota (0.646529ms)
+✔ memory quota fails closed at capacity and purges expired entries (0.323263ms)
+✔ arma el detalle de confirmacion con vendedor y datos de la Nota de Venta (2.066474ms)
+✔ los cinco endpoints de Payments ocultan errores internos (10.294034ms)
+✔ Payments conserva los errores esperados y registra solo metadatos seguros (1.048145ms)
+✔ create registra auditoria de pago enlazada a Registros (1.74423ms)
+✔ el registro exige un estado anterior distinto y lo pasa al repositorio (4.248821ms)
+✔ consulta el detalle del modal en una sola lectura parametrizada (0.734952ms)
+✔ reutiliza temporalmente los estados cargados para validar un pago (1.06375ms)
+✔ consulta por ID cuando el catalogo aun no esta en cache (0.205743ms)
+✔ los intentos incorrectos concurrentes contabilizan cinco y bloquean el PIN (1980.463425ms)
+✔ un PIN correcto limpia contador y bloqueo vencido (767.632833ms)
+✔ PIN correcto e incorrecto concurrentes respetan el orden de serialización (2196.238926ms)
+✔ solo una confirmación concurrente consume el mismo reto y cambia el PIN (1501.842636ms)
+✔ un fallo al guardar el nuevo PIN revierte el consumo del reto (1996.941082ms)
+✔ solicitar un reto nuevo invalida el anterior (1354.202945ms)
+✔ intentos incorrectos concurrentes agotan el reto sin perder incrementos (373.726056ms)
+✔ debug PIN: environment, authorization, rotation and transaction (2322.639736ms)
+✔ debug controller uses authenticated identity, returns status only and disables caching (1.162567ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"fake"} (1.830911ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"development","PIN_DELIVERY_PROVIDER":"fake"} (0.336776ms)
+✔ rejects invalid delivery configuration {"PIN_DELIVERY_PROVIDER":"fake"} (0.317584ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend"} (0.272226ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend","RESEND_API_KEY":"synthetic"} (0.227163ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend","PIN_EMAIL_FROM":"test@example.invalid"} (0.181083ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"unknown"} (0.14442ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"console"} (0.11966ms)
+✔ missing provider remains disabled without an insecure fallback (0.984362ms)
+✔ fake accepts only minimal fields, sends once and stores in process memory (2.104865ms)
+✔ RF07 creates challenge, passes existing expiry, rejects invalid code, generates new PIN, rejects sequential reuse (819.535418ms)
+✔ expired challenge rejects valid code at exact expiry boundary (50.844174ms)
+✔ request HTTP response never returns OTP or recipient (53.164284ms)
+✔ provider exceptions, including failed status writes, are sanitized (false) (53.76655ms)
+✔ provider exceptions, including failed status writes, are sanitized (true) (57.93311ms)
+http_error {
+  requestId: '600c8252-1765-4099-bc1f-775f0bb19b72',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:28.097Z'
+}
+http_error {
+  requestId: '0c2c43ab-c855-4976-b801-70870f3de400',
+  type: 'PinDeliveryUnavailableError',
+  code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:28.154Z'
+}
+✔ provider failure HTTP response is safe and missing provider returns unavailable (116.737246ms)
+✔ stdout and stderr contain neither OTP nor recipient on successful/failed recovery (351.477831ms)
+✔ application startup rejects production with fake before opening server (466.283759ms)
+✔ application startup rejects production with console before opening server (602.044271ms)
+✔ RF06: reveal, atomic acknowledgement, no recovery of accepted PIN, valid/invalid verification (1124.967578ms)
+✔ legacy scrypt remains valid without touching H05 counters on successful clean validation (506.635716ms)
+✔ RF07 replaces accepted PIN with a different generated PIN using v2 (2154.983996ms)
+http_error {
+  requestId: 'eff34921-6629-4134-97ae-89582cb1ba82',
+  type: 'PinServiceError',
+  code: 'PIN_NOT_REVEALABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 409,
+  timestamp: '2026-09-30T14:00:33.628Z'
+}
+✔ reveal API exposes only PIN; accepted PIN exposes only safe code/message (318.820236ms)
+✔ unknown hash versions fail closed (339.627905ms)
+✔ default PIN recovery delivery fails closed in every application environment (2.344776ms)
+✔ PIN recovery uses only an injected fake delivery and marks the challenge delivered (62.870538ms)
+pin_recovery_delivery_failure
+http_error {
+  requestId: '11f828fc-2f37-45b0-87df-54d74af5437a',
+  type: 'PinDeliveryUnavailableError',
+  code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:29.966Z'
+}
+✔ unavailable PIN delivery consumes the synthetic challenge and maps to HTTP 503 (76.521246ms)
+✔ calcula carga de lanyards solo en dias habiles previos a la entrega (3.500304ms)
+✔ acumula la carga diaria de varias producciones de lanyards (0.715142ms)
+✔ POST /api/production-calendar/operational-load calcula carga operativa (104.673941ms)
+✔ guarda varias cargas de lanyard con lecturas agrupadas y escritura por lote (2.597933ms)
+✔ calcula resumen diario desde detalles lanyard en produccion (2.075728ms)
+✔ guarda carga diaria usando el usuario interno vinculado (1.16398ms)
+✔ rechaza cantidades diarias negativas (0.692386ms)
+http_error {
+  requestId: '3650b4c2-b156-4af4-87d3-23b82aa6fe03',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T14:00:31.341Z'
+}
+✔ perfil usa la identidad validada e ignora identificadores enviados por el cliente (1.13009ms)
+✔ perfil rechaza identidad ausente o inconsistente sin consultar registros (0.20217ms)
+✔ perfil informa fallo de carga sin inventar registros (5.448412ms)
+✔ repositorio filtra por usuario y limita a diez registros ordenados por fecha e identificador descendente (2.432686ms)
+✔ perfil describe el estado histórico de pago, etapas, subprocesos y observaciones (1.386387ms)
+▶ matriz HTTP por rol, permisos y PIN: llamadas directas
+  ✔ Administrador Produccion GET /orders => 204 (94.535563ms)
+  ✔ Administrador Ventas GET /orders => 204 (7.108285ms)
+  ✔ Administrador Cobranzas GET /orders => 204 (7.092869ms)
+  ✔ Operario Produccion GET /orders => 204 (3.436047ms)
+  ✔ Operario Ventas GET /orders => 204 (4.14245ms)
+  ✔ Operario Cobranzas GET /orders => 204 (4.330928ms)
+  ✔ Gerencia GET /orders => 204 (3.203786ms)
+  ✔ Soporte GET /orders => 204 (2.548337ms)
+  ✔ sin permiso + PIN correcto GET /orders => 403 (11.103876ms)
+  ✔ Administrador Produccion GET /orders/kanban => 204 (16.698542ms)
+  ✔ Administrador Ventas GET /orders/kanban => 204 (28.361329ms)
+  ✔ Administrador Cobranzas GET /orders/kanban => 204 (5.499909ms)
+  ✔ Operario Produccion GET /orders/kanban => 204 (6.253949ms)
+  ✔ Operario Ventas GET /orders/kanban => 204 (4.054311ms)
+  ✔ Operario Cobranzas GET /orders/kanban => 204 (1.27477ms)
+  ✔ Gerencia GET /orders/kanban => 204 (5.858747ms)
+  ✔ Soporte GET /orders/kanban => 204 (3.061066ms)
+  ✔ sin permiso + PIN correcto GET /orders/kanban => 403 (2.681602ms)
+  ✔ Administrador Produccion GET /orders/1 => 204 (3.162988ms)
+  ✔ Administrador Ventas GET /orders/1 => 204 (2.54528ms)
+  ✔ Administrador Cobranzas GET /orders/1 => 204 (1.625593ms)
+  ✔ Operario Produccion GET /orders/1 => 204 (5.699149ms)
+  ✔ Operario Ventas GET /orders/1 => 204 (2.273184ms)
+  ✔ Operario Cobranzas GET /orders/1 => 204 (3.11718ms)
+  ✔ Gerencia GET /orders/1 => 204 (2.934775ms)
+  ✔ Soporte GET /orders/1 => 204 (2.093182ms)
+  ✔ sin permiso + PIN correcto GET /orders/1 => 403 (1.686386ms)
+  ✔ Administrador Produccion GET /orders/sales-notes/NV1 => 403 (2.189473ms)
+  ✔ Administrador Ventas GET /orders/sales-notes/NV1 => 204 (1.679225ms)
+  ✔ Administrador Cobranzas GET /orders/sales-notes/NV1 => 403 (2.297256ms)
+  ✔ Operario Produccion GET /orders/sales-notes/NV1 => 403 (5.426682ms)
+  ✔ Operario Ventas GET /orders/sales-notes/NV1 => 204 (1.802545ms)
+  ✔ Operario Cobranzas GET /orders/sales-notes/NV1 => 403 (1.807079ms)
+  ✔ Gerencia GET /orders/sales-notes/NV1 => 403 (2.766628ms)
+  ✔ Soporte GET /orders/sales-notes/NV1 => 204 (2.617635ms)
+  ✔ sin permiso + PIN correcto GET /orders/sales-notes/NV1 => 403 (2.925298ms)
+  ✔ Administrador Produccion POST /orders => 403 (22.053183ms)
+  ✔ Administrador Ventas POST /orders => 204 (3.051956ms)
+  ✔ Administrador Cobranzas POST /orders => 403 (4.104384ms)
+  ✔ Operario Produccion POST /orders => 403 (3.607187ms)
+  ✔ Operario Ventas POST /orders => 204 (3.887393ms)
+  ✔ Operario Cobranzas POST /orders => 403 (2.729886ms)
+  ✔ Gerencia POST /orders => 403 (10.391844ms)
+  ✔ Soporte POST /orders => 204 (4.736002ms)
+  ✔ sin permiso + PIN correcto POST /orders => 403 (6.382353ms)
+  ✔ Administrador Produccion PATCH /orders/1/payment-status => 403 (176.216615ms)
+  ✔ Administrador Ventas PATCH /orders/1/payment-status => 403 (8.024342ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/payment-status => 204 (3.769791ms)
+  ✔ Operario Produccion PATCH /orders/1/payment-status => 403 (4.454474ms)
+  ✔ Operario Ventas PATCH /orders/1/payment-status => 403 (6.456772ms)
+  ✔ Operario Cobranzas PATCH /orders/1/payment-status => 204 (4.065929ms)
+  ✔ Gerencia PATCH /orders/1/payment-status => 403 (2.090258ms)
+  ✔ Soporte PATCH /orders/1/payment-status => 204 (3.355633ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/payment-status => 403 (1.430992ms)
+http_error {
+  requestId: '46965a96-01bf-4e39-85f8-2032bfd7227b',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/payment-status',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.376Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/payment-status => 403 (6.353841ms)
+  ✔ Administrador Produccion PATCH /orders/1/move => 204 (11.558776ms)
+  ✔ Administrador Ventas PATCH /orders/1/move => 403 (2.087327ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/move => 403 (7.359871ms)
+  ✔ Operario Produccion PATCH /orders/1/move => 204 (5.022305ms)
+  ✔ Operario Ventas PATCH /orders/1/move => 403 (2.719322ms)
+  ✔ Operario Cobranzas PATCH /orders/1/move => 403 (7.592306ms)
+  ✔ Gerencia PATCH /orders/1/move => 403 (2.170387ms)
+  ✔ Soporte PATCH /orders/1/move => 204 (3.835152ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/move => 403 (2.035271ms)
+http_error {
+  requestId: '0f2b21ac-d887-42f3-92bd-b51fc4a562a4',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/move',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.427Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/move => 403 (4.488422ms)
+  ✔ Administrador Produccion PATCH /orders/1/review => 204 (2.638889ms)
+  ✔ Administrador Ventas PATCH /orders/1/review => 403 (4.736315ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/review => 403 (1.858344ms)
+  ✔ Operario Produccion PATCH /orders/1/review => 403 (1.794143ms)
+  ✔ Operario Ventas PATCH /orders/1/review => 403 (2.90382ms)
+  ✔ Operario Cobranzas PATCH /orders/1/review => 403 (1.649304ms)
+  ✔ Gerencia PATCH /orders/1/review => 403 (2.07162ms)
+  ✔ Soporte PATCH /orders/1/review => 204 (2.534151ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/review => 403 (2.733966ms)
+  ✔ Administrador Produccion PATCH /orders/1/cancel-production => 204 (3.951389ms)
+  ✔ Administrador Ventas PATCH /orders/1/cancel-production => 403 (3.138215ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/cancel-production => 403 (3.671573ms)
+  ✔ Operario Produccion PATCH /orders/1/cancel-production => 403 (2.425811ms)
+  ✔ Operario Ventas PATCH /orders/1/cancel-production => 403 (3.02798ms)
+  ✔ Operario Cobranzas PATCH /orders/1/cancel-production => 403 (3.279749ms)
+  ✔ Gerencia PATCH /orders/1/cancel-production => 403 (2.564568ms)
+  ✔ Soporte PATCH /orders/1/cancel-production => 204 (4.528892ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/cancel-production => 403 (2.461113ms)
+http_error {
+  requestId: '4a5aaa4f-2388-4df8-99f5-3cd19176f94c',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/cancel-production',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.484Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/cancel-production => 403 (3.475604ms)
+  ✔ Administrador Produccion PATCH /orders/1/reevaluate => 403 (1.991768ms)
+  ✔ Administrador Ventas PATCH /orders/1/reevaluate => 204 (2.007683ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/reevaluate => 403 (3.17753ms)
+  ✔ Operario Produccion PATCH /orders/1/reevaluate => 403 (2.724559ms)
+  ✔ Operario Ventas PATCH /orders/1/reevaluate => 204 (2.813487ms)
+  ✔ Operario Cobranzas PATCH /orders/1/reevaluate => 403 (2.89983ms)
+  ✔ Gerencia PATCH /orders/1/reevaluate => 403 (7.996263ms)
+  ✔ Soporte PATCH /orders/1/reevaluate => 204 (25.052885ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/reevaluate => 403 (10.283681ms)
+  ✔ Administrador Produccion PATCH /orders/1/labels => 204 (3.351842ms)
+  ✔ Administrador Ventas PATCH /orders/1/labels => 403 (3.237342ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/labels => 403 (1.343719ms)
+  ✔ Operario Produccion PATCH /orders/1/labels => 403 (5.884437ms)
+  ✔ Operario Ventas PATCH /orders/1/labels => 403 (5.09205ms)
+  ✔ Operario Cobranzas PATCH /orders/1/labels => 403 (3.054153ms)
+  ✔ Gerencia PATCH /orders/1/labels => 403 (2.603133ms)
+  ✔ Soporte PATCH /orders/1/labels => 204 (1.703171ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/labels => 403 (3.282744ms)
+  ✔ Administrador Produccion PATCH /orders/1/delivery-date => 204 (4.708699ms)
+  ✔ Administrador Ventas PATCH /orders/1/delivery-date => 403 (1.323008ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/delivery-date => 403 (2.752619ms)
+  ✔ Operario Produccion PATCH /orders/1/delivery-date => 403 (6.155693ms)
+  ✔ Operario Ventas PATCH /orders/1/delivery-date => 403 (4.562015ms)
+  ✔ Operario Cobranzas PATCH /orders/1/delivery-date => 403 (4.453676ms)
+  ✔ Gerencia PATCH /orders/1/delivery-date => 403 (1.490314ms)
+  ✔ Soporte PATCH /orders/1/delivery-date => 204 (10.87707ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/delivery-date => 403 (1.763104ms)
+http_error {
+  requestId: 'd7ec41ed-ac48-424c-b675-0285b9fa7a22',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/delivery-date',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.618Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/delivery-date => 403 (2.740055ms)
+  ✔ Administrador Produccion PATCH /orders/1/details/1/subprocesses/1/complete => 204 (2.655198ms)
+  ✔ Administrador Ventas PATCH /orders/1/details/1/subprocesses/1/complete => 403 (1.938681ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/details/1/subprocesses/1/complete => 403 (1.325366ms)
+  ✔ Operario Produccion PATCH /orders/1/details/1/subprocesses/1/complete => 204 (5.337411ms)
+  ✔ Operario Ventas PATCH /orders/1/details/1/subprocesses/1/complete => 403 (4.779391ms)
+  ✔ Operario Cobranzas PATCH /orders/1/details/1/subprocesses/1/complete => 403 (8.411827ms)
+  ✔ Gerencia PATCH /orders/1/details/1/subprocesses/1/complete => 403 (4.453754ms)
+  ✔ Soporte PATCH /orders/1/details/1/subprocesses/1/complete => 204 (3.622493ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/details/1/subprocesses/1/complete => 403 (2.281712ms)
+http_error {
+  requestId: '5b01e454-1d12-45e4-91c7-be56754fa0a8',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/details/:detailId/subprocesses/:subprocessId/complete',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.656Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/details/1/subprocesses/1/complete => 403 (1.9783ms)
+  ✔ Administrador Produccion PATCH /orders/1/details/1/subprocesses/1/rollback => 204 (5.657433ms)
+  ✔ Administrador Ventas PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (2.44469ms)
+  ✔ Administrador Cobranzas PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (4.06601ms)
+  ✔ Operario Produccion PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (5.47345ms)
+  ✔ Operario Ventas PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (3.195204ms)
+  ✔ Operario Cobranzas PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (4.466064ms)
+  ✔ Gerencia PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (3.05859ms)
+  ✔ Soporte PATCH /orders/1/details/1/subprocesses/1/rollback => 204 (6.035475ms)
+  ✔ sin permiso + PIN correcto PATCH /orders/1/details/1/subprocesses/1/rollback => 403 (4.347329ms)
+http_error {
+  requestId: 'cd21a778-fd10-44fd-bfa9-f9cd1ba51866',
+  type: 'PinServiceError',
+  code: 'PIN_INVALID',
+  method: 'PATCH',
+  route: '/:orderId/details/:detailId/subprocesses/:subprocessId/rollback',
+  status: 403,
+  timestamp: '2026-09-30T14:00:32.699Z'
+}
+  ✔ Soporte con permiso + PIN incorrecto /orders/1/details/1/subprocesses/1/rollback => 403 (4.204845ms)
+  ✔ Administrador Produccion GET /metrics/summary => 204 (1.625016ms)
+  ✔ Administrador Ventas GET /metrics/summary => 403 (6.706444ms)
+  ✔ Administrador Cobranzas GET /metrics/summary => 403 (4.42313ms)
+  ✔ Operario Produccion GET /metrics/summary => 403 (1.668626ms)
+  ✔ Operario Ventas GET /metrics/summary => 403 (2.790511ms)
+  ✔ Operario Cobranzas GET /metrics/summary => 403 (4.668216ms)
+  ✔ Gerencia GET /metrics/summary => 204 (4.639548ms)
+  ✔ Soporte GET /metrics/summary => 204 (1.953093ms)
+  ✔ sin permiso + PIN correcto GET /metrics/summary => 403 (1.769548ms)
+  ✔ Administrador Produccion GET /capacity => 204 (2.313963ms)
+  ✔ Administrador Ventas GET /capacity => 204 (1.786798ms)
+  ✔ Administrador Cobranzas GET /capacity => 204 (4.456013ms)
+  ✔ Operario Produccion GET /capacity => 204 (3.531606ms)
+  ✔ Operario Ventas GET /capacity => 204 (1.357038ms)
+  ✔ Operario Cobranzas GET /capacity => 204 (1.679256ms)
+  ✔ Gerencia GET /capacity => 204 (1.592531ms)
+  ✔ Soporte GET /capacity => 204 (1.640567ms)
+  ✔ sin permiso + PIN correcto GET /capacity => 403 (1.4659ms)
+  ✔ Administrador Produccion PATCH /capacity => 204 (5.063241ms)
+  ✔ Administrador Ventas PATCH /capacity => 403 (5.964795ms)
+  ✔ Administrador Cobranzas PATCH /capacity => 403 (5.431598ms)
+  ✔ Operario Produccion PATCH /capacity => 403 (11.612064ms)
+  ✔ Operario Ventas PATCH /capacity => 403 (3.077462ms)
+  ✔ Operario Cobranzas PATCH /capacity => 403 (4.330671ms)
+  ✔ Gerencia PATCH /capacity => 403 (2.492888ms)
+  ✔ Soporte PATCH /capacity => 204 (3.049359ms)
+  ✔ sin permiso + PIN correcto PATCH /capacity => 403 (3.116141ms)
+  ✔ Administrador Produccion GET /load/today => 204 (2.339575ms)
+  ✔ Administrador Ventas GET /load/today => 204 (3.222726ms)
+  ✔ Administrador Cobranzas GET /load/today => 204 (3.895752ms)
+  ✔ Operario Produccion GET /load/today => 204 (4.258065ms)
+  ✔ Operario Ventas GET /load/today => 204 (1.775132ms)
+  ✔ Operario Cobranzas GET /load/today => 204 (2.559769ms)
+  ✔ Gerencia GET /load/today => 204 (2.859243ms)
+  ✔ Soporte GET /load/today => 204 (5.129242ms)
+  ✔ sin permiso + PIN correcto GET /load/today => 403 (4.7876ms)
+  ✔ Administrador Produccion PATCH /load/today => 204 (2.259107ms)
+  ✔ Administrador Ventas PATCH /load/today => 403 (2.384488ms)
+  ✔ Administrador Cobranzas PATCH /load/today => 403 (4.123866ms)
+  ✔ Operario Produccion PATCH /load/today => 403 (7.694208ms)
+  ✔ Operario Ventas PATCH /load/today => 403 (12.07113ms)
+  ✔ Operario Cobranzas PATCH /load/today => 403 (4.530229ms)
+  ✔ Gerencia PATCH /load/today => 403 (21.005393ms)
+  ✔ Soporte PATCH /load/today => 204 (11.383018ms)
+  ✔ sin permiso + PIN correcto PATCH /load/today => 403 (4.426626ms)
+  ✔ Administrador Produccion POST /calendar/operational-load => 204 (10.950598ms)
+  ✔ Administrador Ventas POST /calendar/operational-load => 204 (2.155145ms)
+  ✔ Administrador Cobranzas POST /calendar/operational-load => 403 (2.593054ms)
+  ✔ Operario Produccion POST /calendar/operational-load => 403 (1.399234ms)
+  ✔ Operario Ventas POST /calendar/operational-load => 204 (2.604097ms)
+  ✔ Operario Cobranzas POST /calendar/operational-load => 403 (1.44571ms)
+  ✔ Gerencia POST /calendar/operational-load => 403 (5.478644ms)
+  ✔ Soporte POST /calendar/operational-load => 204 (3.541165ms)
+  ✔ sin permiso + PIN correcto POST /calendar/operational-load => 403 (7.610433ms)
+  ✔ Administrador Produccion GET /history/orders => 204 (1.510006ms)
+  ✔ Administrador Ventas GET /history/orders => 204 (8.736604ms)
+  ✔ Administrador Cobranzas GET /history/orders => 204 (12.289005ms)
+  ✔ Operario Produccion GET /history/orders => 204 (4.335712ms)
+  ✔ Operario Ventas GET /history/orders => 204 (10.314997ms)
+  ✔ Operario Cobranzas GET /history/orders => 204 (1.734105ms)
+  ✔ Gerencia GET /history/orders => 204 (3.776776ms)
+  ✔ Soporte GET /history/orders => 204 (6.354925ms)
+  ✔ sin permiso + PIN correcto GET /history/orders => 403 (3.202979ms)
+  ✔ Administrador Produccion GET /history/orders/1 => 204 (1.895445ms)
+  ✔ Administrador Ventas GET /history/orders/1 => 204 (4.356399ms)
+  ✔ Administrador Cobranzas GET /history/orders/1 => 204 (6.680382ms)
+  ✔ Operario Produccion GET /history/orders/1 => 204 (6.38884ms)
+  ✔ Operario Ventas GET /history/orders/1 => 204 (6.798462ms)
+  ✔ Operario Cobranzas GET /history/orders/1 => 204 (8.968061ms)
+  ✔ Gerencia GET /history/orders/1 => 204 (7.26664ms)
+  ✔ Soporte GET /history/orders/1 => 204 (7.47001ms)
+  ✔ sin permiso + PIN correcto GET /history/orders/1 => 403 (1.773761ms)
+  ✔ Administrador Produccion GET /history/orders/1/events => 204 (4.587317ms)
+  ✔ Administrador Ventas GET /history/orders/1/events => 204 (1.501395ms)
+  ✔ Administrador Cobranzas GET /history/orders/1/events => 204 (6.270126ms)
+  ✔ Operario Produccion GET /history/orders/1/events => 204 (3.004238ms)
+  ✔ Operario Ventas GET /history/orders/1/events => 204 (1.117106ms)
+  ✔ Operario Cobranzas GET /history/orders/1/events => 204 (4.587187ms)
+  ✔ Gerencia GET /history/orders/1/events => 204 (1.07258ms)
+  ✔ Soporte GET /history/orders/1/events => 204 (0.964639ms)
+  ✔ sin permiso + PIN correcto GET /history/orders/1/events => 403 (9.501767ms)
+  ✔ Administrador Produccion GET /messages => 204 (2.846909ms)
+  ✔ Administrador Ventas GET /messages => 204 (1.38772ms)
+  ✔ Administrador Cobranzas GET /messages => 204 (3.028999ms)
+  ✔ Operario Produccion GET /messages => 204 (2.127423ms)
+  ✔ Operario Ventas GET /messages => 204 (1.342214ms)
+  ✔ Operario Cobranzas GET /messages => 204 (0.850784ms)
+  ✔ Gerencia GET /messages => 204 (1.191916ms)
+  ✔ Soporte GET /messages => 204 (1.700649ms)
+  ✔ sin permiso + PIN correcto GET /messages => 403 (3.908149ms)
+  ✔ Administrador Produccion GET /messages/notifications => 204 (1.597601ms)
+  ✔ Administrador Ventas GET /messages/notifications => 204 (0.857674ms)
+  ✔ Administrador Cobranzas GET /messages/notifications => 204 (0.78659ms)
+  ✔ Operario Produccion GET /messages/notifications => 204 (6.496092ms)
+  ✔ Operario Ventas GET /messages/notifications => 204 (2.832222ms)
+  ✔ Operario Cobranzas GET /messages/notifications => 204 (3.349107ms)
+  ✔ Gerencia GET /messages/notifications => 204 (1.20381ms)
+  ✔ Soporte GET /messages/notifications => 204 (3.283232ms)
+  ✔ sin permiso + PIN correcto GET /messages/notifications => 403 (4.287726ms)
+  ✔ Administrador Produccion GET /messages/1 => 204 (1.215491ms)
+  ✔ Administrador Ventas GET /messages/1 => 204 (2.938081ms)
+  ✔ Administrador Cobranzas GET /messages/1 => 204 (3.978978ms)
+  ✔ Operario Produccion GET /messages/1 => 204 (8.019828ms)
+  ✔ Operario Ventas GET /messages/1 => 204 (3.932082ms)
+  ✔ Operario Cobranzas GET /messages/1 => 204 (4.624824ms)
+  ✔ Gerencia GET /messages/1 => 204 (2.993263ms)
+  ✔ Soporte GET /messages/1 => 204 (2.241126ms)
+  ✔ sin permiso + PIN correcto GET /messages/1 => 403 (4.165564ms)
+  ✔ Administrador Produccion PATCH /messages/notifications => 204 (2.781918ms)
+  ✔ Administrador Ventas PATCH /messages/notifications => 204 (2.60277ms)
+  ✔ Administrador Cobranzas PATCH /messages/notifications => 204 (5.672922ms)
+  ✔ Operario Produccion PATCH /messages/notifications => 204 (3.740439ms)
+  ✔ Operario Ventas PATCH /messages/notifications => 204 (3.69707ms)
+  ✔ Operario Cobranzas PATCH /messages/notifications => 204 (2.556126ms)
+  ✔ Gerencia PATCH /messages/notifications => 204 (1.930403ms)
+  ✔ Soporte PATCH /messages/notifications => 204 (1.158979ms)
+  ✔ sin permiso + PIN correcto PATCH /messages/notifications => 403 (4.014194ms)
+  ✔ Administrador Produccion PATCH /messages/notifications/1 => 204 (3.744587ms)
+  ✔ Administrador Ventas PATCH /messages/notifications/1 => 204 (2.218626ms)
+  ✔ Administrador Cobranzas PATCH /messages/notifications/1 => 204 (2.693918ms)
+  ✔ Operario Produccion PATCH /messages/notifications/1 => 204 (2.237887ms)
+  ✔ Operario Ventas PATCH /messages/notifications/1 => 204 (5.27749ms)
+  ✔ Operario Cobranzas PATCH /messages/notifications/1 => 204 (1.923ms)
+  ✔ Gerencia PATCH /messages/notifications/1 => 204 (4.236464ms)
+  ✔ Soporte PATCH /messages/notifications/1 => 204 (2.895409ms)
+  ✔ sin permiso + PIN correcto PATCH /messages/notifications/1 => 403 (4.968608ms)
+  ✔ Administrador Produccion PATCH /messages/1/read => 204 (2.553922ms)
+  ✔ Administrador Ventas PATCH /messages/1/read => 204 (4.700092ms)
+  ✔ Administrador Cobranzas PATCH /messages/1/read => 204 (4.280096ms)
+  ✔ Operario Produccion PATCH /messages/1/read => 204 (3.241981ms)
+  ✔ Operario Ventas PATCH /messages/1/read => 204 (1.179391ms)
+  ✔ Operario Cobranzas PATCH /messages/1/read => 204 (4.887774ms)
+  ✔ Gerencia PATCH /messages/1/read => 204 (3.236261ms)
+  ✔ Soporte PATCH /messages/1/read => 204 (3.696314ms)
+  ✔ sin permiso + PIN correcto PATCH /messages/1/read => 403 (17.995305ms)
+✔ matriz HTTP por rol, permisos y PIN: llamadas directas (1468.02209ms)
+▶ gestion de usuarios: departamento, escalamiento y revinculacion RNF02
+  ✔ Administrador Produccion revincula Operario Produccion (18.912539ms)
+  ✔ Administrador Produccion revincula Operario Ventas (3.924907ms)
+  ✔ Administrador Produccion revincula Operario Cobranzas (1.440453ms)
+  ✔ Administrador Produccion revincula Gerencia (4.105022ms)
+  ✔ Administrador Produccion revincula Soporte (2.800602ms)
+  ✔ Administrador Ventas revincula Operario Produccion (3.151767ms)
+  ✔ Administrador Ventas revincula Operario Ventas (3.736973ms)
+  ✔ Administrador Ventas revincula Operario Cobranzas (3.868981ms)
+  ✔ Administrador Ventas revincula Gerencia (3.147258ms)
+  ✔ Administrador Ventas revincula Soporte (3.131994ms)
+  ✔ Administrador Cobranzas revincula Operario Produccion (3.880635ms)
+  ✔ Administrador Cobranzas revincula Operario Ventas (7.436696ms)
+  ✔ Administrador Cobranzas revincula Operario Cobranzas (1.724647ms)
+  ✔ Administrador Cobranzas revincula Gerencia (3.399171ms)
+  ✔ Administrador Cobranzas revincula Soporte (1.516209ms)
+  ✔ Operario Produccion revincula Operario Produccion (6.000934ms)
+  ✔ Operario Produccion revincula Operario Ventas (3.726064ms)
+  ✔ Operario Produccion revincula Operario Cobranzas (4.197564ms)
+  ✔ Operario Produccion revincula Gerencia (10.597506ms)
+  ✔ Operario Produccion revincula Soporte (2.349948ms)
+  ✔ Operario Ventas revincula Operario Produccion (5.334731ms)
+  ✔ Operario Ventas revincula Operario Ventas (1.472902ms)
+  ✔ Operario Ventas revincula Operario Cobranzas (4.366115ms)
+  ✔ Operario Ventas revincula Gerencia (2.184113ms)
+  ✔ Operario Ventas revincula Soporte (3.023027ms)
+  ✔ Operario Cobranzas revincula Operario Produccion (3.213158ms)
+  ✔ Operario Cobranzas revincula Operario Ventas (1.708235ms)
+  ✔ Operario Cobranzas revincula Operario Cobranzas (5.186009ms)
+  ✔ Operario Cobranzas revincula Gerencia (4.498382ms)
+  ✔ Operario Cobranzas revincula Soporte (4.166898ms)
+  ✔ Gerencia revincula Operario Produccion (1.544131ms)
+  ✔ Gerencia revincula Operario Ventas (4.286802ms)
+  ✔ Gerencia revincula Operario Cobranzas (1.310665ms)
+  ✔ Gerencia revincula Gerencia (3.062806ms)
+  ✔ Gerencia revincula Soporte (2.63549ms)
+  ✔ Soporte revincula Operario Produccion (4.371715ms)
+  ✔ Soporte revincula Operario Ventas (2.867961ms)
+  ✔ Soporte revincula Operario Cobranzas (2.882126ms)
+  ✔ Soporte revincula Gerencia (3.228189ms)
+  ✔ Soporte revincula Soporte (1.529957ms)
+✔ gestion de usuarios: departamento, escalamiento y revinculacion RNF02 (219.966564ms)
+✔ contrato de identidad: denegacion antes de ejecutar operaciones (0.642692ms)
+▶ rutas auxiliares no permiten fabricar escrituras fuera del flujo de negocio
+  ✔ Administrador Produccion POST /clients => 403 (4.596308ms)
+  ✔ Administrador Produccion POST /products => 403 (3.196026ms)
+  ✔ Administrador Produccion POST /order-status => 403 (4.726233ms)
+  ✔ Administrador Produccion POST /payment-status => 403 (5.229751ms)
+  ✔ Administrador Produccion POST /orders/1/details => 403 (3.227368ms)
+  ✔ Administrador Produccion POST /orders/1/payment-records => 403 (5.943282ms)
+  ✔ Administrador Ventas POST /clients => 403 (4.7886ms)
+  ✔ Administrador Ventas POST /products => 403 (1.670915ms)
+  ✔ Administrador Ventas POST /order-status => 403 (1.562412ms)
+  ✔ Administrador Ventas POST /payment-status => 403 (3.087422ms)
+  ✔ Administrador Ventas POST /orders/1/details => 403 (13.8057ms)
+  ✔ Administrador Ventas POST /orders/1/payment-records => 403 (12.932836ms)
+  ✔ Administrador Cobranzas POST /clients => 403 (2.578794ms)
+  ✔ Administrador Cobranzas POST /products => 403 (1.920471ms)
+  ✔ Administrador Cobranzas POST /order-status => 403 (1.661848ms)
+  ✔ Administrador Cobranzas POST /payment-status => 403 (3.977229ms)
+  ✔ Administrador Cobranzas POST /orders/1/details => 403 (2.567683ms)
+  ✔ Administrador Cobranzas POST /orders/1/payment-records => 403 (3.322783ms)
+  ✔ Operario Produccion POST /clients => 403 (1.549423ms)
+  ✔ Operario Produccion POST /products => 403 (8.256883ms)
+  ✔ Operario Produccion POST /order-status => 403 (2.198262ms)
+  ✔ Operario Produccion POST /payment-status => 403 (3.148645ms)
+  ✔ Operario Produccion POST /orders/1/details => 403 (2.498301ms)
+  ✔ Operario Produccion POST /orders/1/payment-records => 403 (1.764852ms)
+  ✔ Operario Ventas POST /clients => 403 (1.535543ms)
+  ✔ Operario Ventas POST /products => 403 (2.86881ms)
+  ✔ Operario Ventas POST /order-status => 403 (9.096977ms)
+  ✔ Operario Ventas POST /payment-status => 403 (2.164936ms)
+  ✔ Operario Ventas POST /orders/1/details => 403 (3.954014ms)
+  ✔ Operario Ventas POST /orders/1/payment-records => 403 (3.842282ms)
+  ✔ Operario Cobranzas POST /clients => 403 (4.042657ms)
+  ✔ Operario Cobranzas POST /products => 403 (3.493974ms)
+  ✔ Operario Cobranzas POST /order-status => 403 (7.223652ms)
+  ✔ Operario Cobranzas POST /payment-status => 403 (2.303317ms)
+  ✔ Operario Cobranzas POST /orders/1/details => 403 (2.281661ms)
+  ✔ Operario Cobranzas POST /orders/1/payment-records => 403 (3.930564ms)
+  ✔ Gerencia POST /clients => 403 (4.147805ms)
+  ✔ Gerencia POST /products => 403 (3.377087ms)
+  ✔ Gerencia POST /order-status => 403 (1.881398ms)
+  ✔ Gerencia POST /payment-status => 403 (2.844466ms)
+  ✔ Gerencia POST /orders/1/details => 403 (4.907232ms)
+  ✔ Gerencia POST /orders/1/payment-records => 403 (7.360744ms)
+  ✔ Soporte POST /clients => 403 (4.608111ms)
+  ✔ Soporte POST /products => 403 (1.284477ms)
+  ✔ Soporte POST /order-status => 403 (2.705313ms)
+  ✔ Soporte POST /payment-status => 403 (1.032536ms)
+  ✔ Soporte POST /orders/1/details => 403 (4.507493ms)
+  ✔ Soporte POST /orders/1/payment-records => 403 (2.453534ms)
+✔ rutas auxiliares no permiten fabricar escrituras fuera del flujo de negocio (211.705827ms)
+✔ carga acepta cada permiso alternativo; permisos visuales retirados no autorizan lecturas (55.495745ms)
+✔ : acceso de Administrador Produccion (9.621628ms)
+✔ : acceso de Operario Produccion (0.260155ms)
+✔ : acceso de Operario Ventas (0.126724ms)
+✔ : acceso de Operario Cobranzas (0.118992ms)
+✔ : acceso de Gerencia (0.304083ms)
+✔ : acceso de Soporte (1.01062ms)
+✔ : acceso de Administrador Producción (2.807921ms)
+✔ : acceso de Operario Producción (0.127002ms)
+✔ : acceso de Administrador (1.200186ms)
+✔ : acceso de Producción (0.498872ms)
+✔ : acceso de Ventas (0.236387ms)
+✔ : acceso de Cobranzas (0.640516ms)
+✔ : acceso de Administrador Produccion (0.069236ms)
+✔ : acceso de Operario Produccion (0.214419ms)
+✔ : acceso de Operario Ventas (0.058192ms)
+✔ : acceso de Operario Cobranzas (0.050937ms)
+✔ : acceso de Gerencia (0.0459ms)
+✔ : acceso de Soporte (0.047586ms)
+✔ : acceso de Administrador Producción (0.044403ms)
+✔ : acceso de Operario Producción (0.044109ms)
+✔ : acceso de Administrador (0.045298ms)
+✔ : acceso de Producción (0.047046ms)
+✔ : acceso de Ventas (0.048413ms)
+✔ : acceso de Cobranzas (0.044055ms)
+✔ : acceso de Administrador Produccion (0.04272ms)
+✔ : acceso de Operario Produccion (0.077807ms)
+✔ : acceso de Operario Ventas (0.045336ms)
+✔ : acceso de Operario Cobranzas (0.042134ms)
+✔ : acceso de Gerencia (0.046886ms)
+✔ : acceso de Soporte (0.059091ms)
+✔ : acceso de Administrador Producción (0.045363ms)
+✔ : acceso de Operario Producción (0.042137ms)
+✔ : acceso de Administrador (0.046165ms)
+✔ : acceso de Producción (0.067714ms)
+✔ : acceso de Ventas (0.217587ms)
+✔ : acceso de Cobranzas (0.071081ms)
+✔ la reevaluación notifica a administradores de producción activos (6.598725ms)
+✔ sincroniza el rol vigente de Auth0 antes de autorizar (2.374466ms)
+✔ un token antiguo no revierte el rol sincronizado (0.834253ms)
+✔ rechaza token distinto del rol vigente en Auth0 sin escribir (0.222174ms)
+✔ no consulta Auth0 ni escribe para una cuenta desvinculada (0.451919ms)
+✔ un fallo de Auth0 produce error temporal sin escribir (0.252164ms)
+✔ una actualización concurrente de estado impide autorizar (0.30774ms)
+✔ permite un usuario con solo el rol Administrador Produccion (1.907277ms)
+✔ permite un usuario con solo el rol Soporte (0.164255ms)
+✔ rechaza un usuario con un rol distinto (0.174202ms)
+✔ rechaza un usuario sin roles (0.151449ms)
+✔ rechaza un usuario sin claim de roles (0.158357ms)
+✔ rechaza multiples roles aunque incluyan Administrador Produccion (0.143798ms)
+✔ permite cuando el token contiene el permiso requerido (1.11927ms)
+✔ rechaza cuando el permiso requerido no esta presente (3.81475ms)
+✔ rechaza cuando el claim permissions no existe (0.319564ms)
+✔ rechaza cuando el claim permissions esta malformado (1.398484ms)
+✔ exige configurar un permiso valido al crear el middleware (0.4932ms)
+✔ Resend sends exactly one minimal HTTPS request and does not return provider payload (8.406796ms)
+http_error {
+  requestId: 'dba3ab1f-0fd1-4e73-a434-781cfc027aa3',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:34.671Z'
+}
+✔ Resend http invalidates challenge and redacts response/logs (69.091986ms)
+http_error {
+  requestId: 'ccdeeb7c-ca72-4e2e-bd74-9ed12e7b743b',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:34.734Z'
+}
+✔ Resend network invalidates challenge and redacts response/logs (61.79501ms)
+http_error {
+  requestId: 'ac9f3344-4d30-47ec-bfc3-20ef06c6dbd4',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:34.797Z'
+}
+✔ Resend timeout invalidates challenge and redacts response/logs (62.490837ms)
+http_error {
+  requestId: '167d5d9d-ea00-49a7-bf31-9b65340c9d3d',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:34.872Z'
+}
+✔ Resend badJson invalidates challenge and redacts response/logs (74.275817ms)
+http_error {
+  requestId: 'fb60313a-e938-4df2-aa74-b3f5c48b53f7',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T14:00:34.948Z'
+}
+✔ Resend missingId invalidates challenge and redacts response/logs (76.580354ms)
+✔ fake constructor rejects real environments (0.475329ms)
+✔ el servidor no publica el antiguo repositorio PDF de notas de venta (161.607117ms)
+✔ programa fecha de produccion solo en dias habiles y registra actor (5.553931ms)
+✔ permite revisar una Nota de Venta que aun no fue registrada (1.723206ms)
+✔ advierte durante la busqueda cuando la Nota de Venta ya fue registrada (0.576209ms)
+✔ persiste la observacion interna al crear el pedido (13.542172ms)
+✔ creacion consulta fuente, canonicaliza alias e ignora campos comerciales y actor del cuerpo (4.96491ms)
+✔ actor de token se resuelve una vez cuando no hay contexto interno (2.910332ms)
+✔ prioridad valida asigna la etiqueta disponible; ausencia revierte la creacion (1.557902ms)
+✔ el cuerpo no puede habilitar la creacion antigua sin NV ni autenticar al actor (2.192331ms)
+✔ NV inexistente no inicia escrituras (0.651618ms)
+✔ rechaza cantidad de fuente fuera de contrato: -2 (0.417422ms)
+✔ rechaza cantidad de fuente fuera de contrato: 0 (0.384065ms)
+✔ rechaza cantidad de fuente fuera de contrato: 1.5 (0.331034ms)
+✔ rechaza cantidad de fuente fuera de contrato: null (0.704776ms)
+✔ rechaza cantidad de fuente fuera de contrato: "" (0.593367ms)
+✔ rechaza cantidad de fuente fuera de contrato: true (0.317822ms)
+✔ rechaza cantidad de fuente fuera de contrato: "10" (0.167049ms)
+✔ rechaza cantidad de fuente fuera de contrato: 2147483648 (0.143729ms)
+✔ valida contrato editable null (0.29882ms)
+✔ valida contrato editable [] (0.110438ms)
+✔ valida contrato editable {} (0.081442ms)
+✔ valida contrato editable {"numeroNota":24226} (4.714217ms)
+✔ valida contrato editable {"numeroNota":"NV-2026-"} (3.003044ms)
+✔ valida contrato editable {"numeroNota":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"} (0.127049ms)
+✔ valida contrato editable {"numeroNota":"24226","priority":[]} (0.107938ms)
+✔ valida contrato editable {"numeroNota":"24226","priority":"otro"} (0.080403ms)
+✔ valida contrato editable {"numeroNota":"24226","observacionInterna":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (0.236122ms)
+✔ valida contrato editable {"numeroNota":"24226","observacionInterna":{}} (0.325076ms)
+✔ rechaza fecha imposible, otra NV, items malformados y longitudes de fuente (3.064436ms)
+http_error {
+  requestId: '5a88ef21-cc6e-4f42-becc-1792eed0b2c3',
+  type: 'UnexpectedError',
+  code: 'ORDER_REQUEST_REJECTED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 404,
+  timestamp: '2026-09-30T14:00:35.892Z'
+}
+✔ todas las notas actuales respetan el nuevo contrato de fuente (135.684757ms)
+✔ preview de ventas minimiza cliente sin cambiar el contrato interno de fuente (0.448564ms)
+✔ propaga fallo detail a la unidad transaccional (0.438059ms)
+✔ propaga fallo audit a la unidad transaccional (0.17308ms)
+✔ propaga fallo notification a la unidad transaccional (0.216024ms)
+✔ propaga fallo securityAudit a la unidad transaccional (0.355668ms)
+✔ inyectar fuente y repo no evita $transaction del camino real (0.387044ms)
+✔ solo el conflicto de la restriccion NV se convierte en duplicado 409 (0.456268ms)
+✔ errores inesperados no exponen mensaje ni datos; logger solo recibe correlacion (0.292308ms)
+✔ el log de un error Prisma conserva solo el codigo diagnostico seguro (0.201264ms)
+✔ controlador transmite actor verificado y conserva errores de dominio (1.298018ms)
+✔ Cobranzas lee ambos SKU persistidos sin consultar una fuente modificada (0.497103ms)
+http_error {
+  requestId: 'a4e7a8e3-e7d1-4b49-a97d-f5e96e7e932b',
+  type: 'UnexpectedError',
+  code: 'ORDER_REQUEST_REJECTED',
+  method: 'POST',
+  route: '/',
+  status: 400,
+  timestamp: '2026-09-30T14:00:36.025Z'
+}
+✔ HTTP integrado: permiso, controlador, validacion y creacion autoritativa (134.251891ms)
+✔ repositorios reales conservan snapshots, actor, evento y etapa con el mismo cliente transaccional (7.106312ms)
+✔ fallo en apertura inicial sale de la transaccion sin commit del adaptador (1.042303ms)
+✔ lectura posterior conserva codigo y descripcion y no sustituye el tipo productivo (0.692169ms)
+✔ consulta parametrizada de Cobranzas transporta los campos de snapshot (0.483698ms)
+✔ reevaluacion mantiene el nuevo snapshot consistente con los items que actualiza (0.895352ms)
+✔ reevaluacion rechaza lineas duplicadas y eliminacion con progreso (0.813985ms)
+✔ reevaluacion reordenada conserva el progreso en su linea estable (0.515921ms)
+✔ desarrollo no depende de DDL pendiente y producción conserva cuotas persistentes (3.796543ms)
+✔ cursores son opacos, estrictos y los limites no superan 100 (2.449027ms)
+✔ Orders aplica filtros de servidor y pagina de forma estable (42.169406ms)
+✔ metricas rechaza periodos mayores a 366 dias antes de consultar SQL (0.648934ms)
+✔ la identidad de linea no depende de la posicion y detecta ambiguedad (0.625687ms)
+✔ Soporte conserva capacidades pero cada solicitud genera auditoria reforzada (27.181088ms)
+✔ una denegacion administrativa sin identidad se audita sin romper la respuesta (0.700018ms)
+✔ la limpieza automatica elimina sólo cuotas vencidas y caché temporal (2.847335ms)
+✔ produccion no monta rutas demo (69.920245ms)
+✔ test/setup.mjs (87.955091ms)
+✔ updateRoleIfCurrent condiciona el cambio al rol y estado previos (9.242667ms)
+✔ transicion de rol usa compare-and-set y solo reactiva desde pendiente (1.210605ms)
+✔ transicion de rol rechaza cambios concurrentes (1.006692ms)
+✔ cancelar transicion solo reactiva el rol original pendiente (0.270843ms)
+✔ cambio de estado usa compare-and-set (0.311117ms)
+✔ consultas administrativas proyectan identidad sin material PIN (0.515154ms)
+✔ filtros de estado distinguen activos, pendientes y desvinculados (1.246375ms)
+✔ summary explicita estados visibles en una consulta (0.408237ms)
+ℹ tests 791
+ℹ suites 0
+ℹ pass 789
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 16922.077102

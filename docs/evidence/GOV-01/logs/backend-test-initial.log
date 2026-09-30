@@ -1,0 +1,808 @@
+
+> capaservidor@1.0.0 test
+> node --import ./test/setup.mjs --test
+
+http_error {
+  requestId: '9b0ea71e-8343-4c65-817e-0d303f38c192',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.008Z'
+}
+✔ movements returns records and empty history for users in the department (4.955563ms)
+✔ movements denies another department and handles missing users without querying records (0.431874ms)
+✔ movements validates pagination and reports database errors (4.197766ms)
+✔ movement repository filters by user, sorts and paginates while preserving profile defaults (1.125999ms)
+http_error {
+  requestId: 'd95fc798-c5a3-493d-b76b-be7a1ac9b099',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.410Z'
+}
+http_error {
+  requestId: 'b3dbd9f6-9492-4725-82d9-7560530ee012',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.429Z'
+}
+http_error {
+  requestId: 'cfa23597-1cab-46ee-9785-e2e0cd048823',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.459Z'
+}
+http_error {
+  requestId: '495997cd-2bf6-435c-bf72-23d5a3984b90',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.469Z'
+}
+http_error {
+  requestId: '67513098-af4f-4ae3-bc6c-00acd7a53e22',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:01.473Z'
+}
+✔ responde 200 con listado interno y filtros normalizados (16.75526ms)
+✔ rechaza filtros de listado no oficiales (0.269578ms)
+✔ responde 200 con resumen interno de usuarios (0.286251ms)
+✔ actualiza usuario en Auth0 y tabla interna con contrato final (0.92171ms)
+✔ un fallo externo durante cambio de rol deja la identidad local pendiente (24.423842ms)
+✔ correo duplicado externo revierte la marca pendiente antes de responder 409 (0.904722ms)
+✔ conflicto local despues de Auth0 informa conciliacion pendiente (1.088379ms)
+✔ editar sin cambiar rol no abre una transicion pendiente (0.345403ms)
+✔ rechaza actualizacion con campos legacy (0.815946ms)
+✔ desvincula usuario actualizando Auth0 y tabla interna (4.430073ms)
+✔ un fallo de Auth0 al desvincular conserva la denegacion local y el PIN invalidado (14.506496ms)
+✔ reactiva desde desvinculado con PIN nuevo y compensa si el aprovisionamiento falla (15.602452ms)
+✔ reactiva desde desvinculado sin reutilizar el PIN anterior (0.32174ms)
+✔ no permite activar directamente un usuario pendiente de rol (0.165012ms)
+✔ rechaza autodesvinculacion por endpoint de estado (0.155205ms)
+✔ rechaza cambio de estado desde edicion completa (0.152166ms)
+✔ responde 201 cuando asigna rol y solicita correo (0.880696ms)
+✔ persiste el usuario interno activo antes de solicitar correo (0.338075ms)
+✔ crea usuario sin firma electronica (0.215348ms)
+✔ responde 409 si el correo ya existe internamente sin llamar Auth0 (0.320065ms)
+✔ responde 200 cuando solicita reenvio de correo de contrasena (0.372114ms)
+✔ responde 400 y no llama Auth0 si el reenvio de correo es invalido (6.758989ms)
+✔ responde 500 generico si falla el reenvio de correo (0.475567ms)
+✔ responde 201 recuperable si falla el correo tras crear y asignar rol (1.196256ms)
+✔ responde 201 recuperable y no solicita correo si falla la asignacion RBAC (0.816891ms)
+✔ responde 201 recuperable si falla la persistencia interna tras crear Auth0 (0.260308ms)
+✔ responde 201 recuperable y no solicita correo si falla el PIN (0.256205ms)
+✔ responde 400 para payload incompleto, correo invalido, rol no permitido o campo extra (0.64698ms)
+✔ responde 409 para correo ya registrado en Auth0 (0.283789ms)
+✔ responde 500 generico sin exponer fallos internos de Auth0 (0.343816ms)
+✔ clasifica indisponibilidad temporal de Auth0 como 503 sin filtrar detalles (0.204015ms)
+✔ monta autenticacion y autorizacion antes de crear el usuario (225.651945ms)
+✔ monta autenticacion y autorizacion antes de reenviar correo (24.052758ms)
+✔ rechaza que un administrador edite su propio rol (7.152429ms)
+✔ rechaza que un usuario de Soporte edite su propio rol (0.317154ms)
+✔ permite que un administrador edite sus datos si conserva su rol (0.427693ms)
+✔ rechaza Soporte al crear usuarios (3.065678ms)
+✔ rechaza Soporte al actualizar usuarios (0.324419ms)
+✔ rechaza Soporte al filtrar usuarios (0.24047ms)
+✔ valida vigencia de Administrador Produccion en creación, edición y filtros (0.288332ms)
+✔ valida vigencia de Operario Produccion en creación, edición y filtros (0.159576ms)
+✔ valida vigencia de Operario Ventas en creación, edición y filtros (0.198176ms)
+✔ valida vigencia de Operario Cobranzas en creación, edición y filtros (0.178624ms)
+✔ valida vigencia de Gerencia en creación, edición y filtros (0.129739ms)
+✔ valida vigencia de Soporte en creación, edición y filtros (0.143933ms)
+✔ valida vigencia de Administrador Producción en creación, edición y filtros (0.203007ms)
+✔ valida vigencia de Operario Producción en creación, edición y filtros (0.230688ms)
+✔ valida vigencia de Administrador en creación, edición y filtros (0.837283ms)
+✔ valida vigencia de Producción en creación, edición y filtros (0.099956ms)
+✔ valida vigencia de Ventas en creación, edición y filtros (0.074855ms)
+✔ valida vigencia de Cobranzas en creación, edición y filtros (0.273469ms)
+✔ valida vigencia de Administración Cobranzas en creación, edición y filtros (0.166016ms)
+✔ valida vigencia de Administrador Ventas en creación, edición y filtros (0.578894ms)
+✔ permite filtrar pendientes pero no asignarlos mediante cambio de estado (0.865475ms)
+✔ devuelve permisos Auth0 en la verificacion de sesion (2.415555ms)
+✔ devuelve permisos vacios si Auth0 no incluye permissions (0.35138ms)
+✔ acepta Soporte como rol oficial sin identificarlo como Administrador Produccion (0.378258ms)
+✔ no sobrescribe el rol interno desde un token (0.219672ms)
+✔ no actualiza el rol interno si ya coincide con Auth0 (0.308434ms)
+✔ rechaza permissions malformado (0.178701ms)
+✔ rechaza solicitud de recuperacion con email invalido (2.666023ms)
+✔ responde no registrado sin llamar Auth0 (1.795451ms)
+✔ responde desactivado sin llamar Auth0 si el usuario esta desvinculado (1.0511ms)
+✔ responde desactivado sin llamar Auth0 si el usuario no esta activo (0.916029ms)
+✔ solicita correo Auth0 si el usuario esta activo (0.267571ms)
+✔ mantiene respuesta uniforme si falla Auth0 (0.562669ms)
+✔ monta recuperacion de contrasena como ruta publica sin checkJwt (344.693527ms)
+✔ limita intentos repetidos de recuperacion (114.48784ms)
+✔ verifica el rol oficial Administrador Produccion (0.253268ms)
+✔ verifica el rol oficial Operario Produccion (0.07655ms)
+✔ verifica el rol oficial Operario Ventas (0.064439ms)
+✔ verifica el rol oficial Operario Cobranzas (0.069417ms)
+✔ verifica el rol oficial Gerencia (0.075379ms)
+✔ verifica el rol oficial Soporte (0.057644ms)
+✔ rechaza en sesión el rol no vigente Administrador Producción (0.108041ms)
+✔ rechaza en sesión el rol no vigente Operario Producción (0.053319ms)
+✔ rechaza en sesión el rol no vigente Administrador (0.050483ms)
+✔ rechaza en sesión el rol no vigente Producción (0.045166ms)
+✔ rechaza en sesión el rol no vigente Ventas (0.048156ms)
+✔ rechaza en sesión el rol no vigente Cobranzas (0.044489ms)
+✔ rechaza en sesión el rol no vigente Administración Cobranzas (0.049565ms)
+✔ Action solo emite identidad ITECSA con un rol oficial y audience de negocio (4.358599ms)
+✔ auditoria declarativa falla ante asociaciones desconocidas, scopes extra y binding sin verificar (0.620783ms)
+✔ catálogo generado coincide con el modelo y no contiene permisos visuales retirados (1.254943ms)
+✔ consulta el rol asignado en Auth0 y exige uno solo reconocido (9.707242ms)
+✔ rechaza una respuesta parcial de roles de Auth0 (1.55239ms)
+✔ resuelve el rol, crea un usuario y asigna RBAC sin retornar contrasena (3.49762ms)
+✔ normaliza el correo duplicado para un futuro HTTP 409 (1.182998ms)
+✔ clasifica indisponibilidad temporal al crear antes de persistir localmente (0.491848ms)
+✔ no crea usuario si el rol solicitado no existe en Auth0 (1.289224ms)
+✔ reporta asignacion RBAC incompleta si falla despues de crear usuario (0.857734ms)
+✔ actualiza correo, estado y rol de usuario Auth0 (2.913828ms)
+✔ pagina el catalogo de roles una sola vez al reemplazar un rol (1.170136ms)
+✔ conserva la categoria temporal si falla la asignacion del nuevo rol (1.716188ms)
+✔ no consulta ni reemplaza RBAC cuando el rol no cambia (0.462892ms)
+✔ actualiza solo el estado de usuario Auth0 (1.18715ms)
+✔ rechaza estados internos que no deben propagarse a Auth0 (0.390461ms)
+✔ solicita el correo sin retornar tickets ni enlaces (0.397288ms)
+✔ rechaza la creacion si falta configuracion Management requerida (0.263794ms)
+✔ normaliza fallos de Auth0 al solicitar correo (0.36666ms)
+✔ aplica deadline y clasifica timeout sin reintentar el correo (101.285655ms)
+✔ clasifica red y rate limit, y conserva Retry-After (1.156287ms)
+✔ rechaza un deadline Auth0 fuera del rango seguro (0.363103ms)
+✔ test/authorization.fixture.js (89.728867ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/demoExposure.test.js (728.307987ms)
+✔ GET /api/demo-orders lista los 15 pedidos compartidos (519.063296ms)
+✔ PATCH delivery-date actualiza la fecha compartida del pedido (70.3626ms)
+✔ PATCH delivery-date rechaza fines de semana (13.334334ms)
+✔ GET payment-orders expone pedidos demo para cobranza (82.08938ms)
+✔ PATCH payment-status confirma pago y la desconfirmacion requiere solicitud y aprobacion (37.860698ms)
+✔ PATCH payment-status exige credenciales (6.858619ms)
+✔ PATCH payment-status no permite desconfirmar directo un pago confirmado (8.511376ms)
+✔ GET announcements lista anuncios demo del kanban (5.107595ms)
+✔ PATCH move a en produccion registra anuncio de cambio de columna (30.294554ms)
+✔ console explicita de desarrollo entrega OTP valido sin correo ni secretos adicionales (832.319402ms)
+✔ console rechazada fuera de development: production (0.440944ms)
+✔ console rechazada fuera de development: test (0.134181ms)
+✔ console rechazada fuera de development: undefined (0.126589ms)
+✔ development sin seleccion no activa consola como fallback (0.441965ms)
+✔ GET /api/health/live responde sin consultar base de datos (199.060758ms)
+✔ GET /internal/ready responde ok con configuracion y token (63.160272ms)
+✔ GET /internal/ready no expone detalles si falla la conexion (22.842238ms)
+✔ test/helpers/pinDeliveryFake.js (83.187525ms)
+✔ test/helpers/pinPersistenceFake.js (121.70662ms)
+✔ test/helpers/pinRecoveryFixture.js (436.768626ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/httpErrors.test.js (568.154297ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/kanban.routes.test.js (462.306467ms)
+✔ monta checkJwt antes de listar bandeja de mensajes (85.372588ms)
+✔ monta checkJwt antes de listar notificaciones (171.01239ms)
+✔ monta checkJwt antes de marcar un mensaje como leido (23.605611ms)
+✔ monta checkJwt antes de ocultar una notificacion (5.277627ms)
+✔ monta checkJwt antes de ocultar todas las notificaciones (10.523342ms)
+✔ getInbox resuelve usuario interno y normaliza filtros (1.999955ms)
+✔ getNotifications consulta mensajes visibles y contador sin leer (0.378487ms)
+✔ markAsRead marca solo mensajes existentes no leidos (0.304826ms)
+✔ hideNotification oculta solo mensajes existentes (0.268842ms)
+✔ markAsRead rechaza un mensaje ajeno sin ejecutar la escritura (2.723439ms)
+✔ hideNotification rechaza un mensaje ajeno sin ejecutar la escritura (0.283213ms)
+﹣ MySQL serializa cuotas persistentes concurrentes (1.677804ms) # SKIP
+﹣ MySQL revierte el evento de seguridad junto con el cambio de negocio (0.33759ms) # SKIP
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/orderErrorResponse.test.js (493.243356ms)
+✔ detalle de historial proyecta cabecera e items con consultas pequenas en paralelo (3.126284ms)
+✔ eventos usan una consulta paginada, filtro SQL y redaccion de pagos (0.61292ms)
+✔ protege listado y detalle con checkJwt (221.38639ms)
+✔ lista pedidos y normaliza filtros de estado, busqueda y paginacion (41.031357ms)
+✔ consolida y filtra cronologia por tipo de registro (1.278956ms)
+✔ pagina eventos con cursor temporal firmado y limite maximo (2.165168ms)
+✔ rechaza IDs y tipos de evento invalidos (0.346289ms)
+✔ lista pedidos sin depender de Documento/Nota_Venta legacy (1.967216ms)
+✔ lista pedidos con productos y cliente usando relaciones vigentes (2.026416ms)
+✔ crea un pedido sin hidratar relaciones cuando el flujo no las necesita aun (0.312201ms)
+✔ notifyProductionAdministrators: filtra destinatarios y asigna un solo mensaje por lote (4.575863ms)
+✔ notifyProductionAdministrators: no crea mensajes sin destinatarios (0.399574ms)
+✔ notifyCollectionsAdministrators: filtra destinatarios y asigna un solo mensaje por lote (0.289276ms)
+✔ notifyCollectionsAdministrators: no crea mensajes sin destinatarios (0.122856ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/orderSnapshotCompatibility.test.js (379.551268ms)
+http_error {
+  requestId: '3271a1a5-9566-4eb2-b4a6-398b3fcfd825',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:07.696Z'
+}
+✔ la lectura de estados propaga errores del repositorio al controlador (1.281108ms)
+✔ el controlador responde 500 si falla la lectura de estados (5.972373ms)
+✔ cambio de etapa actualiza pedido y crea registro con actor y comentario (36.340452ms)
+✔ subproceso usa la salida anterior como inicio y no genera duración cero (1.337351ms)
+✔ subproceso duplicado se rechaza antes de crear un segundo registro (1.614423ms)
+✔ lanyard parcial repite flujo antes de empaquetado (0.791849ms)
+✔ lanyard parcial sin comentario no crea observacion de subproceso (0.485735ms)
+✔ enviar a revision notifica al usuario de Ventas responsable (0.78062ms)
+✔ movimiento concurrente se rechaza sin escribir auditoria (0.338461ms)
+✔ lectura de validacion conserva etapa y pago sin cargar detalles (0.285918ms)
+✔ actualiza solo el pago cuando la etapa debe mantenerse (0.678849ms)
+✔ reutiliza el pedido validado despues de actualizar el pago (0.352457ms)
+✔ lista cobranzas sin cargar relaciones productivas (0.413371ms)
+✔ notifica a todos los administradores de Produccion activos (0.403418ms)
+✔ terminar incluso el último detalle mantiene producción sin notificar (0.692895ms)
+✔ mover manualmente a entrega notifica una sola vez al responsable (0.553652ms)
+✔ fallo de notificación manual se propaga para revertir la transacción (0.274495ms)
+✔ permite devolver el último subproceso de un detalle terminado mientras el pedido sigue en producción (0.469888ms)
+✔ impide mover a entrega cuando queda cualquier detalle pendiente (0.209034ms)
+✔ valida todos los detalles y rechaza pedidos sin detalles (0.241519ms)
+✔ bloquea por PK el pedido de pago antes de releerlo (0.239028ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/orders.routes.test.js (523.042844ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/ordersMock.service.test.js (470.209933ms)
+✔ password reset limits independent emails sharing one IP (132.807841ms)
+✔ password reset normalizes email across IPs and expires the quota (0.714864ms)
+✔ memory quota fails closed at capacity and purges expired entries (0.336807ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/paymentConfirmationDetails.service.test.js (431.436639ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/paymentErrorResponse.test.js (616.723288ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/paymentRecord.repo.test.js (529.647929ms)
+✔ reutiliza temporalmente los estados cargados para validar un pago (1.045711ms)
+✔ consulta por ID cuando el catalogo aun no esta en cache (0.20696ms)
+✔ los intentos incorrectos concurrentes contabilizan cinco y bloquean el PIN (4143.02466ms)
+✔ un PIN correcto limpia contador y bloqueo vencido (1035.478413ms)
+✔ PIN correcto e incorrecto concurrentes respetan el orden de serialización (3071.475429ms)
+✔ solo una confirmación concurrente consume el mismo reto y cambia el PIN (2039.416115ms)
+✔ un fallo al guardar el nuevo PIN revierte el consumo del reto (2412.652ms)
+✔ solicitar un reto nuevo invalida el anterior (1123.825265ms)
+✔ intentos incorrectos concurrentes agotan el reto sin perder incrementos (513.027764ms)
+✔ debug PIN: environment, authorization, rotation and transaction (4584.136026ms)
+✔ debug controller uses authenticated identity, returns status only and disables caching (0.650004ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"fake"} (2.563054ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"development","PIN_DELIVERY_PROVIDER":"fake"} (0.16492ms)
+✔ rejects invalid delivery configuration {"PIN_DELIVERY_PROVIDER":"fake"} (0.125543ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend"} (0.126951ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend","RESEND_API_KEY":"synthetic"} (0.259501ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"resend","PIN_EMAIL_FROM":"test@example.invalid"} (0.319436ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"unknown"} (0.222702ms)
+✔ rejects invalid delivery configuration {"NODE_ENV":"production","PIN_DELIVERY_PROVIDER":"console"} (0.12488ms)
+✔ missing provider remains disabled without an insecure fallback (1.334007ms)
+✔ fake accepts only minimal fields, sends once and stores in process memory (0.735426ms)
+✔ RF07 creates challenge, passes existing expiry, rejects invalid code, generates new PIN, rejects sequential reuse (1729.611134ms)
+✔ expired challenge rejects valid code at exact expiry boundary (65.645114ms)
+✔ request HTTP response never returns OTP or recipient (61.483363ms)
+✔ provider exceptions, including failed status writes, are sanitized (false) (55.420769ms)
+✔ provider exceptions, including failed status writes, are sanitized (true) (79.41803ms)
+http_error {
+  requestId: '50c7afac-ee2f-43d1-9cd1-7e641e63f16b',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:11.356Z'
+}
+http_error {
+  requestId: 'ca44b451-1edd-455a-8546-96c3126f0490',
+  type: 'PinDeliveryUnavailableError',
+  code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:11.433Z'
+}
+✔ provider failure HTTP response is safe and missing provider returns unavailable (147.938238ms)
+✔ stdout and stderr contain neither OTP nor recipient on successful/failed recovery (627.237943ms)
+✖ application startup rejects production with fake before opening server (679.766405ms)
+✖ application startup rejects production with console before opening server (484.195198ms)
+✔ RF06: reveal, atomic acknowledgement, no recovery of accepted PIN, valid/invalid verification (1488.633786ms)
+✔ legacy scrypt remains valid without touching H05 counters on successful clean validation (662.195825ms)
+✔ RF07 replaces accepted PIN with a different generated PIN using v2 (2933.834822ms)
+http_error {
+  requestId: '45d165da-3ed8-4532-88c3-9afb49d0c0d7',
+  type: 'PinServiceError',
+  code: 'PIN_NOT_REVEALABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 409,
+  timestamp: '2026-09-30T13:59:19.344Z'
+}
+✔ reveal API exposes only PIN; accepted PIN exposes only safe code/message (585.604288ms)
+✔ unknown hash versions fail closed (466.231625ms)
+✔ default PIN recovery delivery fails closed in every application environment (3.145793ms)
+✔ PIN recovery uses only an injected fake delivery and marks the challenge delivered (72.959251ms)
+pin_recovery_delivery_failure
+http_error {
+  requestId: '214638fb-d7d9-4fc3-98a7-3b223e46ffec',
+  type: 'PinDeliveryUnavailableError',
+  code: 'PIN_RECOVERY_DELIVERY_UNAVAILABLE',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:14.454Z'
+}
+✔ unavailable PIN delivery consumes the synthetic challenge and maps to HTTP 503 (60.712888ms)
+✔ calcula carga de lanyards solo en dias habiles previos a la entrega (22.953342ms)
+✔ acumula la carga diaria de varias producciones de lanyards (0.379603ms)
+✔ POST /api/production-calendar/operational-load calcula carga operativa (252.414238ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/productionLoad.repo.test.js (262.859262ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/productionLoad.service.test.js (301.489681ms)
+http_error {
+  requestId: '28fac8c6-862f-4a4d-8544-8d98d23eb217',
+  type: 'UnexpectedError',
+  code: 'INTERNAL_ERROR',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 500,
+  timestamp: '2026-09-30T13:59:16.404Z'
+}
+✔ perfil usa la identidad validada e ignora identificadores enviados por el cliente (2.814104ms)
+✔ perfil rechaza identidad ausente o inconsistente sin consultar registros (2.427634ms)
+✔ perfil informa fallo de carga sin inventar registros (6.746582ms)
+✔ repositorio filtra por usuario y limita a diez registros ordenados por fecha e identificador descendente (1.313272ms)
+✔ perfil describe el estado histórico de pago, etapas, subprocesos y observaciones (0.287367ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/rbac.authorization.test.js (417.050385ms)
+✔ : acceso de Administrador Produccion (1.759767ms)
+✔ : acceso de Operario Produccion (0.158963ms)
+✔ : acceso de Operario Ventas (0.104871ms)
+✔ : acceso de Operario Cobranzas (0.106943ms)
+✔ : acceso de Gerencia (0.12895ms)
+✔ : acceso de Soporte (0.124014ms)
+✔ : acceso de Administrador Producción (0.24211ms)
+✔ : acceso de Operario Producción (0.103375ms)
+✔ : acceso de Administrador (0.650066ms)
+✔ : acceso de Producción (0.216335ms)
+✔ : acceso de Ventas (0.101611ms)
+✔ : acceso de Cobranzas (0.087316ms)
+✔ : acceso de Administrador Produccion (0.078166ms)
+✔ : acceso de Operario Produccion (0.220271ms)
+✔ : acceso de Operario Ventas (0.072905ms)
+✔ : acceso de Operario Cobranzas (0.053282ms)
+✔ : acceso de Gerencia (0.045311ms)
+✔ : acceso de Soporte (0.047272ms)
+✔ : acceso de Administrador Producción (0.045523ms)
+✔ : acceso de Operario Producción (0.044939ms)
+✔ : acceso de Administrador (0.043733ms)
+✔ : acceso de Producción (0.046052ms)
+✔ : acceso de Ventas (0.246217ms)
+✔ : acceso de Cobranzas (0.049998ms)
+✔ : acceso de Administrador Produccion (0.045269ms)
+✔ : acceso de Operario Produccion (0.042391ms)
+✔ : acceso de Operario Ventas (0.042821ms)
+✔ : acceso de Operario Cobranzas (0.041704ms)
+✔ : acceso de Gerencia (0.047218ms)
+✔ : acceso de Soporte (0.055924ms)
+✔ : acceso de Administrador Producción (0.041513ms)
+✔ : acceso de Operario Producción (0.045186ms)
+✔ : acceso de Administrador (0.040599ms)
+✔ : acceso de Producción (0.052889ms)
+✔ : acceso de Ventas (0.061245ms)
+✔ : acceso de Cobranzas (0.058543ms)
+✔ la reevaluación notifica a administradores de producción activos (1.737924ms)
+✔ sincroniza el rol vigente de Auth0 antes de autorizar (3.004309ms)
+✔ un token antiguo no revierte el rol sincronizado (0.317772ms)
+✔ rechaza token distinto del rol vigente en Auth0 sin escribir (0.194957ms)
+✔ no consulta Auth0 ni escribe para una cuenta desvinculada (0.606216ms)
+✔ un fallo de Auth0 produce error temporal sin escribir (0.278734ms)
+✔ una actualización concurrente de estado impide autorizar (0.214775ms)
+✔ permite un usuario con solo el rol Administrador Produccion (2.026973ms)
+✔ permite un usuario con solo el rol Soporte (0.18921ms)
+✔ rechaza un usuario con un rol distinto (0.194592ms)
+✔ rechaza un usuario sin roles (0.167686ms)
+✔ rechaza un usuario sin claim de roles (0.180452ms)
+✔ rechaza multiples roles aunque incluyan Administrador Produccion (0.323662ms)
+✔ permite cuando el token contiene el permiso requerido (1.495488ms)
+✔ rechaza cuando el permiso requerido no esta presente (0.858613ms)
+✔ rechaza cuando el claim permissions no existe (0.152576ms)
+✔ rechaza cuando el claim permissions esta malformado (1.287624ms)
+✔ exige configurar un permiso valido al crear el middleware (0.462773ms)
+✔ Resend sends exactly one minimal HTTPS request and does not return provider payload (4.429758ms)
+http_error {
+  requestId: '633fece0-7221-4faa-83c0-c15f73623f90',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:18.550Z'
+}
+✔ Resend http invalidates challenge and redacts response/logs (77.764999ms)
+http_error {
+  requestId: 'e66549be-06d2-4f58-a143-d633f284335b',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:18.617Z'
+}
+✔ Resend network invalidates challenge and redacts response/logs (64.710318ms)
+http_error {
+  requestId: '16a17e3d-0d64-4f2a-acd0-e0bd94f9c81a',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:18.666Z'
+}
+✔ Resend timeout invalidates challenge and redacts response/logs (49.499389ms)
+http_error {
+  requestId: '04b4ad1e-3aa3-472e-afa5-4232eca44732',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:18.733Z'
+}
+✔ Resend badJson invalidates challenge and redacts response/logs (66.657875ms)
+http_error {
+  requestId: 'e036fd34-881e-4562-a345-29aa4fd4f046',
+  type: 'PinServiceError',
+  code: 'PIN_RECOVERY_DELIVERY_FAILED',
+  method: 'UNKNOWN',
+  route: 'unmatched',
+  status: 503,
+  timestamp: '2026-09-30T13:59:18.813Z'
+}
+✔ Resend missingId invalidates challenge and redacts response/logs (79.96762ms)
+✔ fake constructor rejects real environments (0.750018ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/retiredDocuments.routes.test.js (565.709408ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/salesOrderCreation.service.test.js (282.547099ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/salesOrderIntegrity.test.js (566.059712ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/salesOrderPersistence.test.js (499.703838ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/payments/repo/paymentRecord.repo.js:2
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/securityContracts.test.js (400.408904ms)
+file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3
+import { Prisma } from "@prisma/client";
+         ^^^^^^
+SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.20.0
+✖ test/serverSecurity.test.js (562.350576ms)
+✔ test/setup.mjs (80.40621ms)
+✔ updateRoleIfCurrent condiciona el cambio al rol y estado previos (23.657117ms)
+✔ transicion de rol usa compare-and-set y solo reactiva desde pendiente (0.587143ms)
+✔ transicion de rol rechaza cambios concurrentes (0.667469ms)
+✔ cancelar transicion solo reactiva el rol original pendiente (0.246148ms)
+✔ cambio de estado usa compare-and-set (0.294415ms)
+✔ consultas administrativas proyectan identidad sin material PIN (0.508958ms)
+✔ filtros de estado distinguen activos, pendientes y desvinculados (0.447773ms)
+✔ summary explicita estados visibles en una consulta (0.367751ms)
+ℹ tests 314
+ℹ suites 0
+ℹ pass 291
+ℹ fail 21
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 23176.53734
+
+✖ failing tests:
+
+test at test/demoExposure.test.js:1:1
+✖ test/demoExposure.test.js (728.307987ms)
+  'test failed'
+
+test at test/httpErrors.test.js:1:1
+✖ test/httpErrors.test.js (568.154297ms)
+  'test failed'
+
+test at test/kanban.routes.test.js:1:1
+✖ test/kanban.routes.test.js (462.306467ms)
+  'test failed'
+
+test at test/orderErrorResponse.test.js:1:1
+✖ test/orderErrorResponse.test.js (493.243356ms)
+  'test failed'
+
+test at test/orderSnapshotCompatibility.test.js:1:1
+✖ test/orderSnapshotCompatibility.test.js (379.551268ms)
+  'test failed'
+
+test at test/orders.routes.test.js:1:1
+✖ test/orders.routes.test.js (523.042844ms)
+  'test failed'
+
+test at test/ordersMock.service.test.js:1:1
+✖ test/ordersMock.service.test.js (470.209933ms)
+  'test failed'
+
+test at test/paymentConfirmationDetails.service.test.js:1:1
+✖ test/paymentConfirmationDetails.service.test.js (431.436639ms)
+  'test failed'
+
+test at test/paymentErrorResponse.test.js:1:1
+✖ test/paymentErrorResponse.test.js (616.723288ms)
+  'test failed'
+
+test at test/paymentRecord.repo.test.js:1:1
+✖ test/paymentRecord.repo.test.js (529.647929ms)
+  'test failed'
+
+test at test/pinDelivery.test.js:140:5
+✖ application startup rejects production with fake before opening server (679.766405ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /PIN_DELIVERY_CONFIGURATION_INVALID/. Input:
+  
+  'file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3\n' +
+    'import { Prisma } from "@prisma/client";\n' +
+    '         ^^^^^^\n' +
+    "SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'\n" +
+    '    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)\n' +
+    '    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)\n' +
+    '    at async node:internal/modules/esm/loader:647:26\n' +
+    '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n' +
+    '\n' +
+    'Node.js v24.20.0\n'
+  
+      at Object.<anonymous> (file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/test/pinDelivery.test.js:148:20)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/test/pinDelivery.test.js:146:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3\nimport { Prisma } from "@prisma/client";\n         ^^^^^^\nSyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'\n    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)\n    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.20.0\n`,
+    expected: /PIN_DELIVERY_CONFIGURATION_INVALID/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/pinDelivery.test.js:140:5
+✖ application startup rejects production with console before opening server (484.195198ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /PIN_DELIVERY_CONFIGURATION_INVALID/. Input:
+  
+  'file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3\n' +
+    'import { Prisma } from "@prisma/client";\n' +
+    '         ^^^^^^\n' +
+    "SyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'\n" +
+    '    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)\n' +
+    '    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)\n' +
+    '    at async node:internal/modules/esm/loader:647:26\n' +
+    '    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n' +
+    '\n' +
+    'Node.js v24.20.0\n'
+  
+      at Object.<anonymous> (file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/test/pinDelivery.test.js:148:20)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/test/pinDelivery.test.js:146:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `file:///private/tmp/itecsa-gov01.YTRXfh/repo/capaServidor/src/modules/productionLoad/repo/productionLoad.repo.js:3\nimport { Prisma } from "@prisma/client";\n         ^^^^^^\nSyntaxError: The requested module '@prisma/client' does not provide an export named 'Prisma'\n    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)\n    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)\n    at async node:internal/modules/esm/loader:647:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.20.0\n`,
+    expected: /PIN_DELIVERY_CONFIGURATION_INVALID/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/productionLoad.repo.test.js:1:1
+✖ test/productionLoad.repo.test.js (262.859262ms)
+  'test failed'
+
+test at test/productionLoad.service.test.js:1:1
+✖ test/productionLoad.service.test.js (301.489681ms)
+  'test failed'
+
+test at test/rbac.authorization.test.js:1:1
+✖ test/rbac.authorization.test.js (417.050385ms)
+  'test failed'
+
+test at test/retiredDocuments.routes.test.js:1:1
+✖ test/retiredDocuments.routes.test.js (565.709408ms)
+  'test failed'
+
+test at test/salesOrderCreation.service.test.js:1:1
+✖ test/salesOrderCreation.service.test.js (282.547099ms)
+  'test failed'
+
+test at test/salesOrderIntegrity.test.js:1:1
+✖ test/salesOrderIntegrity.test.js (566.059712ms)
+  'test failed'
+
+test at test/salesOrderPersistence.test.js:1:1
+✖ test/salesOrderPersistence.test.js (499.703838ms)
+  'test failed'
+
+test at test/securityContracts.test.js:1:1
+✖ test/securityContracts.test.js (400.408904ms)
+  'test failed'
+
+test at test/serverSecurity.test.js:1:1
+✖ test/serverSecurity.test.js (562.350576ms)
+  'test failed'

@@ -1,0 +1,35 @@
+
+> capavista@0.0.0 test
+> node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs
+
+6 verificaciones frontend: errores funcionales, PIN y requestId compatibles OK
+3 verificaciones frontend: contrato minimo de creacion H09 OK
+5 verificaciones frontend: fechas del perfil y zona horaria de Chile OK
+89 verificaciones frontend: rutas directas, acciones ocultas, scopes y calendario solo lectura OK
+5 verificaciones frontend: formato y rango de fechas de cobranzas OK
+7 verificaciones Orders: dialogo, envio pendiente, etiqueta y limite de observacion OK
+✔ concurrent explicit reads share a request; pages and users remain isolated (6.754356ms)
+✔ completed results are not retained and failures can be retried (18.134876ms)
+✔ in-flight state is scoped to each API instance (0.313118ms)
+✔ cancelar invalida respuestas y errores tardios (34.540249ms)
+✔ editar codigo y buscar otra NV descarta respuesta fuera de orden (1.832773ms)
+✔ desmontar invalida la consulta pendiente (1.480073ms)
+✔ confirmacion usa contrato minimo e impide doble envio y cierre durante POST (3.301629ms)
+✔ cancelar confirmacion impide un handler de confirmacion obsoleto (1.203165ms)
+✔ fallo POST libera envio y permite nueva confirmacion (3.329545ms)
+✔ no anuncia mensajes antiguos en la primera carga (84.539791ms)
+✔ anuncia nuevos mensajes en orden y no repite los ya detectados (0.224336ms)
+✔ limpiar la campana no permite anunciar antiguos que reaparezcan (0.181599ms)
+✔ detecta el primer mensaje después de una bandeja vacía (0.149851ms)
+✔ preview conserva los primeros 20 caracteres sin cortar emojis (1.293134ms)
+✔ modal focus wraps at both boundaries and recovers focus entering from outside (0.970078ms)
+✔ summary request tracker accepts only the newest response and supports unmount invalidation (0.269345ms)
+✔ partial user creation stays incomplete and only safe email recovery is enabled (0.232415ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 602.45565

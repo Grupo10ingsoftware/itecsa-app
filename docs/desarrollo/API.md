@@ -102,4 +102,4 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 
-`/demo-orders/*` es una herramienta separada para Soporte con almacenamiento demo y controles de capacidad/PIN; no representa aprobaciones del flujo real. El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.
+El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.

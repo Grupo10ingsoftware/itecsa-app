@@ -13,9 +13,6 @@ export const APP_ROUTES = Object.freeze({
   ORDERS_CREATE: '/ordenes/nuevo',
   ORDER_HISTORY: '/historial-pedidos',
   ORDER_HISTORY_DETAIL: '/historial-pedidos/:orderId',
-  // Alias temporales para componentes del prototipo anterior que aún viven en el repositorio.
-  PRODUCTION_HISTORY: '/historial-pedidos',
-  PRODUCTION_HISTORY_DETAIL: '/historial-pedidos/:pedidoId',
   PRODUCTION_CALENDAR: '/calendario-produccion',
   MESSAGES: '/mensajes',
   MESSAGE_DETAIL: '/mensajes/:messageId',

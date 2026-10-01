@@ -93,7 +93,6 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | PATCH `/production-capacity` | `manage:production-capacity` |
 | GET `/production-load/today` | `read:production-capacity` |
 | PATCH `/production-load/today` | `manage:production-load` o `manage:production-capacity` |
-| POST `/production-calendar/operational-load` | `read:production-calendar`; cálculo sobre cuerpo recibido, sin persistencia |
 | GET `/history/orders`, `/history/orders/:orderId` | `read:orders`; también puede incluir eventos de pago |
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |

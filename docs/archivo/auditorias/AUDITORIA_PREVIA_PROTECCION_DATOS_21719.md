@@ -205,7 +205,6 @@ Abreviaciones: AP = Administrador Producción; AV = Administrador Ventas; AC = A
 | PATCH admin/users/:userId y /:userId/status | AP, AV, AC, S según departamento | Modal/PIN | manage:users + alcance + PIN; controles de autoedición | No escalada arbitraria de rol demostrada |
 | GET production-capacity; GET production-load/today | Todos | Kanban/calendario | read:production-capacity | Datos operativos |
 | PATCH production-capacity; PATCH production-load/today | AP, S | Acciones por capacidad | manage:production-capacity o manage:production-load | Falta auditoría completa |
-| POST production-calendar/operational-load | AP, AV, OV, S | Guard calendario | read:production-calendar | Recibe pedidos del navegador; cálculo, no lectura de BD externa |
 | GET metrics/summary | AP, G, S | UI restringida AP/G | view:metrics | S puede usar API aunque UI no muestre módulo; métricas laborales |
 | GET health/db | Público | No aplica | Sin JWT; error genérico | Sondeo de persistencia H18 |
 

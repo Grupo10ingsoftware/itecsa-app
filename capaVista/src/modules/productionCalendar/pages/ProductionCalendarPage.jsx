@@ -3,7 +3,7 @@ import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
 import styles from './ProductionCalendarPage.module.css'
 

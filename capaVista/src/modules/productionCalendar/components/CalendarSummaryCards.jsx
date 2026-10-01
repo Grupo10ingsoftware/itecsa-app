@@ -1,4 +1,4 @@
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import styles from './CalendarSummaryCards.module.css'
 
 function StatusCard({ accent, count, icon, label, subtitle }) {

@@ -13,7 +13,7 @@ Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexi
 | Método y ruta | Capacidad / condición |
 | --- | --- |
 | GET `/auth/verify`, `/auth/profile` | `read:own-profile`, identidad propia |
-| POST `/auth/password-reset/request` | Público, límite en memoria por IP+correo |
+| POST `/auth/password-reset/request` | Público; cuotas por IP y correo, persistentes en producción |
 | POST `/auth/pin/reveal`, `/auth/pin/acknowledge` | `manage:own-pin`, usuario propio |
 | POST `/auth/pin-recovery/request`, `/auth/pin-recovery/confirm` | `manage:own-pin`, reglas de recuperación |
 | POST `/auth/pin/debug-reset` | `manage:own-pin`, Soporte, `NODE_ENV=development` |
@@ -23,7 +23,7 @@ Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexi
 
 `userId` en las rutas administrativas es el identificador Auth0 del usuario; codificarlo al construir la URL. El listado acepta `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`. Movimientos acepta paginación. Los filtros no amplían el alcance departamental.
 
-`POST /auth/password-reset/request` acepta `{ "email": "usuario@example.test" }` y devuelve `status` (`not_registered`, `disabled` o `sent`) y `message`. El detalle del flujo y sus límites está en [Auth0](../auth0/README.md).
+`POST /auth/password-reset/request` acepta `{ "email": "usuario@example.test" }`. Para solicitudes válidas devuelve siempre HTTP `202`, `status: "accepted"` y `message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado."`, incluso si la cuenta no existe, está deshabilitada o falla la consulta/el proveedor. No confirma existencia ni entrega del correo. La validación del cuerpo conserva `400` y las cuotas conservan `429`, independientemente de la existencia de la cuenta. El detalle y sus límites están en [Auth0](../auth0/README.md) y en la [evidencia P8](../security/P08-RECUPERACION-CONTRASENA.md).
 
 `POST /admin/users` acepta JSON, sin `FormData` ni archivos:
 

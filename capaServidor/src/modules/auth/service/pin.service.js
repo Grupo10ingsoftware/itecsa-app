@@ -453,10 +453,10 @@ export class PinService {
     async requestRecovery(auth0UserId) {
         const code = sixDigits();
         const hashed = await hashValue(code);
-        const now = this.now();
         const { user, challenge } = await this.client.$transaction(async (transaction) => {
             const user = await this.findUserForUpdate(transaction, auth0UserId);
             assertActiveUser(user);
+            const now = this.now();
 
             await transaction.pinRecoveryChallenge.updateMany({
                 where: { id_usuario: user.id_usuario, used_at: null },
@@ -499,7 +499,7 @@ export class PinService {
                         id_pin_recovery_challenge:
                             challenge.id_pin_recovery_challenge,
                     },
-                    data: { delivery_status: "failed", used_at: now },
+                    data: { delivery_status: "failed", used_at: this.now() },
                 });
             } catch {
                 // Do not expose persistence errors; confirmation only selects delivered challenges.
@@ -592,13 +592,14 @@ export class PinService {
             if (await matchesHash(credential.pin, user.pin_hash, user.pin_salt)) continue;
 
             try {
-                const now = this.now();
                 const result = await this.client.$transaction(async (transaction) => {
                     const currentUser = await this.findUserForUpdate(
                         transaction,
                         auth0UserId,
                     );
                     assertActiveUser(currentUser);
+                    // A queued transaction may acquire the lock after the code expires.
+                    const now = this.now();
 
                     const consumed =
                         await transaction.pinRecoveryChallenge.updateMany({

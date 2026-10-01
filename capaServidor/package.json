@@ -13,6 +13,8 @@
     "prisma:migrate:dev": "node ../tooling/prisma/node_modules/prisma/build/index.js migrate dev",
     "prisma:migrate:status": "node ../tooling/prisma/node_modules/prisma/build/index.js migrate status",
     "orders:preflight": "node scripts/ordersPreflight.mjs",
+    "pin:retention:preview": "node scripts/previewPinRecoveryRetention.mjs",
+    "retention:preview": "node scripts/previewBusinessRetention.mjs",
     "prisma:studio": "node ../tooling/prisma/node_modules/prisma/build/index.js studio"
   },
   "keywords": [],

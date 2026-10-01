@@ -5,6 +5,7 @@ import { resolveEnvironmentConfig } from "../config/environment.js";
 import { currentAppEnvironment } from "../config/environment.js";
 import { safeLogger } from "../shared/safeLogger.js";
 import { startTemporaryDataCleanup } from "../modules/security/service/temporaryDataCleanup.service.js";
+import { privacyConfiguration } from '../modules/privacy/privacyConfig.js';
 
 const requiredEnvironmentVariables = [
     "AUTH0_DOMAIN",
@@ -17,6 +18,7 @@ const requiredEnvironmentVariables = [
 ];
 
 function validateEnvironment() {
+    privacyConfiguration();
     resolveEnvironmentConfig(process.env);
 
     const appEnvironment = currentAppEnvironment({ required: true });

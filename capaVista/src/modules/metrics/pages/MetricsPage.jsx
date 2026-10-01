@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMetricsApi } from '../hooks/useMetricsApi'
 import styles from './MetricsPage.module.css'
+import { escapeReportHtml, loadMetricsForExport, spreadsheetCell } from '../utils/authorizedExport'
 
 const PRODUCT_COLORS = ['#f97316', '#2563eb', '#248f55']
 const INITIAL_PERIOD = { mode: 'month', month: getCurrentMonth(), from: '', to: '' }
@@ -37,6 +38,7 @@ export default function MetricsPage() {
   const [selectedSubprocessProduct, setSelectedSubprocessProduct] = useState('all')
   const [isSellerOpen, setIsSellerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const queryPeriod = useMemo(() => getPeriodDates(period), [period])
   const canQuery = Boolean(queryPeriod.from && queryPeriod.to)
 
@@ -84,28 +86,39 @@ export default function MetricsPage() {
     setPeriod((current) => ({ ...current, [name]: value }))
   }
 
-  function exportReport(format) {
-    const rows = summary.sellerCompliance ?? []
+  async function exportReport(format) {
+    if (exporting || !canQuery) return
+    // Abrir en el gesto del usuario evita que el navegador bloquee la impresión.
+    const reportWindow = format === 'pdf' ? window.open('', '_blank') : null
+    if (format === 'pdf' && !reportWindow) return
+    if (reportWindow) { reportWindow.opener = null; reportWindow.document.write('<p>Preparando reporte…</p>') }
+    setExporting(true)
+    try {
+    const { rows, period: exportPeriod } = await loadMetricsForExport(api, queryPeriod)
     const headers = ['Vendedor', 'Notas de venta', 'Entregados a tiempo', 'Entregados fuera de plazo', 'Ingresados con carga alta']
     const values = rows.map((row) => [row.seller, row.salesNotes, row.deliveredOnTime, row.deliveredLate, row.enteredDuringHighLoad])
 
     if (format === 'pdf') {
-      const reportWindow = window.open('', '_blank')
-      if (!reportWindow) return
-      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${queryPeriod.from} a ${queryPeriod.to}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${value}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
+      reportWindow.document.open()
+      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${escapeReportHtml(exportPeriod.from)} a ${escapeReportHtml(exportPeriod.to)}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${escapeReportHtml(header)}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${escapeReportHtml(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
       reportWindow.document.close()
       reportWindow.print()
       return
     }
 
     const separator = format === 'excel' ? '\t' : ','
-    const content = [headers, ...values].map((row) => row.map((value) => format === 'csv' ? `"${String(value).replaceAll('"', '""')}"` : value).join(separator)).join('\n')
+    const content = [headers, ...values].map((row) => row.map((value) => format === 'csv' ? `"${spreadsheetCell(value).replaceAll('"', '""')}"` : spreadsheetCell(value)).join(separator)).join('\n')
     const blob = new Blob([`\ufeff${content}`], { type: format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `reporte-cumplimiento-${queryPeriod.from}-${queryPeriod.to}.${format === 'excel' ? 'xls' : 'csv'}`
+    link.download = `reporte-cumplimiento-${exportPeriod.from}-${exportPeriod.to}.${format === 'excel' ? 'xls' : 'csv'}`
     link.click()
     URL.revokeObjectURL(link.href)
+    } catch (requestError) {
+      reportWindow?.close()
+      setError(requestError?.payload?.message ?? 'No fue posible generar el reporte.')
+      setSummary({ production: { total: 0, products: [] }, dwellTime: { stages: [], subprocesses: [] } })
+    } finally { setExporting(false) }
   }
 
   return <main className={`container-fluid ${styles.page}`}>
@@ -168,7 +181,7 @@ export default function MetricsPage() {
               <div className={styles.sellerActions}>
                 <div className={styles.exportMenu}>
                   <button className={styles.generateButton} onClick={() => setIsExportOpen((current) => !current)} type="button"><i className="bi bi-download" aria-hidden="true" />Exportar</button>
-                  {isExportOpen && <div className={styles.exportOptions}><button onClick={() => exportReport('csv')} type="button">CSV</button><button onClick={() => exportReport('excel')} type="button">Excel</button><button onClick={() => exportReport('pdf')} type="button">PDF</button></div>}
+                  {isExportOpen && <div className={styles.exportOptions}><button disabled={exporting} onClick={() => exportReport('csv')} type="button">CSV</button><button disabled={exporting} onClick={() => exportReport('excel')} type="button">Excel</button><button disabled={exporting} onClick={() => exportReport('pdf')} type="button">PDF</button></div>}
                 </div>
               </div>
               <div className={styles.sellerTableWrapper}><table className={styles.sellerTable}><thead><tr><th>Vendedor</th><th>Notas de venta</th><th>Entregados a tiempo</th><th>Fuera de plazo</th><th>Con carga alta</th></tr></thead><tbody>{(summary.sellerCompliance ?? []).map((row) => <tr key={row.seller}><td><strong>{row.seller}</strong></td><td>{row.salesNotes}</td><td>{row.deliveredOnTime}</td><td>{row.deliveredLate}</td><td>{row.enteredDuringHighLoad}</td></tr>)}</tbody></table>{(summary.sellerCompliance ?? []).length === 0 && <p className={styles.emptyState}>No hay vendedores o pedidos en el periodo seleccionado.</p>}</div>

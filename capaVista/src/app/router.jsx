@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { APP_ROUTES } from '../config/routes'
 import { PERMISSIONS } from '../config/permissions'
 import { ADMINISTRATIVE_ROLES, ROLES } from '../config/roles'
@@ -22,6 +22,8 @@ const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/
 const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
 const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
 const MetricsPage = lazy(() => import('../modules/metrics/pages/MetricsPage'))
+const PrivacyNoticePage = lazy(() => import('../modules/privacy/PrivacyNoticePage'))
+const PrivacyRequestsPage = lazy(() => import('../modules/privacy/PrivacyRequestsPage'))
 
 function RouteLoadingState() {
   return (
@@ -43,11 +45,13 @@ export default function AppRouter() {
   return (
     <Suspense fallback={<RouteLoadingState />}>
       <Routes>
+        <Route path="/privacidad" element={<PrivacyNoticePage />} />
         <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={APP_ROUTES.PASSWORD_RESET} element={<PasswordResetPage />} />
         <Route path={APP_ROUTES.ACCESS_DENIED} element={<AccessDeniedPage />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/privacidad/solicitudes" element={<PrivacyRequestsPage />} />
           <Route path="/" element={<AppLayout />}>
             <Route index element={<Navigate to={APP_ROUTES.KANBAN} replace />} />
             <Route
@@ -116,6 +120,7 @@ export default function AppRouter() {
 
         <Route path="*" element={<UnknownRouteRedirect />} />
       </Routes>
+      <footer className="text-center py-3"><Link to="/privacidad">Aviso de privacidad</Link><span aria-hidden="true"> · </span><Link to="/privacidad/solicitudes">Ejercer mis derechos</Link></footer>
     </Suspense>
   );
 }

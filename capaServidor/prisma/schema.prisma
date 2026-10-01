@@ -380,6 +380,55 @@ model Pedido_Item_Sin_Seguimiento {
   @@index([id_pedido])
 }
 
+// Expedientes separados de negocio: identidad/detalles/respuestas cifrados por aplicación.
+model PrivacyRequest {
+  id                String   @id @db.Char(36)
+  owner_auth0       String?  @db.VarChar(128)
+  subject_kind      String   @db.VarChar(20)
+  subject_id        Int?
+  rights            Json
+  document_cipher   String   @db.LongText
+  status            String   @default("received") @db.VarChar(30)
+  received_at       DateTime @db.DateTime(3)
+  due_at            DateTime @db.DateTime(3)
+  block_due_at      DateTime? @db.DateTime(3)
+  block_decided_at   DateTime? @db.DateTime(3)
+  verified_at       DateTime? @db.DateTime(3)
+  extension_used    Boolean  @default(false)
+  version           Int      @default(0)
+  updated_at        DateTime @updatedAt @db.DateTime(3)
+  Actions           PrivacyAction[]
+  Restriction       PrivacyRestriction?
+
+  @@index([owner_auth0, received_at], map: "privacy_owner_received")
+  @@index([status, due_at], map: "privacy_status_due")
+  @@index([block_due_at], map: "privacy_block_due")
+}
+
+model PrivacyAction {
+  id              BigInt   @id @default(autoincrement())
+  request_id      String   @db.Char(36)
+  actor_auth0     String   @db.VarChar(128)
+  action          String   @db.VarChar(40)
+  detail_cipher   String   @db.LongText
+  occurred_at     DateTime @default(now()) @db.DateTime(3)
+  Request         PrivacyRequest @relation(fields: [request_id], references: [id], onDelete: NoAction)
+
+  @@index([request_id, occurred_at], map: "privacy_action_request")
+}
+
+model PrivacyRestriction {
+  id              String   @id @db.Char(36)
+  request_id      String   @unique @db.Char(36)
+  domains         Json
+  active          Boolean  @default(true)
+  activated_at    DateTime @db.DateTime(3)
+  released_at     DateTime? @db.DateTime(3)
+  Request         PrivacyRequest @relation(fields: [request_id], references: [id], onDelete: NoAction)
+
+  @@index([active], map: "privacy_restriction_active")
+}
+
 enum Dise_o_Tarjeta_tipo_tarjeta {
   banda
   chip

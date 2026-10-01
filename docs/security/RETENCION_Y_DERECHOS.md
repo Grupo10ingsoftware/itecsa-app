@@ -1,5 +1,7 @@
 # Runbook de retención y derechos de titulares
 
+Las bases, responsables, plazos y copias externas de P18 siguen pendientes de validación organizacional. La implementación local no habilita una purga, acredita despliegue ni sustituye esa validación.
+
 ## Retención
 
 La limpieza automática implementada se limita a cuotas vencidas y caché temporal de notas. La purga de retos PIN queda delegada junto con el rediseño descrito en [INFORME_CAMBIOS_PIN_DELEGADOS.md](INFORME_CAMBIOS_PIN_DELEGADOS.md). Usuarios, pedidos, documentos, pagos, mensajes, bitácoras de negocio y auditoría de seguridad no se eliminan automáticamente.

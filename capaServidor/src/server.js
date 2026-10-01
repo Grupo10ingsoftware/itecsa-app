@@ -29,6 +29,7 @@ import { notFoundHandler } from './middlewares/errorHandler.js';
 import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
 import { safeLogger } from './shared/safeLogger.js';
 import supportAudit from './middlewares/supportAudit.js';
+import { createPrivacyRouter } from './modules/privacy/privacyRoutes.js';
 class Server {
   constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
@@ -99,6 +100,8 @@ class Server {
   }
 
   routes() {
+
+    this.app.use('/api/privacy', createPrivacyRouter());
 
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)

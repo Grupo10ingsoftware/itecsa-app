@@ -80,12 +80,22 @@ test("creacion consulta fuente, canonicaliza alias e ignora campos comerciales y
   assert.equal(state.persisted.observacion_origen, "Texto de origen");
   assert.equal(state.persisted.observacion_interna, "Interna");
   assert.equal(state.persisted.fecha_estimada_termino, null);
-  assert.equal(result.detalles[0].codigo, "A");
+  assert.equal(result.detalles[0].codigo_origen, "A");
   assert.equal(state.events.length, 1);
   assert.equal(state.lines[0].codigo_origen, "A");
   assert.equal(state.lines[1].codigo_origen, "B");
   assert.notEqual(state.lines[0].linea_origen, state.lines[1].linea_origen);
   assert.match(state.lines[0].linea_origen, /^[a-f0-9]{64}:0$/);
+});
+
+test("rechaza el alias historico observacion_interna del contrato de alta", () => {
+  assert.throws(
+    () => validateCreateSalesOrder({
+      numeroNota: "24226",
+      observacion_interna: "Alias antiguo",
+    }),
+    /usa observacionInterna/,
+  );
 });
 
 test("actor de token se resuelve una vez cuando no hay contexto interno", async () => {

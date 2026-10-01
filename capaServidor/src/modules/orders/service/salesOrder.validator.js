@@ -15,6 +15,9 @@ function text(value, name, max, { optional = false } = {}) {
 
 export function validateCreateSalesOrder(data) {
   if (!object(data)) throw new SalesOrderError("El pedido debe ser un objeto.");
+  if (Object.hasOwn(data, "observacion_interna")) {
+    throw new SalesOrderError("observacion_interna ya no forma parte del contrato; usa observacionInterna.");
+  }
   const numeroNota = text(data.numeroNota, "El numero de Nota de Venta", 50);
   const canonicalNumber = normalizeSalesNoteNumber(numeroNota);
   if (!canonicalNumber) throw new SalesOrderError("El numero de Nota de Venta no es valido.");
@@ -25,7 +28,7 @@ export function validateCreateSalesOrder(data) {
   return {
     numeroNota: canonicalNumber,
     priority,
-    observacionInterna: text(data.observacionInterna ?? data.observacion_interna,
+    observacionInterna: text(data.observacionInterna,
       "La observacion interna (maximo 300 caracteres)", 300, { optional: true }),
   };
 }

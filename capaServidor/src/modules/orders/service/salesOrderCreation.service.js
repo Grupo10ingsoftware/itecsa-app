@@ -84,7 +84,7 @@ export default class SalesOrderCreationService {
         numero_nota_venta: numeroNota,
         usuario_manager_origen: origen.usuarioManager ?? null,
         observacion_origen: data.observaciones ?? null,
-        observacion_interna: data.observacionInterna ?? data.observacion_interna ?? null,
+        observacion_interna: data.observacionInterna ?? null,
       }, { hydrate: false });
 
       if (!order?.id_pedido) {
@@ -136,11 +136,7 @@ export default class SalesOrderCreationService {
 
         details.push({
           ...detail,
-          codigo: item.codigo,
-          producto: item.producto,
-          familia: item.familia,
-          subfamilia: item.subfamilia,
-          tipoProducto: item.tipoProducto,
+          nombre_producto: item.tipoProducto,
         });
       }
 

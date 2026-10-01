@@ -115,21 +115,17 @@ function mapOrderDetail(detail) {
   return {
     ...(detail.linea_origen ? {
       linea_origen: detail.linea_origen,
-      codigo: detail.codigo_origen ?? null,
-      producto: detail.producto_origen ?? null,
-      familia: detail.familia_origen ?? null,
-      subfamilia: detail.subfamilia_origen ?? null,
+      codigo_origen: detail.codigo_origen ?? null,
+      producto_origen: detail.producto_origen ?? null,
+      familia_origen: detail.familia_origen ?? null,
+      subfamilia_origen: detail.subfamilia_origen ?? null,
     } : {}),
     id_detalle_pedido: detail.id_detalle_pedido ?? null,
-    id: detail.id_detalle_pedido ? String(detail.id_detalle_pedido) : null,
     id_tipo_producto: detail.id_tipo_producto ?? null,
     nombre_producto: detail.Tipo_Producto?.nombre_producto ?? null,
-    product: detail.Tipo_Producto?.nombre_producto ?? null,
     descripcion_producto: detail.Tipo_Producto?.descripcion_producto ?? null,
     cantidad: detail.cantidad ?? null,
-    quantity: detail.cantidad ?? null,
     fecha_estimada_termino: detail.fecha_estimada_termino ?? null,
-    dueDate: detail.fecha_estimada_termino ?? null,
     fecha_real_termino: detail.fecha_real_termino ?? null,
     id_estado_subproceso: detail.id_estado_subproceso ?? null,
     estado_subproceso: detail.Estado_Subprocesos?.nombre_estado ?? null,
@@ -207,7 +203,7 @@ function mapOrderComments(order) {
   };
 }
 
-function toOrderSummaryDTO(order, paymentStatusName = null) {
+function mapOrderSummaryRecord(order, paymentStatusName = null) {
   if (!order) return null;
 
   const mappedComments = mapOrderComments(order);
@@ -217,12 +213,10 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
   const quantityTotal = detallePedido.length > 0 ? totalQuantity(detallePedido) : null;
 
   return {
-    id: order.id_pedido ?? null,
     id_pedido: order.id_pedido ?? null,
     numero_nota_venta: order.numero_nota_venta ?? null,
     fecha_creacion: order.fecha_creacion ?? null,
     fecha_estimada_termino: order.fecha_estimada_termino ?? null,
-    dueDate: order.fecha_estimada_termino ?? null,
     id_cliente: order.id_cliente ?? null,
     id_usuario: order.id_usuario ?? null,
     usuario_manager_origen: order.usuario_manager_origen ?? null,
@@ -230,19 +224,14 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
     rut_cliente: order.Cliente?.rut_cliente ?? null,
     razon_social: order.Cliente?.razon_social ?? null,
     nombre_producto: totalProductNames,
-    product: totalProductNames,
     descripcion_producto: descripcionProducto,
     cantidad: quantityTotal,
-    quantity: quantityTotal,
     detalles: detallePedido.map(mapOrderDetail),
     id_etapa_general: order.Estado_Pedido?.orden_kanban ?? null,
-    generalStepId: order.Estado_Pedido?.orden_kanban ?? null,
     nombre_etapa_general: order.Estado_Pedido?.nombre_etapa ?? null,
     id_estado_pago: order.id_estado_pago ?? null,
-    paymentStatusId: order.id_estado_pago ?? null,
     id_estado_pedido: order.id_estado_pedido ?? null,
     estado_pago: paymentStatusName ?? order.Estado_Pago?.nombre_estado_pago ?? null,
-    paymentStatus: paymentStatusName ?? order.Estado_Pago?.nombre_estado_pago ?? null,
     etiquetas: Array.isArray(order.Pedido_Etiqueta)
       ? order.Pedido_Etiqueta.map((item) => item.etiqueta).filter(Boolean)
       : [],
@@ -254,18 +243,18 @@ function toOrderSummaryDTO(order, paymentStatusName = null) {
   };
 }
 
-function toOrderDetailDTO(order, paymentStatusName = null) {
+function mapOrderDetailRecord(order, paymentStatusName = null) {
   if (!order) return null;
 
   return {
-    ...toOrderSummaryDTO(order, paymentStatusName),
+    ...mapOrderSummaryRecord(order, paymentStatusName),
     observacion_origen: order.observacion_origen ?? null,
     observacion_interna: order.observacion_interna ?? null,
   };
 }
 
 function mapOrderRow(order, paymentStatusName = null) {
-  return toOrderSummaryDTO(order, paymentStatusName);
+  return mapOrderSummaryRecord(order, paymentStatusName);
 }
 
 function mapPaymentOrderRow(order) {
@@ -281,10 +270,8 @@ function mapPaymentOrderRow(order) {
     razon_social: order.razon_social ?? null,
     rut_cliente: order.rut_cliente ?? null,
     id_etapa_general: order.id_etapa_general ?? null,
-    generalStepId: order.id_etapa_general ?? null,
     nombre_etapa_general: order.nombre_etapa_general ?? null,
     estado_pago: order.estado_pago ?? null,
-    paymentStatus: order.estado_pago ?? null,
   };
 }
 
@@ -522,7 +509,7 @@ class OrderRepository {
       select: await readSelect(this.client),
     });
 
-    return toOrderDetailDTO(order);
+    return mapOrderDetailRecord(order);
   }
 
   async getTransitionState(id) {
@@ -544,10 +531,8 @@ class OrderRepository {
       id_estado_pedido: order.id_estado_pedido,
       id_estado_pago: order.id_estado_pago,
       id_etapa_general: order.Estado_Pedido?.orden_kanban ?? null,
-      generalStepId: order.Estado_Pedido?.orden_kanban ?? null,
       nombre_etapa_general: order.Estado_Pedido?.nombre_etapa ?? null,
       estado_pago: order.Estado_Pago?.nombre_estado_pago ?? null,
-      paymentStatus: order.Estado_Pago?.nombre_estado_pago ?? null,
     };
   }
 
@@ -742,7 +727,6 @@ class OrderRepository {
         id_pedido: Number(id),
         id_estado_pedido: status.id_estado_pedido,
         id_etapa_general: status.orden_kanban,
-        generalStepId: status.orden_kanban,
         nombre_etapa_general: status.nombre_etapa,
       };
     }
@@ -1014,12 +998,10 @@ class OrderRepository {
       ...currentOrder,
       id_estado_pago: Number(paymentStatusId),
       estado_pago: normalizedPaymentStatus,
-      paymentStatus: normalizedPaymentStatus,
       id_estado_pedido: shouldUpdateOrderStage
         ? status.id_estado_pedido
         : currentOrder.id_estado_pedido,
       id_etapa_general: normalizedKanbanOrder,
-      generalStepId: normalizedKanbanOrder,
       nombre_etapa_general: shouldUpdateOrderStage
         ? status.nombre_etapa
         : currentOrder.nombre_etapa_general,

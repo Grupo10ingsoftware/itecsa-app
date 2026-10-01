@@ -65,7 +65,7 @@ test("repositorios reales conservan snapshots, actor, evento y etapa con el mism
   assert.equal(rows.stages[0].id_registro, 5);
   assert.equal(rows.stages[0].id_estado_pedido, 1);
   assert.equal(rows.stages[0].fecha_hora_entrada.getTime(), rows.events[0].FECHA_HORA.getTime());
-  assert.equal(result.detalles[1].codigo, "SKU-B");
+  assert.equal(result.detalles[1].codigo_origen, "SKU-B");
   assert.deepEqual(db.calls, { transactions: 1, types: 1, subprocesses: 1 });
 });
 
@@ -85,8 +85,8 @@ test("lectura posterior conserva codigo y descripcion y no sustituye el tipo pro
     })),
   }; } } } });
   const result = await repo.get(1);
-  assert.deepEqual(result.detalles.map((line) => line.codigo), ["SKU-A", "SKU-B"]);
-  assert.equal(result.detalles[0].producto, "Producto A");
+  assert.deepEqual(result.detalles.map((line) => line.codigo_origen), ["SKU-A", "SKU-B"]);
+  assert.equal(result.detalles[0].producto_origen, "Producto A");
   assert.equal(result.detalles[0].nombre_producto, "Tarjeta");
 });
 

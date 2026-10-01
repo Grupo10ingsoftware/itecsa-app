@@ -167,7 +167,7 @@ function isPaymentConfirmed(order) {
 }
 
 function isLanyardItem(item) {
-  return String(item.product ?? item.nombre_producto ?? '').toLowerCase().includes('lanyard')
+  return String(item.product ?? '').toLowerCase().includes('lanyard')
 }
 
 function toDateKey(value) {
@@ -175,20 +175,16 @@ function toDateKey(value) {
 }
 
 function createItemFromDetail(detail, index) {
-  const product = detail.nombre_producto ?? detail.product ?? 'Producto no definido'
+  const product = detail.product ?? 'Producto no definido'
 
   return {
-    id: String(detail.id_detalle_pedido ?? `${normalizeProcessName(product)}-${index}`),
+    id: String(detail.id ?? `${normalizeProcessName(product)}-${index}`),
     product,
-    quantity: detail.cantidad ?? detail.quantity ?? null,
-    dueDate: toDateKey(detail.fecha_estimada_termino ?? detail.dueDate),
+    quantity: detail.quantity ?? null,
+    dueDate: toDateKey(detail.dueDate),
     manufacturingDetails: detail.manufacturingDetails ?? null,
     lanyardProgress: detail.lanyardProgress ?? null,
-    subProcesses: Array.isArray(detail.subProcesses)
-      ? detail.subProcesses
-      : Array.isArray(detail.subprocesos)
-        ? detail.subprocesos
-        : [],
+    subProcesses: Array.isArray(detail.subProcesses) ? detail.subProcesses : [],
   }
 }
 
@@ -203,25 +199,19 @@ function normalizeProcessName(value) {
 function buildOrderItems(order, product, dueDate) {
   const sourceItems = Array.isArray(order.items) && order.items.length > 0
     ? order.items
-    : Array.isArray(order.detalles) && order.detalles.length > 0
-      ? order.detalles
-      : []
+    : []
 
   const items = sourceItems.map(createItemFromDetail)
 
   if (items.length === 0) {
     items.push({
-      id: `${order.id ?? order.id_pedido}-principal`,
+      id: `${order.id}-principal`,
       product,
-      quantity: order.quantity ?? order.cantidad ?? null,
+      quantity: order.quantity ?? null,
       dueDate,
       manufacturingDetails: order.manufacturingDetails ?? null,
       lanyardProgress: order.lanyardProgress ?? null,
-      subProcesses: Array.isArray(order.subProcesses)
-        ? order.subProcesses
-        : Array.isArray(order.subprocesos)
-          ? order.subprocesos
-          : [],
+      subProcesses: [],
     })
   }
 
@@ -234,58 +224,36 @@ function buildOrderItems(order, product, dueDate) {
 }
 
 function normalizeOrder(order) {
-  const id = order.id ?? order.id_pedido
-  const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
-  const dueDate =
-    toDateKey(
-      order.dueDate ??
-      order.fecha_estimada_termino ??
-      order.fecha_entrega ??
-      order.fecha_compromiso,
-    )
+  const id = order.id
+  const product = order.product ?? 'Producto no definido'
+  const dueDate = toDateKey(order.dueDate)
 
   const items = buildOrderItems(order, product, dueDate)
   const deliveryDelay = getDeliveryDelayStatus(dueDate)
 
   return {
     id,
-    clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
-    seller: order.seller ?? order.vendedorResponsable ?? order.vendedor_responsable ?? order.usuario_manager_origen ?? '',
-    nv: order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta ?? order.codigo_nv ?? `PED-${id}`,
+    clientName: order.clientName ?? 'Cliente sin nombre',
+    sourceManagerUser: order.sourceManagerUser ?? '',
+    salesNoteNumber: order.salesNoteNumber ?? `PED-${id}`,
     product,
-    date: order.date ?? order.fecha ?? order.fecha_pedido ?? '',
+    createdAt: order.createdAt,
     dueDate,
-    paymentStatus: order.paymentStatus ?? order.estado_pago ?? '',
-    paymentStatusId: order.paymentStatusId ?? order.id_estado_pago,
-    orderStatus:
-      order.orderStatus ??
-      order.etapa_general ??
-      order.nombre_etapa_general ??
-      getColumnTitleByStepId(order.id_etapa_general),
-    generalStepId: order.generalStepId ?? order.id_etapa_general,
-    isDelayed: Boolean(order.isDelayed ?? order.atrasado ?? isOrderDelayed(dueDate)),
-    delayStatus: order.delayStatus ?? deliveryDelay.status,
-    businessDaysRemaining: order.businessDaysRemaining ?? deliveryDelay.businessDaysRemaining,
-    isUrgent: Boolean(order.isUrgent ?? order.urgente ?? (hasOrderLabel(order, ['Urgencia']) || isOrderUrgent(dueDate))),
-    hasContractPriority: Boolean(
-      order.hasContractPriority ??
-      order.prioridad_contrato ??
-      hasOrderLabel(order, ['Prioridad por contrato', 'Cliente con contrato']),
-    ),
-    isProducing: Boolean(order.isProducing ?? hasOrderLabel(order, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE'])),
-    etiquetas: order.etiquetas ?? [],
-    quantity: order.quantity ?? order.cantidad ?? null,
+    paymentStatus: order.paymentStatus ?? '',
+    paymentStatusId: order.paymentStatusId,
+    orderStatus: order.orderStatus ?? getColumnTitleByStepId(order.generalStepId),
+    orderStatusId: order.orderStatusId,
+    generalStepId: order.generalStepId,
+    isDelayed: isOrderDelayed(dueDate),
+    delayStatus: deliveryDelay.status,
+    businessDaysRemaining: deliveryDelay.businessDaysRemaining,
+    isUrgent: hasOrderLabel(order, ['Urgencia']) || isOrderUrgent(dueDate),
+    hasContractPriority: hasOrderLabel(order, ['Prioridad por contrato', 'Cliente con contrato']),
+    isProducing: hasOrderLabel(order, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
+    labels: order.labels,
+    quantity: order.quantity,
     items,
-    subProcesses: Array.isArray(order.subProcesses)
-      ? order.subProcesses
-      : Array.isArray(order.subprocesos)
-        ? order.subprocesos
-        : [],
-    comments: Array.isArray(order.comments)
-      ? order.comments
-      : Array.isArray(order.comentarios)
-        ? order.comentarios
-        : [],
+    comments: order.comments,
     commentGroups: order.commentGroups ?? null,
     correctionRequested: Boolean(order.correctionRequested),
     correctionComment: order.correctionComment ?? '',
@@ -326,10 +294,10 @@ function normalizeText(value) {
 
 function hasOrderLabel(order, expectedNames = []) {
   const normalizedExpectedNames = expectedNames.map(normalizeText)
-  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+  const labels = Array.isArray(order.labels) ? order.labels : []
 
   return labels.some((label) =>
-    normalizedExpectedNames.includes(normalizeText(label?.nombre_etiqueta ?? label?.name ?? label)),
+    normalizedExpectedNames.includes(normalizeText(label?.name)),
   )
 }
 
@@ -359,7 +327,7 @@ function hasActiveFilters(filters = {}) {
 function orderMatchesFilters(order, filters = {}) {
   const normalizedFilters = {
     clientName: normalizeText(filters.clientName),
-    nv: normalizeText(filters.nv),
+    salesNoteNumber: normalizeText(filters.salesNoteNumber),
     productType: normalizeText(filters.productType),
     seller: normalizeText(filters.seller),
   }
@@ -367,20 +335,16 @@ function orderMatchesFilters(order, filters = {}) {
   if (!Object.values(normalizedFilters).some(Boolean)) return false
 
   const coreProductTypes = getOrderCoreProductTypes(order)
-  const sellerValues = [
-    order.seller,
-    order.vendedorResponsable,
-    order.vendedor_responsable,
-    ...(Array.isArray(order.items)
-      ? order.items.map((item) => item.seller ?? item.vendedorResponsable ?? item.vendedor_responsable)
-      : []),
-  ].map(normalizeText)
+  const sellerValues = [order.sourceManagerUser].map(normalizeText)
 
   if (normalizedFilters.clientName && !normalizeText(order.clientName).includes(normalizedFilters.clientName)) {
     return false
   }
 
-  if (normalizedFilters.nv && !normalizeText(order.nv).includes(normalizedFilters.nv)) {
+  if (
+    normalizedFilters.salesNoteNumber &&
+    !normalizeText(order.salesNoteNumber).includes(normalizedFilters.salesNoteNumber)
+  ) {
     return false
   }
 
@@ -405,7 +369,7 @@ function orderMatchesFilters(order, filters = {}) {
 
 function getLanyardProgressPercentage(item) {
   const progress = item?.lanyardProgress
-  const percentage = Number(progress?.percentage ?? progress?.progressPercentage ?? 0)
+  const percentage = Number(progress?.percentage ?? 0)
 
   return Number.isFinite(percentage) ? percentage : 0
 }
@@ -519,7 +483,7 @@ function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
         </header>
 
         <div className={styles.operatorModalBody}>
-          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso del pedido {order.nv}.</p>
+          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso del pedido {order.salesNoteNumber}.</p>
           <label>
             <span>PIN</span>
             <input
@@ -616,7 +580,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         if (ordersResult.status === 'fulfilled') {
           const normalizedOrders = Array.isArray(ordersResult.value)
             ? ordersResult.value
-                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .filter((order) => order.salesNoteNumber)
                 .map(normalizeOrder)
                 .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
             : []
@@ -665,7 +629,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     const { source, target } = event.operation
     if (!source || !target) return
 
-    const order = orders.find((currentOrder) => currentOrder.nv === source.id)
+    const order = orders.find((currentOrder) => currentOrder.salesNoteNumber === source.id)
     const targetColumn = columns.find((column) => column.title === target.id)
 
     if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
@@ -739,13 +703,13 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     setSelectedOrder((current) => current?.id === orderId ? { ...current, ...optimisticPatch } : current)
     try {
       const result = await kanbanApi.setLabel(orderId, config[0], config[1])
-      const updatedLabels = result.etiquetas ?? []
+      const updatedLabels = result.labels
       const patchOrder = (current) => ({
         ...current,
-        etiquetas: updatedLabels,
-        isUrgent: hasOrderLabel({ etiquetas: updatedLabels }, ['Urgencia']),
-        hasContractPriority: hasOrderLabel({ etiquetas: updatedLabels }, ['Prioridad por contrato']),
-        isProducing: hasOrderLabel({ etiquetas: updatedLabels }, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
+        labels: updatedLabels,
+        isUrgent: hasOrderLabel({ labels: updatedLabels }, ['Urgencia']),
+        hasContractPriority: hasOrderLabel({ labels: updatedLabels }, ['Prioridad por contrato']),
+        isProducing: hasOrderLabel({ labels: updatedLabels }, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
       })
       setOrders((current) => current.map((item) => item.id === orderId ? patchOrder(item) : item))
       setSelectedOrder((current) => current?.id === orderId ? patchOrder(current) : current)
@@ -897,7 +861,6 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         onRollbackSubprocess={handleRollbackSubprocess}
         onReevaluate={handleReevaluate}
         onSendToReview={handleSendToReview}
-        onUpdateOrder={handleUpdateOrder}
         order={selectedOrder}
       />
       <MoveToProductionModal

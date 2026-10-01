@@ -168,7 +168,7 @@ export default function PaymentConfirmationPage() {
           `Cambio de estado a ${newStatus} desde modulo de pagos.`,
       })
 
-      if (updatedOrder?.id_pedido !== undefined || updatedOrder?.id !== undefined) {
+      if (updatedOrder?.id !== undefined) {
         const normalizedOrder = normalizePaymentOrder(updatedOrder)
 
         setOrders((prev) =>

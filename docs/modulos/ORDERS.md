@@ -8,6 +8,7 @@ RF42–RF48: acceso de Ventas, consulta por número de Nota de Venta, informaci�
 
 - `GET /api/orders/sales-notes/:numeroNota`: consulta datos estructurados. Actualmente usa un fixture del backend; no una conexión externa.
 - `POST /api/orders`: recibe `numeroNota`, `priority` (`null`, `urgent` o `contract`) y `observacionInterna` (hasta 300 caracteres). El servidor recupera nuevamente la nota y valida sus datos antes de escribir. Los campos comerciales heredados del cuerpo se ignoran durante la compatibilidad; no son autoridad. El alta manual sin NV responde 400.
+- Las respuestas operacionales de pedidos usan el [DTO canónico de Orders](../desarrollo/ORDERS_DTO_CANONICO.md). Los contratos de la fuente de Nota de Venta y del espacio de Cobranzas se mantienen separados.
 - El resumen previo al registro se conserva en `OrderCreateConfirmModal` (RF48).
 - La fecha que se muestra proviene de la nota. La fecha productiva persistida queda sin asignar hasta su programación autorizada en Calendario; este cambio conserva ese comportamiento. El cumplimiento completo de RF44 requiere revisión separada.
 

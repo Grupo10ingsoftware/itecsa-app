@@ -13,8 +13,8 @@ function getSubProcessesForItem(item) {
 
   return existingProcesses.map((process, index) => ({
     ...process,
-    id: process.id ?? String(process.id_estado_subproceso ?? index),
-    name: process.name ?? process.nombre_estado ?? 'Subproceso',
+    id: process.id ?? String(index),
+    name: process.name ?? 'Subproceso',
     status: process.status ?? 'pending',
   }))
 }
@@ -32,7 +32,7 @@ function normalizeText(value) {
 }
 
 function isPackagingProcess(process) {
-  return normalizeText(process?.name ?? process?.nombre_estado).includes('empaquet')
+  return normalizeText(process?.name).includes('empaquet')
 }
 
 function getLanyardProgress(item) {
@@ -40,7 +40,7 @@ function getLanyardProgress(item) {
   const totalQuantity = Number(progress.totalQuantity ?? item?.quantity ?? 0)
   const accumulatedQuantity = Number(progress.accumulatedQuantity ?? 0)
   const remainingQuantity = Number(progress.remainingQuantity ?? Math.max(0, totalQuantity - accumulatedQuantity))
-  const percentage = Number(progress.percentage ?? progress.progressPercentage ?? 0)
+  const percentage = Number(progress.percentage ?? 0)
 
   return {
     accumulatedQuantity: Number.isFinite(accumulatedQuantity) ? accumulatedQuantity : 0,
@@ -80,9 +80,9 @@ function normalizeCommentItem(item, index, type = 'system') {
   return {
     ...item,
     id: item?.id ?? `${type}-${index}`,
-    text: item?.text ?? item?.comentario ?? item?.observacion ?? '',
-    createdAt: item?.createdAt ?? item?.fecha_comentario ?? item?.FECHA_HORA ?? null,
-    subprocessName: item?.subprocessName ?? item?.subproceso ?? item?.nombre_estado ?? 'Subproceso',
+    text: item?.text ?? '',
+    createdAt: item?.createdAt ?? null,
+    subprocessName: item?.subprocessName ?? 'Subproceso',
   }
 }
 
@@ -92,14 +92,11 @@ function sortCommentsByDate(comments = []) {
 
 function getCommentGroups(order) {
   const groups = order.commentGroups
-  const legacyComments = Array.isArray(order.comments)
-    ? order.comments.map((item, index) => normalizeCommentItem(item, index, 'system'))
-    : []
 
   return {
     source: sortCommentsByDate((groups?.source ?? []).map((item, index) => normalizeCommentItem(item, index, 'source'))),
     system: sortCommentsByDate(
-      (groups?.system ?? legacyComments).map((item, index) => normalizeCommentItem(item, index, 'system')),
+      (groups?.system ?? []).map((item, index) => normalizeCommentItem(item, index, 'system')),
     ),
     subprocesses: sortCommentsByDate(
       (groups?.subprocesses ?? []).map((item, index) => normalizeCommentItem(item, index, 'subprocess')),
@@ -151,11 +148,11 @@ function getManufacturingDetails(item, order) {
     length: details.length ?? (isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
     tapeTexture: details.tapeTexture ?? 'Poliester',
     backgroundColor: details.backgroundColor ?? 'No definido',
-    reverseLegend: details.reverseLegend ?? details.legend ?? 'No definido',
-    frontLegend: details.frontLegend ?? details.legend ?? `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`,
+    reverseLegend: details.reverseLegend ?? 'No definido',
+    frontLegend: details.frontLegend ?? `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`,
     endings: details.endings ?? 'No definido',
     cardType: details.cardType ?? 'Plastificada',
-    seller: details.seller ?? order.seller ?? 'Ventas ITECSA',
+    seller: details.seller ?? order.sourceManagerUser ?? 'Ventas ITECSA',
     dueDate: displayValue(details.dueDate ?? item.dueDate ?? order.dueDate, 'Por definir'),
   }
 }
@@ -173,7 +170,6 @@ export default function KanbanOffCanvas({
   onRollbackSubprocess,
   onReevaluate,
   onCancelProduction,
-  onUpdateOrder,
   onSendToReview,
   order,
 }) {
@@ -359,7 +355,7 @@ export default function KanbanOffCanvas({
       <aside aria-labelledby="kanban-detail-title" className={styles.offcanvasPanel} role="dialog">
         <header className={styles.offcanvasHeader}>
           <div>
-            <span className={styles.offcanvasKicker}>{order.nv}</span>
+            <span className={styles.offcanvasKicker}>{order.salesNoteNumber}</span>
             <h2 id="kanban-detail-title">Detalle del pedido</h2>
           </div>
           <button aria-label="Cerrar detalle" className={styles.offcanvasCloseButton} onClick={onClose} type="button">
@@ -370,11 +366,11 @@ export default function KanbanOffCanvas({
         <div className={styles.offcanvasBody}>
           <section className={styles.detailSection}>
             <h3>Resumen</h3>
-            {Array.isArray(order.etiquetas) && order.etiquetas.length > 0 && (
+            {Array.isArray(order.labels) && order.labels.length > 0 && (
               <div className={styles.visibleLabels}>
-                {order.etiquetas.map((label) => (
-                  <span key={label.id_etiqueta ?? label.nombre_etiqueta ?? label}>
-                    {label.nombre_etiqueta ?? label}
+                {order.labels.map((label) => (
+                  <span key={label.id ?? label.name}>
+                    {label.name}
                   </span>
                 ))}
               </div>
@@ -834,7 +830,7 @@ export default function KanbanOffCanvas({
             </header>
 
             <div className={styles.operatorModalBody}>
-              <p className={styles.operatorModalText}>Ingrese su PIN para devolver {order.nv} a Confirmacion de pago.</p>
+              <p className={styles.operatorModalText}>Ingrese su PIN para devolver {order.salesNoteNumber} a Confirmacion de pago.</p>
               <label>
                 <span>PIN</span>
                 <input

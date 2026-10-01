@@ -40,7 +40,7 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
 
     assert.deepEqual(result, {
         id_pedido: 6, id_estado_pedido: 3, id_etapa_general: 2,
-        generalStepId: 2, nombre_etapa_general: "En producción",
+        nombre_etapa_general: "En producción",
     });
     assert.equal(calls[0][1].where.id_estado_pedido, 2);
     assert.equal(calls[0][1].where.id_estado_pago, 2);
@@ -463,10 +463,8 @@ test("lista cobranzas sin cargar relaciones productivas", async () => {
         razon_social: "Cliente SpA",
         rut_cliente: "11.111.111-1",
         id_etapa_general: 0,
-        generalStepId: 0,
         nombre_etapa_general: "Confirmacion de pago",
         estado_pago: "Pendiente",
-        paymentStatus: "Pendiente",
     });
 });
 

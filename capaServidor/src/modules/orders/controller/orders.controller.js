@@ -1,6 +1,12 @@
 import { sendOrderError, sendOrderOperationError } from "../service/salesOrder.errors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
+import {
+    toOrderDTO,
+    toOrderLabelsPatchDTO,
+    toOrderStagePatchDTO,
+    toPaymentOrderDTO,
+} from "../dto/order.dto.js";
 
 import OrderService from "../service/order.service.js";
 import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
@@ -15,7 +21,7 @@ class OrderController {
     getOrders = async ( req = request, res = response) => {
         try {
             const orders = await this.service.getAllOrders()
-            res.status( 200 ).json( orders );
+            res.status( 200 ).json(orders.map(toOrderDTO));
         } catch ( error ) {
             res.status(500).json({ message: 'Error al obtener pedidos' });
         }
@@ -24,7 +30,10 @@ class OrderController {
     getPaymentWorkspace = async (req = request, res = response) => {
         try {
             const workspace = await this.service.getPaymentWorkspace();
-            res.status(200).json(workspace);
+            res.status(200).json({
+                ...workspace,
+                orders: workspace.orders.map(toPaymentOrderDTO),
+            });
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -37,7 +46,7 @@ class OrderController {
 
             if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
 
-            res.status(200).json(order);
+            res.status(200).json(toOrderDTO(order));
         } catch ( error ) {
             return sendOrderError(res, error);
         }
@@ -61,7 +70,7 @@ class OrderController {
                 actorId: req.currentUser?.idUsuario,
             });
 
-            res.status(201).json(order);
+            res.status(201).json(toOrderDTO(order));
         } catch (error) {
             return sendOrderError(res, error);
         }
@@ -75,7 +84,7 @@ class OrderController {
                 return res.status(400).json({ msg: 'Missing ID' });
             }
 
-            const paymentStatusId = req.body?.paymentStatusId ?? req.body?.paymentStatus;
+            const paymentStatusId = req.body?.paymentStatusId;
             const { observacion } = req.body ?? {};
 
             const result = await this.service.updPaymentState(
@@ -96,7 +105,7 @@ class OrderController {
                 });
             }
 
-            res.status(200).json(result);
+            res.status(200).json(toPaymentOrderDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -124,7 +133,7 @@ class OrderController {
                 message: 'Pedido no encontrado'
             })
 
-            res.status( 200 ).json(result);
+            res.status( 200 ).json(toOrderStagePatchDTO(result));
         } catch ( error ) {
             if (error.message === PAYMENT_CONFIRMATION_REQUIRED_MESSAGE) {
                 return res.status(409).json({ message: error.message });
@@ -140,7 +149,7 @@ class OrderController {
                 req.body?.comment,
                 { auth0UserId: req.auth?.payload?.sub },
             );
-            return res.status(200).json(result);
+            return res.status(200).json(toOrderDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -153,7 +162,7 @@ class OrderController {
                 req.body?.comment,
                 { actor: req.pinActor },
             );
-            return res.status(200).json(result);
+            return res.status(200).json(toOrderDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -164,7 +173,7 @@ class OrderController {
             const result = await this.service.reevaluateOrder(req.params.orderId, {
                 auth0UserId: req.auth?.payload?.sub,
             });
-            return res.status(200).json(result);
+            return res.status(200).json(toOrderDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -172,9 +181,10 @@ class OrderController {
 
     setLabel = async (req = request, res = response) => {
         try {
-            return res.status(200).json(await this.service.setOrderLabel(req.params.orderId, req.body, {
+            const result = await this.service.setOrderLabel(req.params.orderId, req.body, {
                 auth0UserId: req.auth?.payload?.sub,
-            }));
+            });
+            return res.status(200).json(toOrderLabelsPatchDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -189,7 +199,7 @@ class OrderController {
                 actor: req.pinActor,
             });
 
-            res.status(200).json(updatedOrder);
+            res.status(200).json(toOrderDTO(updatedOrder));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -210,7 +220,7 @@ class OrderController {
                 },
             );
 
-            res.status(200).json(updatedOrder);
+            res.status(200).json(toOrderDTO(updatedOrder));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }
@@ -223,7 +233,7 @@ class OrderController {
                 actor: req.pinActor,
                 comment: req.body?.comment,
             });
-            return res.status(200).json(result);
+            return res.status(200).json(toOrderDTO(result));
         } catch (error) {
             return sendOrderOperationError(res, error);
         }

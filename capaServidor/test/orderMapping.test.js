@@ -194,15 +194,11 @@ test("lista pedidos con productos y cliente usando relaciones vigentes", async (
   assert.deepEqual(orders[0].detalles, [
     {
       id_detalle_pedido: 5,
-      id: "5",
       id_tipo_producto: 7,
       nombre_producto: "Lanyard",
-      product: "Lanyard",
       descripcion_producto: "Lanyard sublimado",
       cantidad: 250,
-      quantity: 250,
       fecha_estimada_termino: null,
-      dueDate: null,
       fecha_real_termino: null,
       id_estado_subproceso: null,
       estado_subproceso: null,

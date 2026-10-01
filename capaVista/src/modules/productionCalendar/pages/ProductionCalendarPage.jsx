@@ -37,18 +37,14 @@ function normalizeText(value) {
 }
 
 function getOrderProductNames(order) {
-  const sourceItems = Array.isArray(order.items) && order.items.length > 0
-    ? order.items
-    : Array.isArray(order.detalles)
-      ? order.detalles
-      : []
+  const sourceItems = order.items
 
   const productNames = sourceItems
-    .map((item) => item.productType ?? item.product ?? item.nombre_producto ?? item.producto)
+    .map((item) => item.product)
     .filter(Boolean)
 
   return [...new Set([
-    order.productType ?? order.product ?? order.producto ?? order.nombre_producto,
+    order.product,
     ...productNames,
   ].filter(Boolean))]
 }
@@ -58,19 +54,15 @@ function normalizeCalendarOrder(order) {
 
   return {
     ...order,
-    id: order.id ?? order.id_pedido,
-    orderNumber: order.orderNumber ?? order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta,
-    clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
+    id: order.id,
+    salesNoteNumber: order.salesNoteNumber,
+    clientName: order.clientName ?? 'Cliente sin nombre',
     productType: productNames[0] ?? 'Producto no definido',
     productTypes: productNames,
-    quantity: order.quantity ?? order.cantidad ?? 0,
-    items: Array.isArray(order.items) && order.items.length > 0
-      ? order.items
-      : Array.isArray(order.detalles)
-        ? order.detalles
-        : [],
-    status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
-    dueDate: toCalendarDateKey(order.dueDate ?? order.fecha_estimada_termino),
+    quantity: order.quantity ?? 0,
+    items: order.items,
+    status: getStatusByStep(order.generalStepId),
+    dueDate: toCalendarDateKey(order.dueDate),
   }
 }
 
@@ -98,7 +90,7 @@ export default function ProductionCalendarPage() {
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
             ? orders
-                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .filter((order) => order.salesNoteNumber)
                 .map(normalizeCalendarOrder)
             : [])
         }
@@ -141,7 +133,7 @@ export default function ProductionCalendarPage() {
       const searchableProductNames = Array.isArray(item.productTypes) ? item.productTypes : [item.productType]
       const matchesSearch =
         normalizedSearch.length === 0 ||
-        normalizeText([item.orderNumber, item.clientName, ...searchableProductNames].join(' ')).includes(normalizedSearch)
+        normalizeText([item.salesNoteNumber, item.clientName, ...searchableProductNames].join(' ')).includes(normalizedSearch)
       const matchesStatus = !filters.status || item.status === filters.status
       const matchesProduct =
         !normalizedProductType ||

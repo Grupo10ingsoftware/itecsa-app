@@ -1,6 +1,6 @@
 import { useAuth } from "../../../hooks/useAuth";
 import { PERMISSIONS } from "../../../config/permissions";
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { WEEK_DAYS, buildMonthGrid, groupItemsByDate, isBusinessDateKey, isSameMonth } from '../utils/calendarUtils'
 import styles from './ProductionCalendarGrid.module.css'
 
@@ -36,7 +36,7 @@ function getProductSummary(item) {
 
   const sourceItems = Array.isArray(item.items) ? item.items : []
   const productNames = sourceItems
-    .map((detail) => detail.productType ?? detail.product ?? detail.nombre_producto ?? detail.producto)
+    .map((detail) => detail.product)
     .filter(Boolean)
   const uniqueProductNames = [...new Set(productNames)]
 
@@ -62,10 +62,10 @@ function getCalendarOrderItems(order) {
 
   return sourceItems.map((item, index) => ({
     ...item,
-    id: item.id ?? item.id_detalle_pedido ?? `${order.id}-${index}`,
-    product: item.product ?? item.productType ?? item.nombre_producto ?? item.producto ?? order.productType ?? 'Producto no definido',
-    quantity: item.quantity ?? item.cantidad ?? order.quantity ?? null,
-    dueDate: item.dueDate ?? item.fecha_estimada_termino ?? order.dueDate ?? null,
+    id: item.id ?? `${order.id}-${index}`,
+    product: item.product ?? order.productType ?? 'Producto no definido',
+    quantity: item.quantity ?? order.quantity ?? null,
+    dueDate: item.dueDate ?? order.dueDate ?? null,
     manufacturingDetails: item.manufacturingDetails ?? {},
   }))
 }
@@ -81,11 +81,11 @@ function getManufacturingDetails(item, order) {
     length: displayValue(details.length, isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
     tapeTexture: displayValue(details.tapeTexture, 'Poliester'),
     backgroundColor: displayValue(details.backgroundColor),
-    reverseLegend: displayValue(details.reverseLegend ?? details.legend),
-    frontLegend: displayValue(details.frontLegend ?? details.legend, `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`),
+    reverseLegend: displayValue(details.reverseLegend),
+    frontLegend: displayValue(details.frontLegend, `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`),
     endings: displayValue(details.endings),
     cardType: displayValue(details.cardType, 'Plastificada'),
-    seller: displayValue(details.seller ?? order.seller, 'Ventas ITECSA'),
+    seller: displayValue(details.seller ?? order.sourceManagerUser, 'Ventas ITECSA'),
     dueDate: displayValue(details.dueDate ?? item.dueDate ?? order.dueDate, 'Por definir'),
   }
 }
@@ -99,11 +99,11 @@ function normalizeLabelName(value) {
 }
 
 function hasOrderLabel(order, expectedNames = []) {
-  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+  const labels = Array.isArray(order.labels) ? order.labels : []
   const normalizedExpectedNames = expectedNames.map(normalizeLabelName)
 
   return labels.some((label) =>
-    normalizedExpectedNames.includes(normalizeLabelName(label?.nombre_etiqueta ?? label?.name ?? label)),
+    normalizedExpectedNames.includes(normalizeLabelName(label?.name)),
   )
 }
 
@@ -136,7 +136,7 @@ function CalendarEvent({ isDragging, item, onDragEnd, onDragStart, onOpenDetail 
     >
       <span className={styles.eventLine}>
         <b>Pedido N°:</b>
-        <strong>{item.orderNumber}</strong>
+        <strong>{item.salesNoteNumber}</strong>
       </span>
       <span className={styles.eventLine}>
         <b>Cliente:</b>
@@ -170,7 +170,7 @@ function OrderDetailModal({ order, onClose }) {
       >
         <header className={styles.modalHeader}>
           <div>
-            <span>{order.orderNumber}</span>
+            <span>{order.salesNoteNumber}</span>
             <h2 id="calendar-order-detail-title">Detalle del pedido</h2>
           </div>
           <button aria-label="Cerrar detalle" onClick={onClose} type="button">
@@ -194,7 +194,7 @@ function OrderDetailModal({ order, onClose }) {
             </div>
             <div>
               <dt>Vendedor responsable</dt>
-              <dd>{displayValue(order.seller, 'Ventas ITECSA')}</dd>
+              <dd>{displayValue(order.sourceManagerUser, 'Ventas ITECSA')}</dd>
             </div>
           </section>
 
@@ -282,7 +282,7 @@ function DeliveryChangeConfirmModal({ change, onCancel, onConfirm }) {
 
         <div className={styles.modalBody}>
           <p className={styles.confirmText}>
-            Estas seguro que quieres cambiar la fecha de entrega del pedido {change.item.orderNumber} de{' '}
+            Estas seguro que quieres cambiar la fecha de entrega del pedido {change.item.salesNoteNumber} de{' '}
             {formatDayTitle(change.fromDate)} a {formatDayTitle(change.toDate)}?
           </p>
         </div>
@@ -349,7 +349,7 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
 
         <div className={styles.modalBody}>
           <p className={styles.confirmText}>
-            Ingrese su PIN para hacer efectivo el cambio de fecha de {change.item.orderNumber}.
+            Ingrese su PIN para hacer efectivo el cambio de fecha de {change.item.salesNoteNumber}.
           </p>
           <label className={styles.credentialsLabel}>
             <span>PIN</span>
@@ -431,7 +431,7 @@ function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragEnd, onD
               title="Arrastrar para cambiar fecha de entrega"
             >
               <div>
-                <strong>{item.orderNumber}</strong>
+                <strong>{item.salesNoteNumber}</strong>
                 <span>{item.clientName}</span>
               </div>
               <dl>
@@ -496,7 +496,7 @@ function PendingOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onOpe
           >
             <span className={styles.eventLine}>
               <b>Pedido N°:</b>
-              <strong>{item.orderNumber}</strong>
+              <strong>{item.salesNoteNumber}</strong>
             </span>
             <span className={styles.eventLine}>
               <b>Cliente:</b>
@@ -580,7 +580,7 @@ function TransferOrdersTray({ draggedItemId, items, onDragEnd, onDragStart, onDr
           >
             <span className={styles.eventLine}>
               <b>Pedido NÂ°:</b>
-              <strong>{item.orderNumber}</strong>
+              <strong>{item.salesNoteNumber}</strong>
             </span>
             <span className={styles.eventLine}>
               <b>Cliente:</b>
@@ -686,9 +686,17 @@ export default function ProductionCalendarGrid({
   const [transferItemIds, setTransferItemIds] = useState([])
   const days = buildMonthGrid(monthDate)
   const sourceItems = Array.isArray(allItems) ? allItems : items
+  const sourceItemIdSet = useMemo(
+    () => new Set(sourceItems.map((item) => String(item.id))),
+    [sourceItems],
+  )
   const transferItemIdSet = useMemo(
-    () => new Set(transferItemIds.map((itemId) => String(itemId))),
-    [transferItemIds],
+    () => new Set(
+      transferItemIds
+        .map((itemId) => String(itemId))
+        .filter((itemId) => sourceItemIdSet.has(itemId)),
+    ),
+    [sourceItemIdSet, transferItemIds],
   )
   const visibleItems = useMemo(
     () => items.filter((item) => !transferItemIdSet.has(String(item.id))),
@@ -710,12 +718,6 @@ export default function ProductionCalendarGrid({
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
 
   const { hasPermission } = useAuth()
-
-  useEffect(() => {
-    const sourceItemIds = new Set(sourceItems.map((item) => String(item.id)))
-
-    setTransferItemIds((currentIds) => currentIds.filter((itemId) => sourceItemIds.has(String(itemId))))
-  }, [sourceItems])
 
   function handleDropTransferItem(itemId) {
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return

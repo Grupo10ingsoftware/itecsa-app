@@ -105,12 +105,24 @@ export default function ProfilePage() {
     }
   }
 
+  function resetRecovery() {
+    setRecoveryRequested(false)
+    setRecoveryCode('')
+    setPinError('')
+  }
+
+  function closeRecovery() {
+    setRecoveryOpen(false)
+    resetRecovery()
+  }
+
   async function requestRecovery() {
     setIsPinBusy(true)
     setPinError('')
 
     try {
       await authApi.requestPinRecovery()
+      setRecoveryCode('')
       setRecoveryRequested(true)
     } catch (error) {
       setPinError(error?.payload?.message ?? 'No fue posible enviar el codigo de recuperacion.')
@@ -133,6 +145,10 @@ export default function ProfilePage() {
       setRecoveryCode('')
       await refreshSession()
     } catch (error) {
+      if (['PIN_RECOVERY_CODE_EXPIRED', 'PIN_RECOVERY_ATTEMPTS_EXHAUSTED'].includes(error?.payload?.code)) {
+        setRecoveryRequested(false)
+        setRecoveryCode('')
+      }
       setPinError(error?.payload?.message ?? 'No fue posible validar el codigo.')
     } finally {
       setIsPinBusy(false)
@@ -231,8 +247,8 @@ export default function ProfilePage() {
               <button
                 className="btn btn-outline-dark"
                 onClick={() => {
+                  resetRecovery()
                   setRecoveryOpen(true)
-                  setPinError('')
                 }}
                 type="button"
               >
@@ -315,7 +331,7 @@ export default function ProfilePage() {
                     aria-label="Cerrar"
                     className="btn-close"
                     disabled={isPinBusy}
-                    onClick={() => setRecoveryOpen(false)}
+                    onClick={closeRecovery}
                     type="button"
                   />
                 </div>
@@ -340,6 +356,9 @@ export default function ProfilePage() {
                   {pinError && <div className="alert alert-danger mb-0">{pinError}</div>}
                 </div>
                 <div className="modal-footer">
+                  <button className="btn btn-outline-secondary" disabled={isPinBusy} onClick={closeRecovery} type="button">
+                    Cancelar
+                  </button>
                   {!recoveryRequested ? (
                     <button
                       className="btn btn-dark"

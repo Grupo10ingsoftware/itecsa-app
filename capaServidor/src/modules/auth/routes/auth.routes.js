@@ -2,7 +2,7 @@ import requireCapability, { PERMISSIONS as P } from "../../../middlewares/requir
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
 import pinService from "../service/pin.service.js";
-import { createPasswordResetRateLimit } from "../../../middlewares/rateLimit.js";
+import { createPasswordResetRateLimit, createPinRecoveryRateLimit } from "../../../middlewares/rateLimit.js";
 import {
     createGetProfileHandler,
     createDebugResetPinHandler,
@@ -19,6 +19,8 @@ export { createPasswordResetRateLimit } from "../../../middlewares/rateLimit.js"
 export function createAuthRouter({
     authenticate = checkJwt,
     passwordResetRateLimit = createPasswordResetRateLimit(),
+    pinRecoveryRequestRateLimit = createPinRecoveryRateLimit({ event: "request" }),
+    pinRecoveryConfirmRateLimit = createPinRecoveryRateLimit({ event: "confirm" }),
     users,
     requestPasswordEmail,
     logger,
@@ -46,12 +48,14 @@ export function createAuthRouter({
         "/pin-recovery/request",
         authenticate,
         requireCapability(P.MANAGE_PIN),
+        pinRecoveryRequestRateLimit,
         createRequestPinRecoveryHandler({ pins }),
     );
     router.post(
         "/pin-recovery/confirm",
         authenticate,
         requireCapability(P.MANAGE_PIN),
+        pinRecoveryConfirmRateLimit,
         createConfirmPinRecoveryHandler({ pins }),
     );
     router.post(

@@ -79,7 +79,7 @@ class Server {
   // aca mismo podemos tener una función asincrona para conectar a la base de datos cuando este disponible
   middlewares() {
 
-    this.app.set('trust proxy', parseTrustedProxy(process.env.TRUST_PROXY));
+    this.app.set('trust proxy', parseTrustedProxy(this.env.TRUST_PROXY));
     this.app.disable('x-powered-by');
     this.app.use(requestContext);
     this.app.use(supportAudit);

@@ -112,7 +112,6 @@ function mapEvent(record, { includePaymentDetails = false } = {}) {
         id: record.ID_REGISTRO,
         occurredAt: record.FECHA_HORA,
         responsible: personName(record.Usuario),
-        responsibleUserId: record.id_usuario,
         description: record.observacion ?? null,
     };
 

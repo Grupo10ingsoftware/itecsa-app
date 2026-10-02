@@ -36,7 +36,7 @@ test("Orders aplica filtros de servidor y pagina de forma estable", async () => 
     let filters;
     const service = new OrderService({
         repo: {
-            async getAllOrders(received) {
+            async listOrderViews(received) {
                 filters = received;
                 return [{ id_pedido: 9 }, { id_pedido: 8 }, { id_pedido: 7 }];
             },

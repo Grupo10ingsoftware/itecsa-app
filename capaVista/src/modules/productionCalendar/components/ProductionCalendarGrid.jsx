@@ -11,6 +11,7 @@ import styles from './ProductionCalendarGrid.module.css';
 
 export default function ProductionCalendarGrid({
   allItems,
+  getOrderDetail,
   draggedItemId,
   items,
   monthDate,
@@ -21,6 +22,7 @@ export default function ProductionCalendarGrid({
 }) {
   const [selectedDayKey, setSelectedDayKey] = useState(null)
   const [selectedDetailOrder, setSelectedDetailOrder] = useState(null)
+  const [detailError, setDetailError] = useState(null)
   const [pendingChange, setPendingChange] = useState(null)
   const [isCredentialStepOpen, setIsCredentialStepOpen] = useState(false)
   const [dropTargetDate, setDropTargetDate] = useState(null)
@@ -51,6 +53,12 @@ export default function ProductionCalendarGrid({
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
 
   const { hasPermission } = useAuth()
+
+  async function openDetail(item) {
+    setDetailError(null)
+    try { setSelectedDetailOrder(await getOrderDetail(item.id)) }
+    catch { setDetailError('No fue posible cargar el detalle del pedido.') }
+  }
 
   const [previousSourceItems, setPreviousSourceItems] = useState(sourceItems)
   if (sourceItems !== previousSourceItems) {
@@ -127,7 +135,7 @@ export default function ProductionCalendarGrid({
           onDragEnd={handleDragEnd}
           onDragStart={onDragStart}
           onDropTransferItem={handleDropTransferItem}
-          onOpenDetail={setSelectedDetailOrder}
+          onOpenDetail={openDetail}
         />
 
         {toolbar && <div className={styles.calendarToolbarSlot}>{toolbar}</div>}
@@ -153,7 +161,7 @@ export default function ProductionCalendarGrid({
                     onDragStart={onDragStart}
                     onDropItem={handleDropItem}
                     onOpenDay={setSelectedDayKey}
-                    onOpenDetail={setSelectedDetailOrder}
+                    onOpenDetail={openDetail}
                     onSetDropTarget={setDropTargetDate}
                   />
                 ))}
@@ -165,7 +173,7 @@ export default function ProductionCalendarGrid({
               items={pendingItems}
               onDragEnd={handleDragEnd}
               onDragStart={onDragStart}
-              onOpenDetail={setSelectedDetailOrder}
+              onOpenDetail={openDetail}
             />
           </div>
         </section>
@@ -178,8 +186,9 @@ export default function ProductionCalendarGrid({
         onClose={() => setSelectedDayKey(null)}
         onDragEnd={handleDragEnd}
         onDragStart={onDragStart}
-        onOpenDetail={setSelectedDetailOrder}
+        onOpenDetail={openDetail}
       />
+      {detailError && <div role="alert">{detailError}</div>}
       <OrderDetailModal
         order={selectedDetailOrder}
         onClose={() => setSelectedDetailOrder(null)}

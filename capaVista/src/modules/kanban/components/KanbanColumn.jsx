@@ -27,6 +27,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
   const [columns, setColumns] = useState(baseColumns)
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
   const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
@@ -118,7 +119,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     setSelectedOrder((currentOrder) => applyOrderStagePatch(currentOrder, patch))
   }
 
-  function handleDragEnd(event) {
+  async function handleDragEnd(event) {
     if (event.canceled || !hasPermission(PERMISSIONS.MOVE_ORDERS)) return
 
     const { source, target } = event.operation
@@ -134,7 +135,12 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     if (!((currentStep === 1 && targetStep === 2) || (currentStep === 2 && targetStep === 3) || (currentStep === 3 && targetStep === 4))) {
       setMoveError('Esta transicion es automatica o no esta permitida.'); return
     }
-    if (targetStep === 3 && (!order.items?.length || order.items.some((item) => !isItemReadyForDelivery(item)))) {
+    let transitionOrder = order
+    if (targetStep === 3) {
+      try { transitionOrder = normalizeOrder(await kanbanApi.getOrderDetail(order.id)) }
+      catch { setMoveError('No fue posible validar el detalle del pedido.'); return }
+    }
+    if (targetStep === 3 && (!transitionOrder.items?.length || transitionOrder.items.some((item) => !isItemReadyForDelivery(item)))) {
       setMoveError('Todos los detalles deben completar sus subprocesos y los lanyards deben llegar al 100% antes de pasar a Listo para Entrega.')
       return
     }
@@ -170,7 +176,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
 
     setMoveError(null)
 
-    setPendingProductionMove({ order, targetColumn })
+    setPendingProductionMove({ order: transitionOrder, targetColumn })
   }
 
   function handleUpdateOrder(updatedOrder) {
@@ -178,6 +184,18 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       prevOrders.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)),
     )
     setSelectedOrder(updatedOrder)
+  }
+
+  async function openOrderDetail(order) {
+    setDetailLoading(true)
+    try {
+      const detail = await kanbanApi.getOrderDetail(order.id)
+      setSelectedOrder(normalizeOrder(detail))
+    } catch (error) {
+      setMoveError(error?.payload?.message ?? 'No fue posible cargar el detalle del pedido.')
+    } finally {
+      setDetailLoading(false)
+    }
   }
 
   async function handleToggleIndicator(orderId, indicator) {
@@ -332,7 +350,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
                         )}
                         canManageIndicators={hasPermission(PERMISSIONS.MANAGE_TAGS)}
                         key={order.id}
-                        onOpenDetail={() => setSelectedOrder(order)}
+                        onOpenDetail={() => openOrderDetail(order)}
                         onToggleIndicator={(indicator) => handleToggleIndicator(order.id, indicator)}
                         {...order}
                       />
@@ -350,6 +368,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
           </button>
         </div>
       )}
+      {detailLoading && <div role="status">Cargando detalle del pedido…</div>}
       <KanbanOffCanvas
         isOpen={selectedOrder !== null}
         onClose={() => setSelectedOrder(null)}

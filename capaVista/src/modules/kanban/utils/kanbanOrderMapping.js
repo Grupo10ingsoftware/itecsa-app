@@ -63,7 +63,8 @@ export function buildOrderItems(order, product, dueDate) {
 
 export function normalizeOrder(order) {
   const id = order.id ?? order.id_pedido
-  const product = order.product ?? order.producto ?? order.nombre_producto ?? 'Producto no definido'
+  const product = order.product ?? order.producto ?? order.nombre_producto ??
+    ((Array.isArray(order.detalles) ? [...new Set(order.detalles.map((item) => item.product ?? item.nombre_producto).filter(Boolean))].join(', ') : '') || 'Producto no definido')
   const dueDate =
     toDateKey(
       order.dueDate ??

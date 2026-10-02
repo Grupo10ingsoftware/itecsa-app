@@ -14,7 +14,7 @@ function response() {
 
 test("un fallo interno en Orders no revela el mensaje de la base", async () => {
   const controller = new OrderController({ service: {
-    getPaymentWorkspace: async () => { throw new Error("SQL private detail"); },
+    getPagedPaymentWorkspace: async () => { throw new Error("SQL private detail"); },
   } });
   const res = response();
   await controller.getPaymentWorkspace({ requestId: "request-1" }, res);

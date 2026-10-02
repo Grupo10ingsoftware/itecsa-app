@@ -28,13 +28,15 @@ const validatePin = createRequirePin({pins:{async validate(sub,pin) {
   return {idUsuario:1};
 }}});
 const ok = (_req,res) => res.sendStatus(204);
-const controller = Object.fromEntries(['productionPerformance','summary','getOrders','getOrder','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','listOrderEvents','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
+const controller = Object.fromEntries(['productionPerformance','summary','getOrders','getOrder','getCalendarOrders','getKanbanDetail','getCalendarDetail','getPaymentWorkspace','getSalesNote','createOrder','updatePaymentStatus','updateGeneralStep','sendToReview','cancelProduction','rollbackSubprocess','reevaluate','setLabel','updateDeliveryDate','completeSubprocess','list','update','calculateOperationalLoad','getToday','saveToday','listOrders','getOrderHistory','listOrderEvents','getInbox','getNotifications','clearNotifications','hideNotification','markAsRead','getMessage'].map(k=>[k,ok]));
 async function listen(app,t) {const s=app.listen(0); t.after(()=>s.close()); await once(s,'listening'); return `http://127.0.0.1:${s.address().port}`;}
 
 // Expected access is literal and independent of ROLE_PERMISSIONS. Tokens deliberately
 // contain excessive scopes: a misconfigured Auth0 grant must not expand functional roles.
 const endpoints = [
- ['GET','/orders',all],['GET','/orders/kanban',all],['GET','/orders/1',all],
+ ['GET','/orders',all],['GET','/orders/kanban',all],['GET','/orders/kanban-summary',all],['GET','/orders/1',all],['GET','/orders/1/kanban-detail',all],
+ ['GET','/orders/calendar-summary',[AP,AV,OV,S]],['GET','/orders/1/calendar-detail',[AP,AV,OV,S]],
+ ['GET','/orders/payments',[AC,OC,S]],
  ['GET','/orders/sales-notes/NV1',[AV,OV,S]],['POST','/orders',[AV,OV,S]],
  ['PATCH','/orders/1/payment-status',[AC,OC,S],true],
  ['PATCH','/orders/1/move',[AP,OP,S],true],['PATCH','/orders/1/review',[AP,S]],

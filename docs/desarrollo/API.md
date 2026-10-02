@@ -56,7 +56,7 @@ El alta responde 201 con identificación y datos internos, rol técnico oficial 
 | PATCH `/orders/:orderId/delivery-date` | `update:order-delivery-date`, PIN y reglas de fecha |
 | PATCH `/orders/:orderId/details/:detailId/subprocesses/:subprocessId/complete` | `update:production-subprocesses`, PIN, pertenencia, producción y pago confirmado |
 | PATCH misma ruta terminada en `/rollback` | `rollback:production-subprocesses`, PIN, último paso y motivo |
-| GET `/orders/:orderId/details`, `/orders/:orderId/details/:detailId` | `read:orders`, pertenencia al pedido |
+| GET `/orders/:orderId/details`, `/orders/:orderId/details/:detailId` | `read:orders`, pertenencia al pedido; proyección limitada a IDs productivos, cantidad, fechas y estado de subproceso |
 | GET `/order-status` | `read:orders` |
 
 Cuerpo de alta utilizado por la SPA:
@@ -73,7 +73,7 @@ La prioridad admite `null`, `urgent` o `contract`; la observación interna admit
 
 Movimiento recibe `generalStepId` y `pin`. Los movimientos manuales permitidos son Listo para producción → En producción y Listo para entrega → Entregado; no se fuerzan transiciones automáticas. Devuelve campos reducidos de etapa, que el frontend combina con la tarjeta existente.
 
-Las listas de Kanban y Calendario devuelven `{ items, pageInfo }` con `limit` (1–100), cursor firmado y filtros de servidor. Kanban admite `search` y `productType` y excluye etapas cerradas antes de paginar; Calendario admite `from` y `to` inclusivos. Las respuestas y su inventario de campos están en [P07](../security/P07_ORDER_READ_CONTRACTS.md).
+Las listas de Kanban y Calendario devuelven `{ items, pageInfo }` con `limit` (1–100), cursor firmado y filtros de servidor. Ambas admiten `status`, `search`, `productType`, `from` y `to` inclusivos; Kanban excluye etapas cerradas antes de paginar. Los detalles por ID agregan sólo los campos de su tarea. Las respuestas y su inventario de campos están en [P07](../security/P07_ORDER_READ_CONTRACTS.md).
 
 ## Payments
 

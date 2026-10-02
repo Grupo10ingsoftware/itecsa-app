@@ -67,42 +67,6 @@ export default class MetricsRepository {
         };
     }
 
-    async reportOrders({ start, end }) {
-        return this.client.pedidos.findMany({
-            where: { fecha_creacion: { gte: start, lt: end } },
-            select: {
-                id_pedido: true,
-                numero_nota_venta: true,
-                fecha_creacion: true,
-                fecha_estimada_termino: true,
-                Usuario: {
-                    select: { nombre_usuario: true, apellido_usuario: true },
-                },
-                Detalle_pedido: {
-                    select: {
-                        cantidad: true,
-                        fecha_estimada_termino: true,
-                        fecha_real_termino: true,
-                        Tipo_Producto: { select: { nombre_producto: true } },
-                    },
-                },
-                Registros: {
-                    select: {
-                        FECHA_HORA: true,
-                        Registro_Etapas: {
-                            select: {
-                                fecha_hora_entrada: true,
-                                Estado_Pedido: { select: { nombre_etapa: true } },
-                            },
-                        },
-                    },
-                    orderBy: { FECHA_HORA: "asc" },
-                },
-            },
-            orderBy: { fecha_creacion: "asc" },
-        });
-    }
-
     averageDurations(items, getName, getProductType = () => null) {
         const grouped = items.reduce((result, item) => {
             const name = getName(item);

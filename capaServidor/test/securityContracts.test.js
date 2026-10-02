@@ -68,7 +68,6 @@ test("metricas rechaza periodos mayores a 366 dias antes de consultar SQL", asyn
     const repo = {
         async production() { calls += 1; },
         async dwellTime() { calls += 1; },
-        async reportOrders() { calls += 1; },
     };
     const service = new MetricsService({ repo });
     await assert.rejects(
@@ -76,6 +75,22 @@ test("metricas rechaza periodos mayores a 366 dias antes de consultar SQL", asyn
         { statusCode: 400 },
     );
     assert.equal(calls, 0);
+});
+
+test("metricas no consulta pedidos ni devuelve desempeño nominal o por orden", async () => {
+    const service = new MetricsService({
+        repo: {
+            async production() { return { Tarjeta: 24 }; },
+            async dwellTime() { return { stages: [], subprocesses: [] }; },
+        },
+    });
+    const summary = await service.summary({ from: "2026-09-01", to: "2026-09-30" });
+
+    assert.deepEqual(Object.keys(summary).sort(), ["dwellTime", "period", "production"]);
+    assert.deepEqual(summary.production, {
+        total: 24,
+        products: [{ productType: "Tarjeta", quantity: 24 }],
+    });
 });
 
 test("la identidad de linea no depende de la posicion y detecta ambiguedad", () => {

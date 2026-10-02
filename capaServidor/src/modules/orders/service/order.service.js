@@ -138,6 +138,10 @@ class OrderService {
   }
 
   async getAllOrders(query = {}) {
+    return this.getOrderViews(query, 'kanban');
+  }
+
+  async getOrderViews(query = {}, view = 'kanban') {
     const limit = parseLimit(query.limit);
     const cursor = decodeCursor(query.cursor);
     const status = String(query.status ?? "").trim().slice(0, 100) || null;
@@ -152,7 +156,8 @@ class OrderService {
       if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) { const error = new AppError(400, "La fecha no es valida."); throw error; }
       return end ? new Date(date.getTime() + 24 * 60 * 60 * 1000) : date;
     };
-    const rows = await this.repo.getAllOrders({
+    const rows = await this.repo.listOrderViews({
+      view,
       limit,
       cursor,
       status,
@@ -164,6 +169,13 @@ class OrderService {
     return pageResult(rows, limit);
   }
 
+  async getOrderViewById(orderId, view = 'kanban') {
+    if (!Number.isInteger(Number(orderId)) || Number(orderId) <= 0) throw new AppError(400, 'ID de pedido no valido');
+    const order = await this.repo.getOrderView(orderId, view);
+    if (!order) throw new AppError(404, 'Pedido no encontrado', 'ORDER_NOT_FOUND');
+    return order;
+  }
+
   async getPaymentWorkspace() {
     const [orders, paymentStatuses] = await Promise.all([
       this.repo.getPaymentOrders(),
@@ -171,6 +183,28 @@ class OrderService {
     ]);
 
     return { orders, paymentStatuses };
+  }
+
+  async getPagedPaymentWorkspace(query = {}) {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const search = String(query.search ?? '').trim().slice(0, 100) || null;
+    const status = String(query.status ?? '').trim() || null;
+    if (status && !['Pendiente', 'Rechazado', 'Confirmado'].includes(status)) throw new AppError(400, 'Estado de pago no valido');
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value)) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new AppError(400, 'Fecha no valida');
+      return end ? new Date(date.getTime() + 86400000) : date;
+    };
+    const from = parseDate(query.from);
+    const to = parseDate(query.to, true);
+    if (from && to && from >= to) throw new AppError(400, 'Rango de fechas no valido');
+    const [page, paymentStatuses] = await Promise.all([
+      this.repo.listPaymentViews({ limit, cursor, status, search, from, to }),
+      this.paymentRepo.getAll(),
+    ]);
+    return { ...pageResult(page.rows, limit), counts: page.counts, paymentStatuses };
   }
 
   async getSalesNoteByNumber(numeroNota) {

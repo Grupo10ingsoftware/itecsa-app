@@ -2,6 +2,8 @@
 
 Fecha: 26 de septiembre de 2026. Revisión sobre `bd6c71c2` (`fix/21709`), con árbol limpio al inicio de la revisión. Este documento actualiza el estado de los hallazgos de [la auditoría previa](../AUDITORIA_PREVIA_PROTECCION_DATOS_21719.md); no la reemplaza.
 
+**Actualización posterior, 2 de octubre de 2026:** este informe conserva la evidencia y las clasificaciones de su fecha de corte. P07 sustituyó las lecturas amplias de Kanban y Calendario por contratos por tarea, paginó Pago y redujo IDs internos en Historial. Para los contratos vigentes de esas rutas, consultar [la matriz P07](security/P07_ORDER_READ_CONTRACTS.md) y [la referencia API](desarrollo/API.md). Esta actualización no reclasifica otros hallazgos ni acredita las condiciones operativas que el informe dejó sin verificar.
+
 ## Alcance y límites
 
 Se contrastaron la implementación actual y la documentación funcional/técnica versionada, se revisaron los cambios posteriores a la revisión anterior y se ejecutaron las suites disponibles, lint, build, auditoría npm y la comparación local de RBAC.

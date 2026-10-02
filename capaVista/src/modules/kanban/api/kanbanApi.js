@@ -7,7 +7,8 @@ export function createKanbanApi(apiClient) {
     return query.size ? `?${query.toString()}` : ''
   }
   return {
-    getOrders: (params) => apiClient.get(`/orders${queryString(params)}`),
+    getOrders: (params) => apiClient.get(`/orders/kanban-summary${queryString(params)}`),
+    getOrderDetail: (orderId) => apiClient.get(`/orders/${orderId}/kanban-detail`),
     getOrderStatuses: () => apiClient.get('/order-status'),
     moveOrder: (orderId, generalStepId, audit = {}) =>
       apiClient.request(`/orders/${orderId}/move`, {

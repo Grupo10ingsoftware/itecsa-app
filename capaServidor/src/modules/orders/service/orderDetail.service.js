@@ -52,7 +52,7 @@ class OrderDetailService {
       throw error;
     }
 
-    return detail;
+    return this.toPublicDetail(detail);
   }
 
   async getDetailsByOrderId(orderId) {
@@ -61,7 +61,19 @@ class OrderDetailService {
       throw error;
     }
 
-    return this.repo.getByOrderId(orderId);
+    const details = await this.repo.getByOrderId(orderId);
+    return details.map((detail) => this.toPublicDetail(detail));
+  }
+
+  toPublicDetail(detail) {
+    return {
+      id_detalle_pedido: detail.id_detalle_pedido,
+      id_tipo_producto: detail.id_tipo_producto,
+      cantidad: detail.cantidad,
+      fecha_estimada_termino: detail.fecha_estimada_termino,
+      fecha_real_termino: detail.fecha_real_termino,
+      id_estado_subproceso: detail.id_estado_subproceso,
+    };
   }
 }
 

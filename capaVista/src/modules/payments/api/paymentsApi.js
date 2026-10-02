@@ -1,6 +1,12 @@
 export function createPaymentsApi(apiClient) {
   return {
-    getPaymentWorkspace: () => apiClient.get('/orders/payments'),
+    getPaymentWorkspace: (params = {}) => {
+      const query = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
+      })
+      return apiClient.get(`/orders/payments?${query.toString()}`)
+    },
     getPaymentPreview: (orderId) =>
       apiClient.get(`/orders/${orderId}/payment-records/preview`),
     updatePaymentStatus: (orderId, payload) =>

@@ -33,6 +33,7 @@ import {
 } from './orderNotificationOperations.js';
 import { lockProductionOrderOperation, completeSubprocessOperation, rollbackSubprocessOperation } from './orderSubprocessOperations.js';
 import getPrismaClient from '../../../database/prisma.js';
+import { listOrderViewsOperation, getOrderViewOperation, listPaymentViewsOperation } from './orderViewOperations.js';
 
 // Keep the public repository API and the injected transaction client in one place.
 // Operation modules receive this repository so cross-operation calls use that same client.
@@ -59,6 +60,18 @@ class OrderRepository {
 
   async getAllOrders(...args) {
     return getAllOrdersOperation(this, ...args);
+  }
+
+  async listOrderViews(...args) {
+    return listOrderViewsOperation(this, ...args);
+  }
+
+  async getOrderView(...args) {
+    return getOrderViewOperation(this, ...args);
+  }
+
+  async listPaymentViews(...args) {
+    return listPaymentViewsOperation(this, ...args);
   }
 
   async getPaymentOrders(...args) {

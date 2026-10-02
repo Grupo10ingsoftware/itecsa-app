@@ -26,6 +26,9 @@ export function createOrderRouter({
     const fallbackController = new OrderController();
     const routeController = {
         getOrders: controller.getOrders ?? fallbackController.getOrders,
+        getCalendarOrders: controller.getCalendarOrders ?? fallbackController.getCalendarOrders,
+        getKanbanDetail: controller.getKanbanDetail ?? fallbackController.getKanbanDetail,
+        getCalendarDetail: controller.getCalendarDetail ?? fallbackController.getCalendarDetail,
         getPaymentWorkspace:
             controller.getPaymentWorkspace ?? fallbackController.getPaymentWorkspace,
         getOrder: controller.getOrder ?? fallbackController.getOrder,
@@ -50,10 +53,14 @@ export function createOrderRouter({
 
     router.get("/", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
     router.get("/kanban", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
+    router.get("/kanban-summary", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrders);
+    router.get("/calendar-summary", authenticate, requireCapability(P.READ_CALENDAR), routeController.getCalendarOrders);
     router.get("/payments", authenticate, requireCapability(P.READ_PAYMENTS), routeController.getPaymentWorkspace);
     router.get("/sales-notes/:numeroNota", authenticate, requireCapability(P.READ_SALES_NOTES), routeController.getSalesNote);
     router.use("/:orderId/details", orderDetailRoutes);
     router.use("/:orderId/payment-records", paymentRecordRoutes);
+    router.get("/:orderId/kanban-detail", authenticate, requireCapability(P.READ_ORDERS), routeController.getKanbanDetail);
+    router.get("/:orderId/calendar-detail", authenticate, requireCapability(P.READ_CALENDAR), routeController.getCalendarDetail);
     router.get("/:orderId", authenticate, requireCapability(P.READ_ORDERS), routeController.getOrder);
     router.post("/", authenticate, requireCapability(P.CREATE_ORDERS), routeController.createOrder);
     router.patch(

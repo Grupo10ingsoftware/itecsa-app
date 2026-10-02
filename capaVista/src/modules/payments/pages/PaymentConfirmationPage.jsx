@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PERMISSIONS } from '@/config/permissions'
 import { PAYMENT_STATUS } from '@/config/status'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,11 +9,9 @@ import PaymentOrderMobileList from '../components/PaymentOrderMobileList'
 import PaymentOrdersTable from '../components/PaymentOrdersTable'
 import PaymentSummaryCards from '../components/PaymentSummaryCards'
 import { usePaymentsApi } from '../hooks/usePaymentsApi'
-import { isPaymentDateInRange } from '../utils/paymentDocuments'
 import {
   getPaymentStatusIdByName,
   mergePaymentPreview,
-  normalizePaymentOrder,
   normalizePaymentOrders,
 } from '../utils/paymentOrders'
 import styles from './PaymentConfirmationPage.module.css'
@@ -28,6 +26,10 @@ export default function PaymentConfirmationPage() {
   const { hasPermission } = useAuth()
   const paymentsApi = usePaymentsApi()
   const [orders, setOrders] = useState([])
+  const [counters, setCounters] = useState({ pending: 0, rejected: 0, confirmed: 0 })
+  const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadRequestId = useRef(0)
   const [paymentStatuses, setPaymentStatuses] = useState([])
   const [activeFilter, setActiveFilter] = useState(PAYMENT_STATUS.PENDIENTE)
   const [editingStatus, setEditingStatus] = useState({})
@@ -63,18 +65,23 @@ export default function PaymentConfirmationPage() {
   }, [canUpdatePaymentStatus])
 
   const loadPaymentData = useCallback(async () => {
+    const requestId = ++loadRequestId.current
     setIsLoading(true)
     setLoadError(null)
     setUpdateError(null)
 
     try {
-      const workspace = await paymentsApi.getPaymentWorkspace()
-      const ordersResponse = workspace?.orders
+      const workspace = await paymentsApi.getPaymentWorkspace({ status: activeFilter, search: searchTerm.trim(), from: dateFrom, to: dateTo, limit: 50 })
+      if (requestId !== loadRequestId.current) return
+      const ordersResponse = workspace?.items
       const statusesResponse = workspace?.paymentStatuses
 
       setOrders(normalizePaymentOrders(ordersResponse))
+      setCounters(workspace?.counts ?? { pending: 0, rejected: 0, confirmed: 0 })
+      setPageInfo(workspace?.pageInfo ?? { nextCursor: null, hasMore: false })
       setPaymentStatuses(Array.isArray(statusesResponse) ? statusesResponse : [])
     } catch (error) {
+      if (requestId !== loadRequestId.current) return
       console.error('Error cargando pagos:', error)
       setOrders([])
       setPaymentStatuses([])
@@ -83,9 +90,25 @@ export default function PaymentConfirmationPage() {
           'No fue posible cargar los pedidos de pago.',
       )
     } finally {
-      setIsLoading(false)
+      if (requestId === loadRequestId.current) setIsLoading(false)
     }
-  }, [paymentsApi])
+  }, [activeFilter, dateFrom, dateTo, paymentsApi, searchTerm])
+
+  async function loadMorePayments() {
+    if (!pageInfo.hasMore || !pageInfo.nextCursor || loadingMore) return
+    const requestId = loadRequestId.current
+    setLoadingMore(true)
+    try {
+      const workspace = await paymentsApi.getPaymentWorkspace({ status: activeFilter, search: searchTerm.trim(), from: dateFrom, to: dateTo, limit: 50, cursor: pageInfo.nextCursor })
+      if (requestId !== loadRequestId.current) return
+      setOrders((current) => [...current, ...normalizePaymentOrders(workspace.items).filter((next) => !current.some((item) => item.id === next.id))])
+      setPageInfo(workspace.pageInfo)
+    } catch (error) {
+      if (requestId === loadRequestId.current) setLoadError(error?.payload?.message ?? 'No fue posible cargar más pedidos de pago.')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     const loadTimer = window.setTimeout(() => {
@@ -95,45 +118,7 @@ export default function PaymentConfirmationPage() {
     return () => window.clearTimeout(loadTimer)
   }, [loadPaymentData])
 
-  const counters = useMemo(() => {
-    return {
-      pending: orders.filter(
-        (order) => order.paymentStatus === PAYMENT_STATUS.PENDIENTE,
-      ).length,
-      rejected: orders.filter(
-        (order) => order.paymentStatus === PAYMENT_STATUS.RECHAZADO,
-      ).length,
-      confirmed: orders.filter(
-        (order) => order.paymentStatus === PAYMENT_STATUS.CONFIRMADO,
-      ).length,
-    }
-  }, [orders])
-
-  const filteredOrders = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-
-    return orders.filter((order) => {
-      const matchesFilter = order.paymentStatus === activeFilter
-      const matchesDateRange = isPaymentDateInRange(
-        order.createdAt,
-        dateFrom,
-        dateTo,
-      )
-
-      const searchableText = [
-        order.nvNumber,
-        order.companyName,
-        order.rut,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      const matchesSearch =
-        normalizedSearch.length === 0 || searchableText.includes(normalizedSearch)
-
-      return matchesFilter && matchesDateRange && matchesSearch
-    })
-  }, [activeFilter, dateFrom, dateTo, orders, searchTerm])
+  const filteredOrders = orders
 
   const getFilterCount = useCallback(
     (filterKey) => {
@@ -160,7 +145,7 @@ export default function PaymentConfirmationPage() {
     setUpdateError(null)
 
     try {
-      const updatedOrder = await paymentsApi.updatePaymentStatus(orderId, {
+      await paymentsApi.updatePaymentStatus(orderId, {
         pin: credentials.pin,
         paymentStatusId,
         observacion:
@@ -168,17 +153,7 @@ export default function PaymentConfirmationPage() {
           `Cambio de estado a ${newStatus} desde modulo de pagos.`,
       })
 
-      if (updatedOrder?.id_pedido !== undefined || updatedOrder?.id !== undefined) {
-        const normalizedOrder = normalizePaymentOrder(updatedOrder)
-
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === normalizedOrder.id ? normalizedOrder : order,
-          ),
-        )
-      } else {
-        await loadPaymentData()
-      }
+      await loadPaymentData()
 
       setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
       return true
@@ -498,6 +473,7 @@ export default function PaymentConfirmationPage() {
               onViewDetail={openPaymentDetail}
               orders={filteredOrders}
             />
+            {pageInfo.hasMore && <button disabled={loadingMore} onClick={loadMorePayments} type="button">{loadingMore ? 'Cargando…' : 'Cargar más pedidos'}</button>}
           </>
         )}
       </section>

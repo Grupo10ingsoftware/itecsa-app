@@ -128,6 +128,8 @@ test("consolida y filtra cronologia por tipo de registro", async () => {
     assert.equal(result.events.length, 1);
     assert.equal(result.events[0].type, "payment");
     assert.equal(result.events[0].responsible, "Ana Perez");
+    assert.equal("responsibleUserId" in result.events[0], false);
+    assert.deepEqual(result.seller, { name: "Ana Perez" });
     assert.equal(result.events[0].previousStatus, "Pendiente");
     assert.equal(result.events[0].nextStatus, "Confirmado");
     assert.deepEqual(result.pageInfo, { limit: 50, nextCursor: null, hasMore: false });

@@ -5,6 +5,7 @@ import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
+import { loadCalendarMonth } from '../api/ordersCalendarApi'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -73,11 +74,14 @@ function normalizeCalendarOrder(order) {
     productType: productNames[0] ?? 'Producto no definido',
     productTypes: productNames,
     quantity: order.quantity ?? order.cantidad ?? 0,
-    items: Array.isArray(order.items) && order.items.length > 0
+    items: (Array.isArray(order.items) && order.items.length > 0
       ? order.items
       : Array.isArray(order.detalles)
         ? order.detalles
-        : [],
+        : []).map((item) => ({
+          ...item,
+          dueDate: toCalendarDateKey(item.dueDate ?? item.fecha_estimada_termino),
+        })),
     status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
     dueDate: toCalendarDateKey(order.dueDate ?? order.fecha_estimada_termino),
   }
@@ -102,8 +106,7 @@ export default function ProductionCalendarPage() {
     async function loadOrders() {
       try {
         setLoadError(null)
-        const result = await ordersCalendarApi.getOrders(monthRange(monthDate))
-        const orders = result.items ?? []
+        const orders = await loadCalendarMonth(ordersCalendarApi, monthRange(monthDate), () => isMounted)
 
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
@@ -172,12 +175,16 @@ export default function ProductionCalendarPage() {
   }
 
   async function updateItemDeliveryDate(itemId, nextDate, credentials) {
-    const updatedOrder = await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
-    const normalizedOrder = normalizeCalendarOrder(updatedOrder)
+    await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
+    const normalizedOrder = normalizeCalendarOrder(await ordersCalendarApi.getOrderDetail(itemId))
 
     setCalendarItems((currentItems) =>
       currentItems.map((item) => (String(item.id) === String(itemId) ? normalizedOrder : item)),
     )
+  }
+
+  async function getOrderDetail(orderId) {
+    return normalizeCalendarOrder(await ordersCalendarApi.getOrderDetail(orderId))
   }
 
   return (
@@ -201,6 +208,7 @@ export default function ProductionCalendarPage() {
 
           <section className={styles.calendarPanel}>
             <ProductionCalendarGrid
+              getOrderDetail={getOrderDetail}
               allItems={calendarItems}
               draggedItemId={draggedItemId}
               items={filteredItems}

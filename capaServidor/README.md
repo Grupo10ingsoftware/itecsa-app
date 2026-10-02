@@ -440,34 +440,38 @@ Consulta el flujo completo en [docs/ARQUITECTURA.md](../docs/ARQUITECTURA.md).
 
 Estos endpoints usan datos reales desde MySQL/Aiven mediante Prisma. Todos requieren access token Auth0 valido, salvo las rutas publicas indicadas en autenticacion y documentos.
 
-### `GET /api/orders` y `GET /api/orders/kanban`
+### `GET /api/orders`, `/api/orders/kanban` y `/api/orders/kanban-summary`
 
-Devuelven pedidos con cliente, productos agregados, estado Kanban, estado de pago y número de Nota de Venta. No incluyen archivos ni firmas de pago. `GET /api/orders/kanban` monta el mismo controlador para compatibilidad.
+Las tres rutas devuelven el mismo resumen mínimo de Kanban, paginado con cursor firmado. Aceptan `limit` (1–100), `cursor`, `status`, `search`, `productType`, `from` y `to`. Los filtros se aplican antes de paginar y las etapas cerradas se excluyen. La respuesta no incluye RUT, observaciones, correos ni snapshots comerciales.
 
-Campos relevantes de respuesta:
+Ejemplo de estructura de respuesta:
 
 ```json
 {
-  "id_pedido": 1,
-  "nombre_cliente": "Cliente",
-  "rut_cliente": "12.345.678-9",
-  "nombre_producto": "Lanyards",
-  "cantidad": 100,
-  "id_etapa_general": 1,
-  "nombre_etapa_general": "Listo para produccion",
-  "id_estado_pago": 2,
-  "estado_pago": "Confirmado",
-  "numero_nota_venta": "NV-2026-3001"
+  "items": [{
+    "id_pedido": 1,
+    "numero_nota_venta": "NV-2026-3001",
+    "nombre_cliente": "Cliente",
+    "fecha_creacion": "2026-09-01T00:00:00.000Z",
+    "fecha_estimada_termino": "2026-10-01T00:00:00.000Z",
+    "id_etapa_general": 1,
+    "nombre_etapa_general": "Listo para produccion",
+    "id_estado_pago": 2,
+    "estado_pago": "Confirmado",
+    "etiquetas": [],
+    "detalles": [{ "id_detalle_pedido": 1, "product": "Lanyard", "quantity": 100, "dueDate": "2026-10-01T00:00:00.000Z" }]
+  }],
+  "pageInfo": { "limit": 50, "hasMore": false, "nextCursor": null }
 }
 ```
 
 ### `GET /api/orders/:orderId`
 
-Devuelve un pedido real por ID. Responde `404` si no existe.
+Devuelve el detalle operativo reducido de Kanban, igual que `/api/orders/:orderId/kanban-detail`. Agrega subprocesos y avance productivo de los detalles. Responde `404` si no existe. Calendario usa `/api/orders/calendar-summary` y carga `/api/orders/:orderId/calendar-detail` al abrir su modal; ambas rutas requieren `read:production-calendar`. Pago usa `/api/orders/payments` con `read:payments`. Ver [matriz de campos P07](../docs/security/P07_ORDER_READ_CONTRACTS.md).
 
 ### `POST /api/orders`
 
-Crea un pedido real con cliente y detalles de producto. La pantalla frontend `/ordenes/nuevo` no consume este contrato todavia.
+Crea un pedido real con cliente y detalles de producto. La pantalla frontend `/ordenes/nuevo` utiliza este contrato.
 
 Payload JSON esperado:
 

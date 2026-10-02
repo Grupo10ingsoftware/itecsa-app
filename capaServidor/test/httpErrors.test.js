@@ -69,7 +69,7 @@ test('auth profile and admin failures use the same internal policy', async () =>
 });
 
 test('real order service keeps missing order 404 and validation 400', async () => {
-    const service = new OrderService({ repo: { async get() { return null; } } });
+    const service = new OrderService({ repo: { async getOrderView() { return null; } } });
     const controller = new OrderController({ service });
     for (const [id,status] of [[1,404], [null,400]]) {
         const f = fixture(); f.req.params.orderId = id;

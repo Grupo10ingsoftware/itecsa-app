@@ -10,5 +10,6 @@ function queryString(params = {}) {
 export function createMetricsApi(apiClient) {
   return {
     getSummary: ({ from, to }) => apiClient.get(`/metrics/summary${queryString({ from, to })}`),
+    getProductionPerformance: ({ from, to }) => apiClient.get(`/metrics/production-performance${queryString({ from, to })}`),
   }
 }

@@ -70,10 +70,10 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     requirementIds: Object.freeze(['RF49']),
   },
   {
-    label: 'Métricas',
+    label: 'Reportes y estadísticas',
     path: APP_ROUTES.METRICS,
     permission: PERMISSIONS.VIEW_METRICS,
     requiredRoles: [ROLES.ADMINISTRADOR,ROLES.GERENCIA,ROLES.SOPORTE],
-    requirementIds: Object.freeze(['RF71']),
+    requirementIds: Object.freeze(['RF70', 'RF71']),
   }
 ])

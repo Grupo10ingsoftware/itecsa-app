@@ -10,6 +10,7 @@ export function createMetricsRouter({
 } = {}) {
     const router = Router();
     router.get("/summary", authenticate, authorize, controller.summary);
+    router.get("/production-performance", authenticate, authorize, controller.productionPerformance);
     return router;
 }
 

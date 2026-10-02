@@ -97,6 +97,32 @@ export default class MetricsService {
         this.repo = repo ?? new MetricsRepository();
     }
 
+    async productionPerformance({ from, to }) {
+        const range = dateRange(from, to);
+        const orders = await this.repo.performanceOrders(range);
+        const dayFormatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+        });
+        const result = {
+            period: { from, to },
+            totalOrders: 0, deliveredOnTime: 0, deliveredLate: 0, missingDeadline: 0,
+        };
+        for (const order of orders) {
+            const entry = order.Registros[0]?.Registro_Etapas?.fecha_hora_entrada;
+            if (!entry) continue;
+            const parts = Object.fromEntries(dayFormatter.formatToParts(new Date(entry)).map(({ type, value }) => [type, value]));
+            const readyDay = `${parts.year}-${parts.month}-${parts.day}`;
+            if (readyDay < from || readyDay > to) continue;
+            result.totalOrders += 1;
+            // The requested deadline is SQL DATE, not a UTC timestamp to shift to Chile.
+            const dueDay = order.fecha_estimada_termino?.toISOString().slice(0, 10);
+            if (!dueDay) result.missingDeadline += 1;
+            else if (readyDay <= dueDay) result.deliveredOnTime += 1;
+            else result.deliveredLate += 1;
+        }
+        return result;
+    }
+
     async summary({ from, to }) {
         const range = dateRange(from, to);
         const [totals, dwellTime, orders] = await Promise.all([

@@ -7,6 +7,8 @@ const server = await createServer({
 })
 
 try {
+  const metrics = await server.ssrLoadModule('/test/metrics.cases.jsx')
+  metrics.run()
   const authorization = await server.ssrLoadModule('/test/authorization.cases.jsx')
   const payments = await server.ssrLoadModule('/test/payment.cases.jsx')
 

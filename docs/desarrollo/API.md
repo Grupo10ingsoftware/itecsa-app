@@ -103,3 +103,10 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 
 `/demo-orders/*` es una herramienta separada para Soporte con almacenamiento demo y controles de capacidad/PIN; no representa aprobaciones del flujo real. El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.
+
+## Documentos y solicitudes sobre datos
+
+- `GET /privacy/documents`: enlaces/versiones configurados y disponibilidad técnica del canal; sin datos de expedientes ni credenciales.
+- `POST /privacy/requests`: autenticación actual, `{requestId, type, subject, description, email}`; identidad y contacto efectivos del backend. Remisión al correo configurado, validación y evidencia mínima. No gestiona derechos ni admite archivos.
+
+Contrato, idempotencia y configuración: [módulo de privacidad](../modulos/PRIVACY.md).

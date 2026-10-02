@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "privacy:deadlines": "node scripts/privacyDeadlines.mjs",
     "test": "node --import ./test/setup.mjs --test",
     "start": "node src/app/app.js",
     "dev": "nodemon src/app/dev.js",

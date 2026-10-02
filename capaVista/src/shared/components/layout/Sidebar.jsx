@@ -1,5 +1,7 @@
 import LogoutButton from '../../../modules/auth/components/LogoutButton'
 import NavigationMenu from '../navigation/NavigationMenu'
+import { NavLink } from 'react-router-dom'
+import { APP_ROUTES } from '../../../config/routes'
 import styles from './Layout.module.css'
 
 export default function Sidebar({ isCollapsed = false, onCloseMobile, onToggleCollapse }) {
@@ -31,6 +33,17 @@ export default function Sidebar({ isCollapsed = false, onCloseMobile, onToggleCo
       </div>
 
       <div className={styles.sidebarFooter}>
+        <div className={styles.sidebarActions}>
+          {[
+            { path: APP_ROUTES.DOCUMENTS, label: 'Documentos', icon: 'bi-file-earmark-text' },
+            { path: APP_ROUTES.DATA_REQUESTS, label: 'Solicitudes', icon: 'bi-envelope-check' },
+          ].map(action => (
+            <NavLink className={styles.sidebarAction} to={action.path} key={action.path} aria-label={action.label} title={action.label} onClick={onCloseMobile}>
+              <i className={`bi ${action.icon}`} aria-hidden="true" />
+              <span className={styles.navText}>{action.label}</span>
+            </NavLink>
+          ))}
+        </div>
         <LogoutButton />
       </div>
     </nav>

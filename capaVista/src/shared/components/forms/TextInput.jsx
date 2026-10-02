@@ -9,6 +9,10 @@ export default function TextInput({
   error,
   id,
   readOnly = false,
+  required = false,
+  maxLength,
+  describedBy,
+  autoComplete,
 }) {
   const handleChange = (e) => {
     if (readOnly) return
@@ -32,8 +36,13 @@ export default function TextInput({
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}
+        required={required}
+        maxLength={maxLength}
+        autoComplete={autoComplete}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={[describedBy, error ? `${id || name}-error` : null].filter(Boolean).join(' ') || undefined}
       />
-      {error && <div className="invalid-feedback d-block">{error}</div>}
+      {error && <div id={`${id || name}-error`} className="invalid-feedback d-block">{error}</div>}
     </div>
   )
 }

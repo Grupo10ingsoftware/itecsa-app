@@ -29,7 +29,9 @@ import { notFoundHandler } from './middlewares/errorHandler.js';
 import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
 import { safeLogger } from './shared/safeLogger.js';
 import supportAudit from './middlewares/supportAudit.js';
-import { createPrivacyRouter } from './modules/privacy/privacyRoutes.js';
+import { createPrivacyRouter } from './modules/privacy/routes/privacy.routes.js';
+import PrivacyController from './modules/privacy/controller/privacy.controller.js';
+import PrivacyRequestService from './modules/privacy/service/privacyRequest.service.js';
 class Server {
   constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
@@ -101,7 +103,7 @@ class Server {
 
   routes() {
 
-    this.app.use('/api/privacy', createPrivacyRouter());
+    this.app.use('/api/privacy', createPrivacyRouter({ controller: new PrivacyController({ service: new PrivacyRequestService({ env: this.env }) }) }));
 
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)

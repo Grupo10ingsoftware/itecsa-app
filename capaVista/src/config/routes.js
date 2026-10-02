@@ -3,8 +3,8 @@ import { ADMINISTRATIVE_ROLES, ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
-  PRIVACY: '/privacidad',
-  PRIVACY_REQUESTS: '/privacidad/solicitudes',
+  DOCUMENTS: '/documentos',
+  DATA_REQUESTS: '/solicitudes',
   PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',

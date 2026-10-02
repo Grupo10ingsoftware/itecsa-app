@@ -1,6 +1,6 @@
 # Runbook de retención y derechos de titulares
 
-Las bases, responsables, plazos y copias externas de P18 siguen pendientes de validación organizacional. La implementación local no habilita una purga, acredita despliegue ni sustituye esa validación.
+El soporte técnico actual de P18 es [Documentos y canal de solicitudes](../modulos/PRIVACY.md). Las bases, responsables, plazos y conservación siguen pendientes de validación organizacional; el canal no ejecuta derechos ni habilita una purga.
 
 ## Retención
 

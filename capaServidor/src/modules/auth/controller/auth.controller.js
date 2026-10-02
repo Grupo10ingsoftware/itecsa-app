@@ -97,10 +97,6 @@ export function createVerifyAuthSessionHandler({
         );
 
         try {
-            if (req.privacyIdentityOnly) {
-                // Mantener el canal de derechos sin revelar perfil ni aprovisionar PIN.
-                return res.status(200).json({ sub: payload.sub, rolUsuario, permissions, pinStatus: 'privacy_suspended', privacySuspended: true });
-            }
             const pinStatus = await pins.ensureProvisioned(payload.sub);
 
             return res.status(200).json({

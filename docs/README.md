@@ -23,6 +23,7 @@ Entradas de código: [frontend](../capaVista/README.md), [backend](../capaServid
 
 - [Integración de fix/21709 con dev](INTEGRACION_FIX_21709.md): decisiones de resolución, configuración y límites de validación.
 - [Aplicación progresiva P08/P11/P18/P19/P28](security/PLAN-P08-P11-P18-P19-P28.md): orden, dependencias, estado actual y evidencia de la primera iteración.
+- [Documentos y canal de solicitudes](modulos/PRIVACY.md): alcance técnico actual de P18, configuración, evidencia y límites operativos.
 
 ## Mantenimiento
 

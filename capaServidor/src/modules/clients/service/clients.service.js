@@ -7,22 +7,14 @@ class ClientService {
   }
 
   async createClient(data) {
-    try {
-      const { rut_cliente, nombre_cliente, razon_social, estado_cliente } =
-        data;
+    const { rut_cliente, nombre_cliente, razon_social, estado_cliente } = data;
 
-      return await this.repo.create({
-        rut_cliente,
-        nombre_cliente,
-        razon_social,
-        estado_cliente,
-      });
-    } catch (error) {
-      throw new Error(
-        "Error al crear nuevo cliente - Capa Servicio",
-        error.msg,
-      );
-    }
+    return this.repo.create({
+      rut_cliente,
+      nombre_cliente,
+      razon_social,
+      estado_cliente,
+    });
   }
 
   async findOrCreateClient(data) {
@@ -46,7 +38,7 @@ class ClientService {
   }
   async getClient(id) {
     const client = await this.repo.get(id);
-    if (!client) throw new Error("No se encontró el estado de pago solicitado");
+    if (!client) throw new AppError(404, "Cliente no encontrado");
     return client;
   }
 

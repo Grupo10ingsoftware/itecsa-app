@@ -3,7 +3,7 @@ import test from "node:test";
 
 import OrderController from "../src/modules/orders/controller/orders.controller.js";
 import OrderDetailController from "../src/modules/orders/controller/orderDetail.controller.js";
-import { sendOrderOperationError } from "../src/modules/orders/service/salesOrder.errors.js";
+import { SalesOrderError } from "../src/modules/orders/service/salesOrder.errors.js";
 
 function response() {
   return {
@@ -33,11 +33,13 @@ test("un fallo interno en el detalle no revela el mensaje de la base", async () 
   assert.doesNotMatch(JSON.stringify(res.body), /SQL private detail/);
 });
 
-test("los errores de negocio conservan estado y mensaje", () => {
+test("un error de dominio de Orders conserva el mensaje aprobado por el servidor", async () => {
+  const controller = new OrderController({ service: {
+    getPaymentWorkspace: async () => { throw new SalesOrderError("Pedido no encontrado", 404); },
+  } });
   const res = response();
-  const error = new Error("Estado no permite la accion");
-  error.statusCode = 409;
-  sendOrderOperationError(res, error);
-  assert.equal(res.code, 409);
-  assert.equal(res.body.message, error.message);
+  await controller.getPaymentWorkspace({ app: { locals: { errorLogger: { error() {} } } } }, res);
+  assert.equal(res.code, 404);
+  assert.equal(res.body.code, "ORDER_REQUEST_REJECTED");
+  assert.equal(res.body.message, "Pedido no encontrado");
 });

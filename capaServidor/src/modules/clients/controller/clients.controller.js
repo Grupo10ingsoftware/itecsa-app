@@ -1,4 +1,5 @@
 import { respondError } from "../../../errors/httpErrors.js";
+import { AppError } from "../../../errors/AppError.js";
 import { response, request } from "express";
 
 import ClientService from "../service/clients.service.js";
@@ -39,10 +40,11 @@ class ClientController {
     getClient = async ( req = request, res = response ) => {
         try {
             const id_cliente = req.params.id_cliente ?? req.params.clientId;
-            if (!id_cliente) return res.status( 400 ).json({msg:'Missing ID'});
+            if (!id_cliente) {
+                return respondError(new AppError(400, "El ID del cliente es obligatorio"), req, res);
+            }
             const result = await
             this.service.getClient(  id_cliente  );
-            if ( !result ) return res.status( 404 ).json({msg:'Cliente no encontrado'})
             res.status( 200 ).json( result )
         } catch (error) {
             return respondError(error, req, res);

@@ -7,7 +7,7 @@ import { payloadFor } from "./authorization.fixture.js";
 import OrderService from "../src/modules/orders/service/order.service.js";
 import SalesNoteSourceService, { normalizeSalesNote } from "../src/modules/orders/service/salesNoteSource.service.js";
 import { validateCreateSalesOrder, validateSalesNoteSource } from "../src/modules/orders/service/salesOrder.validator.js";
-import { SalesOrderError, sendOrderError } from "../src/modules/orders/service/salesOrder.errors.js";
+import { SalesOrderError } from "../src/modules/orders/service/salesOrder.errors.js";
 import OrderController from "../src/modules/orders/controller/orders.controller.js";
 import PaymentRecordService from "../src/modules/payments/service/paymentRecord.service.js";
 
@@ -204,28 +204,6 @@ test("solo el conflicto de la restriccion NV se convierte en duplicado 409", asy
   const conflict = { code: "P2002", meta: { target: ["rut_cliente"] } };
   const { service } = setup({ conflict });
   await assert.rejects(service.createOrder({ numeroNota: "24226" }, { actorId: 7 }), (error) => error === conflict);
-});
-
-test("errores inesperados no exponen mensaje ni datos; logger solo recibe correlacion", () => {
-  let status, payload; const logs = [];
-  const res = { status(value) { status = value; return this; }, json(value) { payload = value; return this; } };
-  sendOrderError(res, new Error("SQL INTERNO Y DATOS"), { error: (event, metadata) => logs.push({ event, ...metadata }) }, { requestId: "order-request" });
-  assert.equal(status, 500);
-  assert.equal(payload.requestId, "order-request");
-  assert.equal(JSON.stringify([payload, logs]).includes("SQL INTERNO"), false);
-  assert.equal(logs[0].requestId, payload.requestId);
-});
-
-test("el log de un error Prisma conserva solo el codigo diagnostico seguro", () => {
-  const logs = [];
-  const res = { status() { return this; }, json() { return this; } };
-  const error = new Error("SQL privado del cliente");
-  error.code = "P2022";
-  error.meta = { table: "Detalle_pedido", column: "producto_origen" };
-  sendOrderError(res, error, { error: (event, metadata) => logs.push({ event, ...metadata }) });
-  assert.equal(logs[0].code, "P2022");
-  assert.equal(JSON.stringify(logs).includes("producto_origen"), false);
-  assert.equal(JSON.stringify(logs).includes("SQL privado"), false);
 });
 
 test("controlador transmite actor verificado y conserva errores de dominio", async () => {

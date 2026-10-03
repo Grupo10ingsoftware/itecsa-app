@@ -5,10 +5,8 @@ import { resolveEnvironmentConfig } from './config/environment.js';
 
 import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
-import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
 import { createInternalHealthRouter } from './modules/health/routes/health.routes.js';
-import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
 import productionCapacityRoutes from './modules/productionCapacity/routes/productionCapacity.routes.js';
 import productionLoadRoutes from './modules/productionLoad/routes/productionLoad.routes.js';
 
@@ -29,6 +27,12 @@ import { notFoundHandler } from './middlewares/errorHandler.js';
 import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
 import { safeLogger } from './shared/safeLogger.js';
 import supportAudit from './middlewares/supportAudit.js';
+import { createPrivacyRouter } from './modules/privacy/routes/privacy.routes.js';
+import PrivacyController from './modules/privacy/controller/privacy.controller.js';
+import PrivacyRequestService from './modules/privacy/service/privacyRequest.service.js';
+import { createIncidentReportRouter } from './modules/security/routes/incidentReport.routes.js';
+import IncidentReportController from './modules/security/controller/incidentReport.controller.js';
+import IncidentReportService from './modules/security/service/incidentReport.service.js';
 class Server {
   constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
@@ -47,11 +51,9 @@ class Server {
         orders : '/api/orders',
         orderDetail: '/api/order-details',
         admin: '/api/admin',
-        demoOrders: '/api/demo-orders',
         health: '/api/health',
         messages: '/api/messages',
         history: '/api/history',
-        productionCalendar: '/api/production-calendar',
         productionCapacity: '/api/production-capacity',
         productionLoad: '/api/production-load',
         metrics: '/api/metrics',
@@ -105,14 +107,12 @@ class Server {
 
   routes() {
 
+    this.app.use('/api/security/incident-reports', createIncidentReportRouter({ controller: new IncidentReportController({ service: new IncidentReportService({ env: this.env, logger: this.logger }) }) }));
+
+    this.app.use('/api/privacy', createPrivacyRouter({ controller: new PrivacyController({ service: new PrivacyRequestService({ env: this.env }) }) }));
+
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
-    /**
-     * Un ejemplo sería
-     * this.app.use(this.paths.users, user_route);
-
-     * Esto se definira cuando tengamos nuestros rutas definidas para cada API
-     */
     this.app.use(
       this.paths.auth,
       createAuthRouter({
@@ -120,14 +120,10 @@ class Server {
       }),
     )
     this.app.use( this.paths.admin, adminUsersRoutes)
-    if (this.environment.demoFeaturesEnabled && this.appEnvironment !== "production") {
-      this.app.use(this.paths.demoOrders, demoOrdersRoutes)
-    }
     this.app.use( this.paths.health, healthRoutes)
     this.app.use('/internal', createInternalHealthRouter({ logger: this.logger }))
     this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.history, orderHistoryRoutes)
-    this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
     this.app.use( this.paths.productionCapacity, productionCapacityRoutes)
     this.app.use( this.paths.productionLoad, productionLoadRoutes)
     this.app.use( this.paths.metrics, metricsRoutes)

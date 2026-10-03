@@ -17,13 +17,13 @@ export function createAdminUsersApi(apiClient) {
   // Deduplicate only simultaneous reads. Completed activity is never retained:
   // each deliberate reopen must be authorized by the backend again.
   const movementsInFlight = new Map()
-  function getMovements(userId, { page = 1, perPage = 10 } = {}) {
-    const key = JSON.stringify([userId, page, perPage])
+  function getMovements(userId, { page = 1, perPage = 10, search = '' } = {}) {
+    const key = JSON.stringify([userId, page, perPage, search])
     const inFlight = movementsInFlight.get(key)
     if (inFlight) return inFlight
 
     const request = apiClient.get(
-      `/admin/users/${encodeURIComponent(userId)}/movements${buildQueryString({ page, perPage })}`,
+      `/admin/users/${encodeURIComponent(userId)}/movements${buildQueryString({ page, perPage, search })}`,
     ).finally(() => {
       if (movementsInFlight.get(key) === request) movementsInFlight.delete(key)
     })

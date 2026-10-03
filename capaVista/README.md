@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-La SPA local usa `http://localhost:5173`. Los comandos `npm test`, `npm run lint`, `npm run build` y `npm run preview` están disponibles; consultar [pruebas y requisitos de navegador](../docs/desarrollo/PRUEBAS.md).
+La SPA local usa `http://localhost:5173`. Los comandos `npm run lint`, `npm run build` y `npm run preview` están disponibles; consultar [validaciones de entrega](../docs/desarrollo/PRUEBAS.md).
 
 ## Referencias
 
@@ -19,6 +19,7 @@ La SPA local usa `http://localhost:5173`. Los comandos `npm test`, `npm run lint
 - [Convenciones UI](../docs/desarrollo/CONVENCIONES_UI_FRONTEND.md).
 - [API y permisos](../docs/desarrollo/API.md) y [Auth0](../docs/auth0/README.md).
 - [Orders](../docs/modulos/ORDERS.md), [Payments](../docs/modulos/PAYMENTS.md) y [pendientes](../docs/PENDIENTES.md).
+- [Documentos y solicitudes P18](../docs/modulos/PRIVACY.md), [reportes P19](../docs/modulos/INCIDENT_REPORTS.md) y [carga de formularios/perfil](../docs/desarrollo/CARGA_FORMULARIOS_P18_P19.md).
 
 El borrador de Orders vive en memoria React y su confirmación llama `POST /api/orders`. Payments usa el workspace y preview JSON de la API; el flujo de PDF y firmas fue retirado. Las variables `VITE_*` son públicas: nunca incluir secretos de la API, de la base o de Auth0 Management.
 

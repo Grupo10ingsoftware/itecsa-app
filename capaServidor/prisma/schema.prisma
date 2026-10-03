@@ -342,6 +342,8 @@ model SecurityAuditEvent {
   request_id              String?  @db.Char(36)
   outcome                 String   @db.VarChar(30)
   reason_code             String?  @db.VarChar(80)
+  event_key               String?  @unique(map: "security_audit_event_key") @db.VarChar(100)
+  metadata                Json?
   Usuario                 Usuario? @relation(fields: [actor_user_id], references: [id_usuario], onDelete: SetNull, onUpdate: NoAction, map: "fk_security_audit_user")
 
   @@index([occurred_at], map: "idx_security_audit_occurred")
@@ -378,6 +380,24 @@ model Pedido_Item_Sin_Seguimiento {
   Pedidos                 Pedidos   @relation(fields: [id_pedido], references: [id_pedido], onDelete: Cascade, onUpdate: NoAction, map: "Pedido_Item_Sin_Seguimiento_Pedidos_FK")
 
   @@index([id_pedido])
+}
+
+// Minimal delivery evidence. Subject/description remain only in the corporate email.
+model PrivacySubmission {
+  id             String   @id @db.Char(36)
+  user_id        Int
+  type           String   @db.VarChar(30)
+  received_at    DateTime @db.DateTime(3)
+  status         String   @db.VarChar(20)
+  payload_digest String   @db.Char(64)
+  recipient      String   @db.VarChar(254)
+  sender         String   @db.VarChar(254)
+  channel        String   @db.VarChar(20)
+  provider_id    String?  @db.VarChar(128)
+  sent_at        DateTime? @db.DateTime(3)
+  error_code     String?  @db.VarChar(40)
+
+  @@index([received_at], map: "privacy_submission_received")
 }
 
 enum Dise_o_Tarjeta_tipo_tarjeta {

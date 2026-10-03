@@ -9,6 +9,7 @@ import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService from "../service/pin.service.js";
 import { safeLogger } from "../../../shared/safeLogger.js";
 import { isActiveUserStatus } from "../../../config/userLifecycle.js";
+import { validateUserMovementsQuery } from "../../users/validators/adminUsers.validator.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
@@ -50,10 +51,15 @@ function hashEmail(email) {
 }
 
 function logPasswordResetAttempt(logger, { email, status }) {
-    logger.info?.("password_reset_request", {
-        correlationId: hashEmail(email),
-        outcome: status,
-    });
+    // Un fallo de telemetría tampoco debe revelar el resultado privado al cliente.
+    try {
+        logger.info?.("password_reset_request", {
+            correlationId: hashEmail(email),
+            outcome: status,
+        });
+    } catch {
+        // El sink se supervisa fuera del canal público de recuperación.
+    }
 }
 
 export function createVerifyAuthSessionHandler({
@@ -99,6 +105,8 @@ export function createVerifyAuthSessionHandler({
                 ...(req.currentUser ? {
                     primerNombre: req.currentUser.nombreUsuario,
                     apellidoPaterno: req.currentUser.apellidoUsuario,
+                    rutUsuario: req.currentUser.rutUsuario,
+                    estadoUsuario: req.currentUser.estadoUsuario,
                 } : {}),
                 email,
                 rolUsuario,
@@ -111,8 +119,6 @@ export function createVerifyAuthSessionHandler({
         }
     };
 }
-
-export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
 
 export function createRevealPinHandler({ pins = pinService } = {}) {
     return async function revealPinHandler(req, res) {
@@ -181,9 +187,10 @@ export function createPasswordResetRequestHandler({
     sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     minimumDelayMs = 600,
     random = Math.random,
+    now = () => performance.now(),
 } = {}) {
     return async function passwordResetRequestHandler(req, res) {
-        const startedAt = Date.now();
+        const startedAt = now();
         const validatedRequest = validatePasswordResetRequest(req.body);
 
         if (!validatedRequest.valid) {
@@ -191,27 +198,36 @@ export function createPasswordResetRequestHandler({
         }
 
         const { email } = validatedRequest;
-        let outcome = "accepted";
+        let outcome = "lookup_error";
 
         try {
             const user = await users.findByEmail(email);
 
-            if (user && isActiveUserStatus(user.estadoUsuario)) {
+            if (!user) {
+                outcome = "not_registered";
+            } else if (!isActiveUserStatus(user.estadoUsuario)) {
+                outcome = "disabled";
+            } else {
+                outcome = "delivery_error";
                 await requestPasswordEmail({ email });
+                outcome = "sent";
             }
         } catch (error) {
-            outcome = "delivery_error";
             if (error instanceof Auth0ServiceError) {
-                logger.error?.("password_reset_auth0_error", {
-                    code: error.code,
-                    outcome: "error",
-                });
+                try {
+                    logger.error?.("password_reset_auth0_error", {
+                        code: error.code,
+                        outcome: "error",
+                    });
+                } catch {
+                    // Mantener el mismo contrato si el sink está indisponible.
+                }
             }
         }
 
         logPasswordResetAttempt(logger, { email, status: outcome });
         const targetDelay = minimumDelayMs + Math.floor(random() * 200);
-        const remaining = targetDelay - (Date.now() - startedAt);
+        const remaining = targetDelay - (now() - startedAt);
         if (remaining > 0) await sleep(remaining);
 
         return res.status(202).json({
@@ -238,6 +254,22 @@ export function createGetProfileHandler({ users = userRepository } = {}) {
                 estadoUsuario: user.estadoUsuario,
                 records,
             });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createGetProfileMovementsHandler({ users = userRepository } = {}) {
+    return async function getProfileMovementsHandler(req, res) {
+        const user = req.currentUser;
+        if (!user || typeof req.auth?.payload?.sub !== 'string' || user.idAuth0 !== req.auth.payload.sub) {
+            return res.status(401).json({ message: "Sesión no válida." });
+        }
+        const query = validateUserMovementsQuery(req.query ?? {});
+        if (!query.valid) return res.status(400).json({ message: query.message });
+        try {
+            return res.status(200).json(await users.listMovements(user.idUsuario, query.filters));
         } catch (error) {
             return respondError(error, req, res);
         }

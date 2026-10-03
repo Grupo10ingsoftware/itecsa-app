@@ -3,7 +3,7 @@ import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
 import { loadCalendarMonth } from '../api/ordersCalendarApi'
 import styles from './ProductionCalendarPage.module.css'
@@ -47,18 +47,14 @@ function normalizeText(value) {
 }
 
 function getOrderProductNames(order) {
-  const sourceItems = Array.isArray(order.items) && order.items.length > 0
-    ? order.items
-    : Array.isArray(order.detalles)
-      ? order.detalles
-      : []
+  const sourceItems = Array.isArray(order.items) ? order.items : []
 
   const productNames = sourceItems
-    .map((item) => item.productType ?? item.product ?? item.nombre_producto ?? item.producto)
+    .map((item) => item.product)
     .filter(Boolean)
 
   return [...new Set([
-    order.productType ?? order.product ?? order.producto ?? order.nombre_producto,
+    order.product,
     ...productNames,
   ].filter(Boolean))]
 }
@@ -68,22 +64,18 @@ function normalizeCalendarOrder(order) {
 
   return {
     ...order,
-    id: order.id ?? order.id_pedido,
-    orderNumber: order.orderNumber ?? order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta,
-    clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
+    id: order.id,
+    orderNumber: order.salesNoteNumber,
+    clientName: order.clientName ?? 'Cliente sin nombre',
     productType: productNames[0] ?? 'Producto no definido',
     productTypes: productNames,
-    quantity: order.quantity ?? order.cantidad ?? 0,
-    items: (Array.isArray(order.items) && order.items.length > 0
-      ? order.items
-      : Array.isArray(order.detalles)
-        ? order.detalles
-        : []).map((item) => ({
+    quantity: 0,
+    items: (Array.isArray(order.items) ? order.items : []).map((item) => ({
           ...item,
-          dueDate: toCalendarDateKey(item.dueDate ?? item.fecha_estimada_termino),
+          dueDate: toCalendarDateKey(item.dueDate),
         })),
-    status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
-    dueDate: toCalendarDateKey(order.dueDate ?? order.fecha_estimada_termino),
+    status: getStatusByStep(order.generalStepId),
+    dueDate: toCalendarDateKey(order.dueDate),
   }
 }
 
@@ -111,7 +103,7 @@ export default function ProductionCalendarPage() {
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
             ? orders
-                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .filter((order) => order?.salesNoteNumber)
                 .map(normalizeCalendarOrder)
             : [])
         }

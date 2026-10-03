@@ -108,12 +108,28 @@ export class UserRepository {
         }
     }
 
-    async listRecentRecords(idUsuario, { page = 1, perPage = 10 } = {}) {
+    buildRecordsWhere(idUsuario, { search = '' } = {}) {
         if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
             throw new UserRepositoryError("USER_NOT_FOUND", "Usuario no válido.");
         }
+        const where = { id_usuario: idUsuario };
+        if (search) {
+            const term = search.replace(/^(Estado de pago|Etapa del pedido|Subproceso):\s*/i, '').trim() || search;
+            const id = /^\d+$/.test(search) ? Number(search) : null;
+            where.OR = [
+                ...(Number.isSafeInteger(id) ? [{ ID_REGISTRO: id }] : []),
+                { observacion: { contains: term } },
+                { Registro_Pago: { is: { Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: { is: { nombre_estado_pago: { contains: term } } } } } },
+                { Registro_Etapas: { is: { Estado_Pedido: { is: { nombre_etapa: { contains: term } } } } } },
+                { registro_subprocesos: { is: { Estado_Subprocesos: { is: { nombre_estado: { contains: term } } } } } },
+            ];
+        }
+        return where;
+    }
+
+    async listRecentRecords(idUsuario, { page = 1, perPage = 10, search = '' } = {}) {
         const records = await this.client.registros.findMany({
-            where: { id_usuario: idUsuario },
+            where: this.buildRecordsWhere(idUsuario, { search }),
             orderBy: [{ FECHA_HORA: "desc" }, { ID_REGISTRO: "desc" }],
             skip: (page - 1) * perPage,
             take: perPage,
@@ -147,10 +163,10 @@ export class UserRepository {
         }));
     }
 
-    async listMovements(idUsuario, { page, perPage }) {
+    async listMovements(idUsuario, { page, perPage, search = '' }) {
         const [records, total] = await Promise.all([
-            this.listRecentRecords(idUsuario, { page, perPage }),
-            this.client.registros.count({ where: { id_usuario: idUsuario } }),
+            this.listRecentRecords(idUsuario, { page, perPage, search }),
+            this.client.registros.count({ where: this.buildRecordsWhere(idUsuario, { search }) }),
         ]);
         return { records, total, page, perPage };
     }

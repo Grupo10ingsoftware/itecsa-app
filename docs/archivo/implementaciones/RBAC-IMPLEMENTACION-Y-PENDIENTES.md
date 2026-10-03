@@ -11,7 +11,7 @@ Rama: `feat/permisos-por-rol`. Sin push, merge, cambio de rama ni PR.
 
 Solo autorización sobre capacidades ya implementadas: Auth0, backend, frontend, pruebas y documentación. La fuente principal es `REQ -UR -CDU -DIAGRAMAS.docx` de Downloads, SHA-256 `55c55403aadacd2a39d91f12b0dfd1470ff5e21d11926a9ae21b2c2b417c10e6`, interpretada con las decisiones explícitas del usuario. No se agregan flujos de producción, reportes ni aprobaciones de pago. Tampoco se elimina el módulo de documentos dentro de esta tarea.
 
-**Lista para configurar los roles a mano:** [RBAC-PERMISOS-POR-ROL.md](auth0/RBAC-PERMISOS-POR-ROL.md). Contiene las listas completas, no solo ejemplos.
+**Lista para configurar los roles a mano:** [RBAC-PERMISOS-POR-ROL.md](../../auth0/RBAC-PERMISOS-POR-ROL.md). Contiene las listas completas, no solo ejemplos.
 
 Modelo canónico: `shared/authorization.js`, consumido por ambas capas. El permiso efectivo requiere que el access token lo contenga **y** que esté concedido al rol por el modelo aprobado. Una asignación excesiva en Auth0 no amplía las atribuciones de un rol funcional.
 
@@ -93,12 +93,12 @@ La notación `[/ :id]` representa las dos rutas con y sin ID, sin espacios en la
 
 ## Configuración vigente
 
-Consultar la [matriz generada](auth0/RBAC-PERMISOS-POR-ROL.md) y la [auditoría del 25 de septiembre](auth0/AUDITORIA-2026-09-25.md). El catálogo vigente contiene 25 permisos. Métricas corresponde a Administrador Produccion, Gerencia y Soporte. manage:production-load corresponde a Administrador Produccion y Soporte.
+Consultar la [matriz generada](../../auth0/RBAC-PERMISOS-POR-ROL.md) y la [auditoría del 25 de septiembre](../auditorias/AUDITORIA-2026-09-25.md). El catálogo vigente contiene 25 permisos. Métricas corresponde a Administrador Produccion, Gerencia y Soporte. manage:production-load corresponde a Administrador Produccion y Soporte.
 
 ## Registro histórico de migración del 6 de septiembre
 
 1. Los 21 permisos nuevos ya se añadieron; se conservaron `update:payment-status` y `manage:order-tags`. Por solicitud posterior del usuario se eliminaron los ocho antiguos: el tenant contiene exactamente los 23 scopes finales, verificados mediante relectura del MCP.
-2. Configurar **cada rol** con la lista exacta de [permisos por rol](auth0/RBAC-PERMISOS-POR-ROL.md). Para Soporte, seleccionar los 25 permisos de negocio de ITECSA; nunca Management API.
+2. Configurar **cada rol** con la lista exacta de [permisos por rol](../../auth0/RBAC-PERMISOS-POR-ROL.md). Para Soporte, seleccionar los 25 permisos de negocio de ITECSA; nunca Management API.
 3. Revisar usuarios con permisos directos, sin rol o con varios roles. Resolver la asignación en Auth0. Cuando el usuario renueve su sesión, un token con el rol vigente sincronizará `rol_usuario` con Auth0 tras una consulta de confirmación; no hay migración SQL ni cambios al esquema.
 4. Verificar que `ITECSA Add Claims` siga vinculada al flujo Login. La Action v5 está desplegada, pero el binding no pudo leerse con el MCP.
 5. Coordinar despliegue de backend/frontend y renovar sesiones: los tokens antiguos carecen de permisos nuevos y deben recibir denegación hasta renovarse.

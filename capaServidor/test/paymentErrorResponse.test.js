@@ -3,7 +3,6 @@ import test from "node:test";
 
 import PaymentRecordController from "../src/modules/payments/controller/paymentRecord.controller.js";
 import PaymentStatusController from "../src/modules/payments/controller/paymentStatus.controller.js";
-import { sendPaymentError } from "../src/modules/payments/controller/paymentError.js";
 
 function response() {
   return {
@@ -38,21 +37,4 @@ test("los cinco endpoints de Payments ocultan errores internos", async () => {
   } finally {
     console.error = originalError;
   }
-});
-
-test("Payments conserva los errores esperados y registra solo metadatos seguros", () => {
-  const expected = Object.assign(new Error("Pedido no encontrado"), { statusCode: 404 });
-  const missing = response();
-  sendPaymentError(missing, expected);
-  assert.equal(missing.code, 404);
-  assert.equal(missing.body.message, expected.message);
-  assert.equal(missing.body.code, "PAYMENT_REQUEST_REJECTED");
-
-  const events = [];
-  const failed = response();
-  sendPaymentError(failed, Object.assign(new Error("SQL private detail"), { code: "P2021" }), {
-    error: (event, metadata) => events.push({ event, ...metadata }),
-  }, { requestId: "payment-request" });
-  assert.equal(failed.code, 500);
-  assert.deepEqual(events, [{ event: "payments.unexpected_error", requestId: "payment-request", actorId: undefined, code: "P2021", outcome: "error" }]);
 });

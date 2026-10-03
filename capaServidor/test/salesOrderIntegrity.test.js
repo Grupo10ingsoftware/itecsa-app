@@ -86,7 +86,7 @@ test("creacion consulta fuente, canonicaliza alias e ignora campos comerciales y
   assert.equal(state.persisted.observacion_origen, "Texto de origen");
   assert.equal(state.persisted.observacion_interna, "Interna");
   assert.equal(state.persisted.fecha_estimada_termino, null);
-  assert.equal(result.detalles[0].codigo, "A");
+  assert.equal(result.detalles[0].codigo_origen, "A");
   assert.equal(state.events.length, 1);
   assert.deepEqual(state.securityEvents, [{
     eventType: "order.imported",
@@ -171,7 +171,8 @@ test("preview de ventas minimiza cliente sin cambiar el contrato interno de fuen
   const source = note(); source.cliente.direccion = "NO PUBLICAR"; source.cliente.comuna = "NO PUBLICAR";
   const { service, sourceService } = setup({ source });
   const preview = await service.getSalesNoteByNumber("24226");
-  assert.deepEqual(Object.keys(preview.cliente).sort(), ["nombre"]);
+  assert.deepEqual(Object.keys(preview.cliente).sort(), ["nombre", "rut"]);
+  assert.equal(preview.observaciones, "Texto de origen");
   assert.equal((await sourceService.getByNumber("24226")).cliente.direccion, "NO PUBLICAR");
 });
 

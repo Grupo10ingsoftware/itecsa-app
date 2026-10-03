@@ -4,7 +4,7 @@ import { createApiClient } from '../../../services/api/apiClient'
 import { createAuthApi } from '../api/authApi'
 
 export function useAuthApi() {
-  const { getAccessTokenSilently } = useAuth0()
+  const { getAccessTokenSilently, user } = useAuth0()
 
   const getAccessToken = useCallback(
     () =>
@@ -16,5 +16,9 @@ export function useAuthApi() {
     [getAccessTokenSilently],
   )
 
-  return useMemo(() => createAuthApi(createApiClient({ getAccessToken })), [getAccessToken])
+  // An in-flight read must never be reused by another authenticated subject.
+  return useMemo(
+    () => createAuthApi(createApiClient({ getAccessToken }), { subject: user?.sub }),
+    [getAccessToken, user?.sub],
+  )
 }

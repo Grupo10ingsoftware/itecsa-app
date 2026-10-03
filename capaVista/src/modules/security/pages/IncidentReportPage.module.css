@@ -1,0 +1,8 @@
+.sendButton.sendButton { background: #000; color: #fff; }
+.sendButton.sendButton:hover:not(:disabled) { background: #222; color: #fff; }
+.reviewNote { align-items: center; background: #e5e7eb; border-radius: 0.85rem; display: flex; gap: 0.85rem; margin-top: 0.5rem; padding: 0.85rem; }
+.reviewNote p { color: var(--itexsa-text); font-weight: 750; margin: 0; }
+.reviewIcon { background: #f3f4f6; }
+.contextFields :global(.form-label) { display: block; }
+.contextFields :global(.form-control), .contextFields :global(.form-select) { height: 2.75rem; }
+.reportForm input[type='datetime-local'] { min-width: 0; }

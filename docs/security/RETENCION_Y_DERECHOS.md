@@ -1,5 +1,7 @@
 # Runbook de retención y derechos de titulares
 
+El soporte técnico actual de P18 es [Documentos y canal de solicitudes](../modulos/PRIVACY.md). Las bases, responsables, plazos y conservación siguen pendientes de validación organizacional; el canal no ejecuta derechos ni habilita una purga.
+
 ## Retención
 
 La limpieza automática conserva la purga de cuotas vencidas y caché temporal de notas. Incorpora una opción para registros de recuperación PIN vencidos, desactivada por defecto: `PIN_RECOVERY_RETENTION_MODE=disabled`. Tras aprobar el plazo, `PIN_RECOVERY_RETENTION_DAYS` indica los días de conservación posteriores al vencimiento; `dry-run` sólo informa y `delete` elimina hasta 100 registros por ejecución de la tarea existente en producción. La selección y el borrado comprueban el vencimiento; no se modifican PIN vigentes ni usuarios. Los logs incluyen fecha, modo y conteos sin códigos ni destinatarios. Para simular manualmente desde `capaServidor`, usar `npm run pin:retention:preview -- --days PLAZO_APROBADO`; ese comando nunca borra datos. No requiere tablas nuevas ni migraciones. Los PIN vigentes, usuarios, pedidos y documentos se conservan. Suspender la limpieza de retos PIN con `disabled` y reiniciar el backend si existe una obligación de conservación.

@@ -31,7 +31,7 @@ export function getProductSummary(item) {
 
   const sourceItems = Array.isArray(item.items) ? item.items : []
   const productNames = sourceItems
-    .map((detail) => detail.productType ?? detail.product ?? detail.nombre_producto ?? detail.producto)
+    .map((detail) => detail.product)
     .filter(Boolean)
   const uniqueProductNames = [...new Set(productNames)]
 
@@ -57,10 +57,10 @@ export function getCalendarOrderItems(order) {
 
   return sourceItems.map((item, index) => ({
     ...item,
-    id: item.id ?? item.id_detalle_pedido ?? `${order.id}-${index}`,
-    product: item.product ?? item.productType ?? item.nombre_producto ?? item.producto ?? order.productType ?? 'Producto no definido',
-    quantity: item.quantity ?? item.cantidad ?? order.quantity ?? null,
-    dueDate: item.dueDate ?? item.fecha_estimada_termino ?? order.dueDate ?? null,
+    id: item.id ?? `${order.id}-${index}`,
+    product: item.product ?? order.productType ?? 'Producto no definido',
+    quantity: item.quantity ?? order.quantity ?? null,
+    dueDate: item.dueDate ?? order.dueDate ?? null,
     manufacturingDetails: item.manufacturingDetails ?? {},
   }))
 }
@@ -94,7 +94,7 @@ export function normalizeLabelName(value) {
 }
 
 export function hasOrderLabel(order, expectedNames = []) {
-  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+  const labels = Array.isArray(order.labels) ? order.labels : []
   const normalizedExpectedNames = expectedNames.map(normalizeLabelName)
 
   return labels.some((label) =>

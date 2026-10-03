@@ -3,7 +3,7 @@ name: Security and quality gates
 on:
   pull_request:
   push:
-    branches: [main, opt-historial]
+    branches: [main, dev]
 
 permissions:
   contents: read

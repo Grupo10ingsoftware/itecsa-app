@@ -1,5 +1,7 @@
 # H08 — Política de errores HTTP
 
+**Contexto histórico:** los resultados de pruebas documentan la revisión original. Las suites se retiraron el 03-10-2026; los comandos de esa revisión ya no están disponibles. Ver [validación de entrega](../desarrollo/PRUEBAS.md).
+
 ## Inventario previo a los cambios
 
 | Tipo | Ejemplo/patrón encontrado | Puede exponerse | Debe ocultarse |

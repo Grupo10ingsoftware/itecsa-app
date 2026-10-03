@@ -69,7 +69,7 @@ test("repositorios reales conservan snapshots, actor, evento y etapa con el mism
   assert.equal(rows.securityEvents.length, 1);
   assert.equal(rows.securityEvents[0].event_type, "order.imported");
   assert.equal(rows.securityEvents[0].actor_user_id, 7);
-  assert.equal(result.detalles[1].codigo, "SKU-B");
+  assert.equal(result.detalles[1].codigo_origen, "SKU-B");
   assert.deepEqual(db.calls, { transactions: 1, types: 1, subprocesses: 1 });
 });
 

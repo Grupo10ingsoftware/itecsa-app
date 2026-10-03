@@ -8,8 +8,3 @@ export class AppError extends Error {
         this.details = details;
     }
 }
-
-export function normalizeErrorStatus(error) {
-    const status = Number(error?.status ?? error?.statusCode);
-    return Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500;
-}

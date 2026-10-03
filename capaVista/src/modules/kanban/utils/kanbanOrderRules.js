@@ -37,7 +37,7 @@ export function normalizeText(value) {
 
 export function hasOrderLabel(order, expectedNames = []) {
   const normalizedExpectedNames = expectedNames.map(normalizeText)
-  const labels = Array.isArray(order.etiquetas) ? order.etiquetas : []
+  const labels = Array.isArray(order.labels) ? order.labels : []
 
   return labels.some((label) =>
     normalizedExpectedNames.includes(normalizeText(label?.nombre_etiqueta ?? label?.name ?? label)),
@@ -91,7 +91,7 @@ export function orderMatchesFilters(order, filters = {}) {
     return false
   }
 
-  if (normalizedFilters.nv && !normalizeText(order.nv).includes(normalizedFilters.nv)) {
+  if (normalizedFilters.nv && !normalizeText(order.salesNoteNumber).includes(normalizedFilters.nv)) {
     return false
   }
 

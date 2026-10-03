@@ -1,5 +1,7 @@
 # H06 — Implementación parcial sin cambios en Usuario
 
+> Este documento registra la implementación parcial de H06. La integración posterior añade serialización y consumo único de retos: consultar [integración](../INTEGRACION_FIX_21709.md), [entrega de PIN](H07-pin-recovery-delivery.md) y [pendientes](../PENDIENTES.md). Los recuentos y la atribución de H04/H05 a otro equipo describen la revisión original.
+
 ## Estado acordado
 
 Se difiere el vencimiento del PIN pendiente a petición del usuario para evitar

@@ -49,4 +49,3 @@ export function createSafeLogger({ sink = console } = {}) {
 }
 
 export const safeLogger = createSafeLogger();
-export { sanitizedEntry };

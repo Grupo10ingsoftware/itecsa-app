@@ -59,7 +59,7 @@ export default function ProtectedRoute({ children, fallback }) {
     )
   }
 
-  if (pinStatus === 'pending_acknowledgement' && location.pathname !== APP_ROUTES.PROFILE) {
+  if (pinStatus === 'pending_acknowledgement' && ![APP_ROUTES.PROFILE, APP_ROUTES.DOCUMENTS, APP_ROUTES.DATA_REQUESTS, APP_ROUTES.INCIDENT_REPORT].includes(location.pathname)) {
     return <Navigate replace to={APP_ROUTES.PROFILE} />
   }
 

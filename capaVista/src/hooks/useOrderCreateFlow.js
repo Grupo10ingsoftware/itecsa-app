@@ -26,7 +26,6 @@ function toDisplayRecord(salesNote) {
     ...salesNote,
     client: salesNote.cliente?.nombre ?? '-',
     rut: salesNote.cliente?.rut ?? '-',
-    seller: salesNote.origen?.usuarioManager ?? '-',
     dueDate: salesNote.fechaEntregaTentativaOrigen ?? '-',
     productType: productTypes.length > 1 ? 'Mixto' : productTypes[0] ?? '-',
   }

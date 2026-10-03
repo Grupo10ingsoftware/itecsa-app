@@ -214,6 +214,7 @@ model Usuario {
   Pedidos                Pedidos[]
   PinRecoveryChallenge   PinRecoveryChallenge[]
   Registros              Registros[]
+  SecurityAuditEvent     SecurityAuditEvent[]
 }
 
 model etiqueta {
@@ -314,6 +315,37 @@ model PinRecoveryChallenge {
   Usuario                   Usuario   @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_pin_recovery_usuario")
 
   @@index([id_usuario, created_at], map: "idx_pin_recovery_user_created")
+}
+
+model SecurityThrottle {
+  id_security_throttle Int      @id @default(autoincrement())
+  scope                 String   @db.VarChar(50)
+  subject_hash          String   @db.Char(64)
+  window_started_at     DateTime @db.DateTime(3)
+  request_count         Int      @default(0)
+  expires_at            DateTime @db.DateTime(3)
+  updated_at            DateTime @db.DateTime(3)
+
+  @@unique([scope, subject_hash], map: "scope_subject_hash")
+  @@index([expires_at], map: "idx_security_throttle_expiry")
+}
+
+model SecurityAuditEvent {
+  id_security_audit_event BigInt   @id @default(autoincrement())
+  occurred_at              DateTime @default(now()) @db.DateTime(3)
+  event_type               String   @db.VarChar(80)
+  actor_user_id            Int?
+  action                   String?  @db.VarChar(80)
+  resource_type            String?  @db.VarChar(60)
+  resource_id              String?  @db.VarChar(120)
+  request_id               String?  @db.Char(36)
+  outcome                  String   @db.VarChar(30)
+  reason_code              String?  @db.VarChar(80)
+  Usuario                  Usuario? @relation(fields: [actor_user_id], references: [id_usuario], onDelete: SetNull, onUpdate: NoAction, map: "fk_security_audit_user")
+
+  @@index([occurred_at], map: "idx_security_audit_occurred")
+  @@index([actor_user_id, occurred_at], map: "idx_security_audit_actor")
+  @@index([request_id], map: "idx_security_audit_request")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments

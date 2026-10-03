@@ -91,7 +91,6 @@ export function toSalesNotePreview(note) {
     numeroNota: note.numeroNota,
     fechaEntregaTentativaOrigen: note.fechaEntregaTentativaOrigen ?? null,
     cliente: { rut: note.cliente?.rut, nombre: note.cliente?.nombre },
-    origen: { usuarioManager: note.origen?.usuarioManager ?? null },
     observaciones: note.observaciones ?? null,
     items: note.items,
     itemsSinSeguimientoProductivo: note.itemsSinSeguimientoProductivo ?? [],

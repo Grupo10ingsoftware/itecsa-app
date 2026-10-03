@@ -167,6 +167,7 @@ test("preview de ventas minimiza cliente sin cambiar el contrato interno de fuen
   const { service, sourceService } = setup({ source });
   const preview = await service.getSalesNoteByNumber("24226");
   assert.deepEqual(Object.keys(preview.cliente).sort(), ["nombre", "rut"]);
+  assert.equal(Object.hasOwn(preview, "origen"), false);
   assert.equal((await sourceService.getByNumber("24226")).cliente.direccion, "NO PUBLICAR");
 });
 

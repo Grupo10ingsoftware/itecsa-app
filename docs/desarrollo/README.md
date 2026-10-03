@@ -1,6 +1,6 @@
 # Desarrollo local y configuración
 
-Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [DTO canónico de pedidos](ORDERS_DTO_CANONICO.md) y [pruebas](PRUEBAS.md).
+Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [DTO canónico de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../seguridad/P14_BUSQUEDA_NOTAS_VENTA.md) y [pruebas](PRUEBAS.md).
 
 ## Requisitos e instalación
 
@@ -35,6 +35,7 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 | API: `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` | Issuer y audience del JWT; obligatorios en el arranque |
 | API: `AUTH0_MANAGEMENT_CLIENT_ID`, `AUTH0_MANAGEMENT_CLIENT_SECRET`, `AUTH0_DATABASE_CONNECTION`, `AUTH0_PASSWORD_RESET_CLIENT_ID` | Gestión de identidades y solicitud de correos; exclusivos del servidor |
 | API: `PIN_SECRET` | Obligatorio; exactamente 32 bytes en base64 para cifrado y huellas de PIN |
+| API: `SECURITY_MONITOR_WINDOW_SECONDS`, `SECURITY_MONITOR_LOOKUP_SIGNAL_THRESHOLD`, `SECURITY_MONITOR_NOT_FOUND_SIGNAL_THRESHOLD` | Opcionales; ventana y señales del monitoreo de Notas de Venta. Sus valores por defecto son 300, 30 y 10. No activan bloqueos ni respuestas 429 |
 | API: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL_CA_PATH` | Adaptador MariaDB/MySQL con CA y TLS |
 | Prisma CLI: `DATABASE_URL` | Conexión definida en `prisma.config.ts`; debe corresponder a la misma base del runtime |
 

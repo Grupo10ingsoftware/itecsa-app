@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { sendOrderError, sendOrderOperationError } from "../service/salesOrder.errors.js";
 import { roleFromPayload } from "../../../../../shared/authorization.js";
 import { response, request } from "express";
@@ -10,12 +11,45 @@ import {
 
 import OrderService from "../service/order.service.js";
 import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
+import SalesNoteSecurityMonitor, {
+    SALES_NOTE_LOOKUP_OUTCOMES,
+} from "../../security/service/salesNoteSecurityMonitor.service.js";
 
+export function classifySalesNoteLookupError(error) {
+    if (error?.statusCode === 409) {
+        return SALES_NOTE_LOOKUP_OUTCOMES.ALREADY_REGISTERED;
+    }
+
+    if (error?.statusCode === 404) {
+        return SALES_NOTE_LOOKUP_OUTCOMES.NOT_FOUND;
+    }
+
+    return SALES_NOTE_LOOKUP_OUTCOMES.ERROR;
+}
 
 class OrderController {
 
-    constructor({ service } = {}) {
+    constructor({ service, salesNoteMonitor, logger = console } = {}) {
         this.service = service ?? new OrderService()
+        this.salesNoteMonitor = salesNoteMonitor ?? new SalesNoteSecurityMonitor({ logger });
+        this.logger = logger;
+    }
+
+    observeSalesNoteLookup = async ({ req, requestId, outcome }) => {
+        try {
+            await this.salesNoteMonitor.observeLookup({
+                actorUserId: req.currentUser?.idUsuario,
+                salesNoteNumber: req.params?.numeroNota,
+                requestId,
+                outcome,
+            });
+        } catch {
+            // El monitor nunca debe cambiar la respuesta del flujo de Ventas.
+            this.logger.error?.({
+                event: "security.sales_note_lookup_monitor_failed",
+                requestId,
+            });
+        }
     }
 
     getOrders = async ( req = request, res = response) => {
@@ -53,13 +87,27 @@ class OrderController {
     }
 
     getSalesNote = async (req = request, res = response) => {
+        const requestId = randomUUID();
+
         try {
             const { numeroNota } = req.params;
             const salesNote = await this.service.getSalesNoteByNumber(numeroNota);
 
-            res.status(200).json(salesNote);
+            const result = res.status(200).json(salesNote);
+            await this.observeSalesNoteLookup({
+                req,
+                requestId,
+                outcome: SALES_NOTE_LOOKUP_OUTCOMES.AVAILABLE,
+            });
+            return result;
         } catch (error) {
-            return sendOrderError(res, error);
+            const result = sendOrderError(res, error, this.logger);
+            await this.observeSalesNoteLookup({
+                req,
+                requestId,
+                outcome: classifySalesNoteLookupError(error),
+            });
+            return result;
         }
     }
 

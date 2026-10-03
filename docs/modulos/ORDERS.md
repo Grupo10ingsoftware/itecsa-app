@@ -6,7 +6,7 @@ RF42–RF48: acceso de Ventas, consulta por número de Nota de Venta, informaci�
 
 `OrderCreatePage` utiliza `useOrderCreateFlow`, `SalesNoteStep`, `OrderCreateConfirmModal` y `OrderCreateSuccess`. El borrador se mantiene en estado React.
 
-- `GET /api/orders/sales-notes/:numeroNota`: consulta datos estructurados. Actualmente usa un fixture del backend; no una conexión externa.
+- `GET /api/orders/sales-notes/:numeroNota`: consulta datos estructurados. Actualmente usa un fixture del backend; no una conexión externa. Tras autenticar y autorizar, registra el resultado en la auditoría de seguridad y actualiza contadores de observación. Este monitoreo no bloquea, no responde 429 y no cambia el comportamiento visible del flujo.
 - `POST /api/orders`: recibe `numeroNota`, `priority` (`null`, `urgent` o `contract`) y `observacionInterna` (hasta 300 caracteres). El servidor recupera nuevamente la nota y valida sus datos antes de escribir. Los campos comerciales heredados del cuerpo se ignoran durante la compatibilidad; no son autoridad. El alta manual sin NV responde 400.
 - Las respuestas operacionales de pedidos usan el [DTO canónico de Orders](../desarrollo/ORDERS_DTO_CANONICO.md). Los contratos de la fuente de Nota de Venta y del espacio de Cobranzas se mantienen separados.
 - El resumen previo al registro se conserva en `OrderCreateConfirmModal` (RF48).

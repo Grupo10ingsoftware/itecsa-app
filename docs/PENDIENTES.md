@@ -64,7 +64,7 @@ Evidencia original: [auditoría del 25-09-2026](archivo/auditorias/AUDITORIA_PRE
 | H15 / perímetro y almacenamiento | Obtener evidencia del entorno sobre HTTPS, aislamiento, cifrado y gestión de llaves; archivos de despliegue no acreditan la operación. |
 | H16 / backups | Acreditar respaldos, retención y prueba de restauración. Rollback de imágenes no restaura datos. |
 | H17 / documentación y utilidades | Limpieza documental preparada en esta rama. Quedan revalidación de utilidades legadas, controles de dependencias/secretos e integración de CI; no cerrar todo el hallazgo por ordenar guías. |
-| H18 / health de BD | `/health/db` sigue público; revisar protección/límites de diagnóstico del entorno. |
+| H18 / health de BD | `/api/health/db` ya devuelve 404. Confirmar consumidores de `/api/health/live` y `/internal/ready`, aislamiento de red interna y límites del perímetro. |
 | H19 / límites de lectura | Revisar paginación y límites de consultas/cálculos, con consumidores y mediciones (PERF-01/PERF-02, PAY-ACT-008). |
 
 La revisión legal, contractual y organizacional conserva los límites del informe original. La limpieza de documentación no certifica cumplimiento ni resuelve automáticamente esos hallazgos.

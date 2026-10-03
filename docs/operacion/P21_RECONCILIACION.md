@@ -1,6 +1,7 @@
 # P21: reconciliación de esquema y migraciones
 
-Estado al 3 de octubre de 2026: **código y ensayos locales preparados; `mydb` sin cambios**.
+Estado al 3 de octubre de 2026: **código y ensayos locales preparados; excepción
+histórica aceptada; `mydb` sin cambios**.
 La rama `audit/p21-schema-drift` incorporó `dev` en el commit `3078466` (base
 `8947f66`). No ejecutar automáticamente `migrate deploy` sobre `mydb`: su
 historial y su esquema requieren el procedimiento supervisado por ambiente que
@@ -47,8 +48,11 @@ puede recuperar. No sabemos si la diferencia era funcional o sólo textual.
 No se modificó el archivo actual ni la fila de `_prisma_migrations`. La
 comparación estructural final de la copia con una BD nueva no encontró otras
 diferencias; esto acredita el **estado actual**, no reconstruye el SQL perdido.
-La discrepancia de checksum queda como excepción documentada para aceptar o
-rechazar explícitamente al cerrar P21.
+El responsable de este trabajo aceptó el 3 de octubre de 2026 conservar esta
+discrepancia como excepción histórica documentada. La aceptación reconoce que
+el SQL aplicado no puede reconstruirse con certeza; no declara iguales los
+checksums, no cambia el historial de Prisma y no autoriza ejecutar migraciones
+en `mydb`.
 
 ## Reconstrucción desde cero
 
@@ -98,8 +102,8 @@ rechazar explícitamente al cerrar P21.
   del sandbox; los ensayos MySQL locales anteriores cubren la migración real.
 - Frontend: ocho tests aprobados, build y lint correctos.
 - Antes de cualquier cambio en `mydb`, obtener un respaldo **de ese momento**,
-  repetir inventario y preflight, revisar el procedimiento con el responsable
-  del ambiente y determinar el tratamiento de la excepción histórica. No usar
+  repetir inventario y preflight, y revisar el procedimiento con el responsable
+  del ambiente. Mantener visible la excepción histórica aceptada. No usar
   `db push`, `migrate reset`, ni modificar checksums o filas históricas a mano.
 - La estrategia de despliegue futuro documentada en P25 prevé una BD nueva sin
   trasladar filas de Aiven. Aun así, la cadena debe reconstruir completamente

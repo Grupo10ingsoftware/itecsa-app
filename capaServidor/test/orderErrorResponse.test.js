@@ -14,13 +14,14 @@ function response() {
 
 test("un fallo interno en Orders no revela el mensaje de la base", async () => {
   const controller = new OrderController({ service: {
-    getPaymentWorkspace: async () => { throw new Error("SQL private detail"); },
+    getPagedPaymentWorkspace: async () => { throw new Error("SQL private detail"); },
   } });
   const res = response();
-  await controller.getPaymentWorkspace({}, res);
+  await controller.getPaymentWorkspace({ requestId: "request-1" }, res);
   assert.equal(res.code, 500);
   assert.doesNotMatch(JSON.stringify(res.body), /SQL private detail/);
-  assert.ok(res.body.reference);
+  assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
+  assert.equal(res.body.code, "INTERNAL_ERROR");
 });
 
 test("un fallo interno en el detalle no revela el mensaje de la base", async () => {

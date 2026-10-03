@@ -4,7 +4,7 @@ La vista `/pagos` carga pedidos desde backend y permite gestionar su estado de p
 
 ## Contratos backend usados
 
-- `GET /api/orders/payments`: carga en una sola solicitud la lista liviana de cobranzas y los estados reales de pago.
+- `GET /api/orders/payments`: devuelve una página de pedidos y el catálogo de estados de pago. Acepta `limit` (1–100), `cursor`, `status`, `search`, `from` y `to`; el servidor aplica búsqueda y filtros antes de paginar. La respuesta incluye `{ items, pageInfo, counts, paymentStatuses }`, con contadores por estado calculados para la búsqueda y fechas completas, sin aplicar el cursor.
 - `GET /api/orders/:orderId/payment-records/preview`: obtiene vendedor y detalle completo de productos para los modales de pago.
 - `PATCH /api/orders/:orderId/payment-status`: actualiza el estado de pago del pedido con PIN y registra auditoria en `Registro_Pago`.
 - `GET /api/orders/:orderId/payment-records`: consulta registros de auditoria del pedido cuando se requiera.
@@ -17,7 +17,7 @@ El catálogo observado el 26-09-2026 usa estos IDs; el cliente resuelve los valo
 - `2`: `Confirmado`
 - `3`: `Rechazado`
 
-El frontend no debe hardcodear IDs antiguos. La vista recibe el catalogo junto con los pedidos desde `GET /api/orders/payments` y resuelve el ID antes de llamar al PATCH. Operario Cobranzas solo gestiona pagos pendientes. Administrador Cobranzas y Soporte pueden cambiar una decision entre `Confirmado` y `Rechazado`, indicando un motivo, pero ningun pago resuelto puede volver a `Pendiente`.
+El frontend no debe hardcodear IDs antiguos. La vista recibe el catálogo junto con cada página de pedidos desde `GET /api/orders/payments`, ofrece «Cargar más pedidos» y resuelve el ID antes de llamar al PATCH. Operario Cobranzas solo gestiona pagos pendientes. Administrador Cobranzas y Soporte pueden cambiar una decisión entre `Confirmado` y `Rechazado`, indicando un motivo, pero ningún pago resuelto puede volver a `Pendiente`.
 
 Confirmar un pago valida el PIN, registra auditoria y mueve la orden a `Listo para produccion`. Si un pago confirmado se rechaza mientras esta `Listo para produccion`, el pedido pasa a `Cancelado` y se notifica a Administracion de Produccion. Si la produccion ya comenzo, conserva su etapa y se notifica que debe cancelarse desde Produccion.
 
@@ -42,7 +42,7 @@ payments/
 - `read:payments` protege el acceso a la ruta.
 - `update:payment-status` habilita acciones de cambio de estado.
 - La vista cubre loading, error con reintento y estado vacio.
-- La fecha de creacion se filtra mediante un rango inclusivo `Desde` / `Hasta`; la busqueda textual cubre RUT, Nota de Venta y cliente.
+- La fecha de creación se filtra en el backend mediante un rango inclusivo `Desde` / `Hasta`; la búsqueda textual cubre RUT, Nota de Venta y cliente. Los contadores de las tarjetas corresponden a toda la búsqueda y rango de fechas, incluso cuando la lista visible tiene más páginas.
 - Los modales de confirmacion y detalle usan informacion del pedido y, para detalles sin snapshot, el fixture local de NV; no dependen de PDFs.
 - El backend vuelve a validar permisos y transiciones aunque la opcion no sea visible en la interfaz.
 
@@ -54,7 +54,7 @@ El actor del PIN se toma de `req.pinActor` y se registra en `Registros.id_usuari
 
 La decisión se toma tras bloquear `Pedidos` con `SELECT ... FOR UPDATE` y releer el estado dentro de la transacción. Un destino ya alcanzado devuelve el pedido sin nueva auditoría; una decisión concurrente distinta genera 409. Estado, registro y avisos se escriben en la misma unidad transaccional real. Las pruebas con dobles no acreditan locks o rollback físico: seguir la [validación MySQL aislada](../operacion/PAYMENTS_SOLICITUD_BD.md).
 
-Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; las [pruebas](../desarrollo/PRUEBAS.md) incluyen su ciclo en navegador con datos ficticios.
+Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; su ciclo se verificó históricamente en navegador con datos ficticios. Las suites se retiraron para la entrega; consultar las [validaciones disponibles](../desarrollo/PRUEBAS.md).
 
 ## Límites y pendientes
 

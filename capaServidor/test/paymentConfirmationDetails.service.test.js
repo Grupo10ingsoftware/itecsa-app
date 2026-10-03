@@ -16,7 +16,9 @@ test("arma el detalle de confirmacion con vendedor y datos de la Nota de Venta",
             rut_cliente: "RUT-DEMO-013",
           },
           Usuario: {
-            correo_usuario: "vendedor@itecsa.cl",
+            id_usuario: 7,
+            nombre_usuario: "Ana",
+            apellido_usuario: "Perez",
           },
           Detalle_pedido: [
             {
@@ -54,7 +56,8 @@ test("arma el detalle de confirmacion con vendedor y datos de la Nota de Venta",
     nvNumber: "23950",
     companyName: "Cliente Demo 013",
     rut: "RUT-DEMO-013",
-    sellerEmail: "vendedor@itecsa.cl",
+    sellerId: 7,
+    sellerName: "Ana Perez",
     products: [
       {
         id: 38,

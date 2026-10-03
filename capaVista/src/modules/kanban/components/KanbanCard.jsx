@@ -27,7 +27,7 @@ function formatClientNameForDisplay(clientName) {
 
 function KanbanCard({
   clientName,
-  nv,
+  salesNoteNumber,
   product,
   dueDate,
   items,
@@ -47,7 +47,7 @@ function KanbanCard({
   onOpenDetail,
 }) {
   const { ref } = useDraggable({
-    id: nv,
+    id: salesNoteNumber,
     disabled: isMoveBlocked || !canMove,
   })
   const displayClientName = formatClientNameForDisplay(clientName)
@@ -85,7 +85,7 @@ function KanbanCard({
     >
       <div className={styles.orderCardHeader}>
         <div className={styles.orderIdentity}>
-          <span>Pedido: {nv}</span>
+          <span>Pedido: {salesNoteNumber}</span>
           <span>Cliente: {displayClientName}</span>
         </div>
         <div className={styles.headerBadgesGroup}>

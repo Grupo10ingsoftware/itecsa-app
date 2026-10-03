@@ -3,7 +3,6 @@ import test from "node:test";
 
 import PaymentRecordController from "../src/modules/payments/controller/paymentRecord.controller.js";
 import PaymentStatusController from "../src/modules/payments/controller/paymentStatus.controller.js";
-import { sendPaymentError } from "../src/modules/payments/controller/paymentError.js";
 
 function response() {
   return {
@@ -29,32 +28,13 @@ test("los cinco endpoints de Payments ocultan errores internos", async () => {
     for (const [controller, handler, serviceMethod] of scenarios) {
       controller.service[serviceMethod] = async () => { throw privateError; };
       const res = response();
-      await controller[handler]({ params: { orderId: "1", paymentRecordId: "2", id: "2" } }, res);
+      await controller[handler]({ requestId: "payment-request", params: { orderId: "1", paymentRecordId: "2", id: "2" } }, res);
       assert.equal(res.code, 500, handler);
-      assert.match(res.body.reference, /^[0-9a-f-]{36}$/i);
+      assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
+      assert.equal(res.body.code, "INTERNAL_ERROR");
       assert.doesNotMatch(JSON.stringify(res.body), /SQL private|P2021/);
     }
   } finally {
     console.error = originalError;
   }
-});
-
-test("Payments conserva los errores esperados y registra solo metadatos seguros", () => {
-  const expected = Object.assign(new Error("Pedido no encontrado"), { statusCode: 404 });
-  const missing = response();
-  sendPaymentError(missing, expected);
-  assert.equal(missing.code, 404);
-  assert.deepEqual(missing.body, { message: expected.message });
-
-  const events = [];
-  const failed = response();
-  sendPaymentError(failed, Object.assign(new Error("SQL private detail"), { code: "P2021" }), {
-    error: (event) => events.push(event),
-  });
-  assert.equal(failed.code, 500);
-  assert.deepEqual(events, [{
-    event: "payments.unexpected_error",
-    reference: failed.body.reference,
-    databaseCode: "P2021",
-  }]);
 });

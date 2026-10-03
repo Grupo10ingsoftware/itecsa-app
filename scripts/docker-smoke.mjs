@@ -37,13 +37,16 @@ try {
   }
   const apiName = `${prefix}-api`;
   const api = run(apiImage, apiName, 3000, {
+    APP_ENV: 'production', NODE_ENV: 'production',
     AUTH0_DOMAIN: 'test.example.auth0.com', AUTH0_AUDIENCE: 'https://api.example.test',
     FRONTEND_ORIGIN: 'http://localhost:8080', PIN_SECRET: Buffer.alloc(32, 1).toString('base64'),
+    RATE_LIMIT_SECRET: 'smoke-only-rate-limit-secret-that-is-long-enough',
+    SECURITY_LOG_HMAC_KEY: 'smoke-only-security-log-secret-that-is-long-enough',
   });
   const live = await (await ready(`${api}/api/health/live`)).json();
   assert.deepEqual(live, { status: 'ok', version: expected });
-  const database = await fetch(`${api}/api/health/db`);
-  assert.equal(database.status, 500, 'La vida del proceso no depende de configurar BD.');
+  assert.equal((await fetch(`${api}/api/health/db`)).status, 404);
+  assert.equal((await fetch(`${api}/internal/ready`)).status, 404);
   assert.equal((await fetch(`${api}/api/auth/verify`)).status, 401);
   assert.equal(docker('exec', apiName, 'node', '-e', "const {PrismaClient}=require('@prisma/client');if(typeof PrismaClient!=='function')process.exit(1)"), '');
 

@@ -110,16 +110,15 @@ test('config exige SHA/digests y origen HTTPS antes de usar credenciales', () =>
   assert.throws(() => deploymentConfig({...env, API_URL:'http://localhost'}), /HTTPS/);
 });
 
-test('la comprobacion API exige tambien conexion saludable a BD', async () => {
+test('la comprobacion API valida estado y version sin consultar readiness interna', async () => {
   const requests = [];
   const probe = createProbe(async url => {
     requests.push(url);
-    return {ok:true, json:async () => url.includes('/health/live')
-      ? {status:'ok',version:newVersion} : {status:'error'}};
+    return {ok:true, json:async () => ({status:'ok',version:newVersion})};
   });
-  await assert.rejects(probe(services[0]), /conexion saludable a BD/);
-  assert.equal(requests.length, 2);
-  assert.ok(requests[1].endsWith('/api/health/db'));
+  assert.equal(await probe(services[0]), newVersion);
+  assert.equal(requests.length, 1);
+  assert.ok(requests[0].includes('/api/health/live?'));
 });
 
 test('la comprobacion web valida la version sin consultar BD', async () => {

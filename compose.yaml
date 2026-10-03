@@ -6,11 +6,12 @@ services:
       target: development
     env_file: ./capaServidor/.env
     environment:
+      APP_ENV: development
       NODE_ENV: development
       PORT: 3000
       FRONTEND_ORIGIN: http://localhost:5173
       DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem
-      TRUST_PROXY_HOPS: 0
+      TRUST_PROXY: 0
     secrets:
       - source: database_ca
         target: aiven-ca.pem
@@ -27,6 +28,8 @@ services:
         - {action: rebuild, path: ./capaServidor/package-lock.json}
         - {action: rebuild, path: ./capaServidor/prisma}
         - {action: rebuild, path: ./capaServidor/prisma.config.ts}
+        - {action: rebuild, path: ./tooling/prisma/package.json}
+        - {action: rebuild, path: ./tooling/prisma/package-lock.json}
   web:
     build:
       context: .

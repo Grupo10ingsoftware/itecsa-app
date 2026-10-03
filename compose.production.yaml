@@ -3,11 +3,13 @@ services:
     image: ${API_IMAGE:?Definir API_IMAGE con digest en el archivo de despliegue}
     env_file: ${API_ENV_FILE:-./capaServidor/.env}
     environment:
+      APP_ENV: production
       NODE_ENV: production
       PORT: 3000
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
       DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem
-      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      ENABLE_DEMO_ROUTES: "false"
     secrets:
       - source: database_ca
         target: aiven-ca.pem

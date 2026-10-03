@@ -1,4 +1,19 @@
 import getPrismaClient from "../../../database/prisma.js";
+import {
+    ACTIVE_USER_STATUSES,
+    USER_STATUS,
+} from "../../../config/userLifecycle.js";
+
+export const USER_RESPONSE_SELECT = Object.freeze({
+    id_usuario: true,
+    id_auth0: true,
+    correo_usuario: true,
+    rut_usuario: true,
+    nombre_usuario: true,
+    apellido_usuario: true,
+    rol_usuario: true,
+    estado_usuario: true,
+});
 
 export class UserRepositoryError extends Error {
     constructor(code, message) {
@@ -69,6 +84,7 @@ export class UserRepository {
                 where: {
                     correo_usuario: normalizeEmail(correoUsuario),
                 },
+                select: USER_RESPONSE_SELECT,
             });
 
             return toUserResponse(user);
@@ -83,6 +99,7 @@ export class UserRepository {
                 where: {
                     id_auth0: auth0UserId,
                 },
+                select: USER_RESPONSE_SELECT,
             });
 
             return toUserResponse(user);
@@ -91,12 +108,28 @@ export class UserRepository {
         }
     }
 
-    async listRecentRecords(idUsuario, { page = 1, perPage = 10 } = {}) {
+    buildRecordsWhere(idUsuario, { search = '' } = {}) {
         if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
             throw new UserRepositoryError("USER_NOT_FOUND", "Usuario no válido.");
         }
+        const where = { id_usuario: idUsuario };
+        if (search) {
+            const term = search.replace(/^(Estado de pago|Etapa del pedido|Subproceso):\s*/i, '').trim() || search;
+            const id = /^\d+$/.test(search) ? Number(search) : null;
+            where.OR = [
+                ...(Number.isSafeInteger(id) ? [{ ID_REGISTRO: id }] : []),
+                { observacion: { contains: term } },
+                { Registro_Pago: { is: { Estado_Pago_Registro_Pago_id_estado_pago_nuevoToEstado_Pago: { is: { nombre_estado_pago: { contains: term } } } } } },
+                { Registro_Etapas: { is: { Estado_Pedido: { is: { nombre_etapa: { contains: term } } } } } },
+                { registro_subprocesos: { is: { Estado_Subprocesos: { is: { nombre_estado: { contains: term } } } } } },
+            ];
+        }
+        return where;
+    }
+
+    async listRecentRecords(idUsuario, { page = 1, perPage = 10, search = '' } = {}) {
         const records = await this.client.registros.findMany({
-            where: { id_usuario: idUsuario },
+            where: this.buildRecordsWhere(idUsuario, { search }),
             orderBy: [{ FECHA_HORA: "desc" }, { ID_REGISTRO: "desc" }],
             skip: (page - 1) * perPage,
             take: perPage,
@@ -130,10 +163,10 @@ export class UserRepository {
         }));
     }
 
-    async listMovements(idUsuario, { page, perPage }) {
+    async listMovements(idUsuario, { page, perPage, search = '' }) {
         const [records, total] = await Promise.all([
-            this.listRecentRecords(idUsuario, { page, perPage }),
-            this.client.registros.count({ where: { id_usuario: idUsuario } }),
+            this.listRecentRecords(idUsuario, { page, perPage, search }),
+            this.client.registros.count({ where: this.buildRecordsWhere(idUsuario, { search }) }),
         ]);
         return { records, total, page, perPage };
     }
@@ -150,10 +183,12 @@ export class UserRepository {
             ];
         }
 
-        if (estadoUsuario === "Desvinculado") {
-            where.estado_usuario = "Desvinculado";
-        } else if (estadoUsuario === "Vinculado" || estadoUsuario === "Activo") {
-            where.NOT = { estado_usuario: "Desvinculado" };
+        if (estadoUsuario === USER_STATUS.UNLINKED) {
+            where.estado_usuario = USER_STATUS.UNLINKED;
+        } else if (ACTIVE_USER_STATUSES.includes(estadoUsuario)) {
+            where.estado_usuario = { in: [...ACTIVE_USER_STATUSES] };
+        } else if (estadoUsuario === USER_STATUS.PENDING_ROLE) {
+            where.estado_usuario = USER_STATUS.PENDING_ROLE;
         }
 
         if (rolUsuario) {
@@ -177,6 +212,7 @@ export class UserRepository {
                     orderBy: { id_usuario: "desc" },
                     skip: (safePage - 1) * safePerPage,
                     take: safePerPage,
+                    select: USER_RESPONSE_SELECT,
                 }),
                 this.client.usuario.count({ where }),
             ]);
@@ -195,17 +231,30 @@ export class UserRepository {
     async getSummary({allowedRoles} = {}) {
         const where = allowedRoles ? {rol_usuario:{in:allowedRoles}} : {};
         try {
-            const [totalUsuarios, desvinculados] = await Promise.all([
-                this.client.usuario.count({where}),
-                this.client.usuario.count({
-                    where: { ...where, estado_usuario: "Desvinculado" },
-                }),
-            ]);
+            const groups = await this.client.usuario.groupBy({
+                by: ["estado_usuario"],
+                where,
+                _count: { _all: true },
+            });
+            const counts = new Map(
+                groups.map((group) => [group.estado_usuario, group._count._all]),
+            );
+            const totalUsuarios = groups.reduce(
+                (total, group) => total + group._count._all,
+                0,
+            );
+            const vinculados = ACTIVE_USER_STATUSES.reduce(
+                (total, status) => total + (counts.get(status) ?? 0),
+                0,
+            );
+            const desvinculados = counts.get(USER_STATUS.UNLINKED) ?? 0;
+            const pendientes = counts.get(USER_STATUS.PENDING_ROLE) ?? 0;
 
             return {
                 totalUsuarios,
-                vinculados: Math.max(0, totalUsuarios - desvinculados),
+                vinculados,
                 desvinculados,
+                pendientes,
             };
         } catch (error) {
             throw mapRepositoryError(error);
@@ -232,6 +281,7 @@ export class UserRepository {
                     rol_usuario: rolUsuario,
                     estado_usuario: estadoUsuario,
                 },
+                select: USER_RESPONSE_SELECT,
             });
 
             return toUserResponse(user);
@@ -255,6 +305,7 @@ export class UserRepository {
                     apellido_usuario: apellidoUsuario,
                     rol_usuario: rolUsuario,
                 },
+                select: USER_RESPONSE_SELECT,
             });
 
             return toUserResponse(user);
@@ -263,28 +314,108 @@ export class UserRepository {
         }
     }
 
-    async updateStatusByAuth0Id(auth0UserId, estadoUsuario) {
+    async beginRoleTransition(auth0UserId, currentRole) {
         try {
-            const user = await this.client.usuario.update({
-                where: { id_auth0: auth0UserId },
-                data: { estado_usuario: estadoUsuario },
+            const result = await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    rol_usuario: currentRole,
+                    estado_usuario: { in: [...ACTIVE_USER_STATUSES] },
+                },
+                data: { estado_usuario: USER_STATUS.PENDING_ROLE },
             });
 
-            return toUserResponse(user);
+            if (result.count !== 1) {
+                throw new UserRepositoryError(
+                    "USER_CONCURRENT_UPDATE",
+                    "El usuario cambio mientras se iniciaba la actualizacion de rol.",
+                );
+            }
         } catch (error) {
+            if (error instanceof UserRepositoryError) throw error;
             throw mapRepositoryError(error);
         }
     }
 
-    async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
+    async completeRoleTransition(auth0UserId, currentRole, {
+        correoUsuario,
+        nombreUsuario,
+        apellidoUsuario,
+        rolUsuario,
+    }) {
         try {
-            const user = await this.client.usuario.update({
-                where: { id_auth0: auth0UserId },
-                data: { rol_usuario: rolUsuario },
+            const result = await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    rol_usuario: currentRole,
+                    estado_usuario: USER_STATUS.PENDING_ROLE,
+                },
+                data: {
+                    correo_usuario: normalizeEmail(correoUsuario),
+                    nombre_usuario: nombreUsuario,
+                    apellido_usuario: apellidoUsuario,
+                    rol_usuario: rolUsuario,
+                    estado_usuario: USER_STATUS.ACTIVE,
+                },
             });
 
-            return toUserResponse(user);
+            if (result.count !== 1) {
+                throw new UserRepositoryError(
+                    "USER_CONCURRENT_UPDATE",
+                    "El usuario cambio mientras se confirmaba la actualizacion de rol.",
+                );
+            }
+
+            return this.findByAuth0Id(auth0UserId);
         } catch (error) {
+            if (error instanceof UserRepositoryError) throw error;
+            throw mapRepositoryError(error);
+        }
+    }
+
+    async cancelRoleTransition(auth0UserId, currentRole) {
+        try {
+            const result = await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    rol_usuario: currentRole,
+                    estado_usuario: USER_STATUS.PENDING_ROLE,
+                },
+                data: { estado_usuario: USER_STATUS.ACTIVE },
+            });
+
+            if (result.count !== 1) {
+                throw new UserRepositoryError(
+                    "USER_CONCURRENT_UPDATE",
+                    "El usuario cambio mientras se cancelaba la actualizacion de rol.",
+                );
+            }
+        } catch (error) {
+            if (error instanceof UserRepositoryError) throw error;
+            throw mapRepositoryError(error);
+        }
+    }
+
+    async updateStatusIfCurrent(auth0UserId, currentStatus, nextStatus) {
+        try {
+            const result = await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    estado_usuario: currentStatus,
+                },
+                data: { estado_usuario: nextStatus },
+            });
+
+            if (result.count !== 1) {
+                throw new UserRepositoryError(
+                    "USER_CONCURRENT_UPDATE",
+                    "El estado del usuario cambio durante la operacion.",
+                );
+            }
+
+            return this.findByAuth0Id(auth0UserId);
+        } catch (error) {
+            if (error instanceof UserRepositoryError) throw error;
             throw mapRepositoryError(error);
         }
     }
@@ -295,7 +426,7 @@ export class UserRepository {
                 where: {
                     id_auth0: auth0UserId,
                     rol_usuario: currentRole,
-                    estado_usuario: { in: ["Activo", "Vinculado"] },
+                    estado_usuario: { in: [...ACTIVE_USER_STATUSES] },
                 },
                 data: { rol_usuario: nextRole },
             });

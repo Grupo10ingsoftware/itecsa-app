@@ -36,15 +36,15 @@ El alta administrativa acepta JSON con nombre, apellido, RUT, correo y rol. El s
 
 Edición de correo/rol/estado se sincroniza con Auth0; nombre, apellido y RUT son datos internos. Edición y cambio de estado exigen PIN y alcance departamental. Una creación con `recoverable: true` indica que hubo creación externa parcial: no repetir ciegamente el alta. Consultar [contratos API](../desarrollo/API.md).
 
-El PIN personal es independiente de la contraseña Auth0. Su entrega, aceptación y recuperación operan sobre el actor autenticado. `PIN_SECRET` es exclusivo del servidor y debe conservarse para la misma base. La recuperación de PIN en producción no tiene proveedor configurado; el proveedor de desarrollo imprime el código. Consultar los [pendientes de seguridad](../PENDIENTES.md) antes de usar ese flujo fuera de desarrollo.
+El PIN personal es independiente de la contraseña Auth0. Su entrega, aceptación y recuperación operan sobre el actor autenticado. `PIN_SECRET` es exclusivo del servidor y debe conservarse para la misma base. La recuperación dispone de un adaptador Resend que requiere credenciales y remitente verificado. Sin selección explícita queda deshabilitada; `console` solo se admite expresamente en desarrollo. Consultar los [pendientes de seguridad](../PENDIENTES.md) antes de usar ese flujo fuera de desarrollo.
 
-El reset debug requiere `NODE_ENV=development`, Soporte coincidente con la base y `manage:own-pin`. Opera solo sobre el usuario autenticado. La SPA compilada para producción no muestra el botón.
+El reset debug requiere `APP_ENV=NODE_ENV=development`, `ENABLE_DEMO_ROUTES=true` (y `VITE_ENABLE_DEMO_ROUTES=true` en la SPA), Soporte coincidente con la base y `manage:own-pin`. Opera solo sobre el usuario autenticado. La SPA compilada para producción no muestra el botón.
 
 ## Recuperación de contraseña y plantillas
 
 [universal-login.html](universal-login.html) es la referencia de Classic Universal Login. Deshabilita signup y dirige la recuperación a la ruta propia `/recuperar-contrasena`; ajustar el dominio HTTPS al ambiente antes de configurar el template.
 
-La SPA envía el correo a `POST /api/auth/password-reset/request`. El backend responde `not_registered`, `disabled` o `sent` según existencia y estado interno; solo el usuario activo provoca la solicitud de correo Auth0. No devuelve tickets, enlaces, tokens ni contraseñas. La limitación actual usa IP+correo en memoria; no elimina la brecha de enumeración identificada en la auditoría.
+La SPA envía el correo a `POST /api/auth/password-reset/request`. Una solicitud válida recibe siempre HTTP `202`, `status: "accepted"` y el mismo mensaje condicional; solo el usuario interno activo provoca la solicitud de correo Auth0. Fallos de consulta y entrega conservan esa respuesta. No devuelve tickets, enlaces, tokens ni contraseñas. El resultado real queda en telemetría con correlación HMAC cuando se configura su clave, sin correo ni mensajes de excepción. La espera mínima de 600 ms más jitter de 0–199 ms reduce diferencias temporales; una consulta/envío más lento puede excederla. Las cuotas son por IP (10/15 min) y correo normalizado (3/15 min), persistentes en producción y en memoria en desarrollo/test.
 
 [change-password-email-es.html](change-password-email-es.html) es el respaldo del template **Change Password**. Para aplicar personalizaciones, configurar un proveedor de correo propio, guardar la plantilla y probar un envío controlado. El proveedor incorporado de desarrollo puede seguir usando el correo predeterminado. Referencia: [personalización de correos Auth0](https://auth0.com/docs/customize/email/email-templates).
 

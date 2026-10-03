@@ -1,6 +1,8 @@
 # Archivo histórico
 
-Estos informes conservan resultados y referencias de revisiones anteriores. No son instrucciones de operación ni prueban el estado actual de la base, de Auth0 o de un despliegue. El aviso inicial de cada archivo identifica su ubicación original: los enlaces del cuerpo se interpretan en el contexto de esa revisión.
+Estos informes conservan resultados y referencias de revisiones anteriores. No son instrucciones de operación ni prueban el estado actual de la base, de Auth0 o de un despliegue. El aviso inicial de cada archivo identifica su ubicación original: los hechos del cuerpo se interpretan en el contexto de esa revisión. Los enlaces se adaptaron a ubicaciones existentes; los destinos actuales no convierten el diagnóstico histórico en una evaluación vigente.
+
+Las suites de tests se retiraron el 03-10-2026. Los comandos y recuentos aquí registrados son históricos; los enlaces a tests apuntan a una revisión conservada en Git. Ver [validación de entrega](../desarrollo/PRUEBAS.md).
 
 Consultar primero el [índice vigente](../README.md) y los [pendientes](../PENDIENTES.md). Los cuerpos originales se preservan sin corregir sus afirmaciones retrospectivamente.
 
@@ -8,6 +10,8 @@ Consultar primero el [índice vigente](../README.md) y los [pendientes](../PENDI
 
 | Informe | Contexto registrado | Referencia actual |
 | --- | --- | --- |
+| [Hallazgos de septiembre](auditorias/AUDITORIA_HALLAZGOS_2026-09-26.md) | 26-09-2026, revisión `bd6c71c2`; antes titulada “vigente” | [Pendientes](../PENDIENTES.md) |
+| [Users y plan de acción](auditorias/USERS_AUDITORIA_PLAN_ACCION.md) | 27-09-2026, revisión `d7645ab`; incluye avance posterior | [Auth0](../auth0/README.md) |
 | [Protección de datos](auditorias/AUDITORIA_PREVIA_PROTECCION_DATOS_21719.md) | 25-09-2026, revisión `166593b` | [Pendientes y evidencia](../PENDIENTES.md) |
 | [Payments y plan de acción](auditorias/PAYMENTS_AUDITORIA_PLAN_ACCION.md) | 26-09-2026, commit inicial `0b3d83e` | [Payments](../modulos/PAYMENTS.md) |
 | [Reauditoría de Orders](auditorias/ORDERS_REAUDITORIA_2026-09-26.md) | 26-09-2026 | [Orders](../modulos/ORDERS.md) |

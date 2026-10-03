@@ -1,3 +1,4 @@
+import { buildCreateOrderPayload } from '../modules/orders/utils/createOrderPayload.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOrdersApi } from '../modules/orders/hooks/useOrdersApi'
 import { canContinueFromSalesNote, validateSalesNoteStep } from '../modules/orders/utils/orderCreateValidation'
@@ -26,17 +27,8 @@ function toDisplayRecord(salesNote) {
     ...salesNote,
     client: salesNote.cliente?.nombre ?? '-',
     rut: salesNote.cliente?.rut ?? '-',
-    seller: salesNote.origen?.usuarioManager ?? '-',
     dueDate: salesNote.fechaEntregaTentativaOrigen ?? '-',
     productType: productTypes.length > 1 ? 'Mixto' : productTypes[0] ?? '-',
-  }
-}
-
-function buildCreateOrderPayload(draft) {
-  return {
-    numeroNota: draft.managerRecord.numeroNota,
-    observacionInterna: draft.comments?.trim() || null,
-    priority: draft.priority,
   }
 }
 

@@ -54,23 +54,6 @@
   text-transform: uppercase;
 }
 
-.loginTitle {
-  color: #fff;
-  font-size: clamp(1.8rem, 4vw, 2.35rem);
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.loginDescription {
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 0.96rem;
-  line-height: 1.45;
-  margin: 0.7rem 0 0;
-}
-
 @media (max-width: 768px) {
   .loginPage {
     align-items: flex-start;

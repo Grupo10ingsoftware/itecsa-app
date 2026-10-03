@@ -4,7 +4,9 @@ import { test } from "node:test";
 import Server from "../src/server.js";
 
 test("el servidor no publica el antiguo repositorio PDF de notas de venta", async (t) => {
-  const server = new Server().app.listen(0, "127.0.0.1");
+  const server = new Server({
+    env: { NODE_ENV: "test", ENABLE_DEMO_ROUTES: "false" },
+  }).app.listen(0, "127.0.0.1");
   t.after(() => server.close());
   await once(server, "listening");
 

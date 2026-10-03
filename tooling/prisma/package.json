@@ -1,0 +1,12 @@
+{
+  "name": "itecsa-prisma-tooling",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CLI Prisma aislada del runtime del servidor.",
+  "devDependencies": {
+    "prisma": "7.10.0"
+  },
+  "overrides": {
+    "mysql2": "3.24.4"
+  }
+}

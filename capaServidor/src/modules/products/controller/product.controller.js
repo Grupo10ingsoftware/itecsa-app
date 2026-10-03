@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import ProductTypeService from "../service/product.service.js";
 
@@ -12,11 +13,7 @@ class ProductTypeController {
 
       res.status(200).json(productTypes);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al obtener tipos de producto",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -28,11 +25,7 @@ class ProductTypeController {
 
       res.status(200).json(productType);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al obtener tipo de producto",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -42,11 +35,7 @@ class ProductTypeController {
 
       res.status(201).json(productType);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al crear tipo de producto",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -60,11 +49,7 @@ class ProductTypeController {
 
       res.status(200).json(productType);
     } catch (error) {
-      const statusCode = error.statusCode ?? 500;
-
-      res.status(statusCode).json({
-        message: error.message || "Error al obtener tipo de producto por nombre",
-      });
+        return respondError(error, req, res);
     }
   };
 }

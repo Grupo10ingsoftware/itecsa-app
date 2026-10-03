@@ -1,6 +1,20 @@
 import { createHash } from "node:crypto";
 
-// El ordinal identifica una linea SOLO dentro de esta version inmutable.
+function normalized(value) {
+  return String(value ?? "").trim().toLocaleLowerCase("es");
+}
+
+export function salesNoteLineIdentity(item) {
+  const code = normalized(item?.codigo ?? item?.codigo_origen);
+  if (code) return `code:${code}`;
+  return `derived:${createHash("sha256").update(JSON.stringify({
+    product: normalized(item?.producto ?? item?.producto_origen),
+    family: normalized(item?.familia ?? item?.familia_origen),
+    subfamily: normalized(item?.subfamilia ?? item?.subfamilia_origen),
+    type: normalized(item?.tipoProducto),
+  })).digest("hex")}`;
+}
+
 export function createLineSnapshots(items) {
   const lines = items.map((item) => ({
     codigo_origen: item.codigo ?? null,
@@ -10,9 +24,8 @@ export function createLineSnapshots(items) {
     cantidad: item.cantidad,
     tipoProducto: item.tipoProducto,
   }));
-  const hash = createHash("sha256").update(JSON.stringify(lines)).digest("hex");
-  return lines.map((item, index) => ({
-    linea_origen: `${hash}:${index}`,
+  return lines.map((item) => ({
+    linea_origen: `v2:${createHash("sha256").update(salesNoteLineIdentity(item)).digest("hex")}`,
     codigo_origen: item.codigo_origen,
     producto_origen: item.producto_origen,
     familia_origen: item.familia_origen,

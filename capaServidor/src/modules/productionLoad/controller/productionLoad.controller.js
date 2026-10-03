@@ -1,3 +1,4 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import ProductionLoadService from "../service/productionLoad.service.js";
 
 export default class ProductionLoadController {
@@ -9,9 +10,7 @@ export default class ProductionLoadController {
     try {
       return res.status(200).json(await this.service.getDailyLoad({ date: req.query?.date }));
     } catch (error) {
-      return res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al consultar carga operativa.",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -23,9 +22,7 @@ export default class ProductionLoadController {
         auth0UserId: req.auth?.payload?.sub,
       }));
     } catch (error) {
-      return res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al guardar carga operativa.",
-      });
+        return respondError(error, req, res);
     }
   };
 }

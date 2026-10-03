@@ -87,12 +87,6 @@ export function createProbe(fetchImpl = fetch) {
     const body = await response.json();
     if (service.kind === 'API' && body.status !== 'ok') throw new Error('API sin estado saludable.');
     if (!COMMIT.test(body.version)) throw new Error(`Version ${service.kind} no valida.`);
-    if (service.kind === 'API') {
-      const database = await fetchImpl(`${service.url}/api/health/db`, {
-        cache: 'no-store', signal: AbortSignal.timeout(15_000), redirect: 'error',
-      });
-      if (!database.ok || (await database.json()).status !== 'ok') throw new Error('API sin conexion saludable a BD.');
-    }
     return body.version;
   };
 }

@@ -49,7 +49,9 @@ test('movements validates pagination and reports database errors', async () => {
     const failed = response();
     await handler(request(), failed);
     assert.equal(failed.statusCode, 500);
-    assert.equal(failed.body.message, 'No fue posible consultar los movimientos del usuario.');
+    assert.equal(failed.body.message, 'Ocurrio un error interno.');
+    assert.equal(failed.body.code, 'INTERNAL_ERROR');
+    assert.match(failed.body.requestId, /^[0-9a-f-]{36}$/);
 });
 test('movement repository filters by user, sorts and paginates while preserving profile defaults', async () => {
     const calls = [];

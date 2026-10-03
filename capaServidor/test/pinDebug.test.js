@@ -20,11 +20,19 @@ async function fixture() {
             const previousChallenges = structuredClone(challenges);
             try {
                 return await callback({
-                    usuario: { updateMany: async ({ where, data }) => {
-                        if (user.pin_hash !== where.pin_hash || user.rol_usuario !== where.rol_usuario || !where.estado_usuario.in.includes(user.estado_usuario)) return { count: 0 };
-                        Object.assign(user, data);
-                        return { count: 1 };
-                    } },
+                    $queryRaw: async (_strings, auth0UserId) =>
+                        auth0UserId === user.id_auth0 ? [{ ...user }] : [],
+                    usuario: {
+                        update: async ({ data }) => {
+                            Object.assign(user, data);
+                            return { ...user };
+                        },
+                        updateMany: async ({ where, data }) => {
+                            if (user.pin_hash !== where.pin_hash || user.rol_usuario !== where.rol_usuario || !where.estado_usuario.in.includes(user.estado_usuario)) return { count: 0 };
+                            Object.assign(user, data);
+                            return { count: 1 };
+                        },
+                    },
                     pinRecoveryChallenge: { updateMany: async ({ data }) => {
                         if (fail) throw new Error('database failure');
                         challenges = challenges.map(c => ({ ...c, ...data }));
@@ -40,14 +48,14 @@ async function fixture() {
 }
 
 test('debug PIN: environment, authorization, rotation and transaction', async (t) => {
-    const previous = process.env.NODE_ENV;
-    t.after(() => { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; });
+    const previous = process.env.APP_ENV;
+    t.after(() => { if (previous === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = previous; });
     const f = await fixture();
     for (const env of ['production', 'test', '', undefined]) {
-        if (env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = env;
+        if (env === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = env;
         await assert.rejects(f.service.debugReset(payload), { code: 'PIN_DEBUG_DISABLED' });
     }
-    process.env.NODE_ENV = 'development';
+    process.env.APP_ENV = 'development';
     for (const role of Object.values(ROLES).filter(r => r !== ROLES.SOPORTE)) {
         await assert.rejects(f.service.debugReset({ ...payload, [ROLES_CLAIM]: [role] }), { code: 'PIN_DEBUG_FORBIDDEN' });
     }

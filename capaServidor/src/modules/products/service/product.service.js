@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 import ProductTypeRepo from "../repo/product.repo.js";
 
 class ProductTypeService {
@@ -11,16 +12,14 @@ class ProductTypeService {
 
   async getProductTypeById(productTypeId) {
     if (!productTypeId) {
-      const error = new Error("El ID del tipo de producto es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del tipo de producto es obligatorio");
       throw error;
     }
 
     const productType = await this.repo.getById(productTypeId);
 
     if (!productType) {
-      const error = new Error("Tipo de producto no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Tipo de producto no encontrado");
       throw error;
     }
 
@@ -31,8 +30,7 @@ class ProductTypeService {
     const { nombre_producto } = data;
 
     if (!nombre_producto) {
-      const error = new Error("El nombre del tipo de producto es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El nombre del tipo de producto es obligatorio");
       throw error;
     }
 
@@ -41,16 +39,14 @@ class ProductTypeService {
 
   async getProductTypeByName(nombreProducto) {
     if (!nombreProducto) {
-      const error = new Error("El nombre del producto es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El nombre del producto es obligatorio");
       throw error;
     }
 
     const productType = await this.repo.getByName(nombreProducto);
 
     if (!productType) {
-      const error = new Error("Tipo de producto no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Tipo de producto no encontrado");
       throw error;
     }
 

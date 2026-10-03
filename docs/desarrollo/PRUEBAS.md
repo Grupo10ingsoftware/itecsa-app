@@ -1,34 +1,35 @@
 # Pruebas y validación
 
-Los comandos proceden de los manifiestos y scripts versionados. Los recuentos de tests de los informes archivados corresponden a sus commits; no son una garantía para esta revisión.
+Los comandos proceden de los manifiestos y scripts versionados. Los recuentos de tests de informes archivados corresponden a sus commits; no garantizan el resultado de una revisión posterior.
 
 ## Comprobaciones locales
 
-Desde la raíz:
+Instalar dependencias y generar Prisma según la [guía de desarrollo](README.md). Desde la raíz:
 
 ```bash
-node scripts/check-docs.mjs
-node --test scripts/*.test.mjs
 npm test --prefix capaServidor
 npm test --prefix capaVista
 npm run lint --prefix capaVista
 npm run build --prefix capaVista
+npm run prisma:validate --prefix capaServidor
 ```
 
-Instalar dependencias y generar Prisma según la [guía de desarrollo](README.md) antes de las suites de aplicación. Backend usa `node --test`; frontend combina verificaciones SSR con tests Node. El lint global puede revelar problemas ajenos a documentación: registrarlos sin presentar un lint dirigido como aprobación global.
+La puerta versionada en [`.github/workflows/security-ci.yml`](../../.github/workflows/security-ci.yml) ejecuta estas comprobaciones en pull requests y pushes a `main` o `dev` con Node.js 22. También valida Prisma contra MySQL desechable, ejecuta auditorías de dependencias y escanea secretos. Para impedir efectivamente un merge cuando falle, el repositorio debe marcar sus jobs como checks requeridos en la protección de la rama.
 
-Desde `capaVista`, `npm run test:payments:browser` comprueba el ciclo del PIN y el diálogo con datos ficticios mediante Vite y un navegador headless. El script busca Edge en rutas Windows o usa `ITECSA_BROWSER_BIN` si apunta a un ejecutable compatible. Se requiere ese navegador; no equivale a QA en una sesión Auth0 desplegada.
+`npm audit` informa actualmente vulnerabilidades altas transitivas que requieren una revisión de dependencias separada; algunas propuestas automáticas implican cambios mayores de Prisma y no deben aplicarse con `--force` dentro de una corrección de interfaz. La CI bloquea severidad crítica sin ocultar la necesidad de planificar esa actualización.
 
-Desde `capaServidor`, `npm run prisma:validate` valida el schema. `npm run orders:preflight` y `node scripts/paymentsReadBaseline.mjs` son inspecciones que requieren una conexión autorizada y no escriben datos. Sus resultados reflejan ese entorno y momento, no una prueba de migración o carga representativa.
+Backend usa `node --test`; frontend combina verificaciones SSR con tests Node. Lint revisa el código frontend, build comprueba su compilación y Prisma valida el schema. Ninguna comprobación aislada acredita por sí sola el comportamiento desplegado, la configuración de Auth0 o los envíos reales de correo.
+
+Desde `capaVista`, `npm run test:payments:browser` y `npm run test:metrics:browser` ejecutan comprobaciones de navegador. Requieren un navegador compatible disponible en el entorno; no equivalen a QA en una sesión Auth0 desplegada.
+
+`npm run orders:preflight --prefix capaServidor` y `node capaServidor/scripts/paymentsReadBaseline.mjs` son inspecciones que requieren una conexión autorizada y no escriben datos. Sus resultados reflejan ese entorno y momento; no son una prueba de migración o carga representativa.
+
+## Validación funcional y evidencia
+
+Las [medidas de carga de P18/P19](CARGA_FORMULARIOS_P18_P19.md) son muestras de laboratorio y no demuestran capacidad del despliegue productivo. Antes de desplegar, comprobar los flujos en un entorno autorizado con cuentas y datos de prueba.
+
+La [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md), la [migración de Orders](../operacion/ORDERS_MIGRACION.md) y los [pendientes](../PENDIENTES.md) detallan condiciones adicionales de cierre. No ejecutar comprobaciones de escritura contra la base compartida.
 
 ## Documentación
 
-[check-docs.mjs](../../scripts/check-docs.mjs) revisa los enlaces e imágenes Markdown locales, tanto inline como por referencia, y comprueba que exista el archivo o directorio destino. Las rutas se resuelven respecto del documento; `/` representa la raíz del repositorio. Informa archivo, línea y destino roto, y sale con código 1.
-
-No accede a la red ni valida encabezados, enlaces HTML o rutas escritas solo como texto/código. Omite URLs externas, fragmentos de encabezados y bloques de código. Los informes en `docs/archivo/auditorias/` y `docs/archivo/implementaciones/` conservan referencias históricas; sus README e índices sí se validan. Los avisos iniciales de los informes también se comprueban para conservar la navegación vigente.
-
-## CI y límites de evidencia
-
-El [workflow](../../.github/workflows/docker.yml) ejecuta el control documental y las pruebas de scripts, backend y frontend en PR a `dev`/`main` y antes de publicar nuevas imágenes. También construye y verifica las imágenes. El rollback recupera una pareja publicada y conserva su flujo sin reconstruir ni instalar dependencias de la aplicación.
-
-Los tests con dobles verifican contratos y reglas, pero no acreditan locks, rollback físico MySQL, configuración del tenant o accesibilidad en la pantalla desplegada. La [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md), la [migración de Orders](../operacion/ORDERS_MIGRACION.md) y los [pendientes](../PENDIENTES.md) detallan esas condiciones de cierre. No ejecutar pruebas de escritura contra la base compartida.
+[check-docs.mjs](../../scripts/check-docs.mjs) comprueba enlaces e imágenes Markdown locales. No consulta la red ni valida URLs externas. El [workflow Docker](../../.github/workflows/docker.yml) ejecuta controles, construye imágenes y las comprueba antes de publicar; solo despliega desde `main` cuando esté configurado el entorno.

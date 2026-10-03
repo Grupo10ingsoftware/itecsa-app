@@ -18,7 +18,7 @@ docker compose --env-file capaServidor/.env up --build --watch
 ```
 
 Abrir `http://localhost:5173`. API: `http://localhost:3000/api`.
-Compose inyecta `NODE_ENV=development`, el origen local y la ruta de CA del
+Compose inyecta `APP_ENV=development`, `NODE_ENV=development`, el origen local y la ruta de CA del
 contenedor. El navegador usa URLs publicas/locales, nunca nombres internos como
 `http://api:3000`. Vite y nodemon reciben cambios de fuentes, fixture y `shared/`.
 Cambios de dependencias o schema Prisma reconstruyen la imagen correspondiente.
@@ -94,7 +94,9 @@ seguir siendo compatibles con el frontend anterior durante esa transicion.
 
 El script usa GET de servicio y PATCH del servicio de despliegue, preserva la
 credencial de registro y no toca variables, archivos, puertos ni base de datos.
-Comprueba SHA por `/api/health/live` y `/version.json`, ademas de `/api/health/db`.
+Comprueba SHA por `/api/health/live` y `/version.json`. La conexion con BD se
+comprueba por separado desde la red interna mediante `/internal/ready` con token;
+el workflow no publica ese token ni accede a esa ruta privada.
 Una respuesta de la version anterior no confirma el despliegue. Ante fallo intenta
 restaurar **ambos** servicios y verificar sus versiones anteriores. Si esa
 restauracion falla, el workflow tambien falla e identifica el servicio afectado.
@@ -121,19 +123,21 @@ Guardar estas referencias junto a cada entrega al cliente.
    Northflank. No ampliar a `write:packages` para descargar imagenes.
 4. Crear API y web desde los **dos digests de la misma release**. Dejar command y
    entrypoint Docker en modo default. No configurar CI/CD desde Git en Northflank.
-5. API: puerto HTTP publico 3000, `PORT=3000`, `NODE_ENV=production`, variables
+5. API: puerto HTTP publico 3000, `PORT=3000`, `APP_ENV=production`, `NODE_ENV=production`, variables
    backend actuales y CA montada en `/run/secrets/aiven-ca.pem`. Establecer
    `DB_SSL_CA_PATH` a esa ruta, `FRONTEND_ORIGIN` al origen HTTPS de web.
    No sobreescribir `APP_VERSION`: viene grabada en la imagen.
 6. Web: puerto HTTP publico 8080 y las cuatro variables publicas. Usar como
    `VITE_API_BASE_URL` el origen HTTPS publico de API terminado en `/api`.
-   Healthcheck web: `/version.json`; liveness API: `/api/health/live`;
-   readiness API: `/api/health/db`, timeout al menos 15s por conexion externa.
+   Healthcheck web: `/version.json`; liveness API: `/api/health/live`.
+   Para readiness de BD, configurar `ENABLE_INTERNAL_READINESS=true` y
+   `INTERNAL_HEALTH_TOKEN`, restringir `/internal/ready` a red interna y probarlo
+   desde alli con `X-Health-Token`; no exponer el token ni esa ruta en el ingreso publico.
 7. En Auth0 añadir el origen HTTPS web a callbacks, logout y web origins de la
    SPA, conservando localhost. Actualizar el enlace de recuperacion del template
    de Universal Login a `/recuperar-contrasena` de la demo. No cambiar audience,
    roles ni permisos por dockerizar. Verificar login/logout con una cuenta de prueba.
-8. Detras del ingreso publico de Northflank, establecer `TRUST_PROXY_HOPS=1`
+8. Detras del ingreso publico de Northflank, establecer `TRUST_PROXY=1`
    **solo si hay un unico salto y no hay acceso directo/bypass al puerto**. Verificar
    el encabezado/IP de cliente en ese ingreso. No usar `trust proxy=true` ni confiar
    en el primer valor arbitrario de `X-Forwarded-For`. En local usar 0.
@@ -187,9 +191,13 @@ docker compose --env-file deploy/production.env -f compose.production.yaml pull
 docker compose --env-file deploy/production.env -f compose.production.yaml up -d --wait
 docker compose --env-file deploy/production.env -f compose.production.yaml logs -f
 curl --fail http://localhost:3000/api/health/live
-curl --fail http://localhost:3000/api/health/db
 curl --fail http://localhost:8080/version.json
 ```
+
+Si se habilito readiness interna, comprobarla desde el servidor o la red privada
+con `curl --fail -H "X-Health-Token: $INTERNAL_HEALTH_TOKEN" http://localhost:3000/internal/ready`.
+Verificar que la respuesta es `{"status":"ok","database":"mysql"}`; esto
+requiere las credenciales y la CA de la base, y no sustituye validar el esquema.
 
 Los puertos se publican en loopback por defecto para quedar detras del proxy del
 cliente. Ajustar `BIND_ADDRESS` solo con una decision explicita de red.

@@ -34,6 +34,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: |
+            tooling/prisma/package-lock.json
             capaServidor/package-lock.json
             capaVista/package-lock.json
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
@@ -42,6 +43,7 @@ jobs:
           RELEASE_SHA: ${{ github.sha }}
         run: |
           node scripts/check-docs.mjs
+          npm ci --prefix tooling/prisma
           npm ci --prefix capaServidor
           npm run prisma:generate --prefix capaServidor
           npm test --prefix capaServidor
@@ -74,6 +76,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: |
+            tooling/prisma/package-lock.json
             capaServidor/package-lock.json
             capaVista/package-lock.json
       - name: Select release
@@ -102,6 +105,7 @@ jobs:
         if: inputs.operation != 'rollback'
         run: |
           node scripts/check-docs.mjs
+          npm ci --prefix tooling/prisma
           npm ci --prefix capaServidor
           npm run prisma:generate --prefix capaServidor
           npm test --prefix capaServidor

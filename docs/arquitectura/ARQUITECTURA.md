@@ -1,8 +1,8 @@
-# Arquitectura de ITECSA
+# Arquitectura de Itecsa
 
 ## Componentes y flujo
 
-La SPA React/Vite presenta pedidos, Kanban, cobranzas, usuarios, perfil, mensajes, historial, calendario y métricas. La API Express valida identidad y capacidades, aplica reglas de negocio y persiste mediante Prisma y el adaptador MariaDB en MySQL/Aiven.
+La SPA React/Vite presenta pedidos, Kanban, cobranzas, usuarios, perfil, mensajes, historial, calendario y métricas. La API Express valida identidad y capacidades, aplica reglas de negocio y persiste mediante Prisma y el adaptador MariaDB en MySQL. Itecsa utiliza Aiven como apoyo temporal de desarrollo para disponer de una BD en línea; decidió que al desplegar se eliminarán todos sus registros y se conservará sólo la estructura. El destino definitivo todavía no está decidido y no hay hosting seleccionado para SPA/API. El borrado aún no se ha ejecutado.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
     API --> IDENTIDAD["JWT, usuario activo, rol y capacidad"]
     IDENTIDAD --> SERVICIOS["Servicios de negocio"]
     SERVICIOS --> REPOS["Repositorios Prisma / MariaDB"]
-    REPOS --> BD["MySQL / Aiven"]
+    REPOS --> BD["MySQL / Aiven temporal"]
     SERVICIOS --> FUENTE["Fixture de notas de venta"]
     API -->|"Gestión de identidades en servidor"| MANAGEMENT["Auth0 Management API"]
 ```
@@ -46,6 +46,30 @@ La autorización de pagos no sustituye las reglas de producción. Algunas revisi
 
 ## Ejecución y operación
 
-La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. En producción, Nginx sirve la SPA e inyecta configuración pública en runtime; API y web son imágenes separadas. Auth0 y Aiven permanecen externos. Consultar [Docker y Northflank](../operacion/DOCKER_DESPLIEGUE.md) para publicación, verificación y rollback.
+La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. Vite usa variables públicas en desarrollo; la imagen Docker de producción carga esas cuatro variables al arrancar mediante `runtime-config.js`, sin recompilar. API y SPA usan imágenes separadas. Auth0 es externo y Aiven aloja temporalmente MySQL. Consultar [Docker y Northflank](../operacion/DOCKER_DESPLIEGUE.md), [migración de Orders](../operacion/ORDERS_MIGRACION.md), [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md), [inventario de proveedores](../security/data-processors.md) y [continuidad](../operacion/BACKUP_RESTORE.md).
 
-Arrancar la API o contenedores no aplica migraciones. Los tests locales y la existencia de CI no acreditan por sí solos configuración del tenant, protección de infraestructura, restauración de backups o cumplimiento legal; esas evidencias se registran con su entorno y fecha.
+Arrancar la API no aplica migraciones. Los tests locales no acreditan por sí solos configuración del tenant, protección de infraestructura, restauración de backups o cumplimiento legal; esas evidencias se registran con su entorno y fecha.
+
+## Referencias parciales de requisitos
+
+Este mapa se conserva como referencia documental de iteraciones anteriores; no
+participa en el routing ni acredita cobertura completa de RF/UR. Requiere contrastar
+cada relación con el documento fuente vigente antes de usarlo como trazabilidad.
+Las rutas de la primera columna son relativas a `capaVista/src/`.
+
+| Archivo o área | Referencias registradas |
+| --- | --- |
+| `app/router.jsx` | UR 1.13, UR 3.1, UR 5.1 |
+| `config/routes.js` | UR 1.13, UR 3.1, UR 5.1 |
+| `config/permissions.js` | UR 1.4, UR 1.13 |
+| `config/status.js` | UR 3.1, UR 3.3, UR 5.2 |
+| `modules/auth` | UR 1.1, UR 1.10, UR 1.11, UR 1.14, UR 1.18 |
+| `modules/users` | UR 1.4, UR 1.12, UR 1.13 |
+| `modules/payments` | UR 3.1, UR 3.3, UR 3.7 |
+| `modules/orders` | RF42, RF43, RF44, RF45, RF46, RF47, RF48 |
+| `modules/kanban` | UR 5.1, UR 5.2, UR 5.3 |
+| `modules/profile` | UR 1.7 |
+| `shared/components/layout` | UR 1.7, UR 1.18, UR 12.1 |
+| `shared/components/navigation` | UR 1.4, UR 1.13, UR 1.14 |
+| `shared/components/forms` | UR 1.1, UR 1.15, UR 2.2, UR 3.1 |
+| `shared/components/data` | UR 1.4, UR 1.7, UR 3.1, UR 5.2 |

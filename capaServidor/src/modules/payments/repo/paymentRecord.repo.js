@@ -129,7 +129,9 @@ class PaymentRecordRepo {
         c.nombre_cliente,
         c.razon_social,
         c.rut_cliente,
-        u.correo_usuario,
+        u.id_usuario,
+        u.nombre_usuario,
+        u.apellido_usuario,
         dp.id_detalle_pedido,
         dp.cantidad,
         ${snapshotColumns},
@@ -156,8 +158,12 @@ class PaymentRecordRepo {
         razon_social: order.razon_social ?? null,
         rut_cliente: order.rut_cliente ?? null,
       },
-      Usuario: order.correo_usuario
-        ? { correo_usuario: order.correo_usuario }
+      Usuario: order.id_usuario
+        ? {
+            id_usuario: order.id_usuario,
+            nombre_usuario: order.nombre_usuario,
+            apellido_usuario: order.apellido_usuario,
+          }
         : null,
       Detalle_pedido: rows
         .filter((row) => row.id_detalle_pedido !== null)

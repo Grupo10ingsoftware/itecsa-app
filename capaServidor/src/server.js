@@ -1,11 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+import { requestContext, errorHandler } from './errors/httpErrors.js';
+import { resolveEnvironmentConfig } from './config/environment.js';
 
-import authRoutes from './modules/auth/routes/auth.routes.js';
+import { createAuthRouter } from './modules/auth/routes/auth.routes.js';
 import adminUsersRoutes from './modules/users/routes/adminUsers.routes.js';
-import demoOrdersRoutes from './modules/demoOrders/routes/demoOrders.routes.js';
 import healthRoutes from './modules/health/routes/health.routes.js';
-import productionCalendarRoutes from './modules/productionCalendar/routes/productionCalendar.routes.js';
+import { createInternalHealthRouter } from './modules/health/routes/health.routes.js';
 import productionCapacityRoutes from './modules/productionCapacity/routes/productionCapacity.routes.js';
 import productionLoadRoutes from './modules/productionLoad/routes/productionLoad.routes.js';
 
@@ -22,19 +23,29 @@ import clientsRoutes from './modules/clients/routes/clients.routes.js';
 import messageRoutes from './modules/messages/routes/message.routes.js';
 import orderHistoryRoutes from './modules/history/routes/orderHistory.routes.js';
 import metricsRoutes from './modules/metrics/routes/metrics.routes.js';
+import { notFoundHandler } from './middlewares/errorHandler.js';
+import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
+import { safeLogger } from './shared/safeLogger.js';
+import supportAudit from './middlewares/supportAudit.js';
+import { createPrivacyRouter } from './modules/privacy/routes/privacy.routes.js';
+import PrivacyController from './modules/privacy/controller/privacy.controller.js';
+import PrivacyRequestService from './modules/privacy/service/privacyRequest.service.js';
+import { createIncidentReportRouter } from './modules/security/routes/incidentReport.routes.js';
+import IncidentReportController from './modules/security/controller/incidentReport.controller.js';
+import IncidentReportService from './modules/security/service/incidentReport.service.js';
 class Server {
-  constructor() {
+  constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
-    this.port = Number(process.env.PORT || 3000);
-    const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+    this.port = Number(env.PORT || 3000);
     if (!Number.isInteger(this.port) || this.port < 1 || this.port > 65535) {
       throw new Error('PORT debe ser un puerto TCP valido.');
     }
-    if (!Number.isInteger(proxyHops) || proxyHops < 0) {
-      throw new Error('TRUST_PROXY_HOPS debe ser un entero no negativo.');
-    }
-    this.app.set('trust proxy', proxyHops);
+    this.appEnvironment = appEnvironment;
+    this.logger = logger;
+    this.app.locals.errorLogger = logger;
+    this.env = env;
+    this.environment = resolveEnvironmentConfig(env);
     this.paths = {
         // Rutas cuando las tengamos
 
@@ -43,11 +54,9 @@ class Server {
         orders : '/api/orders',
         orderDetail: '/api/order-details',
         admin: '/api/admin',
-        demoOrders: '/api/demo-orders',
         health: '/api/health',
         messages: '/api/messages',
         history: '/api/history',
-        productionCalendar: '/api/production-calendar',
         productionCapacity: '/api/production-capacity',
         productionLoad: '/api/production-load',
         metrics: '/api/metrics',
@@ -75,12 +84,22 @@ class Server {
   // aca mismo podemos tener una función asincrona para conectar a la base de datos cuando este disponible
   middlewares() {
 
+    this.app.set('trust proxy', parseTrustedProxy(this.env.TRUST_PROXY));
+    this.app.disable('x-powered-by');
+    this.app.use(requestContext);
+    this.app.use((_req, res, next) => {
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set('Referrer-Policy', 'no-referrer');
+      next();
+    });
+    this.app.use(supportAudit);
+
     // Cors
-    this.app.use(cors( {origin : process.env.FRONTEND_ORIGIN}));
+    this.app.use(cors( {origin : this.env.FRONTEND_ORIGIN}));
 
     // Parseo y lectura del Body - Recibir datos
 
-    this.app.use( express.json() );
+    this.app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '100kb' }));
 
     // Directorio publico
     this.app.use(express.static("public"));
@@ -91,21 +110,23 @@ class Server {
 
   routes() {
 
+    this.app.use('/api/security/incident-reports', createIncidentReportRouter({ controller: new IncidentReportController({ service: new IncidentReportService({ env: this.env, logger: this.logger }) }) }));
+
+    this.app.use('/api/privacy', createPrivacyRouter({ controller: new PrivacyController({ service: new PrivacyRequestService({ env: this.env }) }) }));
+
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
-    /**
-     * Un ejemplo sería
-     * this.app.use(this.paths.users, user_route);
-
-     * Esto se definira cuando tengamos nuestros rutas definidas para cada API
-     */
-    this.app.use( this.paths.auth, authRoutes)
+    this.app.use(
+      this.paths.auth,
+      createAuthRouter({
+        includeDebugRoutes: this.environment.demoFeaturesEnabled && this.appEnvironment !== "production",
+      }),
+    )
     this.app.use( this.paths.admin, adminUsersRoutes)
-    this.app.use( this.paths.demoOrders, demoOrdersRoutes)
     this.app.use( this.paths.health, healthRoutes)
+    this.app.use('/internal', createInternalHealthRouter({ logger: this.logger }))
     this.app.use( this.paths.messages, messageRoutes)
     this.app.use( this.paths.history, orderHistoryRoutes)
-    this.app.use( this.paths.productionCalendar, productionCalendarRoutes)
     this.app.use( this.paths.productionCapacity, productionCapacityRoutes)
     this.app.use( this.paths.productionLoad, productionLoadRoutes)
     this.app.use( this.paths.metrics, metricsRoutes)
@@ -117,15 +138,21 @@ class Server {
 
     this.app.use(this.paths.client, clientsRoutes)
 
+    this.app.use(notFoundHandler)
+    this.app.use(errorHandler)
+
 
   }
 
   listen() {
     return new Promise((resolve, reject) => {
       this.httpServer = this.app.listen(this.port, '0.0.0.0', () => {
-        console.log("Servidor corriendo en puerto", this.port);
+        this.logger.info("server.started", { outcome: "ok" });
         resolve(this.httpServer);
       });
+      this.httpServer.requestTimeout = Number(this.env.HTTP_REQUEST_TIMEOUT_MS ?? 15000);
+      this.httpServer.headersTimeout = Number(this.env.HTTP_HEADERS_TIMEOUT_MS ?? 10000);
+      this.httpServer.keepAliveTimeout = Number(this.env.HTTP_KEEP_ALIVE_TIMEOUT_MS ?? 5000);
       this.httpServer.once('error', reject);
     });
   }

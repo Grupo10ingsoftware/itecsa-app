@@ -1,6 +1,6 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import OrderDetailService from "../service/orderDetail.service.js";
-import { sendOrderOperationError } from "../service/salesOrder.errors.js";
 
 class OrderDetailController {
   constructor() {
@@ -15,7 +15,7 @@ class OrderDetailController {
 
       res.status(201).json(detail);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+        return respondError(error, req, res);
     }
   };
 
@@ -27,7 +27,7 @@ class OrderDetailController {
 
       res.status(200).json(detail);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+        return respondError(error, req, res);
     }
   };
 
@@ -39,7 +39,7 @@ class OrderDetailController {
 
       res.status(200).json(details);
     } catch (error) {
-      return sendOrderOperationError(res, error);
+        return respondError(error, req, res);
     }
   };
 }

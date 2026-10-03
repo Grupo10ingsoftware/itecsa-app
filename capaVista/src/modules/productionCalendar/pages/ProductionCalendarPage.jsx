@@ -3,8 +3,9 @@ import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
+import { loadCalendarMonth } from '../api/ordersCalendarApi'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -28,6 +29,15 @@ function toCalendarDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
 }
 
+function monthRange(monthDate) {
+  const year = monthDate.getFullYear()
+  const month = monthDate.getMonth()
+  const first = new Date(year, month, 1)
+  const last = new Date(year, month + 1, 0)
+  const key = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return { from: key(first), to: key(last) }
+}
+
 function normalizeText(value) {
   return String(value ?? '')
     .trim()
@@ -37,18 +47,14 @@ function normalizeText(value) {
 }
 
 function getOrderProductNames(order) {
-  const sourceItems = Array.isArray(order.items) && order.items.length > 0
-    ? order.items
-    : Array.isArray(order.detalles)
-      ? order.detalles
-      : []
+  const sourceItems = Array.isArray(order.items) ? order.items : []
 
   const productNames = sourceItems
-    .map((item) => item.productType ?? item.product ?? item.nombre_producto ?? item.producto)
+    .map((item) => item.product)
     .filter(Boolean)
 
   return [...new Set([
-    order.productType ?? order.product ?? order.producto ?? order.nombre_producto,
+    order.product,
     ...productNames,
   ].filter(Boolean))]
 }
@@ -58,19 +64,18 @@ function normalizeCalendarOrder(order) {
 
   return {
     ...order,
-    id: order.id ?? order.id_pedido,
-    orderNumber: order.orderNumber ?? order.nv ?? order.numero_nota_venta ?? order.codigo_nota_venta,
-    clientName: order.clientName ?? order.cliente ?? order.nombre_cliente ?? 'Cliente sin nombre',
+    id: order.id,
+    orderNumber: order.salesNoteNumber,
+    clientName: order.clientName ?? 'Cliente sin nombre',
     productType: productNames[0] ?? 'Producto no definido',
     productTypes: productNames,
-    quantity: order.quantity ?? order.cantidad ?? 0,
-    items: Array.isArray(order.items) && order.items.length > 0
-      ? order.items
-      : Array.isArray(order.detalles)
-        ? order.detalles
-        : [],
-    status: order.status ?? getStatusByStep(order.generalStepId ?? order.id_etapa_general),
-    dueDate: toCalendarDateKey(order.dueDate ?? order.fecha_estimada_termino),
+    quantity: 0,
+    items: (Array.isArray(order.items) ? order.items : []).map((item) => ({
+          ...item,
+          dueDate: toCalendarDateKey(item.dueDate),
+        })),
+    status: getStatusByStep(order.generalStepId),
+    dueDate: toCalendarDateKey(order.dueDate),
   }
 }
 
@@ -93,17 +98,16 @@ export default function ProductionCalendarPage() {
     async function loadOrders() {
       try {
         setLoadError(null)
-        const orders = await ordersCalendarApi.getOrders()
+        const orders = await loadCalendarMonth(ordersCalendarApi, monthRange(monthDate), () => isMounted)
 
         if (isMounted) {
           setCalendarItems(Array.isArray(orders)
             ? orders
-                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .filter((order) => order?.salesNoteNumber)
                 .map(normalizeCalendarOrder)
             : [])
         }
-      } catch (error) {
-        console.error('Error cargando pedidos del calendario:', error)
+      } catch {
         if (isMounted) {
           setLoadError('No fue posible cargar los pedidos compartidos del calendario.')
         }
@@ -115,7 +119,7 @@ export default function ProductionCalendarPage() {
     return () => {
       isMounted = false
     }
-  }, [ordersCalendarApi])
+  }, [monthDate, ordersCalendarApi])
 
   useEffect(() => {
     if (!draggedItemId) return undefined
@@ -163,12 +167,16 @@ export default function ProductionCalendarPage() {
   }
 
   async function updateItemDeliveryDate(itemId, nextDate, credentials) {
-    const updatedOrder = await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
-    const normalizedOrder = normalizeCalendarOrder(updatedOrder)
+    await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
+    const normalizedOrder = normalizeCalendarOrder(await ordersCalendarApi.getOrderDetail(itemId))
 
     setCalendarItems((currentItems) =>
       currentItems.map((item) => (String(item.id) === String(itemId) ? normalizedOrder : item)),
     )
+  }
+
+  async function getOrderDetail(orderId) {
+    return normalizeCalendarOrder(await ordersCalendarApi.getOrderDetail(orderId))
   }
 
   return (
@@ -192,6 +200,7 @@ export default function ProductionCalendarPage() {
 
           <section className={styles.calendarPanel}>
             <ProductionCalendarGrid
+              getOrderDetail={getOrderDetail}
               allItems={calendarItems}
               draggedItemId={draggedItemId}
               items={filteredItems}

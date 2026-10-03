@@ -10,7 +10,7 @@ import { collectNewNotifications } from '../utils/popupNotifications'
 
 const REFRESH_INTERVAL_MS = 5_000
 
-export default function NotificationBell({ popupContainer }) {
+export default function NotificationBell({ popupContainer, buttonClassName }) {
   const api = useMessagesApi()
   const navigate = useNavigate()
   const rootRef = useRef(null)
@@ -123,7 +123,7 @@ export default function NotificationBell({ popupContainer }) {
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ''}`}
-        className={styles.bellButton}
+        className={`${styles.bellButton} ${buttonClassName}`}
         onClick={() => {
           setIsOpen((current) => !current)
           if (!isOpen) loadNotifications()

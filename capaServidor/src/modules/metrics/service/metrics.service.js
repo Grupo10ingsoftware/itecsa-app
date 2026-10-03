@@ -1,8 +1,8 @@
+import { AppError } from "../../../errors/AppError.js";
 import MetricsRepository from "../repo/metrics.repo.js";
 
 function httpError(statusCode, message) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
+    const error = new AppError(statusCode, message);
     return error;
 }
 
@@ -12,19 +12,21 @@ function dateRange(from, to) {
             throw httpError(400, `${field} debe tener formato YYYY-MM-DD.`);
         }
         const date = new Date(`${value}T00:00:00.000Z`);
-        if (Number.isNaN(date.getTime())) throw httpError(400, `${field} no es una fecha valida.`);
+        if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw httpError(400, `${field} no es una fecha valida.`);
         return date;
     };
 
     const start = parse(from, "from");
     const selectedEnd = parse(to, "to");
     if (start > selectedEnd) throw httpError(400, "from no puede ser posterior a to.");
+    const rangeDays = Math.floor((selectedEnd - start) / (24 * 60 * 60 * 1000)) + 1;
+    if (rangeDays > 366) throw httpError(400, "El intervalo de metricas no puede superar 366 dias.");
 
     return { start, end: new Date(selectedEnd.getTime() + 24 * 60 * 60 * 1000) };
 }
 
 function sellerName(user) {
-    return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ") || user?.correo_usuario || "Sin vendedor";
+    return [user?.nombre_usuario, user?.apellido_usuario].filter(Boolean).join(" ") || "Sin vendedor";
 }
 
 function latestDate(values) {
@@ -93,6 +95,32 @@ function buildFlowTime(orders) {
 export default class MetricsService {
     constructor({ repo } = {}) {
         this.repo = repo ?? new MetricsRepository();
+    }
+
+    async productionPerformance({ from, to }) {
+        const range = dateRange(from, to);
+        const orders = await this.repo.performanceOrders(range);
+        const dayFormatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Santiago", year: "numeric", month: "2-digit", day: "2-digit",
+        });
+        const result = {
+            period: { from, to },
+            totalOrders: 0, deliveredOnTime: 0, deliveredLate: 0, missingDeadline: 0,
+        };
+        for (const order of orders) {
+            const entry = order.Registros[0]?.Registro_Etapas?.fecha_hora_entrada;
+            if (!entry) continue;
+            const parts = Object.fromEntries(dayFormatter.formatToParts(new Date(entry)).map(({ type, value }) => [type, value]));
+            const readyDay = `${parts.year}-${parts.month}-${parts.day}`;
+            if (readyDay < from || readyDay > to) continue;
+            result.totalOrders += 1;
+            // The requested deadline is SQL DATE, not a UTC timestamp to shift to Chile.
+            const dueDay = order.fecha_estimada_termino?.toISOString().slice(0, 10);
+            if (!dueDay) result.missingDeadline += 1;
+            else if (readyDay <= dueDay) result.deliveredOnTime += 1;
+            else result.deliveredLate += 1;
+        }
+        return result;
     }
 
     async summary({ from, to }) {

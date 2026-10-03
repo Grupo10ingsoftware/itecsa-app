@@ -3,6 +3,9 @@ import { ADMINISTRATIVE_ROLES, ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
+  DOCUMENTS: '/documentos',
+  DATA_REQUESTS: '/solicitudes',
+  INCIDENT_REPORT: '/reportar-incidente',
   PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
@@ -13,14 +16,29 @@ export const APP_ROUTES = Object.freeze({
   ORDERS_CREATE: '/ordenes/nuevo',
   ORDER_HISTORY: '/historial-pedidos',
   ORDER_HISTORY_DETAIL: '/historial-pedidos/:orderId',
-  // Alias temporales para componentes del prototipo anterior que aún viven en el repositorio.
-  PRODUCTION_HISTORY: '/historial-pedidos',
-  PRODUCTION_HISTORY_DETAIL: '/historial-pedidos/:pedidoId',
   PRODUCTION_CALENDAR: '/calendario-produccion',
   MESSAGES: '/mensajes',
   MESSAGE_DETAIL: '/mensajes/:messageId',
   METRICS: '/metricas',
 })
+
+export const HEADER_NAVIGATION_ROUTES = Object.freeze([
+  {
+    label: 'Bandeja de mensajes',
+    path: APP_ROUTES.MESSAGES,
+    permission: PERMISSIONS.READ_MESSAGES,
+    icon: 'bi-envelope-paper',
+    iconOnly: true,
+    requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
+  },
+  {
+    label: 'Mi perfil',
+    path: APP_ROUTES.PROFILE,
+    permission: PERMISSIONS.READ_PROFILE,
+    icon: 'bi-person-circle',
+    requirementIds: Object.freeze(['UR 1.7']),
+  },
+])
 
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
@@ -28,18 +46,6 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     path: APP_ROUTES.KANBAN,
     permission: PERMISSIONS.VIEW_KANBAN_MODULE,
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),
-  },
-  {
-    label: 'Mi perfil',
-    path: APP_ROUTES.PROFILE,
-    permission: PERMISSIONS.READ_PROFILE,
-    requirementIds: Object.freeze(['UR 1.7']),
-  },
-  {
-    label: 'Bandeja de mensajes',
-    path: APP_ROUTES.MESSAGES,
-    permission: PERMISSIONS.READ_MESSAGES,
-    requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
   },
   {
     label: 'Confirmar pago',
@@ -73,10 +79,10 @@ export const MAIN_NAVIGATION_ROUTES = Object.freeze([
     requirementIds: Object.freeze(['RF49']),
   },
   {
-    label: 'Métricas',
+    label: 'Reportes y estadísticas',
     path: APP_ROUTES.METRICS,
     permission: PERMISSIONS.VIEW_METRICS,
     requiredRoles: [ROLES.ADMINISTRADOR,ROLES.GERENCIA,ROLES.SOPORTE],
-    requirementIds: Object.freeze(['RF71']),
+    requirementIds: Object.freeze(['RF70', 'RF71']),
   }
 ])

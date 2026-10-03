@@ -1,4 +1,5 @@
 import getPrismaClient from "../../../database/prisma.js";
+import { ORDER_STATUS } from "../../../config/status.js";
 
 export default class MetricsRepository {
     constructor({ prisma } = {}) {
@@ -8,6 +9,29 @@ export default class MetricsRepository {
     get client() {
         if (!this.prisma) this.prisma = getPrismaClient();
         return this.prisma;
+    }
+
+    async performanceOrders({ start, end }) {
+        const readyStage = { Estado_Pedido: { nombre_etapa: ORDER_STATUS.LISTO_ENTREGA } };
+        // Broad UTC bounds; the service applies Chilean calendar dates, including DST.
+        const entryRange = { gte: start, lt: new Date(end.getTime() + 86400000) };
+        return this.client.pedidos.findMany({
+            where: { Registros: { some: { Registro_Etapas: {
+                ...readyStage, fecha_hora_entrada: entryRange,
+            } } } },
+            select: {
+                fecha_estimada_termino: true,
+                Registros: {
+                    where: { Registro_Etapas: { ...readyStage, fecha_hora_entrada: { not: null } } },
+                    orderBy: [
+                        { Registro_Etapas: { fecha_hora_entrada: "desc" } },
+                        { ID_REGISTRO: "desc" },
+                    ],
+                    take: 1,
+                    select: { Registro_Etapas: { select: { fecha_hora_entrada: true } } },
+                },
+            },
+        });
     }
 
     async production({ start, end }) {
@@ -76,7 +100,7 @@ export default class MetricsRepository {
                 fecha_creacion: true,
                 fecha_estimada_termino: true,
                 Usuario: {
-                    select: { nombre_usuario: true, apellido_usuario: true, correo_usuario: true },
+                    select: { nombre_usuario: true, apellido_usuario: true },
                 },
                 Detalle_pedido: {
                     select: {

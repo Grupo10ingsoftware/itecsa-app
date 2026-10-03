@@ -13,7 +13,7 @@ export function run() {
           <ProfilePage />
         </AuthContext.Provider>,
       )
-      assert.equal(html.includes('Generar nuevo PIN (debug)'), import.meta.env.DEV && role === ROLES.SOPORTE && pinStatus === 'active')
+      assert.equal(html.includes('Generar nuevo PIN (debug)'), import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ROUTES === 'true' && role === ROLES.SOPORTE && pinStatus === 'active')
     }
   }
 

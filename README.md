@@ -27,12 +27,12 @@ Para trabajar con contenedores, seguir la [guía Docker y despliegue](docs/opera
 
 | Directorio | Contenido |
 | --- | --- |
-| `capaVista/` | SPA, módulos visuales y pruebas frontend |
+| `capaVista/` | SPA y módulos visuales |
 | `capaServidor/` | API, servicios, repositorios, schema y migraciones preparadas |
 | `shared/` | Catálogo compartido de roles y permisos |
 | `docs/` | Referencias vigentes e informes archivados |
 | `deploy/`, `scripts/`, `.github/` | Configuración de contenedores, utilidades y CI/CD |
 
-Orders registra pedidos por API y Payments gestiona pagos con PIN. Las notas de venta todavía proceden de un fixture local; Manager no está integrado. La compatibilidad con el esquema antiguo permite omitir snapshots, pero no sustituye la [migración pendiente](docs/operacion/ORDERS_MIGRACION.md) ni el índice único de NV.
+Orders registra pedidos por API y Payments gestiona pagos con PIN. Mi perfil y la bandeja muestran información propia; Documentos/Solicitudes (P18) y Reportar incidente (P19) remiten comunicaciones al contacto configurado por Itecsa. Las notas de venta todavía proceden de un fixture local; Manager no está integrado. La compatibilidad con el esquema antiguo permite omitir snapshots, pero no sustituye la [migración pendiente](docs/operacion/ORDERS_MIGRACION.md) ni el índice único de NV.
 
 No versionar secretos, tokens ni datos personales reales. Las migraciones y verificaciones que escriben en una base compartida requieren el procedimiento y autorización del entorno. Esta documentación no acredita por sí sola un despliegue, la configuración actual de Auth0 ni cumplimiento legal.

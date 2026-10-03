@@ -22,7 +22,7 @@ const note = () => ({
 
 // Doble de unidad de trabajo: no es un motor SQL ni prueba de aislamiento MySQL.
 function setup({ source = note(), failAt, conflict, labelAvailable = false } = {}) {
-  const state = { persisted: null, events: [], lines: [], labels: [], sourceReads: 0, userReads: 0, transactions: 0 };
+  const state = { persisted: null, events: [], securityEvents: [], lines: [], labels: [], sourceReads: 0, userReads: 0, transactions: 0 };
   const deps = {
     repo: {
       existsBySalesNoteNumber: async () => false,
@@ -47,6 +47,12 @@ function setup({ source = note(), failAt, conflict, labelAvailable = false } = {
       return { id_detalle_pedido: state.lines.length, ...data };
     } },
     repoClient: { etiqueta: { findMany: async () => labelAvailable ? [{ id_etiqueta: 4 }] : [] } },
+    securityAudit: {
+      async record(event) {
+        state.securityEvents.push(event);
+        if (failAt === "securityAudit") throw new Error("securityAudit failure");
+      },
+    },
   };
   const sourceService = { async getByNumber(id) {
     state.sourceReads++;
@@ -60,7 +66,7 @@ function setup({ source = note(), failAt, conflict, labelAvailable = false } = {
     salesOrderTransaction: async (operation) => {
       state.transactions++;
       try { return await operation(deps); }
-      catch (error) { state.persisted = null; state.events = []; state.lines = []; throw error; }
+      catch (error) { state.persisted = null; state.events = []; state.securityEvents = []; state.lines = []; throw error; }
     },
   });
   return { service, state, deps, sourceService, userRepo };
@@ -80,12 +86,21 @@ test("creacion consulta fuente, canonicaliza alias e ignora campos comerciales y
   assert.equal(state.persisted.observacion_origen, "Texto de origen");
   assert.equal(state.persisted.observacion_interna, "Interna");
   assert.equal(state.persisted.fecha_estimada_termino, null);
-  assert.equal(result.detalles[0].codigo, "A");
+  assert.equal(result.detalles[0].codigo_origen, "A");
   assert.equal(state.events.length, 1);
+  assert.deepEqual(state.securityEvents, [{
+    eventType: "order.imported",
+    actorUserId: 7,
+    action: "create",
+    resourceType: "order",
+    resourceId: "1",
+    requestId: undefined,
+    outcome: "allowed",
+  }]);
   assert.equal(state.lines[0].codigo_origen, "A");
   assert.equal(state.lines[1].codigo_origen, "B");
   assert.notEqual(state.lines[0].linea_origen, state.lines[1].linea_origen);
-  assert.match(state.lines[0].linea_origen, /^[a-f0-9]{64}:0$/);
+  assert.match(state.lines[0].linea_origen, /^v2:[a-f0-9]{64}$/);
 });
 
 test("actor de token se resuelve una vez cuando no hay contexto interno", async () => {
@@ -157,10 +172,11 @@ test("preview de ventas minimiza cliente sin cambiar el contrato interno de fuen
   const { service, sourceService } = setup({ source });
   const preview = await service.getSalesNoteByNumber("24226");
   assert.deepEqual(Object.keys(preview.cliente).sort(), ["nombre", "rut"]);
+  assert.equal(preview.observaciones, "Texto de origen");
   assert.equal((await sourceService.getByNumber("24226")).cliente.direccion, "NO PUBLICAR");
 });
 
-for (const failAt of ["detail", "audit", "notification"]) {
+for (const failAt of ["detail", "audit", "notification", "securityAudit"]) {
   test(`propaga fallo ${failAt} a la unidad transaccional`, async () => {
     const { service, state } = setup({ failAt });
     await assert.rejects(service.createOrder({ numeroNota: "24226" }, { actorId: 7 }), new RegExp(`${failAt} failure`));
@@ -194,11 +210,11 @@ test("solo el conflicto de la restriccion NV se convierte en duplicado 409", asy
 test("errores inesperados no exponen mensaje ni datos; logger solo recibe correlacion", () => {
   let status, payload; const logs = [];
   const res = { status(value) { status = value; return this; }, json(value) { payload = value; return this; } };
-  sendOrderError(res, new Error("SQL INTERNO Y DATOS"), { error: (value) => logs.push(value) });
+  sendOrderError(res, new Error("SQL INTERNO Y DATOS"), { error: (event, metadata) => logs.push({ event, ...metadata }) }, { requestId: "order-request" });
   assert.equal(status, 500);
-  assert.ok(payload.reference);
+  assert.equal(payload.requestId, "order-request");
   assert.equal(JSON.stringify([payload, logs]).includes("SQL INTERNO"), false);
-  assert.equal(logs[0].reference, payload.reference);
+  assert.equal(logs[0].requestId, payload.requestId);
 });
 
 test("el log de un error Prisma conserva solo el codigo diagnostico seguro", () => {
@@ -207,8 +223,8 @@ test("el log de un error Prisma conserva solo el codigo diagnostico seguro", () 
   const error = new Error("SQL privado del cliente");
   error.code = "P2022";
   error.meta = { table: "Detalle_pedido", column: "producto_origen" };
-  sendOrderError(res, error, { error: (value) => logs.push(value) });
-  assert.equal(logs[0].databaseCode, "P2022");
+  sendOrderError(res, error, { error: (event, metadata) => logs.push({ event, ...metadata }) });
+  assert.equal(logs[0].code, "P2022");
   assert.equal(JSON.stringify(logs).includes("producto_origen"), false);
   assert.equal(JSON.stringify(logs).includes("SQL privado"), false);
 });

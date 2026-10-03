@@ -1,6 +1,8 @@
 # Pendientes vigentes y condiciones de cierre
 
-Revisión documental del código: 27-09-2026. Esta lista consolida el seguimiento disponible; no constituye una nueva auditoría de seguridad ni una consulta a la base, Auth0 o infraestructura. **Implementado** se refiere al repositorio; **validación pendiente** requiere evidencia del entorno; **decisión pendiente** requiere definición funcional u organizacional. No se asignan responsables ni fechas que no estén acordados.
+Revisión de coherencia documental del código: 03-10-2026. La evidencia externa conserva su fecha original. Esta lista consolida el seguimiento disponible; no constituye una nueva auditoría de seguridad ni una consulta a la base, Auth0 o infraestructura. **Implementado** se refiere al repositorio; **validación pendiente** requiere evidencia del entorno; **decisión pendiente** requiere definición funcional u organizacional. No se asignan responsables ni fechas que no estén acordados.
+
+La evidencia de pruebas anteriores conserva la fecha de cada revisión; para los comandos automatizados vigentes, consultar [comprobaciones disponibles](desarrollo/PRUEBAS.md).
 
 ## Orders e integración de notas de venta
 
@@ -8,14 +10,14 @@ Evidencia: [guía Orders](modulos/ORDERS.md), [reauditoría del 26-09](archivo/a
 
 | Identificador / tema | Estado documentado | Condición de cierre |
 | --- | --- | --- |
-| DB-01 / migración e integridad de NV | DDL preparado; compatibilidad sin snapshots implementada; base pendiente de validación | Reconciliar migraciones y esquema, recuperar archivos de agosto o acordar baseline, probar copia aislada, aplicar DDL autorizado y comprobar preflight. Índice único y snapshots deben existir físicamente. Seguir [procedimiento Orders](operacion/ORDERS_MIGRACION.md). |
+| DB-01 / migración e integridad de NV | DDL preparado; compatibilidad sin snapshots implementada; base pendiente de validación | Reconciliar migraciones y esquema, verificar los archivos recuperados de agosto y acordar la reconciliación o baseline, probar copia aislada, aplicar DDL autorizado y comprobar preflight. Índice único y snapshots deben existir físicamente. Seguir [procedimiento Orders](operacion/ORDERS_MIGRACION.md). |
 | DATA-02 / OBS-ORD-002 | Algoritmo productivo de reevaluación por posición pendiente | Acordar identidad estable de líneas, tratamiento de líneas retiradas y conservación del progreso con Producción/Kanban. Probar reordenamiento, eliminación y dos SKU del mismo tipo sin atribuir progreso a otra línea. |
 | INT-01 / Manager | No implementado; fuente fixture | Incorporar contrato y acceso autorizado, control de versión/fallos y pruebas de fuente autoritativa. No presentar consultas al JSON como integración productiva. |
 | RF44 / fecha productiva | Revisión funcional pendiente | Confirmar el alcance de fecha de origen versus programación productiva y validar el flujo de Calendario. No declarar cobertura completa solo por mostrar la fecha de la NV. |
 | PERF-01 / PERF-02 | Medición e índice/paginación pendientes | Separar lookup de NV sin índice de crecimiento de lista sin paginación; medir plan, bytes y latencias con datos representativos y revisar consumidores antes de cambiar contratos. |
-| Concurrencia y rollback del alta | Código transaccional y tests locales; MySQL aislado pendiente | Dos altas de una NV canónica generan un pedido y un 409; fallos en detalle, auditoría o mensajes revierten toda la unidad. Verificar históricos NULL y snapshots de líneas distintas. |
+| Concurrencia y rollback del alta | Código transaccional y evidencia histórica de tests; MySQL aislado pendiente | Dos altas de una NV canónica generan un pedido y un 409; fallos en detalle, auditoría o mensajes revierten toda la unidad. Verificar históricos NULL y snapshots de líneas distintas. |
 | Compatibilidad de clientes / respuesta del POST | Campos comerciales heredados se ignoran; respuesta hidratada conservada | Inventariar consumidores antes de rechazar campos heredados o reducir respuesta. No cambiar compatibilidad por la limpieza documental. |
-| QA autenticada y accesibilidad | Pruebas de hooks/SSR disponibles; entorno real pendiente | Verificar búsqueda, cancelación, confirmación, foco y teclado en navegador autenticado con el esquema y Auth0 del entorno. |
+| QA autenticada y accesibilidad | Evidencia histórica de hooks/SSR; entorno real pendiente | Verificar búsqueda, cancelación, confirmación, foco y teclado en navegador autenticado con el esquema y Auth0 del entorno. |
 
 FUNC-01 (catálogo que ocultaba errores) y SEC-01 (errores 5xx de Orders/Detalles) tienen correcciones y pruebas locales registradas en la reauditoría. Ese estado no cierra DB-01 ni valida su despliegue.
 
@@ -38,8 +40,9 @@ Evidencia: [guía Payments](modulos/PAYMENTS.md), [auditoría inicial](archivo/a
 ## Auth0 y operación
 
 - **Sesiones y permisos efectivos:** probar una sesión nueva representativa de cada rol y revisar usuarios con permisos directos, sin rol o con varios roles. La [auditoría del 25-09](archivo/auditorias/AUDITORIA-2026-09-25.md) cubrió asociaciones de roles; el snapshot JSON del 06-09 es anterior e incompleto. Cierre: evidencia fechada y sin tokens de claims, capacidades permitidas/denegadas y correspondencia con el catálogo.
-- **Correos:** confirmar proveedor propio, configuración de templates y envío controlado en el entorno. La presencia de HTML en Git no acredita que Auth0 lo use. Referencia: [Auth0](auth0/README.md).
-- **Despliegue:** la [guía Docker/Northflank](operacion/DOCKER_DESPLIEGUE.md) documenta el flujo de CI/CD. Cierre operativo: comprobar recursos, secretos, URLs, imagen por digest y SHA de ambos servicios; ensayar rollback y restauración de datos por separado. No inferir que Northflank está activado por existir el workflow.
+- **Correos:** la lectura del tenant de desarrollo mostró desactivado el proveedor de correo propio. Confirmar la entrega efectiva y las plantillas que se usan antes de depender de correos de alta o recuperación; el HTML en Git no acredita que Auth0 lo use. Referencia: [Auth0](auth0/README.md).
+- **Despliegue:** la [guía Docker/Northflank](operacion/DOCKER_DESPLIEGUE.md) documenta la preparación de imágenes y CI/CD en esta rama. Comprobar entorno, secretos, publicación, versión activa y rollback antes de declararlos operativos. La restauración de datos requiere su propia evidencia.
+- **P26 / proveedores:** el [inventario](security/data-processors.md) distingue integraciones de servicios habilitados y contratos verificados. Auth0 usa un tenant de desarrollo revisado en solo lectura. Aiven apoya temporalmente el desarrollo; Itecsa decidió eliminar todos los registros de esa BD al desplegar y conservar sólo la estructura. Ese borrado no se ha ejecutado y requiere verificar qué ocurre con copias y logs. Aún no existe hosting para SPA/API ni se ha elegido la BD definitiva. Revisar región, subencargados, retención, incidentes y salida según los proveedores y datos que efectivamente se utilicen.
 
 ## Seguimiento de la auditoría de protección de datos
 
@@ -50,11 +53,11 @@ Evidencia original: [auditoría del 25-09-2026](archivo/auditorias/AUDITORIA_PRE
 | H01 / DTO y minimización | Revisar campos y consumidores por rol; verificar listas permitidas y ausencia de datos internos innecesarios en respuestas. |
 | H02 / acceso a documentos y registros | PDF retirado del árbol actual; permanece pendiente la política de acceso a registros/historial (PAY-ACT-007). Validar todas las vías de lectura. |
 | H03 / Soporte y demo | Mantener separación funcional y verificar restricciones de ambiente y asignaciones productivas; el rol técnico no es una prueba de separación operativa. |
-| H04 / recuperación pública | Código conserva mensajes distintos y cuota IP+correo. Definir política antiabuso/enumeración y probarla. |
-| H05 / contadores PIN y consumo de recuperación | Revisar atomicidad y escenarios concurrentes de intentos y consumo único; las mejoras de locks de Payments no cierran este hallazgo de PIN. |
+| H04 / recuperación pública | Respuesta válida uniforme HTTP 202 y cuotas IP+correo implementadas; verificar tiempos reales, configuración persistente y operación. Ver [plan P08](security/PLAN-P08-P11-P18-P19-P28.md). |
+| H05 / contadores PIN y consumo de recuperación | Serialización, consumo único y pruebas concurrentes implementados; validar locks y rollback en MySQL del entorno. Ver [integración](INTEGRACION_FIX_21709.md). |
 | H06 / PIN pendiente | Definir expiración de copia reversible y revisar coste de hashing/ciclo de entrega; comprobar borrado tras aceptación y recuperación por reemplazo. |
-| H07 / proveedor de recuperación | Producción usa proveedor no disponible; desarrollo imprime código. Configurar entrega segura y controles explícitos de ambiente, sin secretos en logs. |
-| H08 / errores internos | Orders/Payments tienen correcciones parciales documentadas; reauditar restantes controladores y logs para cerrar el hallazgo transversal. |
+| H07 / proveedor de recuperación | Resend requiere selección y configuración explícitas; sin proveedor no hay entrega. Console solo con opt-in de desarrollo. Validar remitente, recepción y controles del despliegue. |
+| H08 / errores internos | Política HTTP centralizada implementada y probada; validar respuestas/logs en despliegue. Ver [H08](security/H08-http-errors.md). |
 | H09 / autoridad de NV | Alta actual recupera y valida la fuente en servidor; validar integración/versionado real y condiciones de despliegue antes de cerrar la evidencia del entorno. |
 | H10 / dependencias | Repetir revisión de manifiestos/lockfiles y avisos vigentes; no tratar el listado de CVE del informe como inventario actual. Conservar contexto del override Prisma/Hono al revisarlo. |
 | H11 / secretos locales | Verificar permisos, almacenamiento y procedimiento de rotación en el entorno correspondiente; esta limpieza no inspecciona secretos locales. |
@@ -62,9 +65,9 @@ Evidencia original: [auditoría del 25-09-2026](archivo/auditorias/AUDITORIA_PRE
 | H13 / retención y derechos | Definir políticas y flujo organizacional/técnico, finalidades, plazos y excepciones, con evidencia revisada por responsables. |
 | H14 / auditoría transversal | Acordar catálogo de eventos de seguridad/negocio y verificar cobertura, acceso y protección de registros. |
 | H15 / perímetro y almacenamiento | Obtener evidencia del entorno sobre HTTPS, aislamiento, cifrado y gestión de llaves; archivos de despliegue no acreditan la operación. |
-| H16 / backups | Acreditar respaldos, retención y prueba de restauración. Rollback de imágenes no restaura datos. |
-| H17 / documentación y utilidades | Limpieza documental y control de enlaces implementados en este cambio. Quedan revalidación de utilidades legadas, controles de dependencias/secretos y evidencia de ejecución de CI; no cerrar todo el hallazgo por ordenar guías. |
-| H18 / health de BD | `/health/db` sigue público; revisar protección/límites de diagnóstico del entorno. |
+| H16 / backups; P25 | [Procedimiento P25](operacion/BACKUP_RESTORE.md) preparado. Los registros de Aiven temporal no se migrarán; verificar reconstrucción de estructura y catálogos necesarios sin copiarlos. Para el futuro entorno con datos persistentes, acreditar RPO/RTO aprobados, respaldos, retención y prueba aislada de restauración. Rollback de imágenes no restaura datos. |
+| H17 / documentación y utilidades | Limpieza documental preparada en esta rama. Quedan revalidación de utilidades legadas, controles de dependencias/secretos e integración de CI; no cerrar todo el hallazgo por ordenar guías. |
+| H18 / health de BD | `/api/health/live` no consulta BD; `/internal/ready` es opcional y requiere token. Validar restricción de red/configuración del entorno. |
 | H19 / límites de lectura | Revisar paginación y límites de consultas/cálculos, con consumidores y mediciones (PERF-01/PERF-02, PAY-ACT-008). |
 
 La revisión legal, contractual y organizacional conserva los límites del informe original. La limpieza de documentación no certifica cumplimiento ni resuelve automáticamente esos hallazgos.

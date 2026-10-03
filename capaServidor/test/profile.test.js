@@ -29,7 +29,9 @@ test('perfil rechaza identidad ausente o inconsistente sin consultar registros',
 test('perfil informa fallo de carga sin inventar registros', async () => {
     const res = response();
     await createGetProfileHandler({ users: { async listRecentRecords() { throw new Error('offline'); } } })({ currentUser: user, auth: { payload: { sub: user.idAuth0 } } }, res);
-    assert.equal(res.code, 503);
+    assert.equal(res.code, 500);
+    assert.equal(res.body.code, 'INTERNAL_ERROR');
+    assert.match(res.body.requestId, /^[0-9a-f-]{36}$/);
 });
 test('repositorio filtra por usuario y limita a diez registros ordenados por fecha e identificador descendente', async () => {
     const repository = new UserRepository({ prisma: { registros: { async findMany(query) {

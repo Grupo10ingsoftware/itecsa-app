@@ -3,9 +3,8 @@ import styles from '../styles/Kanban.module.css'
 
 const EMPTY_FILTERS = Object.freeze({
   clientName: '',
-  nv: '',
+  salesNoteNumber: '',
   productType: '',
-  seller: '',
 })
 
 export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
@@ -53,10 +52,10 @@ export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
               <span>Numero de pedido</span>
               <input
                 className="form-control"
-                onChange={(event) => updateFilter('nv', event.target.value)}
+                onChange={(event) => updateFilter('salesNoteNumber', event.target.value)}
                 placeholder="Ej. 24038"
                 type="text"
-                value={draftFilters.nv}
+                value={draftFilters.salesNoteNumber}
               />
             </label>
 
@@ -68,17 +67,6 @@ export default function KanbanFilters({ onApplyFilters, onClearFilters }) {
                 placeholder="Ej. Colegio Andes"
                 type="text"
                 value={draftFilters.clientName}
-              />
-            </label>
-
-            <label>
-              <span>Vendedor</span>
-              <input
-                className="form-control"
-                onChange={(event) => updateFilter('seller', event.target.value)}
-                placeholder="Ej. Mariana Soto"
-                type="text"
-                value={draftFilters.seller}
               />
             </label>
 

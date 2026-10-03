@@ -75,7 +75,6 @@ export default function PaymentConfirmationPage() {
       setOrders(normalizePaymentOrders(ordersResponse))
       setPaymentStatuses(Array.isArray(statusesResponse) ? statusesResponse : [])
     } catch (error) {
-      console.error('Error cargando pagos:', error)
       setOrders([])
       setPaymentStatuses([])
       setLoadError(
@@ -183,7 +182,6 @@ export default function PaymentConfirmationPage() {
       setEditingStatus((prev) => ({ ...prev, [orderId]: false }))
       return true
     } catch (error) {
-      console.error('Error actualizando estado de pago:', error)
       setUpdateError(
         error?.payload?.message ??
           'No fue posible actualizar el estado de pago.',
@@ -315,7 +313,6 @@ export default function PaymentConfirmationPage() {
     } catch (error) {
       if (previewRequestId.current !== requestId) return
 
-      console.error('Error cargando detalle de pago:', error)
       setActionDetailsError(
         error?.payload?.message ??
           'No fue posible cargar la información completa del pedido.',
@@ -405,7 +402,6 @@ export default function PaymentConfirmationPage() {
     } catch (error) {
       if (detailPreviewRequestId.current !== requestId) return
 
-      console.error('Error cargando detalle de pago:', error)
       setPreviewDetailsError(
         error?.payload?.message ??
           'No fue posible cargar la información completa del pedido.',

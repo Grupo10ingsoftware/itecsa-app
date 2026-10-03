@@ -6,7 +6,7 @@ import { useAuth } from '../../../hooks/useAuth'
 const AUTH_LOADING_TIMEOUT_MS = 10000
 
 export default function ProtectedRoute({ children, fallback }) {
-  const { authStatus, error, isAuthenticated, isLoading, pinStatus } = useAuth()
+  const { authStatus, isAuthenticated, isLoading, pinStatus } = useAuth()
   const location = useLocation()
   const fromPath = `${location.pathname}${location.search}${location.hash}`
   const [authLoadingExpired, setAuthLoadingExpired] = useState(false)
@@ -54,7 +54,6 @@ export default function ProtectedRoute({ children, fallback }) {
     return (
       <div className="alert alert-danger m-4" role="alert">
         No fue posible verificar la sesion con el backend.
-        {error?.message ? ` ${error.message}` : ''}
       </div>
     )
   }

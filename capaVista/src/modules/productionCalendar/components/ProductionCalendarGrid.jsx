@@ -320,8 +320,7 @@ function DeliveryChangeCredentialsModal({ change, onCancel, onConfirm }) {
 
     try {
       await onConfirm({ pin: trimmedPin })
-    } catch (submitError) {
-      console.error('Error actualizando fecha de entrega:', submitError)
+    } catch {
       setError('No fue posible cambiar la fecha de entrega.')
     } finally {
       setIsSubmitting(false)

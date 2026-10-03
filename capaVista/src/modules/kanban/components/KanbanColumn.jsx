@@ -804,7 +804,6 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       setSelectedOrder(normalizedOrder)
       return true
     } catch (error) {
-      console.error('Error completando subproceso:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible completar el subproceso.')
       return false
     }
@@ -816,7 +815,6 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       handleUpdateOrder(normalizeOrder(updatedOrder))
       return true
     } catch (error) {
-      console.error('Error enviando pedido a revisión:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible enviar el pedido a revisión.')
       return false
     }
@@ -829,7 +827,6 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       setSelectedOrder(null)
       return true
     } catch (error) {
-      console.error('Error cancelando la produccion:', error)
       setMoveError(error?.payload?.message ?? 'No fue posible cancelar la produccion.')
       return false
     }

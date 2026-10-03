@@ -5,35 +5,36 @@ import { useAuthApi } from '../../auth/hooks/useAuthApi'
 import RoleBadge from '../../../shared/components/data/RoleBadge'
 import styles from './ProfilePage.module.css'
 import { formatProfileDate } from '../utils/profileFormatters'
+import { displayUserStatus, isActiveUserStatus } from '../../../config/userLifecycle'
+import UserMovementsModal from '../../users/components/UserMovementsModal'
+import UserMovementsTable from '../../users/components/UserMovementsTable'
+import confirmationStyles from '../../../shared/styles/ConfirmationModal.module.css'
 
 function getDisplayValue(value, fallback = 'No informado') {
   return String(value ?? '').trim() || fallback
 }
 
-function getInitials(firstName, lastName, email) {
-  const firstInitial = String(firstName ?? '').trim().charAt(0)
-  const lastInitial = String(lastName ?? '').trim().charAt(0)
-  const emailInitial = String(email ?? '').trim().charAt(0)
-
-  return `${firstInitial}${lastInitial}`.trim().toUpperCase() || emailInitial.toUpperCase() || 'U'
-}
-
 export default function ProfilePage() {
   const { auth0User, pinStatus, refreshSession, user } = useAuth()
   const authApi = useAuthApi()
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const historyApi = useMemo(() => ({ getMovements: (_subject, query) => authApi.getProfileMovements(query) }), [authApi])
+  const historyUser = { idUsuarioAutenticacionExterna: user?.sub }
   const [profileData, setProfileData] = useState(null)
-  const [profileError, setProfileError] = useState('')
   const [profileAttempt, setProfileAttempt] = useState(0)
   useEffect(() => {
     let current = true
     authApi.getProfile().then((data) => {
-      if (current) setProfileData({ subject: user?.sub, data })
+      if (current) setProfileData({ subject: user?.sub, api: authApi, attempt: profileAttempt, data })
     }).catch((error) => {
-      if (current) setProfileError(error?.payload?.message ?? 'No fue posible cargar tu perfil.')
+      if (current) setProfileData({ subject: user?.sub, api: authApi, attempt: profileAttempt,
+        error: error?.payload?.message ?? 'No fue posible cargar tu perfil.' })
     })
     return () => { current = false }
   }, [authApi, user?.sub, profileAttempt])
-  const loadedProfile = profileData?.subject === user?.sub ? profileData?.data : null
+  const profileCurrent = profileData?.subject === user?.sub && profileData?.api === authApi && profileData?.attempt === profileAttempt
+  const loadedProfile = profileCurrent ? profileData?.data : null
+  const profileError = profileCurrent ? profileData?.error : ''
   const [visiblePin, setVisiblePin] = useState('')
   const [pinError, setPinError] = useState('')
   const [isPinBusy, setIsPinBusy] = useState(false)
@@ -45,7 +46,7 @@ export default function ProfilePage() {
     const lastName = loadedProfile?.apellidoPaterno ?? user?.apellidoPaterno
     const email = loadedProfile?.email ?? user?.email
     const role = loadedProfile?.rolUsuario ?? user?.rolUsuario
-    const status = loadedProfile?.estadoUsuario
+    const status = loadedProfile?.estadoUsuario ?? user?.estadoUsuario
 
     return {
       firstName,
@@ -53,9 +54,8 @@ export default function ProfilePage() {
       email,
       role,
       status,
-      rut: loadedProfile?.rutUsuario,
+      rut: loadedProfile?.rutUsuario ?? user?.rutUsuario,
       picture: auth0User?.picture,
-      initials: getInitials(firstName, lastName, email),
     }
   }, [auth0User, user, loadedProfile])
 
@@ -163,136 +163,97 @@ export default function ProfilePage() {
           <h1 className={styles.pageTitle} id="profile-title">
             Mi perfil
           </h1>
+          <p>Revisa tu información personal y la actividad reciente de tu cuenta.</p>
         </header>
 
-        {profileError ? (
+        {profileError && (
           <div className="alert alert-danger" role="alert">
             {profileError}{' '}
             <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => {
-              setProfileError('')
               setProfileAttempt((attempt) => attempt + 1)
             }}>Reintentar</button>
           </div>
-        ) : !loadedProfile && <p role="status">Cargando perfil...</p>}
+        )}
 
         <section className={styles.profileGrid} aria-label="Datos del usuario">
           <aside className={styles.photoPanel}>
-            {profile.picture ? (
-              <img alt="" className={styles.profilePhoto} src={profile.picture} />
-            ) : (
-              <div className={styles.profilePhotoFallback} aria-hidden="true">
-                {profile.initials}
+            <div className={styles.identityBlock}>
+            {profile.picture ? <img alt="" className={styles.profilePhoto} src={profile.picture} />
+              : <div className={styles.profilePhotoFallback} aria-hidden="true"><i className="bi bi-person" /></div>}
+            <h2>{getDisplayValue(`${getDisplayValue(profile.firstName, '')} ${getDisplayValue(profile.lastName, '')}`.trim(), 'Usuario sin nombre')}</h2>
+            </div>
+            <div className={styles.roleBlock}>
+              <div className={styles.roleContent}>
+              <span className={styles.cardIcon}><i className="bi bi-briefcase" aria-hidden="true" /></span>
+              <div><h3>Rol del usuario</h3><RoleBadge role={profile.role} /></div>
               </div>
-            )}
+            </div>
           </aside>
 
-          <div className={styles.infoPanel}>
-            <div className={styles.infoHeader}>
-              <div>
-                <span className={styles.sectionLabel}>Información personal</span>
-                <h2>{getDisplayValue(`${getDisplayValue(profile.firstName, '')} ${getDisplayValue(profile.lastName, '')}`.trim(), 'Usuario sin nombre')}</h2>
-              </div>
-              <span className={styles.statusBadge}>{getDisplayValue(profile.status)}</span>
-            </div>
-
+          <section className={styles.infoPanel} aria-labelledby="personal-information-title">
+            <header className={styles.cardHeader}>
+              <span className={styles.cardIcon}><i className="bi bi-person" aria-hidden="true" /></span>
+              <div><h2 id="personal-information-title">Información personal</h2><p>Estos son los datos asociados a tu cuenta en ItecsaApp.</p></div>
+            </header>
             <dl className={styles.infoList}>
-              <div>
-                <dt>Primer nombre</dt>
-                <dd>{getDisplayValue(profile.firstName)}</dd>
-              </div>
-              <div>
-                <dt>Apellido paterno</dt>
-                <dd>{getDisplayValue(profile.lastName)}</dd>
-              </div>
-              <div>
-                <dt>Rut</dt>
-                <dd>{getDisplayValue(profile.rut)}</dd>
-              </div>
-              <div>
-                <dt>Correo electrónico</dt>
-                <dd>{getDisplayValue(profile.email)}</dd>
-              </div>
-              <div>
-                <dt>Rol</dt>
-                <dd>
-                  <RoleBadge role={profile.role} />
-                </dd>
-              </div>
-              <div>
-                <dt>Estado</dt>
-                <dd>{getDisplayValue(profile.status)}</dd>
-              </div>
+              <div><dt>Primer nombre</dt><dd>{getDisplayValue(profile.firstName)}</dd></div>
+              <div><dt>Apellido paterno</dt><dd>{getDisplayValue(profile.lastName)}</dd></div>
+              <div><dt>RUT</dt><dd>{getDisplayValue(profile.rut)}</dd></div>
+              <div><dt>Correo electrónico</dt><dd>{getDisplayValue(profile.email)}</dd></div>
+              <div><dt>Estado</dt><dd><span className={`${styles.statusBadge} ${isActiveUserStatus(profile.status) ? styles.accepted : styles.neutral}`}>
+                <i className="bi bi-circle-fill" aria-hidden="true" />{getDisplayValue(displayUserStatus(profile.status))}
+              </span></dd></div>
+              <div><dt>Fecha de registro</dt><dd>{loadedProfile?.fechaRegistro ? formatProfileDate(loadedProfile.fechaRegistro, { includeTime: true }) : 'No informada'}</dd></div>
             </dl>
-          </div>
-        </section>
+          </section>
 
-        <section className="card border-0 shadow-sm mb-4" aria-labelledby="personal-pin-title">
-          <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div>
-              <span className={styles.sectionLabel}>Seguridad</span>
-              <h2 className="h5 mb-1" id="personal-pin-title">PIN personal</h2>
-              <p className="mb-0 text-secondary">
-                {pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
-              </p>
+          <section className={styles.pinPanel} aria-labelledby="personal-pin-title">
+            <header className={styles.cardHeader}>
+              <span className={styles.cardIcon}><i className="bi bi-shield" aria-hidden="true" /></span>
+              <div><h2 id="personal-pin-title">PIN personal</h2><p>Utiliza tu PIN para confirmar acciones sensibles en la plataforma.</p></div>
+            </header>
+            <div className={styles.pinState}>
+              <span className={`${styles.pinIcon} ${pinStatus === 'active' ? styles.accepted : styles.pending}`}><i className={`bi ${pinStatus === 'active' ? 'bi-lock' : 'bi-shield-lock'}`} aria-hidden="true" /></span>
+              <span className={`${styles.statusBadge} ${pinStatus === 'active' ? styles.accepted : styles.pending}`}>
+                <i className="bi bi-circle-fill" aria-hidden="true" />{pinStatus === 'active' ? 'Aceptado' : 'Pendiente de entrega'}
+              </span>
             </div>
-            {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ROUTES === 'true' && profile.role === ROLES.SOPORTE && pinStatus === 'active' && (
-              <div>
-                <button className="btn btn-outline-warning" type="button" disabled={isPinBusy} onClick={debugResetPin}>
-                  {isPinBusy ? 'Generando...' : 'Generar nuevo PIN (debug)'}
-                </button>
-                <p className="small text-secondary mb-0 mt-2">El PIN anterior dejará de funcionar.</p>
-              </div>
-            )}
-            {pinStatus === 'active' && (
-              <button
-                className="btn btn-outline-dark"
-                onClick={() => {
-                  resetRecovery()
-                  setRecoveryOpen(true)
-                }}
-                type="button"
-              >
-                Recuperar PIN
-              </button>
-            )}
-          </div>
+            {pinStatus === 'active' && <button className={styles.outlineButton} disabled={isPinBusy} type="button"
+              onClick={() => { resetRecovery(); setRecoveryOpen(true) }}><i className="bi bi-arrow-clockwise" aria-hidden="true" />Recuperar PIN</button>}
+            {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ROUTES === 'true' && profile.role === ROLES.SOPORTE && pinStatus === 'active' && <div>
+              <button className={styles.outlineButton} type="button" disabled={isPinBusy} onClick={debugResetPin}>
+                {isPinBusy ? 'Generando...' : 'Generar nuevo PIN (debug)'}
+              </button><p className={styles.debugHint}>El PIN anterior dejará de funcionar.</p>
+            </div>}
+          </section>
         </section>
 
-        {pinError && pinStatus === 'active' && !recoveryOpen && (
-          <div className="alert alert-danger" role="alert">{pinError}</div>
-        )}
+        {pinError && pinStatus === 'active' && !recoveryOpen && <div className="alert alert-danger" role="alert">{pinError}</div>}
 
         <section className={styles.movementsPanel} aria-labelledby="movements-title">
           <header className={styles.movementsHeader}>
-            <span className={styles.sectionLabel}>Actividad</span>
-            <h2 id="movements-title">Últimos diez registros</h2>
-          </header>
-
-          {loadedProfile?.records.length === 0 && <p role="status">Aún no tienes registros asociados.</p>}
-          <div className={styles.movementsTable} role="table" aria-label="Últimos registros del usuario">
-            <div className={styles.movementsHead} role="row">
-              <span role="columnheader">Identificador</span>
-              <span role="columnheader">Detalle del movimiento</span>
-              <span role="columnheader">Fecha</span>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}><i className="bi bi-clock" aria-hidden="true" /></span>
+              <div><h2 id="movements-title">Actividad reciente</h2><p>Últimos movimientos y cambios realizados en tu cuenta.</p></div>
             </div>
-            {(loadedProfile?.records ?? []).map((movement) => (
-              <div className={styles.movementRow} key={movement.id} role="row">
-                <span role="cell">{movement.id}</span>
-                <span role="cell">{movement.detail}</span>
-                <time dateTime={movement.dateTime} role="cell">
-                  {formatProfileDate(movement.dateTime)}
-                </time>
-              </div>
-            ))}
-          </div>
+            <button className={styles.outlineButton} type="button" disabled={!loadedProfile || pinStatus !== 'active'}
+              onClick={() => setHistoryOpen(true)}><i className="bi bi-calendar3" aria-hidden="true" />Ver historial completo</button>
+          </header>
+          {!loadedProfile ? <p role="status">{profileError ? 'Actividad no disponible.' : 'Cargando actividad…'}</p>
+            : !loadedProfile.records?.length ? <p role="status">Aún no tienes registros asociados.</p>
+              : <UserMovementsTable records={loadedProfile.records} label="Actividad reciente del usuario" />}
         </section>
       </section>
+
+      {historyOpen && pinStatus === 'active' && <UserMovementsModal key={user?.sub}
+        user={historyUser} api={historyApi} onClose={() => setHistoryOpen(false)} title="Historial completo"
+        description="Consulta el registro completo de movimientos de tu cuenta." />}
 
       {pinStatus === 'pending_acknowledgement' && (
         <>
           <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="pin-delivery-title">
             <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
+              <div className={`modal-content ${confirmationStyles.content}`}>
                 <div className="modal-header">
                   <h2 className="modal-title fs-5" id="pin-delivery-title">Tu PIN personal</h2>
                 </div>
@@ -324,7 +285,7 @@ export default function ProfilePage() {
         <>
           <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="pin-recovery-title">
             <div className="modal-dialog modal-dialog-centered">
-              <form className="modal-content" onSubmit={confirmRecovery}>
+              <form className={`modal-content ${confirmationStyles.content}`} onSubmit={confirmRecovery}>
                 <div className="modal-header">
                   <h2 className="modal-title fs-5" id="pin-recovery-title">Recuperar PIN</h2>
                   <button

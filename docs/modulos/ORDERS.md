@@ -45,17 +45,39 @@ ciudad y tipo de cliente no viajan a esta pantalla. Los errores inesperados se
 devuelven genéricamente, con referencia de correlación; no se registran cuerpos,
 SQL, tokens ni mensajes internos de dependencias.
 
+## Autoridad de los datos al confirmar
+
+| Datos | Fuente autorizada |
+| --- | --- |
+| Número de NV, observación interna y prioridad | Entrada del usuario, validada por `validateCreateSalesOrder` |
+| RUT/nombre del cliente, vendedor, observaciones comerciales e ítems | Nota recuperada y validada nuevamente por el backend |
+| Actor que registra | Identidad interna de la sesión; el vendedor externo no lo sustituye |
+| Estados iniciales, IDs y fecha de creación | Backend y catálogos |
+| Fecha tentativa de origen | Información comercial; no asigna la programación productiva |
+
+La confirmación usa la versión disponible en la fuente; el preview no es respaldo
+si la nota desaparece o falla. La fuente fixture no tiene versión por nota y su
+caché se invalida por mtime/tamaño: una sustitución con ambos atributos idénticos
+no se detecta. Esto no acredita integración ni versionado de Manager.
+
+Un cliente ya existente se reutiliza por RUT sin sincronizar su nombre compartido.
+El alias `observacion_interna` sigue aceptado; la prioridad vigente es una sola
+opción (`null`, `urgent` o `contract`), no un array. Las pruebas históricas
+verificaron fuente autoritativa, actor, validación, transacción y duplicados con
+datos sintéticos. Se retiraron las suites el 03-10-2026. Sus resultados anteriores
+no sustituyen validar los flujos actuales ni comprobar MySQL.
+
 ## Interfaz y pruebas
 
 Cancelar, editar o desmontar invalida respuestas de búsqueda antiguas. Confirmar
 captura un payload mínimo y evita reentradas; cerrar o reiniciar durante el POST
 está bloqueado. El diálogo administra foco y teclado, y la observación tiene una
-etiqueta programática. Las pruebas de hooks usan scheduler controlado y las de
-markup usan SSR; no equivalen a una certificación de accesibilidad en navegador.
+etiqueta programática. Las pruebas históricas de hooks usaron scheduler controlado y las de
+markup usaron SSR; no equivalen a una certificación de accesibilidad en navegador.
 
-- Backend: `node --test` desde `capaServidor`.
-- Frontend: `npm test`, `npm run build` desde `capaVista`.
-- Lint acotado: `npx --no-install eslint src/modules/orders src/hooks/useOrderCreateFlow.js src/config/requirementsMap.js test/orders.cases.jsx`.
+- Frontend: `npm run lint`, `npm run build` desde `capaVista`.
+- Schema: `npm run prisma:validate` desde `capaServidor`.
+- Alcance y límites: [validaciones de entrega](../desarrollo/PRUEBAS.md).
 - Procedimiento obligatorio antes del despliegue: [migración](../operacion/ORDERS_MIGRACION.md).
 
 El código comprueba las cinco columnas de snapshot y omite sus campos cuando faltan, según [orderSnapshotSchema.js](../../capaServidor/src/modules/orders/repo/orderSnapshotSchema.js). El modo compatible permite operar con el esquema antiguo, pero no guarda nuevos snapshots ni sustituye el índice único de NV. Tras aplicar el DDL revisado, reiniciar el backend para volver a detectar el esquema completo. No considerar lista para producción la integridad de Orders sin reconciliar y validar la migración. Manager, concurrencia/rollback MySQL y Auth0 desplegado requieren su entorno.

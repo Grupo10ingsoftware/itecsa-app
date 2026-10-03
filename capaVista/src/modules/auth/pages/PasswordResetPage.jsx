@@ -11,18 +11,6 @@ const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEFAULT_ERROR_MESSAGE =
   'No fue posible solicitar la recuperación de contraseña. Intenta nuevamente.'
 
-function getMessageVariant(status) {
-  if (status === 'sent') {
-    return styles.success
-  }
-
-  if (status === 'disabled') {
-    return styles.warning
-  }
-
-  return styles.info
-}
-
 function getApiErrorMessage(error) {
   if (error instanceof PasswordResetApiError && typeof error.payload?.message === 'string') {
     return error.payload.message
@@ -54,7 +42,7 @@ export default function PasswordResetPage() {
     try {
       const payload = await requestPasswordResetEmail({ email: normalizedEmail })
       setResult({
-        status: payload?.status ?? 'error',
+        status: payload?.status ?? 'accepted',
         message: payload?.message ?? DEFAULT_ERROR_MESSAGE,
       })
     } catch (error) {
@@ -101,7 +89,7 @@ export default function PasswordResetPage() {
           </div>
 
           {result && (
-            <div className={`${styles.message} ${getMessageVariant(result.status)}`} role="status">
+            <div className={`${styles.message} ${result.status === 'error' ? styles.warning : styles.info}`} role="status">
               {result.message}
             </div>
           )}

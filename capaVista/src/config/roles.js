@@ -1,4 +1,4 @@
-export { ROLES, FUNCTIONAL_ROLES, ADMIN_ROLES as ADMINISTRATIVE_ROLES, manageableRoles } from '../../../shared/authorization.js';
+export { ROLES, ADMIN_ROLES as ADMINISTRATIVE_ROLES, manageableRoles } from '../../../shared/authorization.js';
 import { ROLES, FUNCTIONAL_ROLES, RECOGNIZED_ROLES } from '../../../shared/authorization.js';
 // Opciones funcionales: nunca ofrecer Soporte en formularios.
 export const OFFICIAL_ROLES = FUNCTIONAL_ROLES;

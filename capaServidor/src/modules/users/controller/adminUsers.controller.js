@@ -623,8 +623,7 @@ export function createAdminUserMovementsHandler({ users = userRepository } = {})
             const user = await users.findByAuth0Id(req.params.userId.trim());
             if (!user) return res.status(404).json({ message: "El usuario no existe." });
             if (!allowedTarget(req, res, user.rolUsuario)) return;
-            const { page, perPage } = query.filters;
-            const result = await users.listMovements(user.idUsuario, { page, perPage });
+            const result = await users.listMovements(user.idUsuario, query.filters);
             return res.status(200).json(result);
         } catch {
             return internalError(req, res, "No fue posible consultar los movimientos del usuario.");

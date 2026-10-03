@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import styles from './Layout.module.css'
+import ModuleLoadingState from '../navigation/ModuleLoadingState'
 
 function AppLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -53,7 +54,9 @@ function AppLayout() {
       >
         <Topbar onOpenMobileSidebar={handleOpenMobileSidebar} />
         <main className={styles.mainContent}>
-          <Outlet />
+          <Suspense fallback={<ModuleLoadingState />}>
+            <Outlet />
+          </Suspense>
         </main>
       </section>
     </div>

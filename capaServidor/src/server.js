@@ -27,6 +27,12 @@ import { notFoundHandler } from './middlewares/errorHandler.js';
 import { currentAppEnvironment, parseTrustedProxy } from './config/environment.js';
 import { safeLogger } from './shared/safeLogger.js';
 import supportAudit from './middlewares/supportAudit.js';
+import { createPrivacyRouter } from './modules/privacy/routes/privacy.routes.js';
+import PrivacyController from './modules/privacy/controller/privacy.controller.js';
+import PrivacyRequestService from './modules/privacy/service/privacyRequest.service.js';
+import { createIncidentReportRouter } from './modules/security/routes/incidentReport.routes.js';
+import IncidentReportController from './modules/security/controller/incidentReport.controller.js';
+import IncidentReportService from './modules/security/service/incidentReport.service.js';
 class Server {
   constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
@@ -101,14 +107,12 @@ class Server {
 
   routes() {
 
+    this.app.use('/api/security/incident-reports', createIncidentReportRouter({ controller: new IncidentReportController({ service: new IncidentReportService({ env: this.env, logger: this.logger }) }) }));
+
+    this.app.use('/api/privacy', createPrivacyRouter({ controller: new PrivacyController({ service: new PrivacyRequestService({ env: this.env }) }) }));
+
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
-    /**
-     * Un ejemplo sería
-     * this.app.use(this.paths.users, user_route);
-
-     * Esto se definira cuando tengamos nuestros rutas definidas para cada API
-     */
     this.app.use(
       this.paths.auth,
       createAuthRouter({

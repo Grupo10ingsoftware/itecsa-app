@@ -1,0 +1,16 @@
+.summary { align-items: center; background: rgba(255, 255, 255, .025); border: 1px solid rgba(255, 255, 255, .18); border-radius: .85rem; color: #fff; display: flex; gap: .9rem; max-width: 28rem; min-width: 0; padding: .7rem 1rem; }
+.avatar { display: grid; place-items: center; flex-shrink: 0; font-size: 3.5rem; line-height: 1; }
+.copy { display: grid; gap: .2rem; min-width: 0; }
+.name, .email { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name { font-size: 1rem; font-weight: 780; }
+.email { color: rgba(255, 255, 255, .7); font-size: .85rem; }
+.role { min-width: 0; }
+.role :global(.badge) { max-width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 1199.98px) { .summary { gap: .65rem; padding: .6rem .75rem; } .avatar { font-size: 2.75rem; } .name { font-size: .9rem; } .email { font-size: .75rem; } }
+@media (max-width: 575.98px) {
+  .summary { border: 0; background: transparent; gap: .4rem; padding: 0; }
+  .avatar { font-size: 1.7rem; }
+  .name { font-size: .78rem; }
+  /* Keep the complete identity available to assistive technology on small screens. */
+  .email, .role { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+}

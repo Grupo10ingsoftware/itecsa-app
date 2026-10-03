@@ -54,7 +54,7 @@ El actor del PIN se toma de `req.pinActor` y se registra en `Registros.id_usuari
 
 La decisión se toma tras bloquear `Pedidos` con `SELECT ... FOR UPDATE` y releer el estado dentro de la transacción. Un destino ya alcanzado devuelve el pedido sin nueva auditoría; una decisión concurrente distinta genera 409. Estado, registro y avisos se escriben en la misma unidad transaccional real. Las pruebas con dobles no acreditan locks o rollback físico: seguir la [validación MySQL aislada](../operacion/PAYMENTS_SOLICITUD_BD.md).
 
-Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; las [pruebas](../desarrollo/PRUEBAS.md) incluyen su ciclo en navegador con datos ficticios.
+Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; su ciclo se verificó históricamente en navegador con datos ficticios. Las suites se retiraron para la entrega; consultar las [validaciones disponibles](../desarrollo/PRUEBAS.md).
 
 ## Límites y pendientes
 

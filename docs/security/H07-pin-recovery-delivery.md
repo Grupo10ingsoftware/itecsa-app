@@ -1,5 +1,7 @@
 # H07 / RF07 — Entrega de recuperación de PIN con Resend
 
+**Contexto histórico:** los resultados de pruebas documentan la revisión original. Las suites se retiraron el 03-10-2026; los comandos de esa revisión ya no están disponibles. Ver [validación de entrega](../desarrollo/PRUEBAS.md).
+
 ## Excepción temporal solicitada para desarrollo
 
 Se conserva íntegramente Resend. Mientras se obtiene el dominio de la empresa, se permite seleccionar explícitamente:

@@ -1,6 +1,6 @@
 # Desarrollo local y configuración
 
-Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [contratos canónicos de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../security/P14_BUSQUEDA_NOTAS_VENTA.md) y [pruebas](PRUEBAS.md).
+Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [contratos canónicos de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../security/P14_BUSQUEDA_NOTAS_VENTA.md), [privacidad P18](../modulos/PRIVACY.md), [reporte de incidentes P19](../modulos/INCIDENT_REPORTS.md) y [pruebas](PRUEBAS.md).
 
 ## Requisitos e instalación
 

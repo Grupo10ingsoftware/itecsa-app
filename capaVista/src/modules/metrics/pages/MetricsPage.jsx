@@ -1,32 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMetricsApi } from '../hooks/useMetricsApi'
+import {
+  buildProductionChart,
+  createInitialPeriod,
+  EMPTY_METRICS_SUMMARY,
+  getPeriodQuery,
+  subscribeMetricsSummary,
+} from '../utils/metricsPage'
 import styles from './MetricsPage.module.css'
 
 const PRODUCT_COLORS = ['#f97316', '#2563eb', '#248f55']
-const INITIAL_PERIOD = { mode: 'month', month: getCurrentMonth(), from: '', to: '' }
-
-function getCurrentMonth() {
-  const today = new Date()
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
-}
-
-function getMonthOptions() {
-  const today = new Date()
-  return Array.from({ length: 12 }, (_, index) => {
-    const date = new Date(today.getFullYear(), today.getMonth() - index, 1)
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    return { value, label: new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric' }).format(date) }
-  })
-}
-
-function getPeriodDates(period) {
-  if (period.mode === 'month') {
-    const [year, month] = period.month.split('-').map(Number)
-    const lastDay = new Date(year, month, 0).getDate()
-    return { from: `${period.month}-01`, to: `${period.month}-${String(lastDay).padStart(2, '0')}` }
-  }
-  return { from: period.from, to: period.to }
-}
 
 function formatDuration(seconds) {
   const totalMinutes = Math.round(Number(seconds ?? 0) / 60)
@@ -36,59 +19,68 @@ function formatDuration(seconds) {
   return `${(hours / 24).toFixed(1)} días`
 }
 
-function SummaryCard({ icon, label, value, subtitle }) {
-  return <article className={styles.summaryCard}><div className={styles.summaryIcon}><i className={`bi ${icon}`} aria-hidden="true" /></div><div><span className={styles.summaryLabel}>{label}</span><strong className={styles.summaryValue}>{value}</strong><span className={styles.summarySubtitle}>{subtitle}</span></div></article>
-}
-
 export default function MetricsPage() {
   const api = useMetricsApi()
-  const [period, setPeriod] = useState(INITIAL_PERIOD)
-  const [summary, setSummary] = useState({ production: { total: 0, products: [] }, dwellTime: { stages: [], subprocesses: [] } })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [period, setPeriod] = useState(createInitialPeriod)
+  const [requestResult, setRequestResult] = useState({
+    queryKey: '',
+    summary: EMPTY_METRICS_SUMMARY,
+    error: '',
+  })
   const [isDwellOpen, setIsDwellOpen] = useState(false)
   const [selectedSubprocessProduct, setSelectedSubprocessProduct] = useState('all')
   const [isSellerOpen, setIsSellerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
-  const queryPeriod = getPeriodDates(period)
-  const canQuery = Boolean(queryPeriod.from && queryPeriod.to)
+  const periodQuery = useMemo(() => getPeriodQuery(period), [period])
+  const {
+    from: queryFrom,
+    to: queryTo,
+    queryKey,
+    validationMessage,
+  } = periodQuery
+  const canQuery = Boolean(queryKey)
+  const loading = canQuery && requestResult.queryKey !== queryKey
+  const error = requestResult.queryKey === queryKey ? requestResult.error : ''
+  const summary = requestResult.queryKey === queryKey
+    ? requestResult.summary
+    : EMPTY_METRICS_SUMMARY
 
   useEffect(() => {
     if (!canQuery) return undefined
-    let active = true
-    setLoading(true)
-    setError('')
-    api.getSummary(queryPeriod)
-      .then((result) => active && setSummary(result))
-      .catch((requestError) => active && setError(requestError?.payload?.message ?? 'No fue posible cargar las métricas.'))
-      .finally(() => active && setLoading(false))
-    return () => { active = false }
-  }, [api, queryPeriod.from, queryPeriod.to, canQuery])
 
-  const chart = useMemo(() => {
-    const total = Number(summary.production?.total ?? 0)
-    let currentPercentage = 0
-    const segments = (summary.production?.products ?? []).map((product, index) => {
-      const percentage = total ? (Number(product.quantity) / total) * 100 : 0
-      const segment = { ...product, percentage, start: currentPercentage, end: currentPercentage + percentage, color: PRODUCT_COLORS[index % PRODUCT_COLORS.length] }
-      currentPercentage += percentage
-      return segment
+    return subscribeMetricsSummary({
+      api,
+      from: queryFrom,
+      to: queryTo,
+      onSuccess: (result) => setRequestResult({ queryKey, summary: result, error: '' }),
+      onError: (requestError) => setRequestResult({
+        queryKey,
+        summary: EMPTY_METRICS_SUMMARY,
+        error: requestError?.payload?.message ?? 'No fue posible cargar las métricas.',
+      }),
     })
-    return { total, segments }
-  }, [summary.production])
+  }, [api, canQuery, queryFrom, queryKey, queryTo])
+
+  const chart = useMemo(
+    () => buildProductionChart(summary.production, PRODUCT_COLORS),
+    [summary.production],
+  )
 
   const dwellGroups = [
     { key: 'stages', title: 'Etapas generales', items: summary.dwellTime?.stages ?? [] },
     { key: 'subprocesses', title: 'Subprocesos', items: summary.dwellTime?.subprocesses ?? [] },
   ]
-  const dwellItems = dwellGroups.flatMap((group) => group.items)
   const subprocessProducts = [...new Set((summary.dwellTime?.subprocesses ?? []).map((item) => item.productType).filter(Boolean))].sort()
-  const visibleSubprocesses = selectedSubprocessProduct === 'all'
+  const activeSubprocessProduct = subprocessProducts.includes(selectedSubprocessProduct)
+    ? selectedSubprocessProduct
+    : 'all'
+  const visibleSubprocesses = activeSubprocessProduct === 'all'
     ? summary.dwellTime?.subprocesses ?? []
-    : (summary.dwellTime?.subprocesses ?? []).filter((item) => item.productType === selectedSubprocessProduct)
+    : (summary.dwellTime?.subprocesses ?? []).filter((item) => item.productType === activeSubprocessProduct)
   const pieGradient = chart.segments.length ? `conic-gradient(${chart.segments.map((item) => `${item.color} ${item.start}% ${item.end}%`).join(', ')})` : '#e5e7eb'
 
   function updatePeriod(name, value) {
+    setSelectedSubprocessProduct('all')
     setPeriod((current) => ({ ...current, [name]: value }))
   }
 
@@ -100,7 +92,7 @@ export default function MetricsPage() {
     if (format === 'pdf') {
       const reportWindow = window.open('', '_blank')
       if (!reportWindow) return
-      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${queryPeriod.from} a ${queryPeriod.to}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${value}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
+      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${queryFrom} a ${queryTo}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${value}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
       reportWindow.document.close()
       reportWindow.print()
       return
@@ -111,7 +103,7 @@ export default function MetricsPage() {
     const blob = new Blob([`\ufeff${content}`], { type: format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `reporte-cumplimiento-${queryPeriod.from}-${queryPeriod.to}.${format === 'excel' ? 'xls' : 'csv'}`
+    link.download = `reporte-cumplimiento-${queryFrom}-${queryTo}.${format === 'excel' ? 'xls' : 'csv'}`
     link.click()
     URL.revokeObjectURL(link.href)
   }
@@ -128,7 +120,7 @@ export default function MetricsPage() {
           {period.mode === 'month' ? <label><span>Mes</span><input onChange={(event) => updatePeriod('month', event.target.value)} type="month" value={period.month} /></label> : <><label><span>Desde</span><input onChange={(event) => updatePeriod('from', event.target.value)} type="date" value={period.from} /></label><label><span>Hasta</span><input min={period.from || undefined} onChange={(event) => updatePeriod('to', event.target.value)} type="date" value={period.to} /></label></>}
         </section>
 
-        {loading ? <div className={styles.emptyState}>Cargando métricas...</div> : error ? <div className={styles.emptyState} role="alert">{error}</div> : <>
+        {!canQuery ? <div className={styles.emptyState} role="status">{validationMessage}</div> : loading ? <div className={styles.emptyState}>Cargando métricas...</div> : error ? <div className={styles.emptyState} role="alert">{error}</div> : <>
           <section className={styles.productionSection} aria-labelledby="production-title">
             <header className={styles.productionHeader}><div><span className={styles.panelEyebrow}></span><h2 id="production-title">Cantidad de producción generada</h2><p>Unidades producidas agrupadas por tipo de producto.</p></div></header>
             <div className={styles.productionChart}><div aria-label={`Producción total: ${chart.total} unidades`} className={styles.pieChart} role="img" style={{ '--pie-gradient': pieGradient }}><div className={styles.pieChartCenter}><strong>{chart.total.toLocaleString('es-CL')}</strong><span>unidades</span></div></div><div className={styles.chartLegend}>{chart.segments.length === 0 ? <p className={styles.emptyState}>No hay producción registrada.</p> : chart.segments.map((item) => <div className={styles.legendItem} key={item.productType}><span className={styles.legendColor} style={{ background: item.color }} /><div><strong>{item.productType}</strong><span>{Number(item.quantity).toLocaleString('es-CL')} unidades · {Math.round(item.percentage)}%</span></div></div>)}</div></div>
@@ -157,7 +149,7 @@ export default function MetricsPage() {
                   return <article className={styles.dwellPanel} key={group.key}>
                     <header className={styles.dwellPanelHeader}>
                       <h3>{group.title}</h3>
-                      {group.key === 'subprocesses' ? <label className={styles.productSelector}><span className={styles.visuallyHidden}>Producto</span><select onChange={(event) => setSelectedSubprocessProduct(event.target.value)} value={selectedSubprocessProduct}><option value="all">Todos los productos</option>{subprocessProducts.map((product) => <option key={product} value={product}>{product}</option>)}</select></label> : <span>{items.length} indicadores</span>}
+                      {group.key === 'subprocesses' ? <label className={styles.productSelector}><span className={styles.visuallyHidden}>Producto</span><select onChange={(event) => setSelectedSubprocessProduct(event.target.value)} value={activeSubprocessProduct}><option value="all">Todos los productos</option>{subprocessProducts.map((product) => <option key={product} value={product}>{product}</option>)}</select></label> : <span>{items.length} indicadores</span>}
                     </header>
                     {items.length === 0 ? <p className={styles.emptyState}>Sin registros para este producto.</p> : <div className={styles.dwellChart}>{items.map((item) => <div className={styles.dwellRow} key={`${group.key}-${item.productType ?? 'all'}-${item.name}`}><div className={styles.dwellLabel}><span>{item.name}</span><small>{item.productType ? `${item.productType} · ` : ''}{item.sampleSize} registros</small></div><div className={styles.dwellTrack}><span className={styles.dwellBar} style={{ width: `${Math.max((item.averageSeconds / maxDwell) * 100, 3)}%` }} /></div><strong>{formatDuration(item.averageSeconds)}</strong></div>)}</div>}
                   </article>

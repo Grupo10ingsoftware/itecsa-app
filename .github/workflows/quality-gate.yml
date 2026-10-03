@@ -1,0 +1,73 @@
+name: Quality gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests and schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: capaServidor/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --prefix capaServidor
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate --prefix capaServidor
+        env:
+          DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+
+      - name: Run backend tests
+        run: npm test --prefix capaServidor
+
+      - name: Reject critical backend vulnerabilities
+        run: npm audit --prefix capaServidor --audit-level=critical --omit=dev
+
+  frontend:
+    name: Frontend tests, lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: capaVista/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix capaVista
+
+      - name: Run frontend tests
+        run: npm test --prefix capaVista
+
+      - name: Run ESLint
+        run: npm run lint --prefix capaVista
+
+      - name: Build frontend
+        run: npm run build --prefix capaVista
+
+      - name: Reject critical frontend vulnerabilities
+        run: npm audit --prefix capaVista --audit-level=critical

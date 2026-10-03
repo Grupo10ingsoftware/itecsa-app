@@ -13,6 +13,10 @@ npm run lint --prefix capaVista
 npm run build --prefix capaVista
 ```
 
+La puerta versionada en [`.github/workflows/quality-gate.yml`](../../.github/workflows/quality-gate.yml) ejecuta estas comprobaciones en cada push y pull request con Node.js 22. También valida el schema Prisma y rechaza vulnerabilidades de severidad crítica. Para impedir efectivamente un merge cuando falle, el repositorio de GitHub debe marcar `Backend tests and schema` y `Frontend tests, lint and build` como checks requeridos en la protección de la rama.
+
+`npm audit` informa actualmente vulnerabilidades altas transitivas que requieren una revisión de dependencias separada; algunas propuestas automáticas implican cambios mayores de Prisma y no deben aplicarse con `--force` dentro de una corrección de interfaz. La CI bloquea severidad crítica sin ocultar la necesidad de planificar esa actualización.
+
 Instalar dependencias y generar Prisma según la [guía de desarrollo](README.md) antes de las suites de aplicación. Backend usa `node --test`; frontend combina verificaciones SSR con tests Node. El lint global puede revelar problemas ajenos a documentación: registrarlos sin presentar un lint dirigido como aprobación global.
 
 Desde `capaVista`, `npm run test:payments:browser` comprueba el ciclo del PIN y el diálogo con datos ficticios mediante Vite y un navegador headless. El script busca Edge en rutas Windows o usa `ITECSA_BROWSER_BIN` si apunta a un ejecutable compatible. Se requiere ese navegador; no equivale a QA en una sesión Auth0 desplegada.

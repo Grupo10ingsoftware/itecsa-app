@@ -2,6 +2,8 @@
 
 Este directorio contiene los procedimientos operativos que acompañan las defensas implementadas. Ninguna instrucción aplica DDL a Aiven, modifica Auth0 ni conecta una fuente externa: esas acciones requieren una ventana supervisada y credenciales fuera del repositorio.
 
+Para P26, consultar el [inventario de proveedores y vacíos de evidencia](data-processors.md). Para P25, consultar el [procedimiento propuesto de continuidad](../operacion/BACKUP_RESTORE.md). Ambos hallazgos siguen pendientes de verificaciones y decisiones externas.
+
 ## Estado de gates externos
 
 - [ ] Rotar el secreto M2M de Auth0 expuesto previamente y revocar el anterior.

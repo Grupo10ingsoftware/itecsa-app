@@ -15,6 +15,8 @@
 
 ## Restauración
 
+El alcance, las dependencias, los controles pendientes y la plantilla de acta están en [P25: continuidad, respaldo y restauración](../operacion/BACKUP_RESTORE.md). Los pasos siguientes no acreditan una prueba realizada ni autorizan una restauración productiva.
+
 1. Seleccionar el respaldo por identificador y fecha; nunca restaurar directamente sobre producción como primera prueba.
 2. Restaurar en una red aislada con credenciales temporales.
 3. Ejecutar validación de esquema, historial de migraciones, conteos de control y pruebas funcionales sin exportar datos.

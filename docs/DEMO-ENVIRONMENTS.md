@@ -25,7 +25,7 @@ El acceso de Soporte a `/api/demo-orders` solo aplica cuando el equipo activa ex
 
 ## Comprobación
 
-La suite `capaServidor/test/demoExposure.test.js` verifica:
+La validación histórica del aislamiento de demo comprobó los siguientes comportamientos. La suite se retiró el 03-10-2026; deben confirmarse en el entorno autorizado antes de entregar:
 
 - `NODE_ENV` explícito y valores admitidos del flag;
 - ausencia de las rutas demo/debug en producción y sin opt-in;

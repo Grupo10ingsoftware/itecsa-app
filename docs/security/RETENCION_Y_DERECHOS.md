@@ -4,7 +4,7 @@ El soporte técnico actual de P18 es [Documentos y canal de solicitudes](../modu
 
 ## Retención
 
-La limpieza automática implementada se limita a cuotas vencidas y caché temporal de notas. La purga de retos PIN queda delegada junto con el rediseño descrito en [INFORME_CAMBIOS_PIN_DELEGADOS.md](INFORME_CAMBIOS_PIN_DELEGADOS.md). Usuarios, pedidos, documentos, pagos, mensajes, bitácoras de negocio y auditoría de seguridad no se eliminan automáticamente.
+La limpieza automática implementada se limita a cuotas vencidas y caché temporal de notas. No hay purga automática de retos PIN; su conservación y eliminación requieren definición y validación operativa. Consultar [el estado PIN](H06-pin-lifecycle.md) y [la integración](../INTEGRACION_FIX_21709.md), sin interpretar la propuesta histórica delegada como implementación vigente. Usuarios, pedidos, documentos, pagos, mensajes, bitácoras de negocio y auditoría de seguridad no se eliminan automáticamente.
 
 Antes de habilitar cualquier purga de negocio:
 

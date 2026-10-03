@@ -49,3 +49,27 @@ La autorización de pagos no sustituye las reglas de producción. Algunas revisi
 La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. La SPA incorpora sus variables públicas al compilar con Vite; el servidor consume su configuración de entorno. Auth0 y Aiven permanecen externos. Los procedimientos de base se mantienen en [migración de Orders](../operacion/ORDERS_MIGRACION.md) y [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md).
 
 Arrancar la API no aplica migraciones. Los tests locales no acreditan por sí solos configuración del tenant, protección de infraestructura, restauración de backups o cumplimiento legal; esas evidencias se registran con su entorno y fecha.
+
+## Referencias parciales de requisitos
+
+Este mapa se conserva como referencia documental de iteraciones anteriores; no
+participa en el routing ni acredita cobertura completa de RF/UR. Requiere contrastar
+cada relación con el documento fuente vigente antes de usarlo como trazabilidad.
+Las rutas de la primera columna son relativas a `capaVista/src/`.
+
+| Archivo o área | Referencias registradas |
+| --- | --- |
+| `app/router.jsx` | UR 1.13, UR 3.1, UR 5.1 |
+| `config/routes.js` | UR 1.13, UR 3.1, UR 5.1 |
+| `config/permissions.js` | UR 1.4, UR 1.13 |
+| `config/status.js` | UR 3.1, UR 3.3, UR 5.2 |
+| `modules/auth` | UR 1.1, UR 1.10, UR 1.11, UR 1.14, UR 1.18 |
+| `modules/users` | UR 1.4, UR 1.12, UR 1.13 |
+| `modules/payments` | UR 3.1, UR 3.3, UR 3.7 |
+| `modules/orders` | RF42, RF43, RF44, RF45, RF46, RF47, RF48 |
+| `modules/kanban` | UR 5.1, UR 5.2, UR 5.3 |
+| `modules/profile` | UR 1.7 |
+| `shared/components/layout` | UR 1.7, UR 1.18, UR 12.1 |
+| `shared/components/navigation` | UR 1.4, UR 1.13, UR 1.14 |
+| `shared/components/forms` | UR 1.1, UR 1.15, UR 2.2, UR 3.1 |
+| `shared/components/data` | UR 1.4, UR 1.7, UR 3.1, UR 5.2 |

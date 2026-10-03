@@ -45,10 +45,6 @@ function isBusinessDate(date) {
   return day !== 0 && day !== 6;
 }
 
-function normalizeText(value) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
 class OrderService {
   constructor({
     repo,

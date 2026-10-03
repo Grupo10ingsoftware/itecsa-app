@@ -1,5 +1,7 @@
 # USERS — Auditoría técnica y plan maestro de acción
 
+> Archivo histórico. Contexto: 27-09-2026; commit d7645ab202dfc7ba2c7ca0c33827d804df224c08. Ubicación original: `USERS_AUDITORIA_PLAN_ACCION.md`. El cuerpo conserva los hechos y referencias de esa revisión; no describe necesariamente el código actual ni autoriza acciones. Consultar [pendientes vigentes](../../PENDIENTES.md), [Auth0](../../auth0/README.md) y [seguridad](../../security/README.md) antes de usar sus propuestas.
+
 ## 1. Metadatos
 
 | Dato | Valor |

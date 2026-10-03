@@ -56,15 +56,6 @@ function isPackagingSubprocess(process) {
   return normalizeProcessName(process?.Estado_Subprocesos?.nombre_estado).includes("empaquet");
 }
 
-function stripLanyardProgressObservation(value) {
-  return String(value ?? "")
-    .replace(/Avance Lanyard:\s*\d+%\s*(?:\(\d+\/\d+ producidos\))?/gi, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
 function mapDetailSubprocesses(detail) {
   const productSubprocesses = detail.Tipo_Producto?.Producto_Subproceso;
 

@@ -112,12 +112,6 @@ class Server {
 
     // Configurar rutas
     this.app.use(this.paths.orders, orderRoutes)
-    /**
-     * Un ejemplo sería
-     * this.app.use(this.paths.users, user_route);
-
-     * Esto se definira cuando tengamos nuestros rutas definidas para cada API
-     */
     this.app.use(
       this.paths.auth,
       createAuthRouter({

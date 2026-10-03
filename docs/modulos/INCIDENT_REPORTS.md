@@ -81,12 +81,11 @@ Pendientes empresariales: responsable y suplente, destinatario atendido, proveed
 
 ## Pruebas y evidencias
 
-- Backend: `npm test`; pruebas dedicadas `test/incidentReports.test.js` más regresión de P18. Identidad, mínimos/máximos, fechas, módulos, reserva, concurrencia/reinicio, errores, incertidumbre, cuotas, configuración y sanitización.
-- Frontend: `npm test`, `npm run lint`, `npm run build`. No hay script de typecheck: proyecto JavaScript.
-- Navegador: `npm run test:incidents:browser` a 320, 390, 768, 1024, 1280 y 1440 px. Usa router, layout y páginas reales, sesión/API/correos sintéticos. Verifica renderizado y edición mientras el backend permanece pendiente durante dos segundos, bloqueo de envío previo a confirmar configuración, conservación del borrador al confirmar/reintentar y descarte de respuestas después de navegar, alineación y altura de controles, círculo visible del escudo, apertura real del selector desde varias zonas del campo, formulario, loading, errores/red, UUID/reintentos, PIN pendiente, P18, sidebar y logout. Reutiliza el runner de P18; `ITECSA_BROWSER_BIN` permite seleccionar Chromium instalado.
-- Regresión navegador P18: `npm run test:privacy:browser`.
-- Prisma: `npm run prisma:validate`, `npm run prisma:generate`.
-- No se acredita base productiva, proveedor real, recepción humana, procedimiento empresarial ni cierre completo mediante dobles de prueba.
+Comprobaciones disponibles: `npm run lint --prefix capaVista`, `npm run build --prefix capaVista` y `npm run prisma:validate --prefix capaServidor`. No hay script de typecheck: proyecto JavaScript. Las suites y ejecutores se retiraron el 03-10-2026; ver [validación de entrega](../desarrollo/PRUEBAS.md).
+
+Las pruebas históricas comprobaron identidad, campos y fechas, módulos, reserva, duplicados, concurrencia con dobles, cuotas y sanitización. El navegador verificó formulario visible durante una espera API de dos segundos, envío habilitado tras confirmar configuración, conservación del borrador, reintentos, descarte de respuestas tardías, alineación de controles, círculo del escudo y apertura del selector desde el marco, además de navegación y PIN pendiente, en seis anchos de 320 a 1440 px. Usaron sesión/API/correos sintéticos.
+
+Esa evidencia no acredita una ejecución actual, base productiva, proveedor real, recepción humana, procedimiento empresarial ni cierre completo. Verificar el flujo en el entorno autorizado antes de habilitarlo.
 
 ## Inventario de esta entrega
 
@@ -106,7 +105,6 @@ Pendientes empresariales: responsable y suplente, destinatario atendido, proveed
 - `capaVista/src/shared/components/layout/Sidebar.jsx`
 - `capaVista/src/shared/components/navigation/ProtectedRoute.jsx`
 - `capaVista/src/shared/components/forms/TextInput.jsx`
-- `capaVista/test/privacy.browser.mjs`
 - `docs/README.md`
 - `docs/desarrollo/API.md`
 - `docs/security/INCIDENTES_Y_RESTAURACION.md`
@@ -123,7 +121,6 @@ Pendientes empresariales: responsable y suplente, destinatario atendido, proveed
 - `capaServidor/src/modules/security/service/incidentReport.service.js`
 - `capaServidor/src/modules/security/validators/incidentReport.validator.js`
 - `capaServidor/src/shared/resendTextDelivery.js`
-- `capaServidor/test/incidentReports.test.js`
 - `capaVista/src/app/informationPageLoaders.js`
 - `capaVista/src/shared/components/navigation/ModuleLoadingState.jsx`
 - `capaVista/src/modules/security/api/incidentReportsApi.js`
@@ -135,13 +132,8 @@ Pendientes empresariales: responsable y suplente, destinatario atendido, proveed
 - `capaVista/src/modules/security/pages/IncidentReportPage.jsx`
 - `capaVista/src/modules/security/pages/IncidentReportPage.module.css`
 - `capaVista/src/shared/utils/createRequestId.js`
-- `capaVista/test/formsPerformance.browser.html`
-- `capaVista/test/formsPerformance.browser.jsx`
-- `capaVista/test/informationPageLoaders.baseline.js`
 - `docs/desarrollo/CARGA_FORMULARIOS_P18_P19.md`
 - `docs/desarrollo/evidencias/carga-formularios-2026-10-02.json`
-- `capaVista/test/incident.browser.html`
-- `capaVista/test/incident.browser.jsx`
 - `docs/modulos/INCIDENT_REPORTS.md`
 - `shared/incidentReports.js`
 

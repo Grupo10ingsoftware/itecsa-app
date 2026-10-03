@@ -120,8 +120,6 @@ export function createVerifyAuthSessionHandler({
     };
 }
 
-export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
-
 export function createRevealPinHandler({ pins = pinService } = {}) {
     return async function revealPinHandler(req, res) {
         res.set("Cache-Control", "no-store");

@@ -72,14 +72,11 @@ La migración preparada `202610010001_privacy_rights` se sustituye en este check
 
 ## Verificación
 
-- Backend: `npm test` incluye `test/privacyChannel.test.js` (identidad, campos inválidos, cuotas, metadatos, configuración, remisión, duplicados y errores).
-- Frontend: `npm test`, `npm run lint`, `npm run build`.
-- Navegador: `npm run test:privacy:browser`; admite `ITECSA_BROWSER_BIN`. Usa sesión/API/correos sintéticos, ejecuta el layout y las páginas reales a 320, 390, 768 y 1440 px, y comprueba estados, errores, duplicados, documentos, drawer/colapso y logout. No envía correos reales.
-- Prisma: `npm run prisma:validate`. La prueba de despliegue debe verificar la nueva persistencia y un envío controlado autorizado con proveedor real.
+Comprobaciones disponibles: `npm run lint --prefix capaVista`, `npm run build --prefix capaVista` y `npm run prisma:validate --prefix capaServidor`. No existe script de typecheck en este proyecto JavaScript. Las suites backend/frontend y de navegador se retiraron el 03-10-2026; ver [validación de entrega](../desarrollo/PRUEBAS.md).
 
-No existe script de typecheck en este proyecto JavaScript.
+Evidencia histórica del 02-10-2026: backend, 805 pruebas aprobadas y 2 pruebas MySQL omitidas; frontend, 115 comprobaciones del runner y 17 pruebas Node aprobadas; navegador aprobado a 320, 390, 768 y 1440 px. Se comprobaron identidad, validación, cuotas, remisión, duplicados, errores, documentos y navegación con datos sintéticos. Lint, build, validación/generación Prisma, control de artefactos y `git diff --check` aprobaron en esa revisión. No se probó una base MySQL real ni envío con credenciales reales. Estos resultados no acreditan una ejecución posterior a la retirada.
 
-Resultados de esta entrega (2026-10-02): backend, 805 pruebas aprobadas y 2 pruebas MySQL omitidas; frontend, 115 comprobaciones del runner y 17 pruebas Node aprobadas; prueba funcional de navegador aprobada en los cuatro tamaños; lint, build, validación/generación del cliente Prisma, comprobación de artefactos y `git diff --check` aprobados. No se probó una base MySQL real ni el envío con credenciales reales. El navegador también comprueba la generación de UUID cuando `crypto.randomUUID` no está disponible, utilizando `crypto.getRandomValues`.
+La validación de despliegue debe comprobar la persistencia y un envío controlado autorizado con proveedor real.
 
 ## Integración y reutilización
 
@@ -129,7 +126,6 @@ Documentos aprobados y publicados; destinatario y remitente; proveedor y credenc
 - `capaServidor/src/modules/privacy/service/privacyDelivery.service.js`
 - `capaServidor/src/modules/privacy/service/privacyRequest.service.js`
 - `capaServidor/src/modules/privacy/validators/privacyRequest.validator.js`
-- `capaServidor/test/privacyChannel.test.js`
 - `capaVista/src/modules/metrics/utils/reportFormatting.js`
 - `capaVista/src/modules/privacy/api/privacyApi.js`
 - `capaVista/src/modules/privacy/components/DataRequestForm.jsx`
@@ -142,9 +138,6 @@ Documentos aprobados y publicados; destinatario y remitente; proveedor y credenc
 - `capaVista/src/modules/privacy/pages/DataRequestsPage.jsx`
 - `capaVista/src/modules/privacy/pages/DocumentsPage.jsx`
 - `capaVista/src/modules/privacy/pages/PrivacyPages.module.css`
-- `capaVista/test/privacy.browser.html`
-- `capaVista/test/privacy.browser.jsx`
-- `capaVista/test/privacy.browser.mjs`
 - `docs/modulos/PRIVACY.md`
 - `shared/privacyRequests.js`
 

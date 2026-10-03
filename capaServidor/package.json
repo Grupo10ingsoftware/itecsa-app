@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --import ./test/setup.mjs --test",
     "start": "node src/app/app.js",
     "dev": "nodemon src/app/dev.js",
     "prisma:pull": "node ../tooling/prisma/node_modules/prisma/build/index.js db pull",

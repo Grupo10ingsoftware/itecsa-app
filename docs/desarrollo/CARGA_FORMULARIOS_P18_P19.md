@@ -1,5 +1,7 @@
 # Carga de Solicitudes e Incidentes: comparación y práctica aplicada
 
+**Evidencia histórica:** las medidas corresponden a las corridas del 02 y 03-10-2026. Los ejecutores y fixtures se retiraron el 03-10-2026 para la entrega; esta guía conserva la explicación técnica y las muestras, no un benchmark ejecutable en el checkout actual.
+
 Revisión de formularios del 02-10-2026, ampliada a Mi perfil el 03-10-2026. Ambos formularios comparten layout, estilos, cliente API y obtención del access token. Parecerse visualmente no implica realizar las mismas operaciones antes de quedar disponibles.
 
 ## Diferencias comprobadas en el código
@@ -31,7 +33,7 @@ Implementación: [loaders compartidos](../../capaVista/src/app/informationPageLo
 
 La documentación de [React.lazy](https://react.dev/reference/react/lazy) explica la descarga al primer render y la reutilización posterior. La [documentación de precarga de módulos](https://react.dev/reference/react-dom/preloadModule) describe el beneficio de empezar antes de una transición; aquí se usan los imports dinámicos que resuelve Vite, conservando sus nombres y dependencias de build. El [límite de Suspense](https://react.dev/reference/react/Suspense) determina qué parte de la interfaz muestra el indicador.
 
-## Comparación reproducible
+## Comparación histórica controlada
 
 Se mide el router, layout y formularios reales en Chromium headless, a 1440 px, con sesión y API sintéticas. Se ejecuta la implementación actual dos veces: con precarga de código desactivada mediante un alias exclusivo del servidor de pruebas, y activada. Ambos casos mantienen el renderizado progresivo de P19 y el límite de carga del layout. No es una comparación contra toda la implementación original.
 
@@ -53,12 +55,7 @@ La mejora de la segunda fila procede de comenzar la descarga antes del clic; no 
 
 Evidencia numérica de la corrida: [JSON](evidencias/carga-formularios-2026-10-02.json). Las cifras son muestras de laboratorio, no mediciones de producción ni un SLA. El tiempo incluye navegación, renderizado y dos frames para observar el formulario pintado.
 
-```bash
-npm run test:forms:performance:baseline --prefix capaVista
-npm run test:forms:performance --prefix capaVista
-```
-
-Cada comando imprime las medidas y guarda `forms-performance.json` en el directorio temporal de capturas anunciado al terminar. La referencia sin precarga está en `test/informationPageLoaders.baseline.js` y se selecciona solo en el benchmark; no forma parte del código servido por el build normal.
+Los ejecutores comparaban la implementación con un alias sin precarga exclusivo del benchmark y guardaban las medidas como JSON temporal. Ese código de comprobación fue retirado y nunca formó parte del build de aplicación.
 
 ## Mi perfil: ampliación del 03-10-2026
 
@@ -66,7 +63,7 @@ Mi perfil ahora comparte la misma precarga de código. Al navegar hace una consu
 
 La API frontend comparte únicamente la promesa de lecturas simultáneas dentro de la misma sesión. Esto evita duplicar el GET cuando StrictMode monta el efecto dos veces en desarrollo. Tanto un éxito como un error liberan la promesa: reintentar o volver a entrar hace una lectura nueva, y cambiar el sujeto Auth0 crea otra instancia. JWT, usuario activo, permisos y cuotas del backend permanecen vigentes.
 
-El mismo benchmark ahora incluye Mi perfil y verifica que la preparación de código no consulte `/auth/profile` ni `/auth/profile/movements`. Resultados de una corrida a 1440 px:
+La ampliación histórica del benchmark incluyó Mi perfil y verificó que la preparación de código no consulte `/auth/profile` ni `/auth/profile/movements`. Resultados de una corrida a 1440 px:
 
 | Condición | Vista de Mi perfil visible | Actividad disponible |
 | --- | --- | --- |
@@ -85,4 +82,4 @@ Se observó un GET de perfil por visita y ninguna consulta al historial completo
 
 ## Validación
 
-Comparación controlada con precarga desactivada/activada; regresión P19 en seis tamaños y P18 en cuatro; pruebas frontend, lint y build. Las pruebas usan identidades ficticias y no envían correos reales. Ver [pruebas generales](PRUEBAS.md) y [módulo P19](../modulos/INCIDENT_REPORTS.md).
+Validación histórica: comparación controlada con precarga desactivada/activada; regresión P19 en seis tamaños y P18 en cuatro; pruebas frontend, lint y build. Las pruebas usaron identidades ficticias y no enviaron correos reales. Los ejecutores se retiraron; estos resultados no son una comprobación actual. Ver [pruebas generales](PRUEBAS.md) y [módulo P19](../modulos/INCIDENT_REPORTS.md).

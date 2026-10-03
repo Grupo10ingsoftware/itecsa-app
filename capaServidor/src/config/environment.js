@@ -55,18 +55,6 @@ export function currentAppEnvironment({ required = false } = {}) {
     return parseAppEnvironment(process.env.APP_ENV, { required });
 }
 
-export function isNonProductionEnvironment() {
-    const environment = currentAppEnvironment();
-    return environment === "development" || environment === "test";
-}
-
-export function parseBooleanEnvironment(value, fallback = false) {
-    if (value === undefined || value === null || value === "") return fallback;
-    if (value === "true") return true;
-    if (value === "false") return false;
-    throw new Error("La variable booleana debe ser true o false.");
-}
-
 export function parseTrustedProxy(value) {
     const normalized = String(value ?? "").trim();
     if (!normalized) return false;
@@ -77,5 +65,3 @@ export function parseTrustedProxy(value) {
 
     throw new Error("TRUST_PROXY debe ser loopback o un numero entre 0 y 5.");
 }
-
-export { APP_ENVIRONMENTS };

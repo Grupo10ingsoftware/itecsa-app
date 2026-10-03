@@ -1,6 +1,6 @@
 # Desarrollo local y configuración
 
-Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md) y [pruebas](PRUEBAS.md).
+Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md) y [validación de entrega](PRUEBAS.md).
 
 ## Requisitos e instalación
 

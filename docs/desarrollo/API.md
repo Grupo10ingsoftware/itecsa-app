@@ -4,7 +4,7 @@ Prefijo local: `http://localhost:3000/api`. Fuente: [montaje del servidor](../..
 
 ## Controles comunes
 
-Salvo recuperación pública de contraseña y health, las rutas requieren bearer JWT válido, usuario interno activo y un rol reconocido único. Una capacidad debe figurar en el token y estar concedida al rol por el catálogo. Los endpoints aplican además pertenencia, departamento, estado y PIN donde corresponde.
+Salvo recuperación pública de contraseña, enlaces de documentos de privacidad y health, las rutas requieren bearer JWT válido, usuario interno activo y un rol reconocido único. Una capacidad debe figurar en el token y estar concedida al rol por el catálogo. Los endpoints aplican además pertenencia, departamento, estado y PIN donde corresponde.
 
 Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexistente: 404; conflictos de negocio/concurrencia: 409. Los helpers de Orders y Payments conservan 4xx y devuelven 5xx genéricos con referencia. No asumir un formato uniforme para todas las rutas de la API.
 
@@ -105,7 +105,9 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |
 | GET `/metrics/summary` | `view:metrics` |
-| GET `/health/db` | Público; comprueba la conexión a la base |
+| GET `/health/live` | Público; comprueba el proceso sin consultar la base |
+
+`GET /internal/ready` queda fuera del prefijo `/api`: está deshabilitado por defecto, requiere `X-Health-Token` y debe restringirse a la red interna. `/api/health/db` fue retirado.
 
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 

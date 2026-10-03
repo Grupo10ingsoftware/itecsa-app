@@ -47,11 +47,6 @@
   outline: none;
 }
 
-.dragNavigationTarget {
-  border-color: rgba(var(--calendar-orange-rgb), 0.55);
-  box-shadow: 0 0 0 3px rgba(var(--calendar-orange-rgb), 0.12);
-}
-
 @media (max-width: 767.98px) {
   .toolbar {
     grid-template-columns: 1fr;

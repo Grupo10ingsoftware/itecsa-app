@@ -88,6 +88,11 @@ class Server {
     this.app.set('trust proxy', parseTrustedProxy(this.env.TRUST_PROXY));
     this.app.disable('x-powered-by');
     this.app.use(requestContext);
+    this.app.use((_req, res, next) => {
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set('Referrer-Policy', 'no-referrer');
+      next();
+    });
     this.app.use(supportAudit);
 
     // Cors

@@ -50,3 +50,5 @@ PIN usa un proveedor explícito; sin configuración queda indisponible. Consulta
 [reportes P19](../docs/modulos/INCIDENT_REPORTS.md) son canales técnicos de remisión;
 la empresa gestiona atención y decisiones. Su configuración, migraciones y recepción
 real siguen sujetas a validación del entorno.
+
+La API incorpora cabeceras HTTP y límites de cuerpo JSON; consultar [P13](../docs/security/P13_HTTP.md). Las opciones de limpieza de recuperaciones PIN y registros de negocio se describen en [retención y derechos](../docs/security/RETENCION_Y_DERECHOS.md) y permanecen desactivadas salvo configuración explícita.

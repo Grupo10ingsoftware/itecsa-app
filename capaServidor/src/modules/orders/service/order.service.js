@@ -1,49 +1,33 @@
-import { AppError } from "../../../errors/AppError.js";
-import SalesOrderCreationService, { DUPLICATE_SALES_NOTE_MESSAGE } from "./salesOrderCreation.service.js";
-import { createSalesOrderTransaction } from "./salesOrder.transaction.js";
-import { toSalesNotePreview } from "./salesOrder.validator.js";
-import { SalesOrderError } from "./salesOrder.errors.js";
-import { can, PERMISSIONS as P } from "../../../../../shared/authorization.js";
 import {
-  KANBAN_EN_PRODUCCION_STEP,
-  KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
-  KANBAN_STAGE_SKIP_MESSAGE,
-  PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
-  PAYMENT_STATUS,
-} from "../../../config/status.js";
+  updGeneralStepOperation,
+  sendToReviewOperation,
+  cancelProductionOperation,
+  updateDeliveryDateOperation,
+  completeSubprocessOperation,
+  rollbackSubprocessOperation,
+} from './orderProduction.service.js';
+import { updPaymentStateOperation } from './orderPayment.service.js';
+import SalesOrderCreationService, { DUPLICATE_SALES_NOTE_MESSAGE } from './salesOrderCreation.service.js';
+import OrderRepository from '../repo/orders.repo.js';
+import ClientService from '../../clients/service/clients.service.js';
+import OrderDetailService from './orderDetail.service.js';
+import ProductTypeService from '../../products/service/product.service.js';
+import PaymentRecordService from '../../payments/service/paymentRecord.service.js';
+import PaymentStatusRepo from '../../payments/repo/paymentStatus.repo.js';
+import defaultUserRepository from '../../users/repo/users.repo.js';
+import SalesNoteSourceService, { normalizeSalesNoteNumber } from './salesNoteSource.service.js';
+import getPrismaClient from '../../../database/prisma.js';
+import ClientRepo from '../../clients/repo/clients.repo.js';
+import OrderDetailRepo from '../repo/orderDetail.repo.js';
+import ProductTypeRepo from '../../products/repo/product.repo.js';
+import PaymentRecordRepo from '../../payments/repo/paymentRecord.repo.js';
+import { parseLimit, decodeCursor, pageResult } from '../../../shared/pagination.js';
+import { AppError } from '../../../errors/AppError.js';
+import { SalesOrderError } from './salesOrder.errors.js';
+import { toSalesNotePreview } from './salesOrder.validator.js';
+import { createSalesOrderTransaction } from './salesOrder.transaction.js';
 
-import OrderRepository from "../repo/orders.repo.js";
-import ClientRepo from "../../clients/repo/clients.repo.js";
-import ClientService from "../../clients/service/clients.service.js";
-import OrderDetailRepo from "../repo/orderDetail.repo.js";
-import OrderDetailService from "./orderDetail.service.js";
-import ProductTypeRepo from "../../products/repo/product.repo.js";
-import ProductTypeService from "../../products/service/product.service.js";
-import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
-import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
-import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
-import defaultUserRepository from "../../users/repo/users.repo.js";
-import getPrismaClient from "../../../database/prisma.js";
-import SalesNoteSourceService, {
-  normalizeSalesNoteNumber,
-} from "./salesNoteSource.service.js";
-import { decodeCursor, pageResult, parseLimit } from "../../../shared/pagination.js";
-
-export const RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE =
-  "Un pago confirmado o rechazado no puede volver al estado Pendiente.";
 export { DUPLICATE_SALES_NOTE_MESSAGE };
-
-function toPrismaDate(value) {
-  if (!value) return null;
-
-  return new Date(`${value}T00:00:00.000Z`);
-}
-
-function isBusinessDate(date) {
-  const day = date.getUTCDay();
-
-  return day !== 0 && day !== 6;
-}
 
 class OrderService {
   constructor({
@@ -91,6 +75,7 @@ class OrderService {
   }
 
   async runInTransaction(callback) {
+    // Payment and production operations share this transaction boundary.
     if (this.hasInjectedDependencies) {
       return callback({
         repo: this.repo,
@@ -128,262 +113,35 @@ class OrderService {
     );
   }
 
-  async updGeneralStep(orderId, stepId, options = {}) {
-    if (!orderId) {
-      const error = new AppError(400, "El ID del pedido es obligatorio");
-      throw error;
-    }
-
-    if (stepId === undefined || stepId === null) {
-      const error = new AppError(400, "La etapa destino es obligatoria");
-      throw error;
-    }
-
-    const order = await this.repo.getTransitionState(orderId);
-
-    if (!order) {
-      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
-      throw error;
-    }
-
-    const currentStep = Number(order.id_etapa_general);
-    const nextStep = Number(stepId);
-
-    if (!Number.isInteger(nextStep)) {
-      const error = new AppError(400, "Etapa no valida");
-      throw error;
-    }
-
-    if (nextStep < currentStep) {
-      const error = new AppError(409, "No puedes retroceder en las etapas del pedido");
-      throw error;
-    }
-
-    if (nextStep === currentStep) {
-      return order;
-    }
-
-    if (nextStep !== currentStep + 1) {
-      const error = new AppError(409, KANBAN_STAGE_SKIP_MESSAGE);
-      throw error;
-    }
-
-    // Se permiten avances manuales consecutivos desde producción lista hasta entrega.
-    if (!((currentStep === 1 && nextStep === 2) || (currentStep === 2 && nextStep === 3) || (currentStep === 3 && nextStep === 4))) {
-      const error = new AppError(403, "Esta transicion no admite movimiento manual."); throw error;
-    }
-    const isMoveToProduction =
-      currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
-    const permissions = options.permissions;
-
-    if (
-      isMoveToProduction &&
-      !can(options.role, permissions, P.START_PRODUCTION)
-    ) {
-      const error = new AppError(403, KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
-      throw error;
-    }
-
-    if (order.estado_pago !== PAYMENT_STATUS.CONFIRMADO) {
-      throw new AppError(409, PAYMENT_CONFIRMATION_REQUIRED_MESSAGE, "PAYMENT_CONFIRMATION_REQUIRED");
-    }
-
-    if (!options.actor?.idUsuario) {
-      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
-      throw error;
-    }
-
-    return this.runInTransaction(({ repo }) => repo.updateGeneralStep(
-      orderId,
-      nextStep,
-      {
-        userId: options.actor.idUsuario,
-        comment: options.comment,
-        expectedState: {
-          id_estado_pedido: order.id_estado_pedido,
-          id_estado_pago: order.id_estado_pago,
-        },
-      },
-    ));
+  async updGeneralStep(...args) {
+    return updGeneralStepOperation(this, ...args);
   }
 
-  async sendToReview(orderId, comment, { auth0UserId } = {}) {
-    const normalizedComment = typeof comment === "string" ? comment.trim() : "";
-    if (!normalizedComment) {
-      const error = new AppError(400, "El comentario de revision es obligatorio.");
-      throw error;
-    }
-
-    if (normalizedComment.length > 2000) {
-      const error = new AppError(400, "El comentario de revision no puede superar 2000 caracteres.");
-      throw error;
-    }
-
-    const currentOrder = await this.repo.get(orderId);
-    if (!currentOrder) {
-      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND");
-      throw error;
-    }
-
-    if (Number(currentOrder.id_etapa_general) !== 1) {
-      const error = new AppError(409, "Solo se puede enviar a revision un pedido Listo para Produccion.");
-      throw error;
-    }
-
-    const userId = await this.resolveInternalUserId({ auth0UserId });
-    return this.runInTransaction(async ({ repo }) => {
-      const updatedOrder = await repo.sendToReview(orderId, {
-        userId,
-        comment: normalizedComment,
-      });
-      if (!updatedOrder) {
-        const error = new AppError(404, "Pedido o estado En revisión no encontrado.");
-        throw error;
-      }
-      return updatedOrder;
-    });
+  async sendToReview(...args) {
+    return sendToReviewOperation(this, ...args);
   }
 
-  async cancelProduction(orderId, comment, { actor } = {}) {
-    const normalizedComment = typeof comment === "string" ? comment.trim() : "";
-    if (!normalizedComment) {
-      const error = new AppError(400, "La observacion de cancelacion es obligatoria.");
-      throw error;
-    }
-
-    if (normalizedComment.length > 2000) {
-      const error = new AppError(400, "La observacion no puede superar 2000 caracteres.");
-      throw error;
-    }
-
-    if (!actor?.idUsuario) {
-      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
-      throw error;
-    }
-
-    const currentOrder = await this.repo.get(orderId);
-    if (!currentOrder) {
-      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND");
-      throw error;
-    }
-
-    if (currentOrder.nombre_etapa_general === "Cancelado") {
-      const error = new AppError(409, "El pedido ya se encuentra cancelado.");
-      throw error;
-    }
-
-    return this.runInTransaction(async ({ repo }) => {
-      const updatedOrder = await repo.cancelProduction(orderId, {
-        userId: actor.idUsuario,
-        comment: normalizedComment,
-      });
-      if (!updatedOrder) {
-        const error = new AppError(404, "Pedido o estado Cancelado no encontrado.");
-        throw error;
-      }
-      return updatedOrder;
-    });
+  async cancelProduction(...args) {
+    return cancelProductionOperation(this, ...args);
   }
 
-  async updateDeliveryDate(orderId, dueDate, { actor } = {}) {
-    if (!orderId) {
-      const error = new AppError(400, "El ID del pedido es obligatorio");
-      throw error;
-    }
-
-    if (!dueDate) {
-      const error = new AppError(400, "La fecha de entrega es obligatoria.");
-      throw error;
-    }
-
-    const parsedDate = toPrismaDate(dueDate);
-
-    if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
-      const error = new AppError(400, "La fecha de entrega no es valida.");
-      throw error;
-    }
-
-    if (!isBusinessDate(parsedDate)) {
-      const error = new AppError(400, "La fecha de produccion debe ser un dia habil.");
-      throw error;
-    }
-
-    if (!actor?.idUsuario) {
-      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
-      throw error;
-    }
-
-    const formattedDate = dueDate.split("-").reverse().join("-");
-    const updatedOrder = await this.repo.updateDeliveryDate(orderId, parsedDate, {
-      userId: actor.idUsuario,
-      comment: `Fecha de termino definida para ${formattedDate}.`,
-    });
-
-    if (!updatedOrder) {
-      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
-      throw error;
-    }
-
-    return updatedOrder;
+  async updateDeliveryDate(...args) {
+    return updateDeliveryDateOperation(this, ...args);
   }
 
-  async completeSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
-    if (!orderId || !detailId || !subprocessId) {
-      const error = new AppError(400, "Faltan IDs obligatorios para completar el subproceso.");
-      throw error;
-    }
-
-    if (!actor?.idUsuario) {
-      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
-      throw error;
-    }
-
-    return this.runInTransaction(async ({ repo }) => {
-      const updatedOrder = await repo.completeSubprocess({
-        orderId,
-        detailId,
-        subprocessId,
-        userId: actor.idUsuario,
-        comment,
-      });
-
-      if (!updatedOrder) {
-        const error = new AppError(404, "Pedido o detalle de pedido no encontrado.");
-        throw error;
-      }
-
-      return updatedOrder;
-    });
+  async completeSubprocess(...args) {
+    return completeSubprocessOperation(this, ...args);
   }
 
-  async rollbackSubprocess(orderId, detailId, subprocessId, { actor, comment } = {}) {
-    const observation = typeof comment === "string" ? comment.trim() : "";
-    if (!actor?.idUsuario) {
-      const error = new AppError(403, "El usuario validado por PIN es obligatorio.");
-      throw error;
-    }
-    if (!observation) {
-      const error = new AppError(400, "La observacion del retroceso es obligatoria.");
-      throw error;
-    }
-    if (observation.length > 2000) {
-      const error = new AppError(400, "La observacion no puede superar 2000 caracteres.");
-      throw error;
-    }
-
-    return this.runInTransaction(async ({ repo }) => {
-      const result = await repo.rollbackSubprocess({
-        orderId, detailId, subprocessId, userId: actor.idUsuario, comment: observation,
-      });
-      if (!result) {
-        const error = new AppError(404, "Pedido o subproceso no encontrado.");
-        throw error;
-      }
-      return result;
-    });
+  async rollbackSubprocess(...args) {
+    return rollbackSubprocessOperation(this, ...args);
   }
 
   async getAllOrders(query = {}) {
+    return this.getOrderViews(query, 'kanban');
+  }
+
+  async getOrderViews(query = {}, view = 'kanban') {
     const limit = parseLimit(query.limit);
     const cursor = decodeCursor(query.cursor);
     const status = String(query.status ?? "").trim().slice(0, 100) || null;
@@ -398,7 +156,8 @@ class OrderService {
       if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) { const error = new AppError(400, "La fecha no es valida."); throw error; }
       return end ? new Date(date.getTime() + 24 * 60 * 60 * 1000) : date;
     };
-    const rows = await this.repo.getAllOrders({
+    const rows = await this.repo.listOrderViews({
+      view,
       limit,
       cursor,
       status,
@@ -410,6 +169,13 @@ class OrderService {
     return pageResult(rows, limit);
   }
 
+  async getOrderViewById(orderId, view = 'kanban') {
+    if (!Number.isInteger(Number(orderId)) || Number(orderId) <= 0) throw new AppError(400, 'ID de pedido no valido');
+    const order = await this.repo.getOrderView(orderId, view);
+    if (!order) throw new AppError(404, 'Pedido no encontrado', 'ORDER_NOT_FOUND');
+    return order;
+  }
+
   async getPaymentWorkspace() {
     const [orders, paymentStatuses] = await Promise.all([
       this.repo.getPaymentOrders(),
@@ -417,6 +183,28 @@ class OrderService {
     ]);
 
     return { orders, paymentStatuses };
+  }
+
+  async getPagedPaymentWorkspace(query = {}) {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const search = String(query.search ?? '').trim().slice(0, 100) || null;
+    const status = String(query.status ?? '').trim() || null;
+    if (status && !['Pendiente', 'Rechazado', 'Confirmado'].includes(status)) throw new AppError(400, 'Estado de pago no valido');
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value)) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new AppError(400, 'Fecha no valida');
+      return end ? new Date(date.getTime() + 86400000) : date;
+    };
+    const from = parseDate(query.from);
+    const to = parseDate(query.to, true);
+    if (from && to && from >= to) throw new AppError(400, 'Rango de fechas no valido');
+    const [page, paymentStatuses] = await Promise.all([
+      this.repo.listPaymentViews({ limit, cursor, status, search, from, to }),
+      this.paymentRepo.getAll(),
+    ]);
+    return { ...pageResult(page.rows, limit), counts: page.counts, paymentStatuses };
   }
 
   async getSalesNoteByNumber(numeroNota) {
@@ -489,163 +277,8 @@ class OrderService {
     throw error;
   }
 
-  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
-    const {
-      auth0UserId,
-      id_usuario,
-      actor,
-      observacion,
-    } = data;
-
-    const paymentStatusId = Number(newPaymentStatusId);
-
-    if (!Number.isInteger(paymentStatusId)) {
-      const error = new AppError(400, "El estado de pago no es valido.");
-      throw error;
-    }
-
-    const [paymentStatus, observedOrder] = await Promise.all([
-      this.paymentRepo.get(paymentStatusId),
-      this.repo.getPaymentOrder(orderId),
-    ]);
-
-    if (!paymentStatus) {
-      const error = new AppError(404, "Estado de pago no encontrado.");
-      throw error;
-    }
-
-    if (!observedOrder) {
-      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
-      throw error;
-    }
-
-    const nextPaymentStatus = paymentStatus.nombre_estado_pago;
-    const KANBAN_CONFIRMACION_PAGO = 0;
-    const KANBAN_LISTO_PRODUCCION = 1;
-    const KANBAN_EN_PRODUCCION = 2;
-    const KANBAN_CANCELADO = 5;
-
-    // La lectura inicial solo detecta conflictos; la decision usa la fila bloqueada.
-    return this.runInTransaction(async ({
-      repo,
-      paymentRecordService,
-    }) => {
-      if (!await repo.lockPaymentOrder(orderId)) {
-        const error = new AppError(404, "Pedido no encontrado");
-        throw error;
-      }
-      const currentOrder = await repo.getPaymentOrder(orderId);
-      if (!currentOrder) {
-        const error = new AppError(404, "Pedido no encontrado");
-        throw error;
-      }
-
-      // Dos solicitudes con el mismo destino son idempotentes. Si cambio a otro
-      // estado desde la lectura inicial, la segunda debe volver a decidir.
-      if (Number(currentOrder.id_estado_pago) === paymentStatusId) {
-        return currentOrder;
-      }
-      if (Number(currentOrder.id_estado_pago) !== Number(observedOrder.id_estado_pago)) {
-        const error = new AppError(409, "El estado de pago cambio. Actualiza el pedido e intenta nuevamente.");
-        throw error;
-      }
-
-      const currentPaymentStatus = currentOrder.estado_pago;
-      if (currentPaymentStatus !== PAYMENT_STATUS.PENDIENTE) {
-        if (!can(data.role, data.permissions, P.REVISE_PAYMENT_STATUS)) {
-          const error = new AppError(403,
-            "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
-          );
-          throw error;
-        }
-
-        if (nextPaymentStatus === PAYMENT_STATUS.PENDIENTE) {
-          const error = new AppError(409, RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE);
-          throw error;
-        }
-
-        if (!String(observacion ?? "").trim()) {
-          const error = new AppError(400, "El motivo del cambio de pago es obligatorio.");
-          throw error;
-        }
-      }
-
-      const resolvedUserId =
-        actor?.idUsuario ??
-        await this.resolveInternalUserId({ auth0UserId, id_usuario });
-      const currentKanbanOrder = Number(currentOrder.id_etapa_general);
-      const isConfirmedToRejected =
-        currentPaymentStatus === PAYMENT_STATUS.CONFIRMADO &&
-        nextPaymentStatus === PAYMENT_STATUS.RECHAZADO;
-      const cancelsReadyOrder =
-        isConfirmedToRejected && currentKanbanOrder === KANBAN_LISTO_PRODUCCION;
-      const requiresProductionCancellation =
-        isConfirmedToRejected && currentKanbanOrder === KANBAN_EN_PRODUCCION;
-      const nextKanbanOrder =
-        nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO
-          ? KANBAN_LISTO_PRODUCCION
-          : cancelsReadyOrder
-            ? KANBAN_CANCELADO
-            : isConfirmedToRejected
-              ? null
-              : KANBAN_CONFIRMACION_PAGO;
-
-      const updatedOrder = await repo.updatePaymentStatus(
-        orderId,
-        paymentStatusId,
-        nextKanbanOrder,
-        {
-          currentOrder,
-          paymentStatusName: nextPaymentStatus,
-        },
-      );
-
-      if (!updatedOrder) return null;
-
-      await paymentRecordService.createPaymentRecord(orderId, {
-        id_usuario: resolvedUserId,
-        id_estado_pago_anterior: currentOrder.id_estado_pago,
-        id_estado_pago: paymentStatusId,
-        observacion,
-      });
-
-      const salesNote =
-        updatedOrder.numero_nota_venta ?? currentOrder.numero_nota_venta ?? `#${orderId}`;
-      const normalizedObservation = String(observacion ?? "").trim();
-
-      if (nextPaymentStatus === PAYMENT_STATUS.CONFIRMADO) {
-        await repo.notifyProductionAdministrators({
-          orderId,
-          subject: "Pago confirmado: pedido listo para producción",
-          content: `Se confirmó el pago del pedido ${salesNote}. El pedido está listo para producción.`,
-        });
-      }
-
-      if (cancelsReadyOrder) {
-        await repo.notifyProductionAdministrators({
-          orderId,
-          subject: "Pedido cancelado por rechazo de pago",
-          content: [
-            `El pedido ${salesNote} fue cancelado porque su pago cambió de Confirmado a Rechazado.`,
-            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
-          ].filter(Boolean).join("\n"),
-        });
-      }
-
-      if (requiresProductionCancellation) {
-        await repo.notifyProductionAdministrators({
-          orderId,
-          subject: "Cancelación de producción requerida",
-          content: [
-            `El pago del pedido ${salesNote} cambió de Confirmado a Rechazado.`,
-            "La producción de este pedido debe ser cancelada por un Administrador de Producción.",
-            normalizedObservation ? `Motivo: ${normalizedObservation}` : null,
-          ].filter(Boolean).join("\n"),
-        });
-      }
-
-      return updatedOrder;
-    });
+  async updPaymentState(...args) {
+    return updPaymentStateOperation(this, ...args);
   }
 
   async createOrder(data, options = {}) {
@@ -679,3 +312,5 @@ class OrderService {
 }
 
 export default OrderService;
+
+export { RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE } from './orderPayment.service.js';

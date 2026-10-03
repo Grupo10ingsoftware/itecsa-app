@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMetricsApi } from '../hooks/useMetricsApi'
+import ProductionPerformance from '../components/ProductionPerformance'
 import styles from './MetricsPage.module.css'
 import { escapeReportHtml, spreadsheetCell } from '../utils/reportFormatting'
 
@@ -111,7 +112,7 @@ export default function MetricsPage() {
 
   return <main className={`container-fluid ${styles.page}`}>
     <section className={styles.dashboardShell}>
-      <header className={styles.hero}><div><span className={styles.sectionLabel}>Producción</span><h1 className={styles.pageTitle}>Métricas</h1><p className={styles.pageSubtitle}>Indicadores calculados sobre el periodo seleccionado.</p></div></header>
+      <header className={styles.hero}><div><span className={styles.sectionLabel}>Producción</span><h1 className={styles.pageTitle}>Reportes y estadísticas</h1><p className={styles.pageSubtitle}>Indicadores calculados sobre el periodo seleccionado.</p></div></header>
       <div className={styles.content}>
         <section className={styles.periodFilters} aria-label="Periodo de métricas">
           <div className={styles.periodModes}>
@@ -120,6 +121,8 @@ export default function MetricsPage() {
           </div>
           {period.mode === 'month' ? <label><span>Mes</span><input onChange={(event) => updatePeriod('month', event.target.value)} type="month" value={period.month} /></label> : <><label><span>Desde</span><input onChange={(event) => updatePeriod('from', event.target.value)} type="date" value={period.from} /></label><label><span>Hasta</span><input min={period.from || undefined} onChange={(event) => updatePeriod('to', event.target.value)} type="date" value={period.to} /></label></>}
         </section>
+
+        <ProductionPerformance key={`${queryPeriod.from}:${queryPeriod.to}`} api={api} period={queryPeriod} />
 
         {loading ? <div className={styles.emptyState}>Cargando métricas...</div> : error ? <div className={styles.emptyState} role="alert">{error}</div> : <>
           <section className={styles.productionSection} aria-labelledby="production-title">

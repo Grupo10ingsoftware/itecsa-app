@@ -21,9 +21,24 @@ class OrderController {
         }
     }
 
+    getCalendarOrders = async (req = request, res = response) => {
+        try { return res.status(200).json(await this.service.getOrderViews(req.query, 'calendar')); }
+        catch (error) { return respondError(error, req, res); }
+    }
+
+    getKanbanDetail = async (req = request, res = response) => {
+        try { return res.status(200).json(await this.service.getOrderViewById(req.params.orderId, 'kanban')); }
+        catch (error) { return respondError(error, req, res); }
+    }
+
+    getCalendarDetail = async (req = request, res = response) => {
+        try { return res.status(200).json(await this.service.getOrderViewById(req.params.orderId, 'calendar')); }
+        catch (error) { return respondError(error, req, res); }
+    }
+
     getPaymentWorkspace = async (req = request, res = response) => {
         try {
-            const workspace = await this.service.getPaymentWorkspace();
+            const workspace = await this.service.getPagedPaymentWorkspace(req.query);
             res.status(200).json(workspace);
         } catch (error) {
             return respondError(error, req, res);
@@ -33,7 +48,7 @@ class OrderController {
     getOrder = async ( req = request, res = response) => {
         try {
             const { orderId } = req.params;
-            const order = await this.service.getOrderById(orderId);
+            const order = await this.service.getOrderViewById(orderId, 'kanban');
 
             if (!order) return res.status(404).json({ code: 'ORDER_NOT_FOUND', message: 'Pedido no encontrado' });
 

@@ -4,6 +4,13 @@ export const PAYMENT_STATUS = Object.freeze({
     RECHAZADO: "Rechazado",
 });
 
+export const ORDER_STATUS = Object.freeze({
+    CONFIRMACION_PAGO: "Confirmacion de pago",
+    LISTO_PRODUCCION: "Listo para produccion",
+    EN_PRODUCCION: "En produccion",
+    LISTO_ENTREGA: "Listo para entrega",
+});
+
 export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
     "Pedido en espera de confirmacion de pago";
 

@@ -9,7 +9,12 @@ const ALLOWED_FIELDS = new Set([
     "code",
     "correlationId",
     "timestamp",
+    "mode",
+    "cutoff",
+    "hasMore",
 ]);
+
+const COUNT_FIELDS = new Set(['candidateCount', 'deletedCount', 'retentionDays', 'retentionMonths']);
 
 function sanitizedEntry(event, metadata = {}) {
     const entry = {
@@ -18,6 +23,10 @@ function sanitizedEntry(event, metadata = {}) {
     };
 
     for (const [key, value] of Object.entries(metadata)) {
+        if (COUNT_FIELDS.has(key)) {
+            if (Number.isSafeInteger(value) && value >= 0) entry[key] = value;
+            continue;
+        }
         if (!ALLOWED_FIELDS.has(key) || value === undefined || value === null) continue;
         if (typeof value === "string") entry[key] = value.replace(/[\r\n]/g, " ").slice(0, 200);
         else if (typeof value === "number" || typeof value === "boolean") entry[key] = value;

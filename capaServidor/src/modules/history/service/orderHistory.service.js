@@ -112,7 +112,6 @@ function mapEvent(record, { includePaymentDetails = false } = {}) {
         id: record.ID_REGISTRO,
         occurredAt: record.FECHA_HORA,
         responsible: personName(record.Usuario),
-        responsibleUserId: record.id_usuario,
         description: record.observacion ?? null,
     };
 
@@ -214,7 +213,6 @@ function mapDetail(order, records, options = {}) {
             name: order.Cliente?.nombre_cliente ?? order.Cliente?.razon_social ?? null,
         },
         seller: {
-            id: order.Usuario?.id_usuario ?? null,
             name: personName(order.Usuario),
         },
         labels: order.Pedido_Etiqueta.map((item) => item.etiqueta?.nombre_etiqueta).filter(Boolean),

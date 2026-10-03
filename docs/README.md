@@ -1,4 +1,4 @@
-# Documentación técnica de ITECSA
+# Documentación técnica de Itecsa
 
 Punto de entrada para el equipo técnico. Las guías describen el código del repositorio revisado el 03-10-2026; los hechos de infraestructura y bases externas conservan la fecha de su evidencia, sin presumir una nueva verificación.
 
@@ -17,6 +17,8 @@ Punto de entrada para el equipo técnico. Las guías describen el código del re
 | Configurar autenticación y autorización | [Auth0](auth0/README.md) y [matriz generada de permisos](auth0/RBAC-PERMISOS-POR-ROL.md) |
 | Preparar el esquema de Orders | [Migración de Orders](operacion/ORDERS_MIGRACION.md) |
 | Validar Payments en una copia MySQL | [Pruebas aisladas de Payments](operacion/PAYMENTS_SOLICITUD_BD.md) |
+| Preparar continuidad y restauración | [P25: respaldos y restauración](operacion/BACKUP_RESTORE.md) |
+| Revisar proveedores y tratamiento de datos | [P26: inventario de proveedores](security/data-processors.md) |
 | Revisar lo que falta y sus condiciones de cierre | [Pendientes](PENDIENTES.md) |
 | Consultar evidencia de fases anteriores | [Archivo histórico](archivo/README.md) |
 

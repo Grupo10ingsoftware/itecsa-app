@@ -40,8 +40,9 @@ Evidencia: [guía Payments](modulos/PAYMENTS.md), [auditoría inicial](archivo/a
 ## Auth0 y operación
 
 - **Sesiones y permisos efectivos:** probar una sesión nueva representativa de cada rol y revisar usuarios con permisos directos, sin rol o con varios roles. La [auditoría del 25-09](archivo/auditorias/AUDITORIA-2026-09-25.md) cubrió asociaciones de roles; el snapshot JSON del 06-09 es anterior e incompleto. Cierre: evidencia fechada y sin tokens de claims, capacidades permitidas/denegadas y correspondencia con el catálogo.
-- **Correos:** confirmar proveedor propio, configuración de templates y envío controlado en el entorno. La presencia de HTML en Git no acredita que Auth0 lo use. Referencia: [Auth0](auth0/README.md).
+- **Correos:** la lectura del tenant de desarrollo mostró desactivado el proveedor de correo propio. Confirmar la entrega efectiva y las plantillas que se usan antes de depender de correos de alta o recuperación; el HTML en Git no acredita que Auth0 lo use. Referencia: [Auth0](auth0/README.md).
 - **Despliegue:** Docker/Northflank y CI/CD se trabajan por separado en [migration/docker](https://github.com/Grupo10ingsoftware/itecsa-app/tree/migration/docker); no están integrados en esta base de `dev`. Revisar esa integración y comprobar el entorno, publicación y rollback antes de documentarlos como operación vigente. La restauración de datos requiere su propia evidencia.
+- **P26 / proveedores:** el [inventario](security/data-processors.md) distingue integraciones de servicios habilitados y contratos verificados. Auth0 usa un tenant de desarrollo revisado en solo lectura. Aiven apoya temporalmente el desarrollo; Itecsa decidió eliminar todos los registros de esa BD al desplegar y conservar sólo la estructura. Ese borrado no se ha ejecutado y requiere verificar qué ocurre con copias y logs. Aún no existe hosting para SPA/API ni se ha elegido la BD definitiva. Revisar región, subencargados, retención, incidentes y salida según los proveedores y datos que efectivamente se utilicen.
 
 ## Seguimiento de la auditoría de protección de datos
 
@@ -64,9 +65,9 @@ Evidencia original: [auditoría del 25-09-2026](archivo/auditorias/AUDITORIA_PRE
 | H13 / retención y derechos | Definir políticas y flujo organizacional/técnico, finalidades, plazos y excepciones, con evidencia revisada por responsables. |
 | H14 / auditoría transversal | Acordar catálogo de eventos de seguridad/negocio y verificar cobertura, acceso y protección de registros. |
 | H15 / perímetro y almacenamiento | Obtener evidencia del entorno sobre HTTPS, aislamiento, cifrado y gestión de llaves; archivos de despliegue no acreditan la operación. |
-| H16 / backups | Acreditar respaldos, retención y prueba de restauración. Rollback de imágenes no restaura datos. |
+| H16 / backups; P25 | [Procedimiento P25](operacion/BACKUP_RESTORE.md) preparado. Los registros de Aiven temporal no se migrarán; verificar reconstrucción de estructura y catálogos necesarios sin copiarlos. Para el futuro entorno con datos persistentes, acreditar RPO/RTO aprobados, respaldos, retención y prueba aislada de restauración. Rollback de imágenes no restaura datos. |
 | H17 / documentación y utilidades | Limpieza documental preparada en esta rama. Quedan revalidación de utilidades legadas, controles de dependencias/secretos e integración de CI; no cerrar todo el hallazgo por ordenar guías. |
-| H18 / health de BD | `/health/live` no consulta BD; `/internal/ready` es opcional y requiere token. Validar restricción de red/configuración del entorno. |
+| H18 / health de BD | `/api/health/live` no consulta BD; `/internal/ready` es opcional y requiere token. Validar restricción de red/configuración del entorno. |
 | H19 / límites de lectura | Revisar paginación y límites de consultas/cálculos, con consumidores y mediciones (PERF-01/PERF-02, PAY-ACT-008). |
 
 La revisión legal, contractual y organizacional conserva los límites del informe original. La limpieza de documentación no certifica cumplimiento ni resuelve automáticamente esos hallazgos.

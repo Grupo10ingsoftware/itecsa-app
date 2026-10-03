@@ -13,4 +13,13 @@ export default class MetricsController {
             return respondError(error, req, res);
         }
     };
+
+    productionPerformance = async (req, res) => {
+        try {
+            res.set("Cache-Control", "no-store");
+            return res.status(200).json(await this.service.productionPerformance(req.query));
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
 }

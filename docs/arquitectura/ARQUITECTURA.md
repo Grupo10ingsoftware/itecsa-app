@@ -1,8 +1,8 @@
-# Arquitectura de ITECSA
+# Arquitectura de Itecsa
 
 ## Componentes y flujo
 
-La SPA React/Vite presenta pedidos, Kanban, cobranzas, usuarios, perfil, mensajes, historial, calendario y métricas. La API Express valida identidad y capacidades, aplica reglas de negocio y persiste mediante Prisma y el adaptador MariaDB en MySQL/Aiven.
+La SPA React/Vite presenta pedidos, Kanban, cobranzas, usuarios, perfil, mensajes, historial, calendario y métricas. La API Express valida identidad y capacidades, aplica reglas de negocio y persiste mediante Prisma y el adaptador MariaDB en MySQL. Itecsa utiliza Aiven como apoyo temporal de desarrollo para disponer de una BD en línea; decidió que al desplegar se eliminarán todos sus registros y se conservará sólo la estructura. El destino definitivo todavía no está decidido y no hay hosting seleccionado para SPA/API. El borrado aún no se ha ejecutado.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
     API --> IDENTIDAD["JWT, usuario activo, rol y capacidad"]
     IDENTIDAD --> SERVICIOS["Servicios de negocio"]
     SERVICIOS --> REPOS["Repositorios Prisma / MariaDB"]
-    REPOS --> BD["MySQL / Aiven"]
+    REPOS --> BD["MySQL / Aiven temporal"]
     SERVICIOS --> FUENTE["Fixture de notas de venta"]
     API -->|"Gestión de identidades en servidor"| MANAGEMENT["Auth0 Management API"]
 ```
@@ -46,7 +46,7 @@ La autorización de pagos no sustituye las reglas de producción. Algunas revisi
 
 ## Ejecución y operación
 
-La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. La SPA incorpora sus variables públicas al compilar con Vite; el servidor consume su configuración de entorno. Auth0 y Aiven permanecen externos. Los procedimientos de base se mantienen en [migración de Orders](../operacion/ORDERS_MIGRACION.md) y [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md).
+La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. La SPA incorpora sus variables públicas al compilar con Vite; el servidor consume su configuración de entorno. Auth0 es externo y Aiven aloja temporalmente MySQL. Los procedimientos de base se mantienen en [migración de Orders](../operacion/ORDERS_MIGRACION.md) y [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md). El [inventario de proveedores](../security/data-processors.md) y el [procedimiento de continuidad](../operacion/BACKUP_RESTORE.md) distinguen el estado actual de las decisiones pendientes.
 
 Arrancar la API no aplica migraciones. Los tests locales no acreditan por sí solos configuración del tenant, protección de infraestructura, restauración de backups o cumplimiento legal; esas evidencias se registran con su entorno y fecha.
 

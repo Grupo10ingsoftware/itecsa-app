@@ -21,7 +21,7 @@ model Comentario_Produccion {
   fecha_comentario         DateTime?       @db.DateTime(0)
   id_usuario               Int?
   id_detalle_pedido        Int?
-  Detalle_pedido           Detalle_pedido? @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_cp_detalle_pedido")
+  Detalle_pedido           Detalle_pedido? @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Comentario_Produccion_Detalle_pedido_FK")
   Usuario                  Usuario?        @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_cp_usuario")
 
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")
@@ -43,8 +43,8 @@ model Detalle_pedido {
   id_estado_subproceso   Int?
   Comentario_Produccion  Comentario_Produccion[]
   Estado_Subprocesos     Estado_Subprocesos?     @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "Detalle_pedido_Estado_Subprocesos_FK")
-  Pedidos                Pedidos?                @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "id_pedido")
-  Tipo_Producto          Tipo_Producto?          @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "id_tipo_producto")
+  Pedidos                Pedidos?                @relation(fields: [id_pedido], references: [id_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Detalle_pedido_Pedidos_FK")
+  Tipo_Producto          Tipo_Producto?          @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "Detalle_pedido_Tipo_Producto_FK")
   Avance_Lanyard         Avance_Lanyard[]
   Dise_o                 Dise_o[]
   registro_subprocesos   registro_subprocesos[]
@@ -58,7 +58,7 @@ model Dise_o {
   id_dise_o         Int             @id @map("id_diseño")
   especificaciones  String?         @db.Text
   id_detalle_pedido Int?
-  Detalle_pedido    Detalle_pedido? @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "id_detalle_pedido")
+  Detalle_pedido    Detalle_pedido? @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Diseño_Detalle_pedido_FK")
   Dise_o_Lanyard    Dise_o_Lanyard?
   Dise_o_Tarjeta    Dise_o_Tarjeta?
 
@@ -130,7 +130,7 @@ model Pedidos {
   Mensaje                     Mensaje[]
   Pedido_Etiqueta             Pedido_Etiqueta[]
   Pedido_Item_Sin_Seguimiento Pedido_Item_Sin_Seguimiento[]
-  Cliente                     Cliente?                      @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "id_cliente")
+  Cliente                     Cliente?                      @relation(fields: [id_cliente], references: [id_cliente], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Cliente_FK")
   Estado_Pago                 Estado_Pago?                  @relation(fields: [id_estado_pago], references: [id_estado_pago], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pago_FK")
   Estado_Pedido               Estado_Pedido?                @relation(fields: [id_estado_pedido], references: [id_estado_pedido], onDelete: NoAction, onUpdate: NoAction, map: "Pedidos_Estado_Pedido_FK")
   etiqueta                    etiqueta?                     @relation(fields: [id_etiqueta], references: [id_etiqueta], onDelete: NoAction, onUpdate: NoAction, map: "id_etiqueta")
@@ -149,7 +149,7 @@ model Producto_Subproceso {
   id_tipo_producto     Int
   id_estado_subproceso Int
   orden_flujo          Int?
-  Tipo_Producto        Tipo_Producto      @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "fk_Producto_Subproceso_tipo_producto")
+  Tipo_Producto        Tipo_Producto      @relation(fields: [id_tipo_producto], references: [id_tipo_producto], onDelete: NoAction, onUpdate: NoAction, map: "Producto_Subproceso_Tipo_Producto_FK")
   Estado_Subprocesos   Estado_Subprocesos @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_Producto_Subproceso_estado_subproceso")
 
   @@id([id_tipo_producto, id_estado_subproceso])
@@ -235,7 +235,7 @@ model registro_subprocesos {
   id_estado_subproceso Int?
   Avance_Lanyard       Avance_Lanyard[]
   Estado_Subprocesos   Estado_Subprocesos? @relation(fields: [id_estado_subproceso], references: [id_estado_subproceso], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_estado_subprocesos")
-  Detalle_pedido       Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "fk_registro_subprocesos_detalle_pedido")
+  Detalle_pedido       Detalle_pedido?     @relation(fields: [id_detalle_pedido], references: [id_detalle_pedido], onDelete: NoAction, onUpdate: NoAction, map: "registro_subprocesos_Detalle_pedido_FK")
   Registros            Registros           @relation(fields: [id_registro], references: [ID_REGISTRO], onDelete: NoAction, onUpdate: NoAction, map: "registro_subprocesos_Registros_FK")
 
   @@index([id_detalle_pedido], map: "id_detalle_pedido_idx")

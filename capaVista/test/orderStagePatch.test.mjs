@@ -7,14 +7,14 @@ test('cambiar etapa conserva productos, pago, cliente y etiquetas de la tarjeta'
     id: '6', generalStepId: 1, orderStatus: 'Listo para produccion',
     clientName: 'Cliente de prueba', paymentStatus: 'Confirmado',
     items: [{ id: 2, subProcesses: [{ id: 4, status: 'pending' }] }],
-    etiquetas: [{ id_etiqueta: 1 }], quantity: 20,
+    labels: [{ id: 1, name: 'Urgencia' }], quantity: 20,
   }
   const result = applyOrderStagePatch(order, {
-    id_pedido: 6, id_estado_pedido: 3, id_etapa_general: 2,
-    nombre_etapa_general: 'En producción',
+    id: 6, orderStatusId: 3, generalStepId: 2,
+    orderStatus: 'En producción',
   })
   assert.deepEqual(result, {
-    ...order, id_estado_pedido: 3, generalStepId: 2, orderStatus: 'En producción',
+    ...order, orderStatusId: 3, generalStepId: 2, orderStatus: 'En producción',
   })
   assert.equal(order.generalStepId, 1)
   assert.equal(result.items, order.items)
@@ -22,6 +22,6 @@ test('cambiar etapa conserva productos, pago, cliente y etiquetas de la tarjeta'
 
 test('no modifica otra tarjeta ni un detalle cerrado', () => {
   const order = { id: 7 }
-  assert.equal(applyOrderStagePatch(order, { id_pedido: 6 }), order)
-  assert.equal(applyOrderStagePatch(null, { id_pedido: 6 }), null)
+  assert.equal(applyOrderStagePatch(order, { id: 6 }), order)
+  assert.equal(applyOrderStagePatch(null, { id: 6 }), null)
 })

@@ -97,7 +97,6 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | PATCH `/production-capacity` | `manage:production-capacity` |
 | GET `/production-load/today` | `read:production-capacity` |
 | PATCH `/production-load/today` | `manage:production-load` o `manage:production-capacity` |
-| POST `/production-calendar/operational-load` | `read:production-calendar`; cálculo sobre cuerpo recibido, sin persistencia |
 | GET `/history/orders`, `/history/orders/:orderId` | `read:orders`; también puede incluir eventos de pago |
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |
@@ -107,4 +106,4 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 
-`/demo-orders/*` es una herramienta separada para Soporte con almacenamiento demo y controles de capacidad/PIN; no representa aprobaciones del flujo real. El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.
+El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.

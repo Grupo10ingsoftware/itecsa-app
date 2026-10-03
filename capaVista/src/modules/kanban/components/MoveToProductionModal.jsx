@@ -75,7 +75,7 @@ export function MoveToProductionModal({ isOpen, onClose, onConfirm, order }) {
         </header>
 
         <div className={styles.operatorModalBody}>
-          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso del pedido {order.nv}.</p>
+          <p className={styles.operatorModalText}>Ingrese su PIN para hacer efectivo el traspaso del pedido {order.salesNoteNumber}.</p>
           <label>
             <span>PIN</span>
             <input

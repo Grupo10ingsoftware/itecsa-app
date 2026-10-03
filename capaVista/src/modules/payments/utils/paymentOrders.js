@@ -1,4 +1,4 @@
-import { PAYMENT_STATUS } from '@/config/status'
+import { PAYMENT_STATUS } from '../../../config/status.js'
 
 const PAYMENT_STATUS_NAMES = new Set(Object.values(PAYMENT_STATUS))
 
@@ -17,24 +17,16 @@ function normalizeQuantity(value) {
   return Number.isFinite(quantity) ? quantity : null
 }
 
-function normalizeTrackedProducts(details) {
+function normalizePreviewProducts(details) {
   if (!Array.isArray(details)) return []
 
   return details.map((detail, index) => {
-    const explicitProductType = textOrNull(
-      detail?.productType ?? detail?.tipoProducto ?? detail?.nombre_producto,
-    )
-
     return {
-      id: detail?.id_detalle_pedido ?? detail?.id ?? `detail-${index}`,
-      code: textOrNull(
-        detail?.code ?? detail?.codigo ?? detail?.codigo_producto,
-      ),
-      productType: explicitProductType ?? textOrNull(detail?.product),
-      product:
-        textOrNull(detail?.producto ?? detail?.descripcion_producto) ??
-        (explicitProductType ? textOrNull(detail?.product) : null),
-      quantity: normalizeQuantity(detail?.cantidad ?? detail?.quantity),
+      id: detail?.id ?? `detail-${index}`,
+      code: textOrNull(detail?.code),
+      productType: textOrNull(detail?.productType),
+      product: textOrNull(detail?.product),
+      quantity: normalizeQuantity(detail?.quantity),
     }
   })
 }
@@ -49,32 +41,27 @@ function normalizeStatusName(status) {
 }
 
 export function normalizePaymentOrder(order) {
-  const id = order?.id_pedido ?? order?.id
-  const nvNumber = hasText(order?.numero_nota_venta)
-    ? order.numero_nota_venta.trim()
+  const id = order?.id
+  const nvNumber = hasText(order?.salesNoteNumber)
+    ? order.salesNoteNumber.trim()
     : `Pedido #${id ?? 'sin ID'}`
-  const companyName = hasText(order?.razon_social)
-    ? order.razon_social.trim()
-    : hasText(order?.nombre_cliente)
-      ? order.nombre_cliente.trim()
+  const companyName = hasText(order?.clientBusinessName)
+    ? order.clientBusinessName.trim()
+    : hasText(order?.clientName)
+      ? order.clientName.trim()
       : 'Cliente sin nombre'
-  const trackedProducts = normalizeTrackedProducts(order?.detalles)
 
   return {
     id,
     nvNumber,
     companyName,
-    rut: hasText(order?.rut_cliente)
-      ? order.rut_cliente.trim()
+    rut: hasText(order?.clientRut)
+      ? order.clientRut.trim()
       : 'RUT no disponible',
-    sellerEmail: hasText(order?.correo_vendedor)
-      ? order.correo_vendedor.trim()
-      : null,
-    trackedProducts,
-    paymentStatus: normalizeStatusName(
-      order?.estado_pago ?? order?.nombre_estado_pago,
-    ),
-    createdAt: order?.fecha_creacion ?? null,
+    sellerEmail: null,
+    trackedProducts: [],
+    paymentStatus: normalizeStatusName(order?.paymentStatus),
+    createdAt: order?.createdAt ?? null,
   }
 }
 
@@ -89,7 +76,7 @@ export function normalizePaymentOrders(orders) {
 export function mergePaymentPreview(order, preview) {
   if (!order || !preview) return order
 
-  const previewProducts = normalizeTrackedProducts(preview.products)
+  const previewProducts = normalizePreviewProducts(preview.products)
 
   return {
     ...order,
@@ -112,5 +99,5 @@ export function getPaymentStatusIdByName(statuses, statusName) {
       )
     : null
 
-  return status?.id_estado_Pago ?? status?.id_estado_pago ?? null
+  return status?.id_estado_pago ?? null
 }

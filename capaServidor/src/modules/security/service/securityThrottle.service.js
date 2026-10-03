@@ -49,7 +49,7 @@ export class SecurityThrottleService {
             .digest("hex");
     }
 
-    async consume({ scope, subject, limit, windowMs }) {
+    async increment({ scope, subject, windowMs }) {
         const now = this.now();
         const expiresAt = new Date(now.getTime() + windowMs);
         const subjectHash = this.hash(scope, subject);
@@ -73,6 +73,12 @@ export class SecurityThrottleService {
             });
         });
 
+        return state;
+    }
+
+    async consume({ scope, subject, limit, windowMs }) {
+        const state = await this.increment({ scope, subject, windowMs });
+        const now = this.now();
         if (Number(state?.request_count ?? 0) > limit) {
             const retryAfterSeconds = Math.max(
                 1,
@@ -98,21 +104,26 @@ export class MemoryThrottleService {
         this.maxEntries = maxEntries;
     }
 
-    async consume({ scope, subject, limit, windowMs }) {
+    async increment({ scope, subject, windowMs }) {
         const now = this.now();
         await this.purgeExpired();
         const key = createHash("sha256").update(`${scope}:${subject}`).digest("hex");
-        if (!this.entries.has(key) && this.entries.size >= this.maxEntries) {
-            throw new RateLimitExceededError(Math.max(1, Math.ceil(windowMs / 1000)));
-        }
+        if (!this.entries.has(key) && this.entries.size >= this.maxEntries) return null;
         let state = this.entries.get(key);
         if (!state || state.expiresAt <= now.getTime()) {
             state = { count: 0, expiresAt: now.getTime() + windowMs };
         }
         state.count += 1;
         this.entries.set(key, state);
-        if (state.count > limit) {
-            throw new RateLimitExceededError(Math.max(1, Math.ceil((state.expiresAt - now.getTime()) / 1000)));
+        return { request_count: state.count, expires_at: new Date(state.expiresAt) };
+    }
+
+    async consume({ scope, subject, limit, windowMs }) {
+        const state = await this.increment({ scope, subject, windowMs });
+        const now = this.now();
+        if (!state || Number(state.request_count) > limit) {
+            const expiresAt = state?.expires_at ? new Date(state.expires_at).getTime() : now.getTime() + windowMs;
+            throw new RateLimitExceededError(Math.max(1, Math.ceil((expiresAt - now.getTime()) / 1000)));
         }
         return state;
     }

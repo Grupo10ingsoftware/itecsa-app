@@ -1,6 +1,6 @@
 # Desarrollo local y configuración
 
-Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md) y [pruebas](PRUEBAS.md).
+Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [contratos canónicos de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../security/P14_BUSQUEDA_NOTAS_VENTA.md) y [pruebas](PRUEBAS.md).
 
 ## Requisitos e instalación
 
@@ -38,6 +38,7 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 | API: `APP_ENV`, `NODE_ENV` | Deben coincidir. Entorno obligatorio: `development`, `test` o `production`; las cuotas son persistentes en producción |
 | API: `RATE_LIMIT_SECRET`, `CURSOR_SECRET`, `SECURITY_LOG_HMAC_KEY` | Claves de seguridad del servidor; consultar las plantillas y la [guía de seguridad](../security/README.md) |
 | API: `PIN_SECRET` | Obligatorio; exactamente 32 bytes en base64 para cifrado y huellas de PIN |
+| API: `SECURITY_MONITOR_WINDOW_SECONDS`, `SECURITY_MONITOR_LOOKUP_SIGNAL_THRESHOLD`, `SECURITY_MONITOR_NOT_FOUND_SIGNAL_THRESHOLD` | Opcionales; ventana y señales del monitoreo de Notas de Venta. Sus valores por defecto son 300, 30 y 10. No activan bloqueos ni respuestas 429 |
 | API: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL_CA_PATH` | Adaptador MariaDB/MySQL con CA y TLS |
 | Prisma CLI: `DATABASE_URL` | Conexión definida en `prisma.config.ts`; debe corresponder a la misma base del runtime |
 
@@ -54,10 +55,11 @@ para enviar códigos por correo. Sin proveedor explícito, recuperación respond
 indisponibilidad. `fake` solo se admite en tests y `console` únicamente en desarrollo
 con selección explícita. Consultar [entrega de PIN](../security/H07-pin-recovery-delivery.md).
 
-Las rutas demo y las notas de venta fixture requieren `ENABLE_DEMO_ROUTES=true`;
-el control debug de la SPA necesita además `VITE_ENABLE_DEMO_ROUTES=true`.
-Ambos permanecen desactivados por defecto. La API rechaza demos en producción
-y discrepancias entre `APP_ENV` y `NODE_ENV`. `npm run dev` completa los valores
+La ruta legacy `/api/demo-orders` fue retirada. `ENABLE_DEMO_ROUTES=true` habilita
+únicamente la fuente fixture de Notas de Venta y, en desarrollo, las herramientas
+de depuración de PIN; el control debug de la SPA necesita además
+`VITE_ENABLE_DEMO_ROUTES=true`. Ambos permanecen desactivados por defecto. La API
+rechaza estas funciones en producción y discrepancias entre `APP_ENV` y `NODE_ENV`. `npm run dev` completa los valores
 de entorno ausentes; `npm start` exige ambos explícitos.
 
 ## Prisma y base existente

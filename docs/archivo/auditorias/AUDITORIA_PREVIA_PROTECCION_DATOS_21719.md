@@ -205,10 +205,7 @@ Abreviaciones: AP = Administrador Producción; AV = Administrador Ventas; AC = A
 | PATCH admin/users/:userId y /:userId/status | AP, AV, AC, S según departamento | Modal/PIN | manage:users + alcance + PIN; controles de autoedición | No escalada arbitraria de rol demostrada |
 | GET production-capacity; GET production-load/today | Todos | Kanban/calendario | read:production-capacity | Datos operativos |
 | PATCH production-capacity; PATCH production-load/today | AP, S | Acciones por capacidad | manage:production-capacity o manage:production-load | Falta auditoría completa |
-| POST production-calendar/operational-load | AP, AV, OV, S | Guard calendario | read:production-calendar | Recibe pedidos del navegador; cálculo, no lectura de BD externa |
 | GET metrics/summary | AP, G, S | UI restringida AP/G | view:metrics | S puede usar API aunque UI no muestre módulo; métricas laborales |
-| GET demo-orders, /payment-orders, /payment-status, /announcements, /sales-notes/available | S | Herramientas demo | S + capacidad | Sin bloqueo por ambiente H03 |
-| PATCH demo-orders/:id/{delivery-date,payment-status,request-payment-deconfirmation,approve-payment-deconfirmation,move} | S | Demo/acciones | S + capacidad + PIN | Datos demo en RAM; H03 |
 | GET health/db | Público | No aplica | Sin JWT; error genérico | Sondeo de persistencia H18 |
 
 Evidencia: todos los `capaServidor/src/modules/*/routes/*.js`, montajes `server.js:86-113`, `shared/authorization.js:23-55`, `adminUsers.controller.js:140-315,336-351,485-499`, `message.repo.js:145-201`, `orderDetail.service.js:40-57`, `paymentRecord.service.js:94-119`.
@@ -421,13 +418,13 @@ Severidad: impacto y probabilidad sobre el sistema observado; no multa legal ni 
 
 **Complejidad:** Media
 
-### [H03] Soporte global y demo no están excluidos de producción
+### [H03] Soporte global no está excluido de producción
 
 **Severidad:** ALTA
 
 **Estado actual:** Regla funcional declara Soporte técnico, pero ROLE_PERMISSIONS le da todas las capacidades y el backend no lo bloquea según ambiente de forma general.
 
-**Evidencia:** `shared/authorization.js:1-9,27-45; capaServidor/src/middlewares/requireActiveIdentity.js:13-36; capaServidor/src/server.js:98-99; capaServidor/src/modules/demoOrders/routes/demoOrders.routes.js:15-29`
+**Evidencia:** `shared/authorization.js:1-9,27-45; capaServidor/src/middlewares/requireActiveIdentity.js:13-36`
 
 **Riesgo:** Una identidad activa Soporte con permisos válidos puede leer transversalmente y administrar departamentos en un despliegue productivo. No se demuestra que esa identidad esté habilitada hoy en producción.
 

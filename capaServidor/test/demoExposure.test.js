@@ -10,7 +10,6 @@ import {
   ROLES_CLAIM,
 } from "../../shared/authorization.js";
 import { resolveEnvironmentConfig } from "../src/config/environment.js";
-import { createDemoOrdersRouter } from "../src/modules/demoOrders/routes/demoOrders.routes.js";
 import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
 import SalesNoteSourceService from "../src/modules/orders/service/salesNoteSource.service.js";
 import Server from "../src/server.js";
@@ -112,7 +111,7 @@ test("production no monta demo ni debug y conserva rutas reales para Soporte", a
   assert.deepEqual(await realFeature.json(), { feature: "real-orders" });
 });
 
-test("demo requiere opt-in explícito en development y test", async (t) => {
+test("la API legacy demo permanece retirada incluso con opt-in de desarrollo", async (t) => {
   const disabled = new Server({ env: { NODE_ENV: "development" } });
   const disabledUrl = await listen(disabled.app, t);
   assert.equal((await fetch(`${disabledUrl}/api/demo-orders`)).status, 404);
@@ -142,7 +141,7 @@ test("demo requiere opt-in explícito en development y test", async (t) => {
     else process.env.AUTH0_DOMAIN = previousDomain;
   });
   const enabledUrl = await listen(enabled.app, t);
-  assert.equal((await fetch(`${enabledUrl}/api/demo-orders`)).status, 401);
+  assert.equal((await fetch(`${enabledUrl}/api/demo-orders`)).status, 404);
   assert.equal(
     (
       await fetch(`${enabledUrl}/api/auth/pin/debug-reset`, {
@@ -151,32 +150,6 @@ test("demo requiere opt-in explícito en development y test", async (t) => {
     ).status,
     401,
   );
-});
-
-test("Soporte conserva acceso a la ruta demo cuando se habilita explícitamente", async (t) => {
-  const app = express();
-  app.use(
-    "/api/demo-orders",
-    createDemoOrdersRouter({
-      authenticate(req, _res, next) {
-        req.auth = {
-          payload: {
-            sub: "auth0|support",
-            [ROLES_CLAIM]: [ROLES.SOPORTE],
-            permissions: ROLE_PERMISSIONS[ROLES.SOPORTE],
-          },
-        };
-        next();
-      },
-    }),
-  );
-  const baseUrl = await listen(app, t);
-
-  const response = await fetch(`${baseUrl}/api/demo-orders`);
-  const orders = await response.json();
-
-  assert.equal(response.status, 200);
-  assert.equal(orders.length, 15);
 });
 
 test("la fixture de Notas de Venta falla cerrada sin demo habilitado", async () => {

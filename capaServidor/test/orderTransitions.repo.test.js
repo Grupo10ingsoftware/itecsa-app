@@ -39,8 +39,8 @@ test("cambio de etapa actualiza pedido y crea registro con actor y comentario", 
     });
 
     assert.deepEqual(result, {
-        id_pedido: 6, id_estado_pedido: 3, id_etapa_general: 2,
-        generalStepId: 2, nombre_etapa_general: "En producción",
+        id_pedido: 6, id_estado_pedido: 3, id_etapa_general: 2, generalStepId: 2,
+        nombre_etapa_general: "En producción",
     });
     assert.equal(calls[0][1].where.id_estado_pedido, 2);
     assert.equal(calls[0][1].where.id_estado_pago, 2);

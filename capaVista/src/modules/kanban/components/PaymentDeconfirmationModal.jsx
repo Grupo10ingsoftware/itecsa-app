@@ -26,7 +26,7 @@ export function PaymentDeconfirmationModal({ approvePaymentDeconfirmation, isApp
         </header>
 
         <div className={styles.operatorModalBody}>
-          <p className={styles.operatorModalText}>Ingrese su PIN para devolver {order.nv} a Confirmacion de pago.</p>
+          <p className={styles.operatorModalText}>Ingrese su PIN para devolver {order.salesNoteNumber} a Confirmacion de pago.</p>
           <label>
             <span>PIN</span>
             <input

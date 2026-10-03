@@ -110,7 +110,7 @@ test("monta checkJwt antes de listar pedidos", async (t) => {
     assert.deepEqual(calls, ["checkJwt", "getOrders"]);
 });
 
-test("monta checkJwt antes de requirePermission y de actualizar pago", async (t) => {
+test("monta checkJwt antes de autorizar y actualizar pago", async (t) => {
     const calls = [];
     const app = createTestApp(
         createOrderRouter({
@@ -123,7 +123,7 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
                 next();
             },
             authorizePaymentStatusUpdate(req, res, next) {
-                calls.push("requirePermission");
+                calls.push("authorizePaymentStatusUpdate");
                 next();
             },
             validatePin(req, res, next) {
@@ -153,7 +153,7 @@ test("monta checkJwt antes de requirePermission y de actualizar pago", async (t)
     assert.equal(response.status, 200);
     assert.deepEqual(calls, [
         "checkJwt",
-        "requirePermission",
+        "authorizePaymentStatusUpdate",
         "requirePin",
         "updatePaymentStatus",
     ]);

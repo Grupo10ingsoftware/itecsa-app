@@ -5,6 +5,8 @@ import { AuthContext } from '../src/app/providers/authContext'
 import { PERMISSIONS } from '../src/config/permissions'
 import RoleGuard from '../src/shared/components/navigation/RoleGuard'
 import PaymentRowActions from '../src/modules/payments/components/PaymentRowActions'
+import Topbar from '../src/shared/components/layout/Topbar'
+import NavigationMenu from '../src/shared/components/navigation/NavigationMenu'
 import { PAYMENT_STATUS } from '../src/config/status'
 import { ROLES, ROLE_PERMISSIONS, BUSINESS_PERMISSIONS, can, manageableRoles } from '../../shared/authorization'
 
@@ -25,6 +27,17 @@ export function run() {
   assert.equal(manageableRoles(role).includes(S),false);count++
   const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(role,[])}><RoleGuard requiredPermission="read:orders"><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)
   assert.equal(html.includes('contenido-autorizado'),false);count++
+ }
+ for (const role of Object.values(ROLES)) for (const permissions of [BUSINESS_PERMISSIONS, [], ['read:own-profile'], ['read:own-messages']]) {
+  const auth = context(role, permissions)
+  const wrap = child => <MemoryRouter initialEntries={['/perfil']}><AuthContext.Provider value={auth}>{child}</AuthContext.Provider></MemoryRouter>
+  const header = renderToStaticMarkup(wrap(<Topbar />))
+  const sidebar = renderToStaticMarkup(wrap(<NavigationMenu />))
+  assert.equal(header.includes('href="/perfil"'), auth.hasPermission('read:own-profile'))
+  assert.equal(header.includes('href="/mensajes"'), auth.hasPermission('read:own-messages'))
+  assert.equal(header.includes('aria-label="Notificaciones"'), auth.hasPermission('read:own-messages'))
+  assert.equal(sidebar.includes('href="/perfil"') || sidebar.includes('href="/mensajes"'), false)
+  count += 4
  }
  for(const role of [AP,ROLES.GERENCIA,S]) {
   const html=renderToStaticMarkup(<MemoryRouter><AuthContext.Provider value={context(role,BUSINESS_PERMISSIONS.filter(p=>p!=='view:metrics'))}><RoleGuard requiredPermission={PERMISSIONS.VIEW_METRICS}><div>contenido-autorizado</div></RoleGuard></AuthContext.Provider></MemoryRouter>)

@@ -21,6 +21,8 @@ Desde `capaVista`, `npm run test:payments:browser` comprueba el ciclo del PIN y 
 
 Los comandos `test:forms:performance` y `test:forms:performance:baseline` también comparan Mi perfil con y sin precarga de código, incluyendo una API artificialmente lenta. El procedimiento y las medidas están en [Carga de formularios y perfil](CARGA_FORMULARIOS_P18_P19.md). Son mediciones controladas con sesión sintética, sin latencia real de Auth0/MySQL.
 
+`npm run test:layout:browser --prefix capaVista` reutiliza el layout real con sesión/API sintéticas. Comprueba en seis anchos (320–1440) el orden de las acciones, perfil y bandeja sin duplicación lateral, indicador/apertura/limpieza de notificaciones, permisos, ausencia de consultas extra de identidad, textos largos, botones táctiles, foco y teclas Enter/Space/Tab, colapso/drawer/overlay y confirmación de cierre de sesión. La suite SSR verifica los accesos del header con todos los roles y permisos parciales. No consulta identidades reales ni realiza acciones sobre una cuenta desplegada.
+
 Desde `capaServidor`, `npm run prisma:validate` valida el schema. `npm run orders:preflight` y `node scripts/paymentsReadBaseline.mjs` son inspecciones que requieren una conexión autorizada y no escriben datos. Sus resultados reflejan ese entorno y momento, no una prueba de migración o carga representativa.
 
 ## Documentación

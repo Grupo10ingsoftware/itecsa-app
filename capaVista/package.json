@@ -13,6 +13,7 @@
     "test:privacy:browser": "node test/privacy.browser.mjs",
     "test:incidents:browser": "node test/privacy.browser.mjs incidents",
     "test:profile:browser": "node test/privacy.browser.mjs profile",
+    "test:layout:browser": "node test/privacy.browser.mjs layout",
     "test:forms:performance": "node test/privacy.browser.mjs forms-performance",
     "test:forms:performance:baseline": "node test/privacy.browser.mjs forms-performance-baseline"
   },

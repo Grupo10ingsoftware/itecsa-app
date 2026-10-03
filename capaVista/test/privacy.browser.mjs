@@ -13,11 +13,12 @@ const profile = await mkdtemp(join(tmpdir(), 'itecsa-privacy-browser-'))
 const screenshots = await mkdtemp(join(tmpdir(), 'itecsa-privacy-screens-'))
 const incidentRun = process.argv[2] === 'incidents'
 const profileRun = process.argv[2] === 'profile'
+const layoutRun = process.argv[2] === 'layout'
 const performanceRun = process.argv[2]?.startsWith('forms-performance')
 const baselinePerformance = process.argv[2] === 'forms-performance-baseline'
-const page = profileRun ? 'profile.browser.html' : performanceRun ? 'formsPerformance.browser.html' : incidentRun ? 'incident.browser.html' : 'privacy.browser.html'
-const resultKey = profileRun ? 'profileTest' : performanceRun ? 'formsPerformanceTest' : incidentRun ? 'incidentTest' : 'privacyTest'
-const captureKey = profileRun ? 'profileCapture' : incidentRun ? 'incidentCapture' : 'privacyCapture'
+const page = layoutRun ? 'layout.browser.html' : profileRun ? 'profile.browser.html' : performanceRun ? 'formsPerformance.browser.html' : incidentRun ? 'incident.browser.html' : 'privacy.browser.html'
+const resultKey = layoutRun ? 'layoutTest' : profileRun ? 'profileTest' : performanceRun ? 'formsPerformanceTest' : incidentRun ? 'incidentTest' : 'privacyTest'
+const captureKey = layoutRun ? 'layoutCapture' : profileRun ? 'profileCapture' : incidentRun ? 'incidentCapture' : 'privacyCapture'
 const server = await createServer({
   cacheDir: join(profile, 'vite-cache'),
   server: { host: '127.0.0.1', port: 0, hmr: false },
@@ -64,7 +65,7 @@ try {
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }))
     })
   }
-  for (const width of performanceRun ? [1440] : (incidentRun || profileRun) ? [320, 390, 768, 1024, 1280, 1440] : [320, 390, 768, 1440]) {
+  for (const width of performanceRun ? [1440] : (layoutRun || incidentRun || profileRun) ? [320, 390, 768, 1024, 1280, 1440] : [320, 390, 768, 1440]) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' })
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
     await send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 768 }, sessionId)
@@ -76,6 +77,25 @@ try {
       const value = await send('Runtime.evaluate', { expression: `({ test: window.${resultKey}, capture: window.${captureKey} })`, returnByValue: true }, sessionId)
       result = value.result?.value?.test
       const capture = value.result?.value?.capture
+      if (layoutRun) {
+        const keyboard = await send('Runtime.evaluate', { expression: 'window.layoutKeyboardCheck', returnByValue: true }, sessionId)
+        const press = async (key, code, windowsVirtualKeyCode) => {
+          await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode }, sessionId)
+          await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode }, sessionId)
+          await new Promise(resolve => setTimeout(resolve, 30))
+        }
+        if (keyboard.result?.value === 'profile') {
+          await press('Enter', 'Enter', 13)
+          await send('Runtime.evaluate', { expression: 'window.layoutKeyboardCheck = "done"' }, sessionId)
+        } else if (keyboard.result?.value === 'bell') {
+          await press(' ', 'Space', 32)
+          const opened = await send('Runtime.evaluate', { expression: `!!document.querySelector('[aria-label="Notificaciones nuevas"]')`, returnByValue: true }, sessionId)
+          assert(opened.result?.value, 'Space no abre notificaciones')
+          await press(' ', 'Space', 32)
+          await press('Tab', 'Tab', 9)
+          await send('Runtime.evaluate', { expression: 'window.layoutKeyboardCheck = "done"' }, sessionId)
+        }
+      }
       if (incidentRun) {
         const picker = await send('Runtime.evaluate', { expression: 'window.incidentPickerCheck?.status', returnByValue: true }, sessionId)
         if (picker.result?.value === 'ready') {
@@ -117,7 +137,7 @@ try {
       await writeFile(join(screenshots, 'forms-performance.json'), JSON.stringify(result, null, 2))
       console.log(JSON.stringify(result, null, 2))
     }
-    console.log(`${profileRun ? 'Perfil: datos, historial propio, búsqueda, paginación, errores, PIN y responsive' : performanceRun ? 'Comparación' : incidentRun ? 'Incidentes' : 'Privacidad'} ${width}px: OK`)
+    console.log(`${layoutRun ? 'Header/sidebar: navegación, permisos, notificaciones, textos largos y responsive' : profileRun ? 'Perfil: datos, historial propio, búsqueda, paginación, errores, PIN y responsive' : performanceRun ? 'Comparación' : incidentRun ? 'Incidentes' : 'Privacidad'} ${width}px: OK`)
     await send('Target.closeTarget', { targetId })
   }
   console.log(`Capturas de comprobación: ${screenshots}`)

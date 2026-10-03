@@ -226,5 +226,9 @@ export function validateUserMovementsQuery(query = {}) {
         (query.page !== undefined && typeof query.page !== "string") ||
         (query.perPage !== undefined && typeof query.perPage !== "string")
     ) return invalidRequest("La paginación de movimientos no es válida.");
-    return { valid: true, filters: { page, perPage } };
+    if (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim().length > 120)) {
+        return invalidRequest("La búsqueda de movimientos no es válida.");
+    }
+    const search = query.search?.trim();
+    return { valid: true, filters: { page, perPage, ...(search ? { search } : {}) } };
 }

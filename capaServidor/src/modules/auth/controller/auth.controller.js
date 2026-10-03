@@ -9,6 +9,7 @@ import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService from "../service/pin.service.js";
 import { safeLogger } from "../../../shared/safeLogger.js";
 import { isActiveUserStatus } from "../../../config/userLifecycle.js";
+import { validateUserMovementsQuery } from "../../users/validators/adminUsers.validator.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
@@ -104,6 +105,8 @@ export function createVerifyAuthSessionHandler({
                 ...(req.currentUser ? {
                     primerNombre: req.currentUser.nombreUsuario,
                     apellidoPaterno: req.currentUser.apellidoUsuario,
+                    rutUsuario: req.currentUser.rutUsuario,
+                    estadoUsuario: req.currentUser.estadoUsuario,
                 } : {}),
                 email,
                 rolUsuario,
@@ -253,6 +256,22 @@ export function createGetProfileHandler({ users = userRepository } = {}) {
                 estadoUsuario: user.estadoUsuario,
                 records,
             });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createGetProfileMovementsHandler({ users = userRepository } = {}) {
+    return async function getProfileMovementsHandler(req, res) {
+        const user = req.currentUser;
+        if (!user || typeof req.auth?.payload?.sub !== 'string' || user.idAuth0 !== req.auth.payload.sub) {
+            return res.status(401).json({ message: "Sesión no válida." });
+        }
+        const query = validateUserMovementsQuery(req.query ?? {});
+        if (!query.valid) return res.status(400).json({ message: query.message });
+        try {
+            return res.status(200).json(await users.listMovements(user.idUsuario, query.filters));
         } catch (error) {
             return respondError(error, req, res);
         }

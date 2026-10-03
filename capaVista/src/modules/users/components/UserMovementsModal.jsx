@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import UserButton from './UserButton'
-import { formatProfileDate } from '../../profile/utils/profileFormatters'
-import styles from '../pages/UserManagementPage.module.css'
+import UserMovementsTable from './UserMovementsTable'
+import styles from './UserMovementsModal.module.css'
 
-export default function UserMovementsModal({ user, api, onClose }) {
+export default function UserMovementsModal({ user, api, onClose, title = 'Movimientos de usuario', description }) {
   const dialogRef = useRef(null)
-  const [page, setPage] = useState(1)
-  const [attempt, setAttempt] = useState(0)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState({ page: 1, perPage: 10, search: '' })
+  const [search, setSearch] = useState('')
+  const [outcome, setOutcome] = useState(null)
+  const subject = user.idUsuarioAutenticacionExterna
+  const current = outcome?.query === query && outcome?.subject === subject && outcome?.api === api
+  const result = current ? outcome.data : null
+  const error = current ? outcome.error : ''
+  const loading = !current
+  const total = result?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / query.perPage))
+  const pageNumbers = [...new Set([1, query.page - 1, query.page, query.page + 1, totalPages])]
+    .filter(page => page >= 1 && page <= totalPages).sort((a, b) => a - b)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -20,80 +26,64 @@ export default function UserMovementsModal({ user, api, onClose }) {
     return () => {
       dialog.close()
       document.body.style.overflow = previousOverflow
-      previousFocus?.focus()
+      if (previousFocus?.isConnected) previousFocus.focus()
     }
   }, [])
 
   useEffect(() => {
     let active = true
-    api.getMovements(user.idUsuarioAutenticacionExterna, { page })
-      .then((response) => {
-        if (active) setResult(response)
-      })
-      .catch((failure) => {
-        if (active) setError(failure?.payload?.message || 'No fue posible consultar los movimientos. Intenta nuevamente.')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
+    api.getMovements(subject, query)
+      .then(data => { if (active) setOutcome({ query, subject, api, data }) })
+      .catch(failure => {
+        if (active) setOutcome({ query, subject, api,
+          error: failure?.payload?.message || 'No fue posible consultar los movimientos. Intenta nuevamente.' })
       })
     return () => { active = false }
-  }, [api, user.idUsuarioAutenticacionExterna, page, attempt])
+  }, [api, subject, query])
 
-  function loadPage(nextPage) {
-    setLoading(true)
-    setError('')
-    setPage(nextPage)
-  }
-
-  const totalPages = Math.max(1, Math.ceil((result?.total ?? 0) / (result?.perPage ?? 10)))
-
-  return (
-    <dialog
-      ref={dialogRef}
-      className={styles.movementsModal}
-      aria-labelledby="user-movements-title"
-      onCancel={(event) => { event.preventDefault(); onClose() }}
-    >
-      <header className={styles.modalHeader}>
-        <div>
-          <h2 id="user-movements-title">Movimientos de usuario</h2>
-          <p className={styles.movementsUser}>{user.nombreCompleto}</p>
-        </div>
-        <button type="button" className={styles.modalCloseButton} aria-label="Cerrar movimientos" onClick={onClose} autoFocus>
-          <i className="bi bi-x-lg" aria-hidden="true" />
+  return <dialog ref={dialogRef} className={styles.modal} aria-labelledby="user-movements-title"
+    aria-describedby="user-movements-description" onCancel={event => { event.preventDefault(); onClose() }}>
+    <header className={styles.header}>
+      <span className={styles.headerIcon}><i className="bi bi-clock-history" aria-hidden="true" /></span>
+      <div><h2 id="user-movements-title">{title}</h2>
+        <p id="user-movements-description">{description ?? `Consulta los movimientos de ${user.nombreCompleto}.`}</p></div>
+      <button type="button" className={styles.close} aria-label="Cerrar historial" onClick={onClose} autoFocus>
+        <i className="bi bi-x-lg" aria-hidden="true" />
+      </button>
+    </header>
+    <div className={styles.body}>
+      <form className={styles.filters} onSubmit={event => { event.preventDefault(); setQuery({ ...query, page: 1, search: search.trim() }) }}>
+        <label className={styles.search}><i className="bi bi-search" aria-hidden="true" /><span className="visually-hidden">Buscar por identificador o detalle</span>
+          <input type="search" value={search} maxLength={120} placeholder="Buscar por identificador o detalle…"
+            onChange={event => setSearch(event.target.value)} /></label>
+        <button className={styles.button} type="submit">Buscar</button>
+        <button className={styles.button} type="button" onClick={() => { setSearch(''); setQuery({ ...query, page: 1, search: '' }) }}>
+          <i className="bi bi-arrow-clockwise" aria-hidden="true" /> Limpiar filtros
         </button>
-      </header>
-      <div className={styles.modalBody} aria-busy={loading}>
-        {loading ? <p role="status">Cargando movimientos...</p> : error ? (
-          <div role="alert">
-            <p>{error}</p>
-            <UserButton variant="secondary" onClick={() => { loadPage(page); setAttempt((value) => value + 1) }}>
-              Reintentar
-            </UserButton>
-          </div>
-        ) : result?.records.length === 0 ? (
-          <p role="status">No existen movimientos asociados al usuario.</p>
-        ) : (
-          <ol className={styles.movementsList}>
-            {result?.records.map((record) => (
-              <li key={record.id}>
-                <time dateTime={record.dateTime}>{formatProfileDate(record.dateTime)}</time>
-                <p>{record.detail}</p>
-              </li>
-            ))}
-          </ol>
-        )}
+      </form>
+      <div className={styles.scroll} aria-busy={loading}>
+        {loading ? <p className={styles.state} role="status">Cargando movimientos…</p> : error ? <div className={styles.state} role="alert">
+          <p>{error}</p><button className={styles.button} type="button" onClick={() => setQuery({ ...query })}>Reintentar</button>
+        </div> : !result?.records?.length ? <p className={styles.state} role="status">No existen movimientos para esta consulta.</p>
+          : <UserMovementsTable records={result.records} includeTime />}
       </div>
-      <footer className={styles.modalFooter}>
-        {result && totalPages > 1 && (
-          <nav className={styles.userActions} aria-label="Paginación de movimientos">
-            <UserButton variant="secondary" disabled={loading || page <= 1} onClick={() => loadPage(page - 1)}>Anterior</UserButton>
-            <span>Página {page} de {totalPages}</span>
-            <UserButton variant="secondary" disabled={loading || page >= totalPages} onClick={() => loadPage(page + 1)}>Siguiente</UserButton>
-          </nav>
-        )}
-        <UserButton variant="secondary" onClick={onClose}>Cerrar</UserButton>
-      </footer>
-    </dialog>
-  )
+    </div>
+    <footer className={styles.footer}>
+      <span role="status">{loading ? 'Consultando historial…' : error ? 'Consulta pendiente' : total
+        ? `Mostrando ${(query.page - 1) * query.perPage + 1}–${Math.min(query.page * query.perPage, total)} de ${total} registros`
+        : '0 registros'}</span>
+      <nav className={styles.pagination} aria-label="Paginación de movimientos">
+        <button className={styles.button} type="button" disabled={loading || Boolean(error) || query.page <= 1}
+          onClick={() => setQuery({ ...query, page: query.page - 1 })}>Anterior</button>
+        {pageNumbers.map((page, index) => <span className={styles.pageNumber} key={page}>
+          {index > 0 && page - pageNumbers[index - 1] > 1 && <span aria-hidden="true">…</span>}
+          <button className={`${styles.button} ${page === query.page ? styles.active : ''}`} type="button"
+            aria-label={`Página ${page}`} aria-current={page === query.page ? 'page' : undefined}
+            disabled={loading || Boolean(error)} onClick={() => setQuery({ ...query, page })}>{page}</button>
+        </span>)}
+        <button className={styles.button} type="button" disabled={loading || Boolean(error) || query.page >= totalPages}
+          onClick={() => setQuery({ ...query, page: query.page + 1 })}>Siguiente</button>
+      </nav>
+    </footer>
+  </dialog>
 }

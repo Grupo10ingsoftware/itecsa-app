@@ -12,11 +12,12 @@ if (!executable) throw new Error('Configura ITECSA_BROWSER_BIN con un navegador 
 const profile = await mkdtemp(join(tmpdir(), 'itecsa-privacy-browser-'))
 const screenshots = await mkdtemp(join(tmpdir(), 'itecsa-privacy-screens-'))
 const incidentRun = process.argv[2] === 'incidents'
+const profileRun = process.argv[2] === 'profile'
 const performanceRun = process.argv[2]?.startsWith('forms-performance')
 const baselinePerformance = process.argv[2] === 'forms-performance-baseline'
-const page = performanceRun ? 'formsPerformance.browser.html' : incidentRun ? 'incident.browser.html' : 'privacy.browser.html'
-const resultKey = performanceRun ? 'formsPerformanceTest' : incidentRun ? 'incidentTest' : 'privacyTest'
-const captureKey = incidentRun ? 'incidentCapture' : 'privacyCapture'
+const page = profileRun ? 'profile.browser.html' : performanceRun ? 'formsPerformance.browser.html' : incidentRun ? 'incident.browser.html' : 'privacy.browser.html'
+const resultKey = profileRun ? 'profileTest' : performanceRun ? 'formsPerformanceTest' : incidentRun ? 'incidentTest' : 'privacyTest'
+const captureKey = profileRun ? 'profileCapture' : incidentRun ? 'incidentCapture' : 'privacyCapture'
 const server = await createServer({
   cacheDir: join(profile, 'vite-cache'),
   server: { host: '127.0.0.1', port: 0, hmr: false },
@@ -26,8 +27,8 @@ const server = await createServer({
     name: 'controlled-form-module-latency',
     configureServer(vite) {
       vite.middlewares.use((req, _res, next) => {
-        // Apply the same cold module transfer delay to both pages and both runs.
-        if (/\/(DataRequestsPage|IncidentReportPage)\.jsx(?:\?|$)/.test(req.url)) setTimeout(next, 1500)
+        // Apply the same cold module transfer delay to all measured pages and both runs.
+        if (/\/(DataRequestsPage|IncidentReportPage|ProfilePage)\.jsx(?:\?|$)/.test(req.url)) setTimeout(next, 1500)
         else next()
       })
     },
@@ -63,7 +64,7 @@ try {
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }))
     })
   }
-  for (const width of performanceRun ? [1440] : incidentRun ? [320, 390, 768, 1024, 1280, 1440] : [320, 390, 768, 1440]) {
+  for (const width of performanceRun ? [1440] : (incidentRun || profileRun) ? [320, 390, 768, 1024, 1280, 1440] : [320, 390, 768, 1440]) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' })
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
     await send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 768 }, sessionId)
@@ -116,7 +117,7 @@ try {
       await writeFile(join(screenshots, 'forms-performance.json'), JSON.stringify(result, null, 2))
       console.log(JSON.stringify(result, null, 2))
     }
-    console.log(`${performanceRun ? 'Comparación' : incidentRun ? 'Incidentes' : 'Privacidad'} ${width}px: navegación, validación, envío/error/red, duplicados, tarjetas, responsive y cierre de sesión OK`)
+    console.log(`${profileRun ? 'Perfil: datos, historial propio, búsqueda, paginación, errores, PIN y responsive' : performanceRun ? 'Comparación' : incidentRun ? 'Incidentes' : 'Privacidad'} ${width}px: OK`)
     await send('Target.closeTarget', { targetId })
   }
   console.log(`Capturas de comprobación: ${screenshots}`)

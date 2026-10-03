@@ -20,16 +20,17 @@ window.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname
   const call = { path, startedAt: performance.now(), completedAt: null }
   calls.push(call)
-  const config = path.endsWith('/privacy/documents') || path.endsWith('/incident-reports/config')
+  const config = path.endsWith('/privacy/documents') || path.endsWith('/incident-reports/config') || path.endsWith('/auth/profile')
   if (config && delayMs) await pause(delayMs)
   const body = path.endsWith('/privacy/documents') ? { documents: [], requestsEnabled: true, attachmentsEnabled: false }
     : path.endsWith('/incident-reports/config') ? { reportsEnabled: true, contactEmail: 'backend@example.test' }
-      : { notifications: [], unreadCount: 0 }
+      : path.endsWith('/auth/profile') ? { primerNombre: 'Prueba', apellidoPaterno: 'Sesion', rutUsuario: '11111111-1', estadoUsuario: 'Activo', records: [], pinStatus: 'active' }
+        : { notifications: [], unreadCount: 0 }
   call.completedAt = performance.now()
   return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
-const auth = { user: { email: 'sesion@example.test', primerNombre: 'Prueba', rolUsuario: 'Soporte' }, isAuthenticated: true, isLoading: false, authStatus: 'authenticated', pinStatus: 'pending_acknowledgement', hasPermission: () => true, hasRole: () => true, logout() {} }
-const auth0 = { getAccessTokenSilently: async () => 'test-token' }
+const auth = { user: { sub: 'auth0|prueba', email: 'sesion@example.test', primerNombre: 'Prueba', rutUsuario: '11111111-1', estadoUsuario: 'Activo', rolUsuario: 'Soporte' }, isAuthenticated: true, isLoading: false, authStatus: 'authenticated', pinStatus: 'active', hasPermission: () => true, hasRole: () => true, logout() {} }
+const auth0 = { user: { sub: 'auth0|prueba' }, getAccessTokenSilently: async () => 'test-token' }
 createRoot(document.getElementById('root')).render(<Auth0Context.Provider value={auth0}><AuthContext.Provider value={auth}><MemoryRouter initialEntries={['/documentos']}><AppRouter /></MemoryRouter></AuthContext.Provider></Auth0Context.Provider>)
 
 const assert = (condition, message) => { if (!condition) throw new Error(message) }
@@ -38,7 +39,7 @@ async function waitFor(predicate) {
   throw new Error('La comparación excedió el tiempo de espera')
 }
 const painted = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-const link = label => document.querySelector(`a[aria-label="${label}"]`)
+const link = label => document.querySelector(`a[aria-label="${label}"], a[title="${label}"]`)
 async function documents() {
   delayMs = 0
   link('Documentos').click()
@@ -70,20 +71,42 @@ async function measure(label, field, apiPath, latency) {
     submitBlockedWhenVisible: blockedWhenVisible }
 }
 window.formsPerformanceTest = { status: 'running' }
+async function measureProfile(latency) {
+  await documents()
+  const before = calls.length
+  delayMs = latency
+  const start = performance.now()
+  link('Mi perfil').click()
+  await waitFor(() => document.querySelector('#profile-title'))
+  await painted()
+  const visible = performance.now()
+  assert(document.querySelector('main').textContent.includes('11111111-1'), 'Datos verificados esperan a la actividad')
+  await waitFor(() => calls.slice(before).some(call => call.path.endsWith('/auth/profile') && call.completedAt !== null))
+  await waitFor(() => [...document.querySelectorAll('button')].some(button => button.textContent.includes('Ver historial completo') && !button.disabled))
+  const ready = performance.now()
+  const requests = calls.slice(before).filter(call => call.path.endsWith('/auth/profile'))
+  assert(requests.length === 1, 'Duplicó la consulta de perfil')
+  assert(!calls.some(call => call.path.endsWith('/auth/profile/movements')), 'Precargó el historial completo')
+  if (latency) assert(visible < requests[0].completedAt, 'La vista de perfil espera al backend')
+  return { page: 'Mi perfil', simulatedApiDelayMs: latency, viewVisibleMs: Math.round(visible - start),
+    activityReadyMs: Math.round(ready - start), apiDurationMs: Math.round(requests[0].completedAt - requests[0].startedAt), profileRequests: requests.length }
+}
 async function run() {
   try {
     await waitFor(() => document.querySelectorAll('article').length === 4)
     // Give the mounted sidebar idle time; code preloading must not request private configuration.
     await pause(2500)
     assert(!calls.some(call => call.path.endsWith('/incident-reports/config')), 'Precarga consulta información privada sin visitar la página')
-    const modules = performance.getEntriesByType('resource').filter(entry => /\/(DataRequestsPage|IncidentReportPage)\.jsx(?:\?|$)/.test(entry.name))
-      .map(entry => ({ page: entry.name.includes('DataRequestsPage') ? 'Solicitudes' : 'Reportar incidente', downloadedBeforeClick: true }))
-    if (import.meta.env.FORMS_PRELOAD_ENABLED) assert(modules.length === 2, 'No preparó ambos módulos antes de navegar')
+    assert(!calls.some(call => call.path.endsWith('/auth/profile')), 'Precarga consulta datos del perfil antes de navegar')
+    const modules = performance.getEntriesByType('resource').filter(entry => /\/(DataRequestsPage|IncidentReportPage|ProfilePage)\.jsx(?:\?|$)/.test(entry.name))
+      .map(entry => ({ page: entry.name.includes('DataRequestsPage') ? 'Solicitudes' : entry.name.includes('ProfilePage') ? 'Mi perfil' : 'Reportar incidente', downloadedBeforeClick: true }))
+    if (import.meta.env.FORMS_PRELOAD_ENABLED) assert(modules.length === 3, 'No preparó los tres módulos antes de navegar')
     else assert(modules.length === 0, 'La referencia sin precarga descargó formularios anticipadamente')
     const results = []
     for (const latency of [0, 2000]) {
       results.push(await measure('Solicitudes', '#request-description', '/privacy/documents', latency))
       results.push(await measure('Reportar incidente', '#incident-description', '/incident-reports/config', latency))
+      results.push(await measureProfile(latency))
     }
     window.formsPerformanceTest = { status: 'passed', preloadingEnabled: import.meta.env.FORMS_PRELOAD_ENABLED, simulatedColdModuleDelayMs: 1500, modulesPreparedBeforeClick: modules, results, environment: 'Vite dev local, Chromium headless, sesión/API sintéticas; no mide DB/Auth0 reales' }
   } catch (error) { window.formsPerformanceTest = { status: 'failed', message: error.message } }

@@ -114,6 +114,25 @@ test("devuelve permisos vacios si Auth0 no incluye permissions", async () => {
     assert.deepEqual(res.body.permissions, []);
 });
 
+test("verificacion reutiliza los datos del usuario que ya valido el middleware", async () => {
+    const handler = createVerifyAuthSessionHandler();
+    const res = responseRecorder();
+    await handler({
+        auth: { payload: VALID_PAYLOAD },
+        currentUser: {
+            nombreUsuario: "Prueba",
+            apellidoUsuario: "Sesion",
+            rutUsuario: "11111111-1",
+            estadoUsuario: "Activo",
+        },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.primerNombre, "Prueba");
+    assert.equal(res.body.apellidoPaterno, "Sesion");
+    assert.equal(res.body.rutUsuario, "11111111-1");
+    assert.equal(res.body.estadoUsuario, "Activo");
+});
+
 test("acepta Soporte como rol oficial sin identificarlo como Administrador Produccion", async () => {
     const res = await executeVerify({
         ...VALID_PAYLOAD,

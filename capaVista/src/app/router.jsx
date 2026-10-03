@@ -13,7 +13,7 @@ import ModuleLoadingState from '../shared/components/navigation/ModuleLoadingSta
 import { informationPageLoaders } from './informationPageLoaders'
 
 const KanbanBoardPage = lazy(() => import('../modules/kanban/pages/KanbanBoardPage'))
-const ProfilePage = lazy(() => import('../modules/profile/pages/ProfilePage'))
+const ProfilePage = lazy(informationPageLoaders[APP_ROUTES.PROFILE])
 const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/PaymentConfirmationPage'))
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))

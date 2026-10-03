@@ -15,6 +15,7 @@ Canal P19: `GET /security/incident-reports/config` y `POST /security/incident-re
 | Método y ruta | Capacidad / condición |
 | --- | --- |
 | GET `/auth/verify`, `/auth/profile` | `read:own-profile`, identidad propia |
+| GET `/auth/profile/movements` | `read:own-profile`, historial completo del titular de la sesión; sin identificador de otro usuario |
 | POST `/auth/password-reset/request` | Público; cuotas por IP y correo, persistentes en producción |
 | POST `/auth/pin/reveal`, `/auth/pin/acknowledge` | `manage:own-pin`, usuario propio |
 | POST `/auth/pin-recovery/request`, `/auth/pin-recovery/confirm` | `manage:own-pin`, reglas de recuperación |
@@ -23,7 +24,11 @@ Canal P19: `GET /security/incident-reports/config` y `POST /security/incident-re
 | POST `/admin/users`, `/admin/users/password-setup-email` | Mismo alcance administrativo |
 | PATCH `/admin/users/:userId`, `/admin/users/:userId/status` | Mismo alcance, PIN; restricciones de autoedición/desvinculación |
 
-`userId` en las rutas administrativas es el identificador Auth0 del usuario; codificarlo al construir la URL. El listado acepta `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`. Movimientos acepta paginación. Los filtros no amplían el alcance departamental.
+`userId` en las rutas administrativas es el identificador Auth0 del usuario; codificarlo al construir la URL. El listado acepta `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`. Movimientos acepta `page`, `perPage` (1–50, por defecto 10) y `search` (máximo 120 caracteres; identificador exacto, observación o estado de pago/etapa/subproceso). Devuelve `{records, total, page, perPage}` con orden de fecha/ID descendente. Los filtros no amplían el alcance departamental. El historial propio reutiliza esa consulta y obtiene el ID exclusivamente de `req.currentUser`; ignora identificadores de titular enviados por el cliente.
+
+`/auth/profile` conserva los últimos diez registros. Mi perfil muestra esos datos y abre el historial paginado bajo demanda; usa el mismo modal y tabla de movimientos que Gestión de usuarios, con el endpoint propio. Fechas/horas se presentan en `America/Santiago`. El modelo actual de Usuario no expone fecha de registro: la vista muestra «No informada», sin inferirla del PIN, de los movimientos ni de una actualización en Auth0.
+
+La interfaz del modal usa diez registros por página, sin selector de cantidad. `/auth/verify` incluye nombre, apellido, RUT y estado de la identidad local ya resuelta por el middleware; no agrega una consulta a Usuario. Mi perfil usa esos datos verificados durante la consulta de actividad y los actualiza con `/auth/profile`. El cliente comparte únicamente consultas de perfil simultáneas dentro de una instancia vinculada al sujeto autenticado: no conserva resultados completados y una visita posterior vuelve a consultar al backend. La precarga prepara el código de la página, sin consultar datos personales ni el historial completo.
 
 `POST /auth/password-reset/request` acepta `{ "email": "usuario@example.test" }`. Para solicitudes válidas devuelve siempre HTTP `202`, `status: "accepted"` y `message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado."`, incluso si la cuenta no existe, está deshabilitada o falla la consulta/el proveedor. No confirma existencia ni entrega del correo. La validación del cuerpo conserva `400` y las cuotas conservan `429`, independientemente de la existencia de la cuenta. El detalle y sus límites están en [Auth0](../auth0/README.md).
 

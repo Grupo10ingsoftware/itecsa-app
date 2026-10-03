@@ -22,5 +22,7 @@ export function run() {
   assert.equal(formatProfileDate('2026-01-01T01:00:00Z'), '31-12-2025')
   assert.equal(formatProfileDate(null), 'Fecha no disponible')
   assert.equal(formatProfileDate('invalid'), 'Fecha no disponible')
-  console.log('5 verificaciones frontend: fechas del perfil y zona horaria de Chile OK')
+  assert.equal(formatProfileDate('2026-09-28T17:32:00Z', { includeTime: true }), '28-09-2026 14:32')
+  assert.equal(formatProfileDate('2026-08-05T02:00:00Z', { includeTime: true }), '04-08-2026 22:00')
+  console.log('7 verificaciones frontend: fechas/horas del perfil y zona horaria de Chile OK')
 }

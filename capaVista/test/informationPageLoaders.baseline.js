@@ -2,6 +2,7 @@
 // Selected only by the benchmark Vite alias; never imported by the application build.
 import { APP_ROUTES } from '../src/config/routes'
 export const informationPageLoaders = Object.freeze({
+  [APP_ROUTES.PROFILE]: () => import('../src/modules/profile/pages/ProfilePage'),
   [APP_ROUTES.DOCUMENTS]: () => import('../src/modules/privacy/pages/DocumentsPage'),
   [APP_ROUTES.DATA_REQUESTS]: () => import('../src/modules/privacy/pages/DataRequestsPage'),
   [APP_ROUTES.INCIDENT_REPORT]: () => import('../src/modules/security/pages/IncidentReportPage'),

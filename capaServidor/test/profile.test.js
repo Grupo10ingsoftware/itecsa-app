@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { UserRepository } from '../src/modules/users/repo/users.repo.js';
-import { createGetProfileHandler } from '../src/modules/auth/controller/auth.controller.js';
+import { createGetProfileHandler, createGetProfileMovementsHandler } from '../src/modules/auth/controller/auth.controller.js';
+import { createAuthRouter } from '../src/modules/auth/routes/auth.routes.js';
+import express from 'express';
+import { once } from 'node:events';
+import { payloadFor } from './authorization.fixture.js';
 
 const user = { idUsuario: 7, idAuth0: 'auth0|self', nombreUsuario: 'Francisco', apellidoUsuario: 'Tassara', correoUsuario: 'user@example.cl', rolUsuario: 'Operario Ventas' };
 function response() {
@@ -57,4 +61,53 @@ test('perfil describe el estado histórico de pago, etapas, subprocesos y observ
         'Estado de pago: Confirmado', 'Etapa del pedido: Producción', 'Subproceso: Impresión',
         'Se agregó una observación.', 'Estado de pago: No informado',
     ]);
+});
+
+test('historial propio usa solo la identidad de sesión y valida paginación/búsqueda antes de consultar', async () => {
+    const queries = [];
+    const handler = createGetProfileMovementsHandler({ users: { async listMovements(id, query) {
+        assert.equal(id, 7); queries.push(query); return { records: [], total: 0, ...query };
+    } } });
+    const req = { currentUser: user, auth: { payload: { sub: user.idAuth0 } }, query: { page: '2', perPage: '20', search: ' Confirmado ', userId: 'other', idUsuario: '99' } };
+    const res = response(); await handler(req, res);
+    assert.equal(res.code, 200); assert.deepEqual(queries, [{ page: 2, perPage: 20, search: 'Confirmado' }]);
+    for (const query of [{ page: '0' }, { perPage: '51' }, { search: ['bad'] }, { search: 'x'.repeat(121) }]) {
+        const invalid = response(); await handler({ ...req, query }, invalid); assert.equal(invalid.code, 400);
+    }
+    assert.equal(queries.length, 1);
+    for (const invalid of [{}, { currentUser: user }, { ...req, auth: { payload: { sub: 'other' } } }]) {
+        const denied = response(); await handler(invalid, denied); assert.equal(denied.code, 401);
+    }
+});
+
+test('historial propio requiere JWT y read:own-profile, sin exigir permiso administrativo', async t => {
+    let reads = 0;
+    const app = express();
+    app.use('/auth', createAuthRouter({
+        authenticate(req, res, next) {
+            if (!req.headers['x-auth']) return res.sendStatus(401);
+            req.currentUser = user;
+            req.auth = { payload: payloadFor(user.rolUsuario, { sub: user.idAuth0,
+                permissions: req.headers['x-permit'] ? ['read:own-profile'] : [] }) }; next();
+        }, users: { async listMovements(id) { assert.equal(id, 7); reads++; return { records: [], total: 0, page: 1, perPage: 10 }; } },
+    }));
+    const server = app.listen(0); t.after(() => server.close()); await once(server, 'listening');
+    const url = `http://127.0.0.1:${server.address().port}/auth/profile/movements`;
+    assert.equal((await fetch(url)).status, 401);
+    assert.equal((await fetch(url, { headers: { 'x-auth': '1' } })).status, 403);
+    assert.equal(reads, 0);
+    assert.equal((await fetch(url, { headers: { 'x-auth': '1', 'x-permit': '1' } })).status, 200);
+    assert.equal(reads, 1);
+});
+
+test('búsqueda y conteo del historial mantienen el filtro del titular y el orden estable', async () => {
+    const where = [];
+    const repo = new UserRepository({ prisma: { registros: {
+        async findMany(query) { where.push(query.where); assert.equal(query.take, 20); assert.equal(query.skip, 20); return []; },
+        async count(query) { where.push(query.where); return 45; },
+    } } });
+    const result = await repo.listMovements(7, { page: 2, perPage: 20, search: 'Estado de pago: Confirmado' });
+    assert.equal(result.total, 45); assert.deepEqual(where[0], where[1]); assert.equal(where[0].id_usuario, 7);
+    assert.ok(JSON.stringify(where[0]).includes('Confirmado'));
+    assert.deepEqual(repo.buildRecordsWhere(7, { search: '425' }).OR[0], { ID_REGISTRO: 425 });
 });

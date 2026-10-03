@@ -8,10 +8,11 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs",
+    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs test/profileApi.test.mjs",
     "test:payments:browser": "node test/paymentPin.browser.mjs",
     "test:privacy:browser": "node test/privacy.browser.mjs",
     "test:incidents:browser": "node test/privacy.browser.mjs incidents",
+    "test:profile:browser": "node test/privacy.browser.mjs profile",
     "test:forms:performance": "node test/privacy.browser.mjs forms-performance",
     "test:forms:performance:baseline": "node test/privacy.browser.mjs forms-performance-baseline"
   },

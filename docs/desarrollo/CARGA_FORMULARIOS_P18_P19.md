@@ -1,6 +1,6 @@
 # Carga de Solicitudes e Incidentes: comparación y práctica aplicada
 
-Revisión del 02-10-2026. Ambos formularios comparten layout, estilos, cliente API y obtención del access token. Parecerse visualmente no implica realizar las mismas operaciones antes de quedar disponibles.
+Revisión de formularios del 02-10-2026, ampliada a Mi perfil el 03-10-2026. Ambos formularios comparten layout, estilos, cliente API y obtención del access token. Parecerse visualmente no implica realizar las mismas operaciones antes de quedar disponibles.
 
 ## Diferencias comprobadas en el código
 
@@ -20,12 +20,12 @@ La consulta pública del servidor local respondió HTTP 200 en aproximadamente 2
 
 ## Práctica aplicada
 
-1. **Preparar el código antes de navegar.** Los tres módulos pequeños de Documentos, Solicitudes e Incidentes se importan en un momento libre del navegador después de montar el menú. También se inicia la preparación al acercar el puntero, enfocar el enlace con teclado o tocarlo. Se conserva la carga por módulos: no se importan de forma estática todos los módulos operativos al arrancar.
+1. **Preparar el código antes de navegar.** Los módulos de Documentos, Solicitudes, Incidentes y Mi perfil se importan en un momento libre del navegador después de montar el menú. También se inicia la preparación al acercar el puntero, enfocar el enlace con teclado o tocarlo. Se conserva la carga por módulos: no se importan de forma estática todos los módulos operativos al arrancar.
 2. **Compartir los mismos imports.** `informationPageLoaders.js` define las funciones usadas tanto por `React.lazy` como por la precarga. El sistema de módulos del navegador reutiliza el código descargado. No se mantiene una segunda lista de URLs con nombres de archivos de build.
 3. **Limitar el indicador de carga al contenido.** Antes, el `Suspense` exterior podía sustituir todo el árbol de rutas por un indicador mientras llegaba una página. `AppLayout` ahora tiene un límite alrededor del `Outlet`: menú y cabecera siguen visibles aunque el código de una página aún no llegue.
 4. **Separar renderizado y confirmación del canal.** P19 permite redactar inmediatamente; obtención del correo y disponibilidad permanecen autenticadas. No se autoriza el envío hasta confirmar esa respuesta, tampoco mediante Enter. Errores, reintentos o respuestas tardías conservan/protegen el borrador según las pruebas existentes.
 
-La precarga descarga y evalúa código, sin montar los componentes de las páginas. No obtiene configuración privada, no manda reportes ni almacena correos en caché entre usuarios. Un fallo de precarga no interrumpe la página actual. Solo se preparan estas tres páginas pequeñas; hay un costo de descarga anticipada que se mueve a un momento libre, no una eliminación de trabajo o una promesa de cero latencia con cualquier red.
+La precarga descarga y evalúa código, sin montar los componentes de las páginas. No obtiene configuración privada, no manda reportes ni almacena correos en caché entre usuarios. Un fallo de precarga no interrumpe la página actual. Solo se preparan estas cuatro páginas; hay un costo de descarga anticipada que se mueve a un momento libre, no una eliminación de trabajo o una promesa de cero latencia con cualquier red.
 
 Implementación: [loaders compartidos](../../capaVista/src/app/informationPageLoaders.js), [menú](../../capaVista/src/shared/components/layout/Sidebar.jsx) y [layout](../../capaVista/src/shared/components/layout/AppLayout.jsx).
 
@@ -59,6 +59,22 @@ npm run test:forms:performance --prefix capaVista
 ```
 
 Cada comando imprime las medidas y guarda `forms-performance.json` en el directorio temporal de capturas anunciado al terminar. La referencia sin precarga está en `test/informationPageLoaders.baseline.js` y se selecciona solo en el benchmark; no forma parte del código servido por el build normal.
+
+## Mi perfil: ampliación del 03-10-2026
+
+Mi perfil ahora comparte la misma precarga de código. Al navegar hace una consulta a `/auth/profile`, que devuelve metadatos y diez movimientos recientes. Los datos personales que `/auth/verify` ya verificó se muestran durante esa consulta: RUT y estado provienen del usuario local que el middleware ya resolvió, sin una lectura adicional. Los movimientos se mantienen en carga hasta su respuesta; no se reutilizan movimientos de una cuenta anterior ni se precarga el historial completo.
+
+La API frontend comparte únicamente la promesa de lecturas simultáneas dentro de la misma sesión. Esto evita duplicar el GET cuando StrictMode monta el efecto dos veces en desarrollo. Tanto un éxito como un error liberan la promesa: reintentar o volver a entrar hace una lectura nueva, y cambiar el sujeto Auth0 crea otra instancia. JWT, usuario activo, permisos y cuotas del backend permanecen vigentes.
+
+El mismo benchmark ahora incluye Mi perfil y verifica que la preparación de código no consulte `/auth/profile` ni `/auth/profile/movements`. Resultados de una corrida a 1440 px:
+
+| Condición | Vista de Mi perfil visible | Actividad disponible |
+| --- | --- | --- |
+| Transferencia inicial del módulo retrasada 1500 ms, precarga desactivada | 1617 ms | 1617 ms |
+| Misma transferencia, código preparado antes del clic | 37 ms | 37 ms |
+| Código preparado, respuesta API retrasada 2000 ms | 36 ms, datos personales verificados visibles | 2024 ms |
+
+Se observó un GET de perfil por visita y ninguna consulta al historial completo. [Evidencia JSON](evidencias/carga-perfil-2026-10-03.json). La referencia desactiva la precarga, conservando las demás mejoras; no representa todo el código anterior. Estos tiempos incluyen navegación, render y dos frames en Vite/Chromium con sesión sintética, y no garantizan tiempos de producción. Para investigar una espera real, separar descarga JavaScript, obtención del token y respuesta de `/auth/profile` en Network/Performance como se explica abajo.
 
 ## Cómo localizar la demora de la sesión real
 

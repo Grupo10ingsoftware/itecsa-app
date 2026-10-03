@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMetricsApi } from '../hooks/useMetricsApi'
 import ProductionPerformance from '../components/ProductionPerformance'
 import styles from './MetricsPage.module.css'
+import { escapeReportHtml, spreadsheetCell } from '../utils/reportFormatting'
 
 const PRODUCT_COLORS = ['#f97316', '#2563eb', '#248f55']
 const INITIAL_PERIOD = { mode: 'month', month: getCurrentMonth(), from: '', to: '' }
@@ -93,14 +94,14 @@ export default function MetricsPage() {
     if (format === 'pdf') {
       const reportWindow = window.open('', '_blank')
       if (!reportWindow) return
-      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${queryPeriod.from} a ${queryPeriod.to}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${value}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
+      reportWindow.document.write(`<html><head><title>Reporte de cumplimiento</title></head><body><h1>Reporte de cumplimiento por vendedor</h1><p>Periodo: ${escapeReportHtml(queryPeriod.from)} a ${escapeReportHtml(queryPeriod.to)}</p><table border="1"><thead><tr>${headers.map((header) => `<th>${escapeReportHtml(header)}</th>`).join('')}</tr></thead><tbody>${values.map((row) => `<tr>${row.map((value) => `<td>${escapeReportHtml(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`)
       reportWindow.document.close()
       reportWindow.print()
       return
     }
 
     const separator = format === 'excel' ? '\t' : ','
-    const content = [headers, ...values].map((row) => row.map((value) => format === 'csv' ? `"${String(value).replaceAll('"', '""')}"` : value).join(separator)).join('\n')
+    const content = [headers, ...values].map((row) => row.map((value) => format === 'csv' ? `"${spreadsheetCell(value).replaceAll('"', '""')}"` : spreadsheetCell(value)).join(separator)).join('\n')
     const blob = new Blob([`\ufeff${content}`], { type: format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)

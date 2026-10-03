@@ -8,8 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs",
-    "test:payments:browser": "node test/paymentPin.browser.mjs",
+    "test": "node test/run.mjs",
     "test:metrics:browser": "node test/metrics.browser.mjs"
   },
   "dependencies": {

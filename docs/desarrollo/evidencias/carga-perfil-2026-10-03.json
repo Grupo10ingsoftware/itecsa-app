@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-03",
+  "method": "Router y layout reales, Vite dev y Chromium headless a 1440 px. Sesión/API sintéticas. Comparación de la implementación actual con precarga desactivada/activada; no mide Auth0 ni MySQL reales.",
+  "baseline": {
+    "status": "passed",
+    "preloadingEnabled": false,
+    "simulatedColdModuleDelayMs": 1500,
+    "modulesPreparedBeforeClick": [],
+    "results": [
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 1648,
+        "submitEnabledMs": 1648,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 1582,
+        "submitEnabledMs": 1582,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Mi perfil",
+        "simulatedApiDelayMs": 0,
+        "viewVisibleMs": 1617,
+        "activityReadyMs": 1617,
+        "apiDurationMs": 0,
+        "profileRequests": 1
+      },
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 2033,
+        "submitEnabledMs": 2033,
+        "apiDurationMs": 2006,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 33,
+        "submitEnabledMs": 2017,
+        "apiDurationMs": 2001,
+        "submitBlockedWhenVisible": true
+      },
+      {
+        "page": "Mi perfil",
+        "simulatedApiDelayMs": 2000,
+        "viewVisibleMs": 34,
+        "activityReadyMs": 2017,
+        "apiDurationMs": 2003,
+        "profileRequests": 1
+      }
+    ],
+    "environment": "Vite dev local, Chromium headless, sesión/API sintéticas; no mide DB/Auth0 reales"
+  },
+  "preloaded": {
+    "status": "passed",
+    "preloadingEnabled": true,
+    "simulatedColdModuleDelayMs": 1500,
+    "modulesPreparedBeforeClick": [
+      {
+        "page": "Mi perfil",
+        "downloadedBeforeClick": true
+      },
+      {
+        "page": "Solicitudes",
+        "downloadedBeforeClick": true
+      },
+      {
+        "page": "Reportar incidente",
+        "downloadedBeforeClick": true
+      }
+    ],
+    "results": [
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 50,
+        "submitEnabledMs": 50,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 34,
+        "submitEnabledMs": 34,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Mi perfil",
+        "simulatedApiDelayMs": 0,
+        "viewVisibleMs": 37,
+        "activityReadyMs": 37,
+        "apiDurationMs": 0,
+        "profileRequests": 1
+      },
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 2233,
+        "submitEnabledMs": 2233,
+        "apiDurationMs": 2000,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 34,
+        "submitEnabledMs": 2017,
+        "apiDurationMs": 2001,
+        "submitBlockedWhenVisible": true
+      },
+      {
+        "page": "Mi perfil",
+        "simulatedApiDelayMs": 2000,
+        "viewVisibleMs": 36,
+        "activityReadyMs": 2024,
+        "apiDurationMs": 2005,
+        "profileRequests": 1
+      }
+    ],
+    "environment": "Vite dev local, Chromium headless, sesión/API sintéticas; no mide DB/Auth0 reales"
+  }
+}

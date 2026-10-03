@@ -3,6 +3,9 @@ import { ADMINISTRATIVE_ROLES, ROLES } from './roles'
 
 export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
+  DOCUMENTS: '/documentos',
+  DATA_REQUESTS: '/solicitudes',
+  INCIDENT_REPORT: '/reportar-incidente',
   PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',
@@ -19,24 +22,30 @@ export const APP_ROUTES = Object.freeze({
   METRICS: '/metricas',
 })
 
+export const HEADER_NAVIGATION_ROUTES = Object.freeze([
+  {
+    label: 'Bandeja de mensajes',
+    path: APP_ROUTES.MESSAGES,
+    permission: PERMISSIONS.READ_MESSAGES,
+    icon: 'bi-envelope-paper',
+    iconOnly: true,
+    requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
+  },
+  {
+    label: 'Mi perfil',
+    path: APP_ROUTES.PROFILE,
+    permission: PERMISSIONS.READ_PROFILE,
+    icon: 'bi-person-circle',
+    requirementIds: Object.freeze(['UR 1.7']),
+  },
+])
+
 export const MAIN_NAVIGATION_ROUTES = Object.freeze([
   {
     label: 'Principal/Kanban',
     path: APP_ROUTES.KANBAN,
     permission: PERMISSIONS.VIEW_KANBAN_MODULE,
     requirementIds: Object.freeze(['UR 5.1', 'UR 5.2']),
-  },
-  {
-    label: 'Mi perfil',
-    path: APP_ROUTES.PROFILE,
-    permission: PERMISSIONS.READ_PROFILE,
-    requirementIds: Object.freeze(['UR 1.7']),
-  },
-  {
-    label: 'Bandeja de mensajes',
-    path: APP_ROUTES.MESSAGES,
-    permission: PERMISSIONS.READ_MESSAGES,
-    requirementIds: Object.freeze(['RF54', 'RF55', 'RF59', 'RF60']),
   },
   {
     label: 'Confirmar pago',

@@ -1,5 +1,9 @@
 # Runbook de incidentes y restauración
 
+El [canal técnico P19](../modulos/INCIDENT_REPORTS.md) permite a usuarios activos reportar sospechas desde `/reportar-incidente`, con remisión al contacto que Itecsa configure y evidencia mínima. No reemplaza este procedimiento, el registro operativo externo ni confirma incidentes. Su configuración, migración y recepción efectiva deben comprobarse antes de habilitarlo. No se notifican autoridades/titulares desde el formulario.
+
+Itecsa debe definir y distribuir un canal alternativo para caída de la aplicación, fallo de autenticación o personas sin acceso. No se debe depender exclusivamente del formulario autenticado.
+
 ## Incidente de datos o credenciales
 
 1. Contener: deshabilitar la credencial o integración afectada, preservar evidencias y limitar accesos sin borrar registros.

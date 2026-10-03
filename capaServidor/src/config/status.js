@@ -11,12 +11,6 @@ export const ORDER_STATUS = Object.freeze({
     LISTO_ENTREGA: "Listo para entrega",
 });
 
-export const PAYMENT_STATUS_VALUES = Object.freeze(
-    Object.values(PAYMENT_STATUS),
-);
-
-export const ORDER_STATUS_VALUES = Object.freeze(Object.values(ORDER_STATUS));
-
 export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
     "Pedido en espera de confirmacion de pago";
 

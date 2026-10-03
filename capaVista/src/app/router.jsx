@@ -9,9 +9,11 @@ import LoginPage from '../modules/auth/pages/LoginPage'
 import AppLayout from '../shared/components/layout/AppLayout'
 import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
 import RoleGuard from '../shared/components/navigation/RoleGuard'
+import ModuleLoadingState from '../shared/components/navigation/ModuleLoadingState'
+import { informationPageLoaders } from './informationPageLoaders'
 
 const KanbanBoardPage = lazy(() => import('../modules/kanban/pages/KanbanBoardPage'))
-const ProfilePage = lazy(() => import('../modules/profile/pages/ProfilePage'))
+const ProfilePage = lazy(informationPageLoaders[APP_ROUTES.PROFILE])
 const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/PaymentConfirmationPage'))
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
@@ -22,15 +24,9 @@ const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/
 const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
 const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
 const MetricsPage = lazy(() => import('../modules/metrics/pages/MetricsPage'))
-
-function RouteLoadingState() {
-  return (
-    <div className="d-flex align-items-center justify-content-center py-5" role="status">
-      <span className="spinner-border text-warning" aria-hidden="true" />
-      <span className="visually-hidden">Cargando modulo...</span>
-    </div>
-  )
-}
+const DocumentsPage = lazy(informationPageLoaders[APP_ROUTES.DOCUMENTS])
+const DataRequestsPage = lazy(informationPageLoaders[APP_ROUTES.DATA_REQUESTS])
+const IncidentReportPage = lazy(informationPageLoaders[APP_ROUTES.INCIDENT_REPORT])
 
 function UnknownRouteRedirect() {
   const { isAuthenticated } = useAuth()
@@ -41,7 +37,7 @@ function UnknownRouteRedirect() {
 
 export default function AppRouter() {
   return (
-    <Suspense fallback={<RouteLoadingState />}>
+    <Suspense fallback={<ModuleLoadingState />}>
       <Routes>
         <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={APP_ROUTES.PASSWORD_RESET} element={<PasswordResetPage />} />
@@ -49,6 +45,9 @@ export default function AppRouter() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<AppLayout />}>
+            <Route path="documentos" element={<DocumentsPage />} />
+            <Route path="solicitudes" element={<DataRequestsPage />} />
+            <Route path="reportar-incidente" element={<IncidentReportPage />} />
             <Route index element={<Navigate to={APP_ROUTES.KANBAN} replace />} />
             <Route
               path="kanban"

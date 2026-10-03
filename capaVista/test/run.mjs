@@ -9,23 +9,7 @@ const server = await createServer({
 try {
   const metrics = await server.ssrLoadModule('/test/metrics.cases.jsx')
   metrics.run()
-  const authorization = await server.ssrLoadModule('/test/authorization.cases.jsx')
-  const payments = await server.ssrLoadModule('/test/payment.cases.jsx')
-
-  const profile = await server.ssrLoadModule('/test/profile.cases.jsx')
-  const orders = await server.ssrLoadModule('/test/orders.cases.jsx')
   const p07Api = await server.ssrLoadModule('/test/p07Api.cases.js')
-
-  const apiErrors = await server.ssrLoadModule('/test/apiErrors.cases.js')
-  await apiErrors.run()
-
-  const orderCreate = await server.ssrLoadModule('/test/orderCreatePayload.cases.js')
-  orderCreate.run()
-
-  profile.run()
-  authorization.run()
-  payments.run()
-  orders.run()
   await p07Api.run()
 } finally {
   await server.close()

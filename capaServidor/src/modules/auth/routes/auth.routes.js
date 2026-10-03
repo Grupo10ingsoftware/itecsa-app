@@ -5,6 +5,7 @@ import pinService from "../service/pin.service.js";
 import { createPasswordResetRateLimit, createPinRecoveryRateLimit } from "../../../middlewares/rateLimit.js";
 import {
     createGetProfileHandler,
+    createGetProfileMovementsHandler,
     createDebugResetPinHandler,
     createAcknowledgePinHandler,
     createConfirmPinRecoveryHandler,
@@ -32,6 +33,7 @@ export function createAuthRouter({
     const router = Router();
 
     router.get("/profile", authenticate, requireCapability(P.READ_PROFILE), createGetProfileHandler({ users }));
+    router.get("/profile/movements", authenticate, requireCapability(P.READ_PROFILE), createGetProfileMovementsHandler({ users }));
 
     router.get(
         "/verify",

@@ -4,16 +4,19 @@ Prefijo local: `http://localhost:3000/api`. Fuente: [montaje del servidor](../..
 
 ## Controles comunes
 
-Salvo recuperación pública de contraseña y health, las rutas requieren bearer JWT válido, usuario interno activo y un rol reconocido único. Una capacidad debe figurar en el token y estar concedida al rol por el catálogo. Los endpoints aplican además pertenencia, departamento, estado y PIN donde corresponde.
+Salvo recuperación pública de contraseña, enlaces de documentos de privacidad y health, las rutas requieren bearer JWT válido, usuario interno activo y un rol reconocido único. Una capacidad debe figurar en el token y estar concedida al rol por el catálogo. Los endpoints aplican además pertenencia, departamento, estado y PIN donde corresponde.
 
 Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexistente: 404; conflictos de negocio/concurrencia: 409. Los helpers de Orders y Payments conservan 4xx y devuelven 5xx genéricos con referencia. No asumir un formato uniforme para todas las rutas de la API.
 
 ## Autenticación y administración
 
+Canal P19: `GET /security/incident-reports/config` y `POST /security/incident-reports`, ambos con sesión activa. Config devuelve disponibilidad y correo propio; POST recibe descripción, observación UTC, módulo, referencia opcional y UUID, nunca identidad/destinatario del cliente. Ver [contrato y límites](../modulos/INCIDENT_REPORTS.md). No proporciona gestión ni listado de incidentes.
+
 | Método y ruta | Capacidad / condición |
 | --- | --- |
 | GET `/auth/verify`, `/auth/profile` | `read:own-profile`, identidad propia |
-| POST `/auth/password-reset/request` | Público, límite en memoria por IP+correo |
+| GET `/auth/profile/movements` | `read:own-profile`, historial completo del titular de la sesión; sin identificador de otro usuario |
+| POST `/auth/password-reset/request` | Público; cuotas por IP y correo, persistentes en producción |
 | POST `/auth/pin/reveal`, `/auth/pin/acknowledge` | `manage:own-pin`, usuario propio |
 | POST `/auth/pin-recovery/request`, `/auth/pin-recovery/confirm` | `manage:own-pin`, reglas de recuperación |
 | POST `/auth/pin/debug-reset` | `manage:own-pin`, Soporte, `NODE_ENV=development` |
@@ -21,9 +24,13 @@ Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexi
 | POST `/admin/users`, `/admin/users/password-setup-email` | Mismo alcance administrativo |
 | PATCH `/admin/users/:userId`, `/admin/users/:userId/status` | Mismo alcance, PIN; restricciones de autoedición/desvinculación |
 
-`userId` en las rutas administrativas es el identificador Auth0 del usuario; codificarlo al construir la URL. El listado acepta `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`. Movimientos acepta paginación. Los filtros no amplían el alcance departamental.
+`userId` en las rutas administrativas es el identificador Auth0 del usuario; codificarlo al construir la URL. El listado acepta `page`, `perPage`, `search`, `estadoUsuario` y `rolUsuario`. Movimientos acepta `page`, `perPage` (1–50, por defecto 10) y `search` (máximo 120 caracteres; identificador exacto, observación o estado de pago/etapa/subproceso). Devuelve `{records, total, page, perPage}` con orden de fecha/ID descendente. Los filtros no amplían el alcance departamental. El historial propio reutiliza esa consulta y obtiene el ID exclusivamente de `req.currentUser`; ignora identificadores de titular enviados por el cliente.
 
-`POST /auth/password-reset/request` acepta `{ "email": "usuario@example.test" }` y devuelve `status` (`not_registered`, `disabled` o `sent`) y `message`. El detalle del flujo y sus límites está en [Auth0](../auth0/README.md).
+`/auth/profile` conserva los últimos diez registros. Mi perfil muestra esos datos y abre el historial paginado bajo demanda; usa el mismo modal y tabla de movimientos que Gestión de usuarios, con el endpoint propio. Fechas/horas se presentan en `America/Santiago`. El modelo actual de Usuario no expone fecha de registro: la vista muestra «No informada», sin inferirla del PIN, de los movimientos ni de una actualización en Auth0.
+
+La interfaz del modal usa diez registros por página, sin selector de cantidad. `/auth/verify` incluye nombre, apellido, RUT y estado de la identidad local ya resuelta por el middleware; no agrega una consulta a Usuario. Mi perfil usa esos datos verificados durante la consulta de actividad y los actualiza con `/auth/profile`. El cliente comparte únicamente consultas de perfil simultáneas dentro de una instancia vinculada al sujeto autenticado: no conserva resultados completados y una visita posterior vuelve a consultar al backend. La precarga prepara el código de la página, sin consultar datos personales ni el historial completo.
+
+`POST /auth/password-reset/request` acepta `{ "email": "usuario@example.test" }`. Para solicitudes válidas devuelve siempre HTTP `202`, `status: "accepted"` y `message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado."`, incluso si la cuenta no existe, está deshabilitada o falla la consulta/el proveedor. No confirma existencia ni entrega del correo. La validación del cuerpo conserva `400` y las cuotas conservan `429`, independientemente de la existencia de la cuenta. El detalle y sus límites están en [Auth0](../auth0/README.md).
 
 `POST /admin/users` acepta JSON, sin `FormData` ni archivos:
 
@@ -102,9 +109,17 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |
 | GET `/metrics/summary` | `view:metrics` |
-| GET `/health/live` | Público; liveness mínimo sin consulta a la base |
-| GET `/internal/ready` | Fuera del prefijo `/api`; deshabilitado por defecto, requiere `X-Health-Token` y consulta la base cuando se habilita. Debe exponerse sólo en red interna. |
+| GET `/health/live` | Público; comprueba el proceso sin consultar la base |
+
+`GET /internal/ready` queda fuera del prefijo `/api`: está deshabilitado por defecto, requiere `X-Health-Token` y debe restringirse a la red interna. `/api/health/db` fue retirado.
 
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 
 `/demo-orders/*` es una herramienta separada para Soporte con almacenamiento demo y controles de capacidad/PIN; no representa aprobaciones del flujo real. El módulo `/documents/*` ya no se monta. Los endpoints antiguos de firmas o evidencia PDF no forman parte de la integración vigente.
+
+## Documentos y solicitudes sobre datos
+
+- `GET /privacy/documents`: enlaces/versiones configurados y disponibilidad técnica del canal; sin datos de expedientes ni credenciales.
+- `POST /privacy/requests`: autenticación actual, `{requestId, type, subject, description, email}`; identidad y contacto efectivos del backend. Remisión al correo configurado, validación y evidencia mínima. No gestiona derechos ni admite archivos.
+
+Contrato, idempotencia y configuración: [módulo de privacidad](../modulos/PRIVACY.md).

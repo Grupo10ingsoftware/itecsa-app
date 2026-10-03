@@ -10,7 +10,7 @@ Los secretos se entregan exclusivamente mediante el gestor de secretos aprobado.
 4. Revocar la credencial anterior y confirmar que no aparece en logs, artefactos ni historial nuevo.
 5. Registrar responsable, sistema, versión, fecha de activación y próxima revisión, nunca el valor.
 
-El rediseño y versionado de claves PIN está delegado y se describe en [INFORME_CAMBIOS_PIN_DELEGADOS.md](INFORME_CAMBIOS_PIN_DELEGADOS.md). Esta entrega conserva el contrato existente `PIN_SECRET`; su valor expuesto debe rotarse fuera del repositorio con coordinación previa sobre los PIN pendientes.
+El estado implementado de hashing y derivación de claves está en [H06](H06-pin-lifecycle.md); las transacciones y entrega integradas se describen en [la integración](../INTEGRACION_FIX_21709.md). Se conserva `PIN_SECRET`: la rotación y el keyring requieren coordinación sobre pendientes y fingerprints. La [propuesta delegada](INFORME_CAMBIOS_PIN_DELEGADOS.md) conserva contexto histórico, no el diseño vigente.
 
 ## Rotaciones obligatorias de esta entrega
 

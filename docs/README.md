@@ -19,6 +19,7 @@ Punto de entrada para el equipo técnico. Las guías describen el código del re
 | Validar Payments en una copia MySQL | [Pruebas aisladas de Payments](operacion/PAYMENTS_SOLICITUD_BD.md) |
 | Preparar continuidad y restauración | [P25: respaldos y restauración](operacion/BACKUP_RESTORE.md) |
 | Revisar proveedores y tratamiento de datos | [P26: inventario de proveedores](security/data-processors.md) |
+| Consultar el cierre del inventario P05 | [Código huérfano y contratos reemplazados](security/P05_CIERRE_CODIGO_HUERFANO.md) |
 | Revisar lo que falta y sus condiciones de cierre | [Pendientes](PENDIENTES.md) |
 | Consultar evidencia de fases anteriores | [Archivo histórico](archivo/README.md) |
 

@@ -212,7 +212,7 @@ export default function KanbanOffCanvas({
       <aside aria-labelledby="kanban-detail-title" className={styles.offcanvasPanel} role="dialog">
         <header className={styles.offcanvasHeader}>
           <div>
-            <span className={styles.offcanvasKicker}>{order.nv}</span>
+            <span className={styles.offcanvasKicker}>{order.salesNoteNumber}</span>
             <h2 id="kanban-detail-title">Detalle del pedido</h2>
           </div>
           <button aria-label="Cerrar detalle" className={styles.offcanvasCloseButton} onClick={onClose} type="button">

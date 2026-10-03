@@ -5,7 +5,14 @@ import { createPaymentsApi } from '../src/modules/payments/api/paymentsApi.js'
 
 export async function run() {
   const urls = []
-  const client = { get: async (url) => { urls.push(url); return { items: [], pageInfo: { hasMore: false } } } }
+  const summary = { id: 7, salesNoteNumber: 'NV-7', clientName: 'Cliente', dueDate: null, generalStepId: 1, orderStatus: 'Listo', labels: [], items: [] }
+  const client = { get: async (url) => {
+    urls.push(url)
+    if (url.endsWith('/kanban-detail')) return { ...summary, createdAt: null, paymentStatusId: 1, paymentStatus: 'Pendiente', comments: [], commentGroups: {} }
+    if (url.endsWith('/calendar-detail')) return { ...summary, seller: null }
+    if (url.startsWith('/orders/payments')) return { items: [], pageInfo: { hasMore: false, nextCursor: null }, counts: {}, paymentStatuses: [] }
+    return { items: [], pageInfo: { hasMore: false, nextCursor: null } }
+  } }
   const kanban = createKanbanApi(client)
   const calendar = createOrdersCalendarApi(client)
   const payment = createPaymentsApi(client)

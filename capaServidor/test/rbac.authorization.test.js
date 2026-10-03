@@ -6,7 +6,6 @@ import { BUSINESS_PERMISSIONS, ROLE_PERMISSIONS, ROLES, ROLES_CLAIM, manageableR
 import { createOrderRouter } from '../src/modules/orders/routes/order.routes.js';
 import { createAdminUsersRouter } from '../src/modules/users/routes/adminUsers.routes.js';
 import { createProductionCapacityRouter } from '../src/modules/productionCapacity/routes/productionCapacity.routes.js';
-import { createProductionCalendarRouter } from '../src/modules/productionCalendar/routes/productionCalendar.routes.js';
 import { createProductionLoadRouter } from '../src/modules/productionLoad/routes/productionLoad.routes.js';
 import { createOrderHistoryRouter } from '../src/modules/history/routes/orderHistory.routes.js';
 import { createMetricsRouter } from '../src/modules/metrics/routes/metrics.routes.js';
@@ -48,14 +47,13 @@ const endpoints = [
  ['GET','/metrics/production-performance',[AP,G,S]],
  ['GET','/capacity',all],['PATCH','/capacity',[AP,S]],
  ['GET','/load/today',all],['PATCH','/load/today',[AP,S]],
- ['POST','/calendar/operational-load',[AP,AV,OV,S]],
  ['GET','/history/orders',all],['GET','/history/orders/1',all],['GET','/history/orders/1/events',all],
  ['GET','/messages',all],['GET','/messages/notifications',all],['GET','/messages/1',all],
  ['PATCH','/messages/notifications',all],['PATCH','/messages/notifications/1',all],['PATCH','/messages/1/read',all],
 ];
 test('matriz HTTP por rol, permisos y PIN: llamadas directas', async t => {
  const app=express();app.use(express.json());
- for (const [path, factory] of [['/metrics',createMetricsRouter],['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/load',createProductionLoadRouter],['/calendar',createProductionCalendarRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
+ for (const [path, factory] of [['/metrics',createMetricsRouter],['/orders',createOrderRouter],['/capacity',createProductionCapacityRouter],['/load',createProductionLoadRouter],['/history',createOrderHistoryRouter],['/messages',createMessageRouter]]) app.use(path,factory({authenticate,controller,validatePin}));
  const base=await listen(app,t);
  for(const [method,path,allowed,pin] of endpoints) {
   for(const role of all) await t.test(`${role} ${method} ${path} => ${allowed.includes(role)?204:403}`, async()=> {

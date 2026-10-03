@@ -1,4 +1,4 @@
-import { PRODUCTION_STATUSES } from '../mocks/productionCalendar.mock'
+import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import styles from './CalendarFilters.module.css'
 
 export default function CalendarFilters({ filters, onChange, onClear }) {

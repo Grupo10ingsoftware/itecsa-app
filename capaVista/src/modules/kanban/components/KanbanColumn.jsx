@@ -54,7 +54,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
           const orderItems = ordersResult.value?.items ?? []
           const normalizedOrders = Array.isArray(orderItems)
             ? orderItems
-                .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+                .filter((order) => order?.salesNoteNumber)
                 .map(normalizeOrder)
                 .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
             : []
@@ -99,7 +99,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         productType: filters?.productType || '',
       })
       const nextOrders = (result.items ?? [])
-        .filter((order) => order?.numero_nota_venta ?? order?.nv ?? order?.codigo_nota_venta)
+        .filter((order) => order?.salesNoteNumber)
         .map(normalizeOrder)
         .filter((order) => !['terminado', 'cancelado'].includes(normalizeText(order.orderStatus)))
       setOrders((current) => [...current, ...nextOrders.filter((next) => !current.some((item) => item.id === next.id))])
@@ -125,7 +125,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     const { source, target } = event.operation
     if (!source || !target) return
 
-    const order = orders.find((currentOrder) => currentOrder.nv === source.id)
+    const order = orders.find((currentOrder) => currentOrder.salesNoteNumber === source.id)
     const targetColumn = columns.find((column) => column.title === target.id)
 
     if (!order || !targetColumn || Number(order.generalStepId) === Number(targetColumn.generalStepId)) return
@@ -216,13 +216,13 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     setSelectedOrder((current) => current?.id === orderId ? { ...current, ...optimisticPatch } : current)
     try {
       const result = await kanbanApi.setLabel(orderId, config[0], config[1])
-      const updatedLabels = result.etiquetas ?? []
+      const updatedLabels = result.labels ?? []
       const patchOrder = (current) => ({
         ...current,
-        etiquetas: updatedLabels,
-        isUrgent: hasOrderLabel({ etiquetas: updatedLabels }, ['Urgencia']),
-        hasContractPriority: hasOrderLabel({ etiquetas: updatedLabels }, ['Prioridad por contrato']),
-        isProducing: hasOrderLabel({ etiquetas: updatedLabels }, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
+        labels: updatedLabels,
+        isUrgent: hasOrderLabel({ labels: updatedLabels }, ['Urgencia']),
+        hasContractPriority: hasOrderLabel({ labels: updatedLabels }, ['Prioridad por contrato']),
+        isProducing: hasOrderLabel({ labels: updatedLabels }, ['PRODUCIÉNDOSE', 'PRODUCIENDOSE']),
       })
       setOrders((current) => current.map((item) => item.id === orderId ? patchOrder(item) : item))
       setSelectedOrder((current) => current?.id === orderId ? patchOrder(current) : current)

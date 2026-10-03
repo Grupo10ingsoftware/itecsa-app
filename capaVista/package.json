@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/orderCreateFlow.test.mjs test/usersAccessibility.test.mjs",
+    "test": "node test/run.mjs && node --test test/popupNotifications.test.mjs test/adminUsersMovements.test.mjs test/metricsPageLogic.test.mjs test/orderCreateFlow.test.mjs test/orderDto.test.mjs test/orderStagePatch.test.mjs test/paymentOrderDto.test.mjs test/usersAccessibility.test.mjs",
     "test:payments:browser": "node test/paymentPin.browser.mjs",
     "test:metrics:browser": "node test/metrics.browser.mjs"
   },

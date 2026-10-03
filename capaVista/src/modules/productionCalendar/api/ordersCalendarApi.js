@@ -1,3 +1,5 @@
+import { parseCalendarOrderDetailDTO, parseCalendarPageDTO } from '../../orders/utils/orderDto'
+
 export function createOrdersCalendarApi(apiClient) {
   return {
     getOrders: ({ from, to, cursor, limit = 100 } = {}) => {
@@ -5,14 +7,14 @@ export function createOrdersCalendarApi(apiClient) {
       if (from) query.set('from', from)
       if (to) query.set('to', to)
       if (cursor) query.set('cursor', cursor)
-      return apiClient.get(`/orders/calendar-summary?${query.toString()}`)
+      return apiClient.get(`/orders/calendar-summary?${query.toString()}`).then(parseCalendarPageDTO)
     },
-    getOrderDetail: (orderId) => apiClient.get(`/orders/${orderId}/calendar-detail`),
+    getOrderDetail: (orderId) => apiClient.get(`/orders/${orderId}/calendar-detail`).then(parseCalendarOrderDetailDTO),
     updateDeliveryDate: (orderId, dueDate, payload = {}) =>
       apiClient.patch(`/orders/${orderId}/delivery-date`, {
         dueDate,
         pin: payload.pin,
-      }),
+      }).then(parseCalendarOrderDetailDTO),
   }
 }
 

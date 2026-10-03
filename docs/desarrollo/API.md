@@ -10,6 +10,8 @@ Ausencia/token inválido: 401; capacidad o contexto denegado: 403; recurso inexi
 
 ## Autenticación y administración
 
+Canal P19: `GET /security/incident-reports/config` y `POST /security/incident-reports`, ambos con sesión activa. Config devuelve disponibilidad y correo propio; POST recibe descripción, observación UTC, módulo, referencia opcional y UUID, nunca identidad/destinatario del cliente. Ver [contrato y límites](../modulos/INCIDENT_REPORTS.md). No proporciona gestión ni listado de incidentes.
+
 | Método y ruta | Capacidad / condición |
 | --- | --- |
 | GET `/auth/verify`, `/auth/profile` | `read:own-profile`, identidad propia |

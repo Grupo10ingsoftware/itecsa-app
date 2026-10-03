@@ -3,6 +3,7 @@ export default function TextInput({
   name,
   value,
   onChange,
+  onClick,
   type = 'text',
   placeholder,
   disabled = false,
@@ -33,6 +34,7 @@ export default function TextInput({
         className={`form-control ${error ? 'is-invalid' : ''}`}
         value={value}
         onChange={handleChange}
+        onClick={onClick}
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}

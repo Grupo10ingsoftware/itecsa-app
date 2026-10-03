@@ -5,6 +5,7 @@ export const APP_ROUTES = Object.freeze({
   LOGIN: '/login',
   DOCUMENTS: '/documentos',
   DATA_REQUESTS: '/solicitudes',
+  INCIDENT_REPORT: '/reportar-incidente',
   PASSWORD_RESET: '/recuperar-contrasena',
   ACCESS_DENIED: '/access-denied',
   KANBAN: '/kanban',

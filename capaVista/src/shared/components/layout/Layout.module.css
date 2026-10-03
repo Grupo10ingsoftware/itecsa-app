@@ -188,6 +188,8 @@
   color: var(--layout-orange);
 }
 
+.incidentAction { font-size: 0.9rem; margin-bottom: 0.75rem; width: 100%; }
+
 @media (min-width: 992px) {
   .sidebarCollapsed .sidebarActions { grid-template-columns: 1fr; }
   .sidebarCollapsed .sidebarAction { gap: 0; padding-inline: 0; width: 3.1rem; }

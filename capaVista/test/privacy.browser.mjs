@@ -4,13 +4,35 @@ import { existsSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 
 const executable = [process.env.ITECSA_BROWSER_BIN, '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'].filter(Boolean).find(existsSync)
 if (!executable) throw new Error('Configura ITECSA_BROWSER_BIN con un navegador Chromium para esta prueba.')
 const profile = await mkdtemp(join(tmpdir(), 'itecsa-privacy-browser-'))
 const screenshots = await mkdtemp(join(tmpdir(), 'itecsa-privacy-screens-'))
-const server = await createServer({ server: { host: '127.0.0.1', port: 0, hmr: false }, define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://privacy-test.invalid/api') } })
+const incidentRun = process.argv[2] === 'incidents'
+const performanceRun = process.argv[2]?.startsWith('forms-performance')
+const baselinePerformance = process.argv[2] === 'forms-performance-baseline'
+const page = performanceRun ? 'formsPerformance.browser.html' : incidentRun ? 'incident.browser.html' : 'privacy.browser.html'
+const resultKey = performanceRun ? 'formsPerformanceTest' : incidentRun ? 'incidentTest' : 'privacyTest'
+const captureKey = incidentRun ? 'incidentCapture' : 'privacyCapture'
+const server = await createServer({
+  cacheDir: join(profile, 'vite-cache'),
+  server: { host: '127.0.0.1', port: 0, hmr: false },
+  define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://privacy-test.invalid/api'), 'import.meta.env.FORMS_PRELOAD_ENABLED': JSON.stringify(!baselinePerformance) },
+  ...(baselinePerformance ? { resolve: { alias: [{ find: /^(?:.*\/)?informationPageLoaders(?:\.js)?$/, replacement: fileURLToPath(new URL('./informationPageLoaders.baseline.js', import.meta.url)) }] } } : {}),
+  plugins: performanceRun ? [{
+    name: 'controlled-form-module-latency',
+    configureServer(vite) {
+      vite.middlewares.use((req, _res, next) => {
+        // Apply the same cold module transfer delay to both pages and both runs.
+        if (/\/(DataRequestsPage|IncidentReportPage)\.jsx(?:\?|$)/.test(req.url)) setTimeout(next, 1500)
+        else next()
+      })
+    },
+  }] : [],
+})
 let browser, socket
 try {
   await server.listen()
@@ -41,18 +63,44 @@ try {
       socket.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }))
     })
   }
-  for (const width of [320, 390, 768, 1440]) {
+  for (const width of performanceRun ? [1440] : incidentRun ? [320, 390, 768, 1024, 1280, 1440] : [320, 390, 768, 1440]) {
     const { targetId } = await send('Target.createTarget', { url: 'about:blank' })
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
     await send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 768 }, sessionId)
     await send('Page.enable', {}, sessionId)
-    await send('Page.navigate', { url: `http://127.0.0.1:${server.httpServer.address().port}/test/privacy.browser.html` }, sessionId)
+    await send('Page.navigate', { url: `http://127.0.0.1:${server.httpServer.address().port}/test/${page}` }, sessionId)
     let result
     const captured = new Set()
-    for (let poll = 0; poll < 100; poll++) {
-      const value = await send('Runtime.evaluate', { expression: '({ test: window.privacyTest, capture: window.privacyCapture })', returnByValue: true }, sessionId)
+    for (let poll = 0; poll < (performanceRun ? 180 : 100); poll++) {
+      const value = await send('Runtime.evaluate', { expression: `({ test: window.${resultKey}, capture: window.${captureKey} })`, returnByValue: true }, sessionId)
       result = value.result?.value?.test
       const capture = value.result?.value?.capture
+      if (incidentRun) {
+        const picker = await send('Runtime.evaluate', { expression: 'window.incidentPickerCheck?.status', returnByValue: true }, sessionId)
+        if (picker.result?.value === 'ready') {
+          for (const position of ['left', 'center', 'right']) {
+            const geometry = await send('Runtime.evaluate', { expression: `(() => {
+              const input = document.querySelector('#incident-observed'); input.scrollIntoView({ block: 'center', behavior: 'instant' });
+              const rect = input.getBoundingClientRect(); return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+            })()`, returnByValue: true }, sessionId)
+            const rect = geometry.result.value
+            const offset = position === 'left' ? 5 : position === 'right' ? rect.width * 0.8 : rect.width / 2
+            const point = { x: rect.x + offset, y: rect.y + rect.height / 2, button: 'left', clickCount: 1 }
+            await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point }, sessionId)
+            await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point }, sessionId)
+            await new Promise(resolve => setTimeout(resolve, 100))
+            if (position === 'center' && width === 1440) {
+              const pickerScreenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }, sessionId)
+              await writeFile(join(screenshots, `${width}-calendario.png`), Buffer.from(pickerScreenshot.data, 'base64'))
+            }
+            await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, sessionId)
+            await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, sessionId)
+            await send('Runtime.evaluate', { expression: `document.querySelector('#incident-observed').blur()` }, sessionId)
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+          await send('Runtime.evaluate', { expression: `window.incidentPickerCheck.status = 'done'; window.scrollTo({ top: 0, behavior: 'instant' })` }, sessionId)
+        }
+      }
       if (capture && !captured.has(capture)) {
         const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }, sessionId)
         await writeFile(join(screenshots, `${width}-${capture}.png`), Buffer.from(screenshot.data, 'base64'))
@@ -64,7 +112,11 @@ try {
     const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }, sessionId)
     await writeFile(join(screenshots, `${width}.png`), Buffer.from(screenshot.data, 'base64'))
     assert.equal(result?.status, 'passed', `${width}px: ${JSON.stringify(result)}`)
-    console.log(`Privacidad ${width}px: navegación, validación, envío/error/red, duplicados, tarjetas, responsive y cierre de sesión OK`)
+    if (performanceRun) {
+      await writeFile(join(screenshots, 'forms-performance.json'), JSON.stringify(result, null, 2))
+      console.log(JSON.stringify(result, null, 2))
+    }
+    console.log(`${performanceRun ? 'Comparación' : incidentRun ? 'Incidentes' : 'Privacidad'} ${width}px: navegación, validación, envío/error/red, duplicados, tarjetas, responsive y cierre de sesión OK`)
     await send('Target.closeTarget', { targetId })
   }
   console.log(`Capturas de comprobación: ${screenshots}`)

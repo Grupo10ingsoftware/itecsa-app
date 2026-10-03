@@ -342,6 +342,8 @@ model SecurityAuditEvent {
   request_id              String?  @db.Char(36)
   outcome                 String   @db.VarChar(30)
   reason_code             String?  @db.VarChar(80)
+  event_key               String?  @unique(map: "security_audit_event_key") @db.VarChar(100)
+  metadata                Json?
   Usuario                 Usuario? @relation(fields: [actor_user_id], references: [id_usuario], onDelete: SetNull, onUpdate: NoAction, map: "fk_security_audit_user")
 
   @@index([occurred_at], map: "idx_security_audit_occurred")

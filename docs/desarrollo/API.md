@@ -102,7 +102,8 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |
 | GET `/metrics/summary` | `view:metrics` |
-| GET `/health/db` | Público; comprueba la conexión a la base |
+| GET `/health/live` | Público; liveness mínimo sin consulta a la base |
+| GET `/internal/ready` | Fuera del prefijo `/api`; deshabilitado por defecto, requiere `X-Health-Token` y consulta la base cuando se habilita. Debe exponerse sólo en red interna. |
 
 Los POST directos de clientes, productos, estados, detalles y registros de pago se deniegan con 403 tras autenticación; usar las operaciones de negocio. El alias raíz `/order-details` está montado, pero no aporta `orderId`: no sustituye las rutas anidadas documentadas.
 

@@ -102,6 +102,8 @@ Respuesta esperada:
 
 La disponibilidad de base se consulta únicamente en `/internal/ready`, deshabilitado por defecto y protegido por `INTERNAL_HEALTH_TOKEN`; debe exponerse sólo en la red interna.
 
+La API envía `X-Content-Type-Options: nosniff` y `Referrer-Policy: no-referrer` en todas sus respuestas y desactiva `X-Powered-By`. El límite JSON predeterminado es `100kb`; `JSON_BODY_LIMIT` permite configurarlo. Las decisiones de CSP, HSTS, proxy y cuotas anónimas están en [P13: configuración HTTP](../docs/security/P13_HTTP.md).
+
 ## Prisma ORM
 
 Prisma es la infraestructura de acceso a datos del backend. La CLI está aislada en `tooling/prisma`; debe instalarse antes de ejecutar los scripts Prisma del servidor.

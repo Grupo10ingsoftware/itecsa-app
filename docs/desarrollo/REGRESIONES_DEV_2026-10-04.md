@@ -23,3 +23,11 @@ No se atribuye toda la serie a un solo commit: algunos comportamientos existían
 `npm test --prefix capaServidor`: 852 pruebas aprobadas, 2 omitidas. `npm test --prefix capaVista`, lint, build y `prisma:validate`: aprobados. Se conservan los 86 archivos de pruebas anteriores y se añadió uno para Kanban.
 
 No se hicieron escrituras en la base compartida ni cambios de tenant. Docker no dispone de daemon y no hay un servidor MySQL local instalado en este equipo, por lo que no se ejecutaron pruebas físicas de registro de pedido, pago, usuarios o PATCH de fecha en una base desechable. Esas pruebas siguen pendientes de una instancia aislada. La fuente fixture permite desarrollo y tests; no reemplaza la integración futura con Manager ni corrige las limitaciones del esquema MySQL actual.
+
+## Integración posterior con `dev`
+
+Se fusionó `origin/dev` (`322e12e`) conservando su contrato canónico de DTO para etiquetas, comentarios, detalles, cantidades y estados, junto con las correcciones de esta rama. Los cinco conflictos de contenido se resolvieron sin retirar los tests de ninguna rama. La reevaluación de una Nota de Venta ya no copia su fecha tentativa de origen a la programación productiva: conserva la fecha del pedido y las fechas de los detalles existentes, y asigna a las líneas nuevas la fecha productiva del pedido o `NULL` si aún no se programó. La fecha de origen permanece visible en la vista previa comercial.
+
+Tras la integración, la búsqueda de la nota sintética `24226` mostró cliente, producto, etiquetas disponibles y campo de observaciones. Kanban abrió el detalle `24072` con «Prioridad por contrato» y `24057` sin etiquetas; el indicador apareció mientras cargaba. En Calendario, el pedido sin programar `24886` mostró «Por definir» para pedido y producto, y los tres pendientes siguieron visibles al pasar de octubre a noviembre. Estas comprobaciones fueron solo de lectura.
+
+`npm test --prefix capaServidor`: 855 aprobadas, 2 omitidas; incluye dos casos nuevos de reevaluación con fechas de origen distintas. `npm test --prefix capaVista`, lint, build y `prisma:validate`: aprobados. Las escrituras físicas en MySQL desechable continúan pendientes; ninguna prueba de navegador registró pedidos ni modificó fechas en la base compartida.

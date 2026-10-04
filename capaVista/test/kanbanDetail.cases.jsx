@@ -9,6 +9,7 @@ const detail = {
   generalStepId: 3, orderStatus: 'En producción', createdAt: null,
   paymentStatusId: 2, paymentStatus: 'Confirmado',
   labels: [{ id: 3, name: 'Urgencia' }],
+  seller: null,
   items: [{ id: '1', product: 'Tarjeta', quantity: 400, dueDate: '2026-09-11', manufacturingDetails: null, lanyardProgress: null, subProcesses: [] }],
   comments: [], commentGroups: { all: [], source: [], subprocesses: [], system: [] },
 }

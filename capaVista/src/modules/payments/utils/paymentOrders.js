@@ -94,10 +94,10 @@ export function getPaymentStatusIdByName(statuses, statusName) {
   const status = Array.isArray(statuses)
     ? statuses.find(
         (item) =>
-          hasText(item?.nombre_estado_pago) &&
-          item.nombre_estado_pago.trim() === normalizedStatusName,
+          hasText(item?.name) &&
+          item.name.trim() === normalizedStatusName,
       )
     : null
 
-  return status?.id_estado_pago ?? null
+  return status?.id ?? null
 }

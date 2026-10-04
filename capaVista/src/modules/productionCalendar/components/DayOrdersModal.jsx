@@ -62,7 +62,7 @@ export function DayOrdersModal({ dateKey, draggedItemId, items, onClose, onDragE
                 </div>
                 <div>
                   <dt>Cantidad</dt>
-                  <dd>{item.quantity}</dd>
+                  <dd>{item.quantity ?? 'No definida'}</dd>
                 </div>
                 <div>
                   <dt>Estado</dt>

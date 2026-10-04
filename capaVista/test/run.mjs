@@ -16,6 +16,7 @@ try {
   const orders = await server.ssrLoadModule('/test/orders.cases.jsx')
   const kanbanDetail = await server.ssrLoadModule('/test/kanbanDetail.cases.jsx')
   const p07Api = await server.ssrLoadModule('/test/p07Api.cases.js')
+  const kanbanOrderSummary = await server.ssrLoadModule('/test/kanbanOrderSummary.cases.jsx')
 
   const apiErrors = await server.ssrLoadModule('/test/apiErrors.cases.js')
   await apiErrors.run()
@@ -28,6 +29,7 @@ try {
   payments.run()
   orders.run()
   kanbanDetail.run()
+  kanbanOrderSummary.run()
   await p07Api.run()
 } finally {
   await server.close()

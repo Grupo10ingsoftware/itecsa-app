@@ -15,9 +15,37 @@ const row = (id) => ({
   Cliente: { nombre_cliente: 'Cliente', razon_social: 'Empresa', rut_cliente: '12345678-9' },
   Estado_Pedido: { orden_kanban: 2, nombre_etapa: 'En producción' },
   Estado_Pago: { nombre_estado_pago: 'Confirmado' },
-  Detalle_pedido: [{ id_detalle_pedido: 7, cantidad: 3, fecha_estimada_termino: null, Tipo_Producto: { nombre_producto: 'Lanyard' } }],
-  Pedido_Etiqueta: [{ etiqueta: { nombre_etiqueta: 'Urgencia' } }],
-  observacion_interna: 'No debe viajar', Usuario: { correo_usuario: 'interno@example.test' },
+  Detalle_pedido: [{
+    id_detalle_pedido: 7, cantidad: 3, fecha_estimada_termino: null,
+    Tipo_Producto: { nombre_producto: 'Lanyard' },
+    Comentario_Produccion: [{
+      id_comentario_produccion: 31,
+      comentario: 'Comentario de produccion',
+      fecha_comentario: new Date('2026-09-04'),
+    }],
+  }],
+  Pedido_Etiqueta: [{ etiqueta: { id_etiqueta: 4, nombre_etiqueta: 'Urgencia' } }],
+  usuario_manager_origen: 'Ventas',
+  observacion_origen: 'Comentario manager',
+  observacion_interna: 'Comentario de creacion',
+  Registros: [
+    {
+      ID_REGISTRO: 22,
+      FECHA_HORA: new Date('2026-09-03'),
+      observacion: 'Comentario de subproceso',
+      registro_subprocesos: {
+        id_detalle_pedido: 7,
+        Estado_Subprocesos: { nombre_estado: 'Impresion' },
+      },
+    },
+    {
+      ID_REGISTRO: 23,
+      FECHA_HORA: new Date('2026-09-03'),
+      observacion: 'Dato ajeno al detalle productivo',
+      registro_subprocesos: null,
+    },
+  ],
+  Usuario: { correo_usuario: 'interno@example.test' },
 });
 
 test('Kanban pagina despues de excluir etapas cerradas y nunca envia datos internos', async () => {
@@ -34,7 +62,7 @@ test('Kanban pagina despues de excluir etapas cerradas y nunca envia datos inter
     'id_estado_pago', 'id_etapa_general', 'id_pedido', 'nombre_cliente',
     'nombre_etapa_general', 'numero_nota_venta',
   ].sort());
-  assert.doesNotMatch(JSON.stringify(result), /12345678-9|No debe viajar|interno@example/);
+  assert.doesNotMatch(JSON.stringify(result), /12345678-9|Comentario manager|Comentario de creacion|interno@example/);
 });
 
 test('Calendario aplica fecha y cursor antes de paginar y limita sus campos', async () => {
@@ -49,9 +77,10 @@ test('Calendario aplica fecha y cursor antes de paginar y limita sus campos', as
   assert.equal(received.where.fecha_estimada_termino.lt.toISOString(), '2026-11-01T00:00:00.000Z');
   assert.equal(pageResult(rows, 1).pageInfo.hasMore, true);
   assert.deepEqual(Object.keys(rows[0]).sort(), [
-    'detalles', 'etiquetas', 'fecha_estimada_termino', 'id_etapa_general', 'id_pedido', 'nombre_cliente', 'numero_nota_venta',
+    'detalles', 'etiquetas', 'fecha_estimada_termino', 'id_etapa_general', 'id_pedido', 'nombre_cliente',
+    'nombre_etapa_general', 'numero_nota_venta',
   ].sort());
-  assert.doesNotMatch(JSON.stringify(rows), /12345678-9|No debe viajar|interno@example/);
+  assert.doesNotMatch(JSON.stringify(rows), /12345678-9|Comentario manager|Comentario de creacion|interno@example/);
 });
 
 test('Calendario pagina pedidos sin fecha fuera del rango mensual', async () => {
@@ -86,8 +115,18 @@ test('detalle de Kanban admite esquema con y sin columnas de snapshot', async ()
     };
     const result = await getOrderViewOperation({ client }, 1, 'kanban');
     assert.equal(Object.hasOwn(select.Detalle_pedido.select, 'linea_origen'), supported);
+    assert.equal(select.observacion_origen, true);
+    assert.equal(select.observacion_interna, true);
+    assert.deepEqual(select.Registros.where, { registro_subprocesos: { isNot: null } });
+    assert.equal(select.Registros.select.Usuario, undefined);
     assert.equal(result.detalles[0].id_detalle_pedido, 7);
-    assert.doesNotMatch(JSON.stringify(result), /12345678-9|No debe viajar|interno@example/);
+    assert.equal(result.seller, 'Ventas');
+    assert.deepEqual(result.commentGroups.source.map(({ text }) => text), ['Comentario manager']);
+    assert.deepEqual(result.commentGroups.system.map(({ text }) => text), ['Comentario de creacion']);
+    assert.deepEqual(result.commentGroups.subprocesses.map(({ text }) => text), [
+      'Comentario de subproceso', 'Comentario de produccion',
+    ]);
+    assert.doesNotMatch(JSON.stringify(result), /12345678-9|interno@example|observacion_interna|observacion_origen|Dato ajeno/);
   }
 });
 
@@ -139,17 +178,25 @@ test('respuestas HTTP no entregan datos internos y Calendario exige su propia ca
   const base = `http://127.0.0.1:${server.address().port}/api/orders`;
   const kanban = await fetch(`${base}/kanban-summary`, { headers: { 'x-test-role': ROLES.GERENCIA } });
   assert.equal(kanban.status, 200);
-  assert.doesNotMatch(JSON.stringify(await kanban.json()), /12345678-9|No debe viajar|interno@example/);
-  for (const path of ['', '/kanban', '/2', '/2/kanban-detail']) {
+  assert.doesNotMatch(JSON.stringify(await kanban.json()), /12345678-9|Comentario manager|Comentario de creacion|interno@example/);
+  for (const path of ['', '/kanban']) {
     const alias = await fetch(`${base}${path}`, { headers: { 'x-test-role': ROLES.GERENCIA } });
     assert.equal(alias.status, 200, path);
-    assert.doesNotMatch(JSON.stringify(await alias.json()), /12345678-9|No debe viajar|interno@example/, path);
+    assert.doesNotMatch(JSON.stringify(await alias.json()), /12345678-9|Comentario manager|Comentario de creacion|interno@example/, path);
+  }
+  for (const path of ['/2', '/2/kanban-detail']) {
+    const detail = await fetch(`${base}${path}`, { headers: { 'x-test-role': ROLES.GERENCIA } });
+    assert.equal(detail.status, 200, path);
+    const body = await detail.json();
+    assert.equal(body.commentGroups.source[0].text, 'Comentario manager', path);
+    assert.equal(body.commentGroups.system[0].text, 'Comentario de creacion', path);
+    assert.doesNotMatch(JSON.stringify(body), /12345678-9|interno@example|observacion_interna|observacion_origen/, path);
   }
   const deniedCalendar = await fetch(`${base}/calendar-summary`, { headers: { 'x-test-role': ROLES.GERENCIA } });
   assert.equal(deniedCalendar.status, 403);
   const calendar = await fetch(`${base}/calendar-summary`, { headers: { 'x-test-role': ROLES.VENTAS } });
   assert.equal(calendar.status, 200);
-  assert.doesNotMatch(JSON.stringify(await calendar.json()), /12345678-9|No debe viajar|interno@example/);
+  assert.doesNotMatch(JSON.stringify(await calendar.json()), /12345678-9|Comentario manager|Comentario de creacion|interno@example/);
   const deniedPayment = await fetch(`${base}/payments`, { headers: { 'x-test-role': ROLES.VENTAS } });
   assert.equal(deniedPayment.status, 403);
 });

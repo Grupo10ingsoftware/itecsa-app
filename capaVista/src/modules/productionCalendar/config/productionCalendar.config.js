@@ -1,6 +1,19 @@
 export const PRODUCTION_STATUSES = Object.freeze({
-  PAYMENT_CONFIRMATION: 'Confirmacion de pago',
-  READY_PRODUCTION: 'Listo para produccion',
-  IN_PRODUCTION: 'En produccion',
-  READY_DELIVERY: 'Listo para entrega',
+  PAYMENT_CONFIRMATION: 'Confirmación de Pago',
+  READY_PRODUCTION: 'Listo para Producción',
+  IN_PRODUCTION: 'En producción',
+  READY_DELIVERY: 'Listo para Entrega',
+  COMPLETED: 'Terminado',
+  CANCELLED: 'Cancelado',
+  IN_REVIEW: 'En revisión',
+})
+
+export const PRODUCTION_STATUS_BY_STEP = Object.freeze({
+  0: PRODUCTION_STATUSES.PAYMENT_CONFIRMATION,
+  1: PRODUCTION_STATUSES.READY_PRODUCTION,
+  2: PRODUCTION_STATUSES.IN_PRODUCTION,
+  3: PRODUCTION_STATUSES.READY_DELIVERY,
+  4: PRODUCTION_STATUSES.COMPLETED,
+  5: PRODUCTION_STATUSES.CANCELLED,
+  6: PRODUCTION_STATUSES.IN_REVIEW,
 })

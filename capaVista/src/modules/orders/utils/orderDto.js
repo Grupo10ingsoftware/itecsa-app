@@ -16,6 +16,10 @@ const ITEM_FIELDS = ['id', 'product', 'quantity', 'dueDate', 'manufacturingDetai
 function parseSummary(order, name) {
   requireFields(order, SUMMARY_FIELDS, name)
   if (!Array.isArray(order.labels) || !Array.isArray(order.items)) throw new TypeError(`${name} requiere labels e items como arreglos.`)
+  order.labels.forEach((label, index) => {
+    requireFields(label, ['id', 'name'], `${name}.labels[${index}]`)
+    if (label.name !== null && typeof label.name !== 'string') throw new TypeError(`${name}.labels[${index}].name debe ser texto o null.`)
+  })
   order.items.forEach((item, index) => requireFields(item, ITEM_FIELDS, `${name}.items[${index}]`))
   return order
 }

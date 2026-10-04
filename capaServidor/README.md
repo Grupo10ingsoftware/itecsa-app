@@ -41,8 +41,10 @@ errores se gestionan mediante [la política HTTP](../docs/security/H08-http-erro
 `GET /api/health/live` comprueba el proceso sin consultar la base. `/internal/ready`
 es opcional, requiere `X-Health-Token` y debe exponerse solo en red interna.
 
-Las rutas demo y la fuente fixture necesitan `ENABLE_DEMO_ROUTES=true` y quedan
-prohibidas en producción. Manager todavía no está integrado. La recuperación de
+Las rutas demo necesitan `ENABLE_DEMO_ROUTES=true`. La fuente sintética de Notas de Venta
+usa `SALES_NOTE_SOURCE=fixture` de forma independiente, solo en desarrollo y tests;
+sin fuente configurada responde 503. Ambas opciones se rechazan en producción.
+Manager todavía no está integrado. La recuperación de
 PIN usa un proveedor explícito; sin configuración queda indisponible. Consultar
 [entrega de PIN](../docs/security/H07-pin-recovery-delivery.md).
 

@@ -158,7 +158,7 @@ test("rechaza fecha imposible, otra NV, items malformados y longitudes de fuente
 });
 
 test("todas las notas actuales respetan el nuevo contrato de fuente", async () => {
-  const source = new SalesNoteSourceService();
+  const source = new SalesNoteSourceService({ fixtureEnabled: () => true });
   const records = await source.getSalesNotes();
   assert.ok(records.length > 0);
   for (const record of records) {

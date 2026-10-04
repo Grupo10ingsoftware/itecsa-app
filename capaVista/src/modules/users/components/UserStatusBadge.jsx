@@ -5,6 +5,7 @@ const STATUS_CLASS = Object.freeze({
   Vinculado: styles.statusLinked,
   Activo: styles.statusLinked,
   Desvinculado: styles.statusUnlinked,
+  Pendiente: styles.statusPending,
   'Pendiente rol': styles.statusPending,
 })
 

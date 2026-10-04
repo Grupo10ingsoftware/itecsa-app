@@ -147,6 +147,13 @@ class OrderService {
     const status = String(query.status ?? "").trim().slice(0, 100) || null;
     const search = String(query.search ?? "").trim().slice(0, 100) || null;
     const productType = String(query.productType ?? "").trim().slice(0, 100) || null;
+    const unscheduled = query.unscheduled === 'true';
+    if (query.unscheduled !== undefined && query.unscheduled !== 'true' && query.unscheduled !== 'false') {
+      throw new AppError(400, 'unscheduled solo admite true o false');
+    }
+    if (unscheduled && (view !== 'calendar' || query.from || query.to)) {
+      throw new AppError(400, 'La consulta de pendientes no admite rango de fechas ni otra vista');
+    }
     const parseDate = (value, end = false) => {
       if (!value) return null;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
@@ -163,6 +170,7 @@ class OrderService {
       status,
       search,
       productType,
+      unscheduled,
       from: parseDate(query.from),
       to: parseDate(query.to, true),
     });

@@ -8,7 +8,7 @@ import userRepository from "../../users/repo/users.repo.js";
 import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
 import pinService from "../service/pin.service.js";
 import { safeLogger } from "../../../shared/safeLogger.js";
-import { isActiveUserStatus } from "../../../config/userLifecycle.js";
+import { isActiveUserStatus, USER_STATUS } from "../../../config/userLifecycle.js";
 import { validateUserMovementsQuery } from "../../users/validators/adminUsers.validator.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
@@ -205,7 +205,7 @@ export function createPasswordResetRequestHandler({
 
             if (!user) {
                 outcome = "not_registered";
-            } else if (!isActiveUserStatus(user.estadoUsuario)) {
+            } else if (!isActiveUserStatus(user.estadoUsuario) && user.estadoUsuario !== USER_STATUS.PENDING_FIRST_LOGIN) {
                 outcome = "disabled";
             } else {
                 outcome = "delivery_error";

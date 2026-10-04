@@ -54,6 +54,16 @@ test('Calendario aplica fecha y cursor antes de paginar y limita sus campos', as
   assert.doesNotMatch(JSON.stringify(rows), /12345678-9|No debe viajar|interno@example/);
 });
 
+test('Calendario pagina pedidos sin fecha fuera del rango mensual', async () => {
+  let received;
+  const repository = { client: { pedidos: { async findMany(query) { received = query; return [row(9), row(8)]; } } } };
+  const rows = await listOrderViewsOperation(repository, { view: 'calendar', limit: 1, cursor: { id: 10 }, unscheduled: true });
+  assert.equal(received.where.fecha_estimada_termino, null);
+  assert.equal(received.where.id_pedido.lt, 10);
+  assert.equal(received.take, 2);
+  assert.equal(pageResult(rows, 1).pageInfo.hasMore, true);
+});
+
 test('detalle de Calendario tampoco lee snapshots o datos de pago', async () => {
   let received;
   const repository = { client: { pedidos: { async findUnique(query) { received = query; return { ...row(1), usuario_manager_origen: 'Ventas' }; } } } };

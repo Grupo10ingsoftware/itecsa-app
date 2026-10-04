@@ -469,6 +469,21 @@ test("desvincula usuario actualizando Auth0 y tabla interna", async () => {
     assert.deepEqual(calls, ["local:unlink", "pin:invalidate", "auth0:block"]);
 });
 
+test('permite desvincular una cuenta pendiente de primer acceso', async () => {
+    let previousStatus;
+    const res = await executeStatusHandler({
+        updateStatus: async () => {},
+        pins: { async invalidateByAuth0Id() {} },
+        users: createUsersRepositoryMock({
+            existingUserByAuth0Id: { ...DEFAULT_INTERNAL_USER, estadoUsuario: 'Pendiente' },
+            onUpdateStatusByAuth0Id: (_userId, _nextStatus, currentStatus) => { previousStatus = currentStatus; },
+        }),
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(previousStatus, 'Pendiente');
+    assert.equal(res.body.estadoUsuario, 'Desvinculado');
+});
+
 test("un fallo de Auth0 al desvincular conserva la denegacion local y el PIN invalidado", async () => {
     const calls = [];
     const res = await executeStatusHandler({
@@ -680,7 +695,7 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
     });
 });
 
-test("persiste el usuario interno activo antes de solicitar correo", async () => {
+test("persiste el usuario interno pendiente antes de solicitar correo", async () => {
     let persistedPayload;
     let emailRequested = false;
 
@@ -708,7 +723,7 @@ test("persiste el usuario interno activo antes de solicitar correo", async () =>
         nombreUsuario: VALID_BODY.nombreUsuario,
         apellidoUsuario: VALID_BODY.apellidoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
-        estadoUsuario: "Activo",
+        estadoUsuario: "Pendiente",
     });
 });
 

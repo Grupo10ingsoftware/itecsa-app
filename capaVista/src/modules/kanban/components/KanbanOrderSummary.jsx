@@ -7,9 +7,9 @@ export function KanbanOrderSummary({ order, orderItems }) {
       <h3>Resumen</h3>
       {Array.isArray(order.labels) && order.labels.length > 0 && (
         <div className={styles.visibleLabels}>
-          {order.labels.map((label) => (
-            <span key={label.id_etiqueta ?? label.nombre_etiqueta ?? label}>
-              {label.nombre_etiqueta ?? label}
+          {order.labels.map((label, index) => (
+            <span key={label.id ?? label.name ?? index}>
+              {label.name ?? 'Sin nombre'}
             </span>
           ))}
         </div>

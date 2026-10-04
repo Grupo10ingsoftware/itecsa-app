@@ -20,6 +20,8 @@ La puerta versionada en [`.github/workflows/security-ci.yml`](../../.github/work
 
 Backend usa `node --test`; frontend combina verificaciones SSR con tests Node. Lint revisa el código frontend, build comprueba su compilación y Prisma valida el schema. Ninguna comprobación aislada acredita por sí sola el comportamiento desplegado, la configuración de Auth0 o los envíos reales de correo.
 
+Se conservan los 86 archivos de prueba preexistentes y se añadió la cobertura del detalle de Kanban con y sin etiquetas. Las suites actuales también cubren la fuente fixture opt-in, la consulta paginada de pedidos sin fecha y la promoción de usuarios en el primer acceso. Las pruebas con dobles verifican contratos y lógica; las escrituras de pedidos, pagos o usuarios sobre MySQL se ejecutan únicamente en una base desechable y aislada.
+
 Desde `capaVista`, `npm run test:payments:browser` y `npm run test:metrics:browser` ejecutan comprobaciones de navegador. Requieren un navegador compatible disponible en el entorno; no equivalen a QA en una sesión Auth0 desplegada.
 
 `npm run orders:preflight --prefix capaServidor` y `node capaServidor/scripts/paymentsReadBaseline.mjs` son inspecciones que requieren una conexión autorizada y no escriben datos. Sus resultados reflejan ese entorno y momento; no son una prueba de migración o carga representativa.

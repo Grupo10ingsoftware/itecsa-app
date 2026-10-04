@@ -1,5 +1,6 @@
 const VALID_NODE_ENVIRONMENTS = new Set(["development", "test", "production"]);
 const VALID_DEMO_FLAGS = new Set(["true", "false"]);
+const VALID_SALES_NOTE_SOURCES = new Set(["fixture", "unavailable"]);
 
 export function resolveEnvironmentConfig(env = process.env) {
     const nodeEnv = env.NODE_ENV?.trim();
@@ -24,10 +25,23 @@ export function resolveEnvironmentConfig(env = process.env) {
         throw new Error("ENABLE_DEMO_ROUTES no puede habilitarse en production.");
     }
 
+    const salesNoteSource = env.SALES_NOTE_SOURCE ?? "unavailable";
+    if (!VALID_SALES_NOTE_SOURCES.has(salesNoteSource)) {
+        throw new Error("SALES_NOTE_SOURCE debe ser fixture o unavailable.");
+    }
+    if (nodeEnv === "production" && salesNoteSource === "fixture") {
+        throw new Error("SALES_NOTE_SOURCE=fixture no puede habilitarse en production.");
+    }
+
     return Object.freeze({
         nodeEnv,
         demoFeaturesEnabled,
     });
+}
+
+export function isSalesNoteFixtureEnabled(env = process.env) {
+    return (env.NODE_ENV === "development" || env.NODE_ENV === "test") &&
+        env.SALES_NOTE_SOURCE === "fixture";
 }
 
 export function isDemoFeatureEnabled(env = process.env) {

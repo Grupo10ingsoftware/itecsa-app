@@ -3,6 +3,7 @@ import styles from '../pages/UserManagementPage.module.css'
 const SUMMARY_CARDS = Object.freeze([
   { key: 'totalUsuarios', label: 'Total usuarios', icon: 'bi-people', tone: 'total' },
   { key: 'vinculados', label: 'Vinculados', icon: 'bi-check-lg', tone: 'linked' },
+  { key: 'pendientes', label: 'Pendientes de acceso', icon: 'bi-clock-history', tone: 'pending' },
   { key: 'desvinculados', label: 'Desvinculados', icon: 'bi-person-x', tone: 'unlinked' },
 ])
 

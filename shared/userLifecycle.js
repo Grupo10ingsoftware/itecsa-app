@@ -2,6 +2,7 @@ export const USER_STATUS = Object.freeze({
   ACTIVE: 'Activo',
   LEGACY_LINKED: 'Vinculado',
   UNLINKED: 'Desvinculado',
+  PENDING_FIRST_LOGIN: 'Pendiente',
   PENDING_ROLE: 'Pendiente rol',
 })
 
@@ -13,6 +14,7 @@ export const ACTIVE_USER_STATUSES = Object.freeze([
 export const USER_STATUS_FILTERS = Object.freeze([
   ...ACTIVE_USER_STATUSES,
   USER_STATUS.UNLINKED,
+  USER_STATUS.PENDING_FIRST_LOGIN,
   USER_STATUS.PENDING_ROLE,
 ])
 

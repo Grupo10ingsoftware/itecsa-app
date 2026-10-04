@@ -6,7 +6,8 @@ import styles from '../pages/UserManagementPage.module.css'
 const STATUS_FILTERS = Object.freeze([
   { value: '', label: 'Todos', countKey: 'totalUsuarios' },
   { value: 'Vinculado', label: 'Vinculados', countKey: 'vinculados' },
-  { value: 'Pendiente rol', label: 'Pendientes', countKey: 'pendientes' },
+  { value: 'Pendiente', label: 'Pendientes', countKey: 'pendientes' },
+  { value: 'Pendiente rol', label: 'Pendientes de rol', countKey: 'pendientesRol' },
   { value: 'Desvinculado', label: 'Desvinculados', countKey: 'desvinculados' },
 ])
 

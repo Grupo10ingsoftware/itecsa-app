@@ -14,6 +14,7 @@ try {
 
   const profile = await server.ssrLoadModule('/test/profile.cases.jsx')
   const orders = await server.ssrLoadModule('/test/orders.cases.jsx')
+  const kanbanDetail = await server.ssrLoadModule('/test/kanbanDetail.cases.jsx')
   const p07Api = await server.ssrLoadModule('/test/p07Api.cases.js')
 
   const apiErrors = await server.ssrLoadModule('/test/apiErrors.cases.js')
@@ -26,6 +27,7 @@ try {
   authorization.run()
   payments.run()
   orders.run()
+  kanbanDetail.run()
   await p07Api.run()
 } finally {
   await server.close()

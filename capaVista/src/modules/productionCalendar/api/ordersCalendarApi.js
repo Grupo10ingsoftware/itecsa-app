@@ -2,11 +2,12 @@ import { parseCalendarOrderDetailDTO, parseCalendarPageDTO } from '../../orders/
 
 export function createOrdersCalendarApi(apiClient) {
   return {
-    getOrders: ({ from, to, cursor, limit = 100 } = {}) => {
+    getOrders: ({ from, to, cursor, limit = 100, unscheduled = false } = {}) => {
       const query = new URLSearchParams({ limit: String(limit) })
       if (from) query.set('from', from)
       if (to) query.set('to', to)
       if (cursor) query.set('cursor', cursor)
+      if (unscheduled) query.set('unscheduled', 'true')
       return apiClient.get(`/orders/calendar-summary?${query.toString()}`).then(parseCalendarPageDTO)
     },
     getOrderDetail: (orderId) => apiClient.get(`/orders/${orderId}/calendar-detail`).then(parseCalendarOrderDetailDTO),
@@ -17,6 +18,9 @@ export function createOrdersCalendarApi(apiClient) {
       }).then(parseCalendarOrderDetailDTO),
   }
 }
+
+export const loadUnscheduledOrders = (api, isActive = () => true) =>
+  loadCalendarMonth(api, { unscheduled: true }, isActive)
 
 export async function loadCalendarMonth(api, range, isActive = () => true) {
   const orders = []

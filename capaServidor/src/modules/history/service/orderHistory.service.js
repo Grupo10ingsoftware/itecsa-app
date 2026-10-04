@@ -1,5 +1,6 @@
 import { AppError } from "../../../errors/AppError.js";
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
+import { stripLanyardProgressObservation } from '../../orders/repo/orderProductionRules.js';
 import {
     decodeCursor,
     decodeHistoryEventCursor,
@@ -80,12 +81,7 @@ function parseLanyardProgress(description) {
         };
     }
 
-    const cleanDescription = text
-        .replace(match[0], "")
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .join("\n");
+    const cleanDescription = stripLanyardProgressObservation(text);
 
     return {
         cleanDescription: cleanDescription || null,

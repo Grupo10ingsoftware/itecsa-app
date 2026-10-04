@@ -1,5 +1,6 @@
 import { readSelect } from './orderReadSelect.js';
 import { toOrderSummaryDTO } from './orderMapping.js';
+import { stripLanyardProgressObservation } from './orderProductionRules.js';
 
 const client = { select: { nombre_cliente: true, razon_social: true } };
 const product = { select: { nombre_producto: true } };
@@ -85,7 +86,7 @@ function mapKanbanCommentGroups(row) {
     const subprocess = record.registro_subprocesos;
     const entry = commentEntry({
       id: `record-${record.ID_REGISTRO}`,
-      text: record.observacion,
+      text: stripLanyardProgressObservation(record.observacion),
       createdAt: record.FECHA_HORA,
       subprocessName: subprocess?.Estado_Subprocesos?.nombre_estado ?? null,
     });

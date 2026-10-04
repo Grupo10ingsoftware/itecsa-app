@@ -22,7 +22,7 @@ No se atribuye toda la serie a un solo commit: algunos comportamientos existían
 
 `npm test --prefix capaServidor`: 852 pruebas aprobadas, 2 omitidas. `npm test --prefix capaVista`, lint, build y `prisma:validate`: aprobados. Se conservan los 86 archivos de pruebas anteriores y se añadió uno para Kanban.
 
-No se hicieron escrituras en la base compartida ni cambios de tenant. Docker no dispone de daemon y no hay un servidor MySQL local instalado en este equipo, por lo que no se ejecutaron pruebas físicas de registro de pedido, pago, usuarios o PATCH de fecha en una base desechable. Esas pruebas siguen pendientes de una instancia aislada. La fuente fixture permite desarrollo y tests; no reemplaza la integración futura con Manager ni corrige las limitaciones del esquema MySQL actual.
+No se hicieron escrituras en la base compartida ni cambios de tenant. En esa primera verificación aún no había acceso a un daemon Docker, por lo que las escrituras físicas estaban pendientes. La fuente fixture permite desarrollo y tests; no reemplaza la integración futura con Manager ni corrige las limitaciones del esquema MySQL actual.
 
 ## Integración posterior con `dev`
 
@@ -30,4 +30,18 @@ Se fusionó `origin/dev` (`322e12e`) conservando su contrato canónico de DTO pa
 
 Tras la integración, la búsqueda de la nota sintética `24226` mostró cliente, producto, etiquetas disponibles y campo de observaciones. Kanban abrió el detalle `24072` con «Prioridad por contrato» y `24057` sin etiquetas; el indicador apareció mientras cargaba. En Calendario, el pedido sin programar `24886` mostró «Por definir» para pedido y producto, y los tres pendientes siguieron visibles al pasar de octubre a noviembre. Estas comprobaciones fueron solo de lectura.
 
-`npm test --prefix capaServidor`: 855 aprobadas, 2 omitidas; incluye dos casos nuevos de reevaluación con fechas de origen distintas. `npm test --prefix capaVista`, lint, build y `prisma:validate`: aprobados. Las escrituras físicas en MySQL desechable continúan pendientes; ninguna prueba de navegador registró pedidos ni modificó fechas en la base compartida.
+`npm test --prefix capaServidor`: 855 aprobadas, 2 omitidas; incluye dos casos nuevos de reevaluación con fechas de origen distintas. `npm test --prefix capaVista`, lint, build y `prisma:validate`: aprobados. Ninguna prueba de navegador registró pedidos ni modificó fechas en la base compartida.
+
+## Prueba física posterior en MySQL aislada
+
+Se inició `mysql:8.4` en un contenedor desechable, con el puerto `33307` publicado **solo en `127.0.0.1`**, sin volumen persistente, usuario y contraseñas temporales, y base vacía `itecsa_physical_test`. Antes de cada comando con escrituras se comprobó el host, puerto, nombre de base, URL de Prisma e identidad y publicación de puertos del contenedor. `prisma migrate deploy` aplicó correctamente las 14 migraciones a esa base vacía.
+
+La prueba [mysql.regressions.integration.test.js](../../capaServidor/test/mysql.regressions.integration.test.js) quedó deshabilitada por defecto y exige `RUN_PHYSICAL_REGRESSIONS=true`, `APP_ENV=test`, `NODE_ENV=test`, `DB_SSL_MODE=disabled`, `SALES_NOTE_SOURCE=fixture` y la dirección local/base de prueba exactas. Sembró solo estados, tipos, una etiqueta y dos usuarios sintéticos. Con Prisma conectado a MySQL real comprobó mediante relecturas:
+
+- Vista previa de la nota fixture `24226`, registro único del pedido, rechazo `409` del duplicado y etiqueta persistida.
+- Pedido y detalle inicialmente sin fecha y presentes en la consulta `calendar-summary` de no programados; asignación de `2026-10-12` a ambos.
+- Confirmación de pago persistida con un `Registro_Pago` y etapa «Listo para produccion».
+- Envío a revisión y reevaluación con fecha de origen `2026-11-20` y una línea sintética nueva: el pedido y ambas líneas conservaron la fecha productiva `2026-10-12`.
+- Usuario «Pendiente» sin activación por rol incorrecto y activación persistida a «Activo» ante dos primeros accesos concurrentes con el rol correcto.
+
+La prueba física pasó (1/1). Tras añadirla, la suite de servidor dio **855 aprobadas, 3 omitidas** (la prueba física se omite en ejecuciones normales); la suite de vista dio **37 aprobadas**. Lint, build y `prisma:validate` también pasaron. Estas comprobaciones ejercitan servicios y repositorios contra MySQL; no sustituyen una prueba de extremo a extremo con Auth0 ni la integración futura con Manager. La base compartida y el tenant permanecieron sin cambios. Al terminar se detuvo el contenedor `--rm`, se confirmó su ausencia y se borraron las credenciales temporales.

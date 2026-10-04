@@ -11,12 +11,50 @@ const labels = (order) => (Array.isArray(order.etiquetas) ? order.etiquetas : []
   .map((label) => label && ({ id: label.id_etiqueta ?? null, name: label.nombre_etiqueta ?? null }))
   .filter(Boolean);
 
+const manufacturingDetails = (details) => {
+  if (!details || typeof details !== "object" || Array.isArray(details)) return null;
+  return {
+    width: details.width ?? null,
+    length: details.length ?? null,
+    tapeTexture: details.tapeTexture ?? null,
+    backgroundColor: details.backgroundColor ?? null,
+    reverseLegend: details.reverseLegend ?? null,
+    frontLegend: details.frontLegend ?? null,
+    endings: details.endings ?? null,
+    cardType: details.cardType ?? null,
+  };
+};
+
+const comment = (entry) => {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+  return {
+    id: entry.id ?? null,
+    text: entry.text ?? null,
+    createdAt: entry.createdAt ?? null,
+    ...(entry.subprocessName ? { subprocessName: entry.subprocessName } : {}),
+  };
+};
+
+const comments = (entries) => (Array.isArray(entries) ? entries : [])
+  .map(comment)
+  .filter((entry) => entry?.text);
+
+const commentGroups = (order) => {
+  const groups = order.commentGroups ?? {};
+  return {
+    all: comments(groups.all ?? order.comments),
+    source: comments(groups.source),
+    subprocesses: comments(groups.subprocesses),
+    system: comments(groups.system),
+  };
+};
+
 const items = (order) => (Array.isArray(order.detalles) ? order.detalles : []).map((item) => ({
   id: item?.id_detalle_pedido == null ? null : String(item.id_detalle_pedido),
   product: item?.nombre_producto ?? item?.product ?? null,
   quantity: item?.cantidad ?? item?.quantity ?? null,
   dueDate: item?.fecha_estimada_termino ?? item?.dueDate ?? null,
-  manufacturingDetails: item?.manufacturingDetails ?? null,
+  manufacturingDetails: manufacturingDetails(item?.manufacturingDetails),
   lanyardProgress: item?.lanyardProgress ?? null,
   subProcesses: Array.isArray(item?.subProcesses) ? item.subProcesses : [],
 }));
@@ -45,10 +83,12 @@ export function toKanbanOrderSummaryDTO(order) {
 }
 
 export function toKanbanOrderDetailDTO(order) {
+  const groups = commentGroups(order);
   return {
     ...toKanbanOrderSummaryDTO(order),
-    comments: Array.isArray(order.comments) ? order.comments : [],
-    commentGroups: order.commentGroups ?? { all: [], source: [], subprocesses: [], system: [] },
+    seller: order.seller ?? null,
+    comments: groups.all,
+    commentGroups: groups,
   };
 }
 
@@ -74,6 +114,16 @@ export function toPaymentOrderDTO(order) {
   };
 }
 
+export function toPaymentStatusDTO(status) {
+  if (!status || typeof status !== "object" || Array.isArray(status)) {
+    throw new TypeError("PaymentStatusDTO requiere un estado de pago interno.");
+  }
+  return {
+    id: status.id_estado_pago ?? null,
+    name: status.nombre_estado_pago ?? null,
+  };
+}
+
 export function toOrderCreatedDTO(order) {
   assertInternalOrder(order, "OrderCreatedDTO");
   return { id: order.id_pedido, salesNoteNumber: order.numero_nota_venta ?? null };
@@ -93,5 +143,3 @@ export function toOrderLabelsPatchDTO(patch) {
   assertInternalOrder(patch, "OrderLabelsPatchDTO");
   return { id: patch.id_pedido, labels: labels(patch) };
 }
-
-export const toOrderDTO = toKanbanOrderDetailDTO;

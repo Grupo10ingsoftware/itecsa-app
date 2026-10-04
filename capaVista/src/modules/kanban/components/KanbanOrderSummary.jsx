@@ -8,8 +8,8 @@ export function KanbanOrderSummary({ order, orderItems }) {
       {Array.isArray(order.labels) && order.labels.length > 0 && (
         <div className={styles.visibleLabels}>
           {order.labels.map((label) => (
-            <span key={label.id_etiqueta ?? label.nombre_etiqueta ?? label}>
-              {label.nombre_etiqueta ?? label}
+            <span key={label.id ?? label.name}>
+              {label.name}
             </span>
           ))}
         </div>

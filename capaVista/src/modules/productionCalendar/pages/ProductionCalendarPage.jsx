@@ -3,9 +3,9 @@ import CalendarFilters from '../components/CalendarFilters'
 import CalendarHeader from '../components/CalendarHeader'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
-import { PRODUCTION_STATUSES } from '../config/productionCalendar.config'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
 import { loadCalendarMonth } from '../api/ordersCalendarApi'
+import { getCalendarOrderQuantity, getCalendarOrderStatus } from '../utils/calendarOrder'
 import styles from './ProductionCalendarPage.module.css'
 
 const DEFAULT_FILTERS = Object.freeze({
@@ -13,17 +13,6 @@ const DEFAULT_FILTERS = Object.freeze({
   status: '',
   productType: '',
 })
-
-function getStatusByStep(stepId) {
-  const statuses = [
-    PRODUCTION_STATUSES.PAYMENT_CONFIRMATION,
-    PRODUCTION_STATUSES.READY_PRODUCTION,
-    PRODUCTION_STATUSES.IN_PRODUCTION,
-    PRODUCTION_STATUSES.READY_DELIVERY,
-  ]
-
-  return statuses[Number(stepId)] ?? PRODUCTION_STATUSES.PAYMENT_CONFIRMATION
-}
 
 function toCalendarDateKey(value) {
   return value ? String(value).slice(0, 10) : ''
@@ -61,6 +50,10 @@ function getOrderProductNames(order) {
 
 function normalizeCalendarOrder(order) {
   const productNames = getOrderProductNames(order)
+  const items = (Array.isArray(order.items) ? order.items : []).map((item) => ({
+    ...item,
+    dueDate: toCalendarDateKey(item.dueDate),
+  }))
 
   return {
     ...order,
@@ -69,12 +62,9 @@ function normalizeCalendarOrder(order) {
     clientName: order.clientName ?? 'Cliente sin nombre',
     productType: productNames[0] ?? 'Producto no definido',
     productTypes: productNames,
-    quantity: 0,
-    items: (Array.isArray(order.items) ? order.items : []).map((item) => ({
-          ...item,
-          dueDate: toCalendarDateKey(item.dueDate),
-        })),
-    status: getStatusByStep(order.generalStepId),
+    quantity: getCalendarOrderQuantity(items),
+    items,
+    status: getCalendarOrderStatus(order),
     dueDate: toCalendarDateKey(order.dueDate),
   }
 }

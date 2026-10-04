@@ -116,7 +116,7 @@ export function getOrderItems(order) {
           product: order.product,
           quantity: order.quantity,
           dueDate: order.dueDate,
-          manufacturingDetails: order.manufacturingDetails,
+          manufacturingDetails: null,
           lanyardProgress: order.lanyardProgress,
           subProcesses: order.subProcesses,
         },
@@ -141,21 +141,18 @@ export function getOrderItems(order) {
 }
 
 export function getManufacturingDetails(item, order) {
-  const productName = String(item.product ?? '').toLowerCase()
-  const isTarjeta = productName.includes('tarjeta')
-  const isLanyard = productName.includes('lanyard')
   const details = item.manufacturingDetails ?? {}
 
   return {
-    width: details.width ?? (isTarjeta ? '85.6 mm' : isLanyard ? '20 mm' : 'No definido'),
-    length: details.length ?? (isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
-    tapeTexture: details.tapeTexture ?? 'Poliester',
+    width: details.width ?? 'No definido',
+    length: details.length ?? 'No definido',
+    tapeTexture: details.tapeTexture ?? 'No definido',
     backgroundColor: details.backgroundColor ?? 'No definido',
-    reverseLegend: details.reverseLegend ?? details.legend ?? 'No definido',
-    frontLegend: details.frontLegend ?? details.legend ?? `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`,
+    reverseLegend: details.reverseLegend ?? 'No definido',
+    frontLegend: details.frontLegend ?? 'No definido',
     endings: details.endings ?? 'No definido',
-    cardType: details.cardType ?? 'Plastificada',
-    seller: details.seller ?? order.seller ?? 'Ventas ITECSA',
-    dueDate: displayValue(details.dueDate ?? item.dueDate ?? order.dueDate, 'Por definir'),
+    cardType: details.cardType ?? 'No definido',
+    seller: order.seller ?? 'No definido',
+    dueDate: displayValue(item.dueDate ?? order.dueDate, 'Por definir'),
   }
 }

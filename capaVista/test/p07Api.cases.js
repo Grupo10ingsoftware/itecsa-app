@@ -8,7 +8,15 @@ export async function run() {
   const summary = { id: 7, salesNoteNumber: 'NV-7', clientName: 'Cliente', dueDate: null, generalStepId: 1, orderStatus: 'Listo', labels: [], items: [] }
   const client = { get: async (url) => {
     urls.push(url)
-    if (url.endsWith('/kanban-detail')) return { ...summary, createdAt: null, paymentStatusId: 1, paymentStatus: 'Pendiente', comments: [], commentGroups: {} }
+    if (url.endsWith('/kanban-detail')) return {
+      ...summary,
+      createdAt: null,
+      paymentStatusId: 1,
+      paymentStatus: 'Pendiente',
+      seller: null,
+      comments: [],
+      commentGroups: { all: [], source: [], subprocesses: [], system: [] },
+    }
     if (url.endsWith('/calendar-detail')) return { ...summary, seller: null }
     if (url.startsWith('/orders/payments')) return { items: [], pageInfo: { hasMore: false, nextCursor: null }, counts: {}, paymentStatuses: [] }
     return { items: [], pageInfo: { hasMore: false, nextCursor: null } }

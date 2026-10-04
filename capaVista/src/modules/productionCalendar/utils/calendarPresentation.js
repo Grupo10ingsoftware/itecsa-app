@@ -52,7 +52,7 @@ export function getCalendarOrderItems(order) {
         product: order.productType,
         quantity: order.quantity,
         dueDate: order.dueDate,
-        manufacturingDetails: order.manufacturingDetails,
+        manufacturingDetails: null,
       }]
 
   return sourceItems.map((item, index) => ({
@@ -66,22 +66,19 @@ export function getCalendarOrderItems(order) {
 }
 
 export function getManufacturingDetails(item, order) {
-  const productName = String(item.product ?? '').toLowerCase()
-  const isTarjeta = productName.includes('tarjeta')
-  const isLanyard = productName.includes('lanyard')
   const details = item.manufacturingDetails ?? {}
 
   return {
-    width: displayValue(details.width, isTarjeta ? '85.6 mm' : isLanyard ? '20 mm' : 'No definido'),
-    length: displayValue(details.length, isTarjeta ? '53.9 mm' : isLanyard ? '90 cm' : 'No definido'),
-    tapeTexture: displayValue(details.tapeTexture, 'Poliester'),
+    width: displayValue(details.width),
+    length: displayValue(details.length),
+    tapeTexture: displayValue(details.tapeTexture),
     backgroundColor: displayValue(details.backgroundColor),
-    reverseLegend: displayValue(details.reverseLegend ?? details.legend),
-    frontLegend: displayValue(details.frontLegend ?? details.legend, `${order.clientName ?? 'Cliente'} - ${item.product ?? 'Producto'}`),
+    reverseLegend: displayValue(details.reverseLegend),
+    frontLegend: displayValue(details.frontLegend),
     endings: displayValue(details.endings),
-    cardType: displayValue(details.cardType, 'Plastificada'),
-    seller: displayValue(details.seller ?? order.seller, 'Ventas ITECSA'),
-    dueDate: displayValue(details.dueDate ?? item.dueDate ?? order.dueDate, 'Por definir'),
+    cardType: displayValue(details.cardType),
+    seller: displayValue(order.seller),
+    dueDate: displayValue(item.dueDate ?? order.dueDate, 'Por definir'),
   }
 }
 
@@ -98,7 +95,7 @@ export function hasOrderLabel(order, expectedNames = []) {
   const normalizedExpectedNames = expectedNames.map(normalizeLabelName)
 
   return labels.some((label) =>
-    normalizedExpectedNames.includes(normalizeLabelName(label?.nombre_etiqueta ?? label?.name ?? label)),
+    normalizedExpectedNames.includes(normalizeLabelName(label?.name)),
   )
 }
 

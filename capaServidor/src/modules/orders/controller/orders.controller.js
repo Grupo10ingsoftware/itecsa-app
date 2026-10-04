@@ -8,6 +8,7 @@ import {
   toCalendarOrderDetailDTO, toCalendarOrderSummaryDTO,
   toKanbanOrderDetailDTO, toKanbanOrderSummaryDTO,
   toOrderCreatedDTO, toOrderLabelsPatchDTO, toOrderStagePatchDTO, toPaymentOrderDTO,
+  toPaymentStatusDTO,
 } from "../dto/order.dto.js";
 
 const mapPage = (page, mapper) => ({ ...page, items: (page?.items ?? []).map(mapper) });
@@ -40,7 +41,13 @@ class OrderController {
   };
 
   getPaymentWorkspace = async (req = request, res = response) => {
-    try { return res.status(200).json(mapPage(await this.service.getPagedPaymentWorkspace(req.query), toPaymentOrderDTO)); }
+    try {
+      const workspace = await this.service.getPagedPaymentWorkspace(req.query);
+      return res.status(200).json({
+        ...mapPage(workspace, toPaymentOrderDTO),
+        paymentStatuses: (workspace?.paymentStatuses ?? []).map(toPaymentStatusDTO),
+      });
+    }
     catch (error) { return respondError(error, req, res); }
   };
 
@@ -111,17 +118,26 @@ class OrderController {
   };
 
   sendToReview = async (req = request, res = response) => {
-    try { return res.status(200).json(toKanbanOrderDetailDTO(await this.service.sendToReview(req.params.orderId, req.body?.comment, { auth0UserId: req.auth?.payload?.sub }))); }
+    try {
+      await this.service.sendToReview(req.params.orderId, req.body?.comment, { auth0UserId: req.auth?.payload?.sub });
+      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.getOrderViewById(req.params.orderId, "kanban")));
+    }
     catch (error) { return respondError(error, req, res); }
   };
 
   cancelProduction = async (req = request, res = response) => {
-    try { return res.status(200).json(toKanbanOrderDetailDTO(await this.service.cancelProduction(req.params.orderId, req.body?.comment, { actor: req.pinActor }))); }
+    try {
+      await this.service.cancelProduction(req.params.orderId, req.body?.comment, { actor: req.pinActor });
+      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.getOrderViewById(req.params.orderId, "kanban")));
+    }
     catch (error) { return respondError(error, req, res); }
   };
 
   reevaluate = async (req = request, res = response) => {
-    try { return res.status(200).json(toKanbanOrderDetailDTO(await this.service.reevaluateOrder(req.params.orderId, { auth0UserId: req.auth?.payload?.sub }))); }
+    try {
+      await this.service.reevaluateOrder(req.params.orderId, { auth0UserId: req.auth?.payload?.sub });
+      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.getOrderViewById(req.params.orderId, "kanban")));
+    }
     catch (error) { return respondError(error, req, res); }
   };
 
@@ -131,21 +147,26 @@ class OrderController {
   };
 
   updateDeliveryDate = async (req = request, res = response) => {
-    try { return res.status(200).json(toCalendarOrderDetailDTO(await this.service.updateDeliveryDate(req.params.orderId, req.body?.dueDate, { actor: req.pinActor }))); }
+    try {
+      await this.service.updateDeliveryDate(req.params.orderId, req.body?.dueDate, { actor: req.pinActor });
+      return res.status(200).json(toCalendarOrderDetailDTO(await this.service.getOrderViewById(req.params.orderId, "calendar")));
+    }
     catch (error) { return respondError(error, req, res); }
   };
 
   completeSubprocess = async (req = request, res = response) => {
     try {
       const { orderId, detailId, subprocessId } = req.params;
-      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.completeSubprocess(orderId, detailId, subprocessId, { actor: req.pinActor, comment: req.body?.comment })));
+      await this.service.completeSubprocess(orderId, detailId, subprocessId, { actor: req.pinActor, comment: req.body?.comment });
+      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.getOrderViewById(orderId, "kanban")));
     } catch (error) { return respondError(error, req, res); }
   };
 
   rollbackSubprocess = async (req = request, res = response) => {
     try {
       const { orderId, detailId, subprocessId } = req.params;
-      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.rollbackSubprocess(orderId, detailId, subprocessId, { actor: req.pinActor, comment: req.body?.comment })));
+      await this.service.rollbackSubprocess(orderId, detailId, subprocessId, { actor: req.pinActor, comment: req.body?.comment });
+      return res.status(200).json(toKanbanOrderDetailDTO(await this.service.getOrderViewById(orderId, "kanban")));
     } catch (error) { return respondError(error, req, res); }
   };
 }

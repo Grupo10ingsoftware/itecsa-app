@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   mergePaymentPreview,
+  getPaymentStatusIdByName,
   normalizePaymentOrder,
   normalizePaymentOrders,
 } from '../src/modules/payments/utils/paymentOrders.js'
@@ -39,6 +40,11 @@ test('cobranzas no rescata respuestas legacy mediante aliases', () => {
     numero_nota_venta: 'NV-7',
     estado_pago: 'Confirmado',
   }]), [])
+})
+
+test('cobranzas usa el catalogo canonico de estados de pago', () => {
+  assert.equal(getPaymentStatusIdByName([{ id: 2, name: 'Confirmado' }], 'Confirmado'), 2)
+  assert.equal(getPaymentStatusIdByName([{ id_estado_pago: 2, nombre_estado_pago: 'Confirmado' }], 'Confirmado'), null)
 })
 
 test('el preview de pago conserva su contrato explicito separado', () => {

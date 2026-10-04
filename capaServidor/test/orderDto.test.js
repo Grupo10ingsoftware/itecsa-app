@@ -4,6 +4,7 @@ import {
   toCalendarOrderDetailDTO, toCalendarOrderSummaryDTO,
   toKanbanOrderDetailDTO, toKanbanOrderSummaryDTO,
   toOrderCreatedDTO, toOrderLabelsPatchDTO, toOrderStagePatchDTO, toPaymentOrderDTO,
+  toPaymentStatusDTO,
 } from "../src/modules/orders/dto/order.dto.js";
 
 const order = {
@@ -11,8 +12,18 @@ const order = {
   fecha_estimada_termino: "2026-10-10T00:00:00.000Z", nombre_cliente: "Cliente",
   id_etapa_general: 2, nombre_etapa_general: "En produccion", id_estado_pago: 2,
   estado_pago: "Confirmado", etiquetas: [{ id_etiqueta: 5, nombre_etiqueta: "Urgencia" }],
-  detalles: [{ id_detalle_pedido: 3, nombre_producto: "Lanyard", cantidad: 20, subProcesses: [] }],
-  comments: [], seller: "Manager",
+  detalles: [{
+    id_detalle_pedido: 3, nombre_producto: "Lanyard", cantidad: 20, subProcesses: [],
+    manufacturingDetails: null,
+  }],
+  comments: [{ id: "source-7", text: "Comentario manager", createdAt: null }],
+  commentGroups: {
+    all: [{ id: "source-7", text: "Comentario manager", createdAt: null }],
+    source: [{ id: "source-7", text: "Comentario manager", createdAt: null }],
+    subprocesses: [],
+    system: [],
+  },
+  seller: "Manager",
 };
 
 test("cada módulo recibe solo su DTO canónico", () => {
@@ -23,9 +34,14 @@ test("cada módulo recibe solo su DTO canónico", () => {
   assert.equal(kanban.paymentStatus, "Confirmado");
   assert.equal(Object.hasOwn(calendar, "paymentStatus"), false);
   assert.equal(Object.hasOwn(payment, "items"), false);
-  assert.equal(toKanbanOrderDetailDTO(order).comments.length, 0);
+  assert.equal(toKanbanOrderDetailDTO(order).comments.length, 1);
+  assert.equal(toKanbanOrderDetailDTO(order).commentGroups.source[0].text, "Comentario manager");
+  assert.equal(kanban.items[0].manufacturingDetails, null);
   assert.equal(toCalendarOrderDetailDTO(order).seller, "Manager");
   assert.deepEqual(toOrderCreatedDTO(order), { id: 7, salesNoteNumber: "NV-7" });
+  assert.deepEqual(toPaymentStatusDTO({ id_estado_pago: 2, nombre_estado_pago: "Confirmado" }), {
+    id: 2, name: "Confirmado",
+  });
 });
 
 test("los contratos no exponen nombres internos", () => {

@@ -44,7 +44,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         const [ordersResult, statusesResult] = await Promise.allSettled([
           kanbanApi.getOrders({
             limit: 50,
-            search: filters?.nv || filters?.clientName || '',
+            search: filters?.salesNoteNumber || filters?.clientName || '',
             productType: filters?.productType || '',
           }),
           kanbanApi.getOrderStatuses(),
@@ -86,7 +86,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     }
 
     loadOrders()
-  }, [filters?.clientName, filters?.nv, filters?.productType, kanbanApi, refreshKey])
+  }, [filters?.clientName, filters?.salesNoteNumber, filters?.productType, kanbanApi, refreshKey])
 
   async function loadMoreOrders() {
     if (!pageInfo.hasMore || !pageInfo.nextCursor || loadingMore) return
@@ -95,7 +95,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       const result = await kanbanApi.getOrders({
         limit: 50,
         cursor: pageInfo.nextCursor,
-        search: filters?.nv || filters?.clientName || '',
+        search: filters?.salesNoteNumber || filters?.clientName || '',
         productType: filters?.productType || '',
       })
       const nextOrders = (result.items ?? [])

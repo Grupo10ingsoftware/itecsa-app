@@ -8,13 +8,21 @@ const NEW_ROLE = ROLES.ADMIN_VENTAS;
 
 function createFixture({ tokenRole = NEW_ROLE, storedRole = OLD_ROLE, status = 'Activo', auth0Role = NEW_ROLE, auth0Error, afterUpdate } = {}) {
   let user = { idAuth0: 'auth0|user', rolUsuario: storedRole, estadoUsuario: status };
-  const calls = { resolve: 0, update: 0 };
+  const calls = { resolve: 0, update: 0, activate: 0 };
   const repository = {
     async findByAuth0Id() { return user; },
     async updateRoleIfCurrent(_userId, currentRole, nextRole) {
       calls.update += 1;
       if (user.rolUsuario === currentRole && user.estadoUsuario === 'Activo') {
         user = { ...user, rolUsuario: nextRole };
+      }
+      if (afterUpdate) user = afterUpdate(user);
+      return user;
+    },
+    async activateOnFirstAccess(_userId, role) {
+      calls.activate += 1;
+      if (user.rolUsuario === role && user.estadoUsuario === 'Pendiente') {
+        user = { ...user, estadoUsuario: 'Activo' };
       }
       if (afterUpdate) user = afterUpdate(user);
       return user;
@@ -44,7 +52,7 @@ test('sincroniza el rol vigente de Auth0 antes de autorizar', async () => {
   assert.equal(result.status, 200);
   assert.equal(result.currentUser.rolUsuario, NEW_ROLE);
   assert.equal(fixture.getUser().rolUsuario, NEW_ROLE);
-  assert.deepEqual(fixture.calls, { resolve: 1, update: 1 });
+  assert.deepEqual(fixture.calls, { resolve: 1, update: 1, activate: 0 });
 });
 
 test('un token antiguo no revierte el rol sincronizado', async () => {
@@ -53,25 +61,44 @@ test('un token antiguo no revierte el rol sincronizado', async () => {
   const result = await fixture.request(OLD_ROLE);
   assert.equal(result.status, 403);
   assert.equal(fixture.getUser().rolUsuario, NEW_ROLE);
-  assert.deepEqual(fixture.calls, { resolve: 2, update: 1 });
+  assert.deepEqual(fixture.calls, { resolve: 2, update: 1, activate: 0 });
 });
 
 test('rechaza token distinto del rol vigente en Auth0 sin escribir', async () => {
   const fixture = createFixture({ auth0Role: OLD_ROLE });
   assert.equal((await fixture.request()).status, 403);
-  assert.deepEqual(fixture.calls, { resolve: 1, update: 0 });
+  assert.deepEqual(fixture.calls, { resolve: 1, update: 0, activate: 0 });
 });
 
 test('no consulta Auth0 ni escribe para una cuenta desvinculada', async () => {
   const fixture = createFixture({ status: 'Desvinculado' });
   assert.equal((await fixture.request()).status, 403);
-  assert.deepEqual(fixture.calls, { resolve: 0, update: 0 });
+  assert.deepEqual(fixture.calls, { resolve: 0, update: 0, activate: 0 });
 });
 
 test('un fallo de Auth0 produce error temporal sin escribir', async () => {
   const fixture = createFixture({ auth0Error: new Error('offline') });
   assert.equal((await fixture.request()).status, 503);
-  assert.deepEqual(fixture.calls, { resolve: 1, update: 0 });
+  assert.deepEqual(fixture.calls, { resolve: 1, update: 0, activate: 0 });
+});
+
+test('el primer acceso con rol coincidente activa una cuenta pendiente', async () => {
+  const fixture = createFixture({ status: 'Pendiente', storedRole: NEW_ROLE });
+  assert.equal((await fixture.request()).status, 200);
+  assert.equal(fixture.getUser().estadoUsuario, 'Activo');
+  assert.equal((await fixture.request()).status, 200);
+  assert.deepEqual(fixture.calls, { resolve: 0, update: 0, activate: 1 });
+});
+
+test('un rol incorrecto no activa una cuenta pendiente', async () => {
+  const fixture = createFixture({ status: 'Pendiente', storedRole: OLD_ROLE });
+  assert.equal((await fixture.request()).status, 403);
+  assert.deepEqual(fixture.calls, { resolve: 0, update: 0, activate: 0 });
+});
+
+test('una desvinculacion concurrente impide activar una cuenta pendiente', async () => {
+  const fixture = createFixture({ status: 'Pendiente', storedRole: NEW_ROLE, afterUpdate: (user) => ({ ...user, estadoUsuario: 'Desvinculado' }) });
+  assert.equal((await fixture.request()).status, 403);
 });
 
 test('una actualización concurrente de estado impide autorizar', async () => {

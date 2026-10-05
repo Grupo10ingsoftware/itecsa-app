@@ -98,6 +98,14 @@ test('untrusted status/message and synthetic Prisma metadata are not public', ()
     }
 });
 
+test('fuente de Notas de Venta indisponible responde 503 identificable', () => {
+    const f = fixture();
+    respondError(Object.assign(new Error(SECRET), { code: 'SALES_NOTE_SOURCE_UNAVAILABLE' }), f.req, f.res);
+    assert.equal(f.res.statusCode, 503);
+    assert.equal(f.res.body.code, 'SALES_NOTE_SOURCE_UNAVAILABLE');
+    assert.equal(JSON.stringify(f.res.body).includes(SECRET), false);
+});
+
 test('existing user repository duplicate constraint maps to a functional conflict', async () => {
     const users = new UserRepository({ prisma: { usuario: { async update() { throw Object.assign(Error(SECRET), { code: 'P2002', meta: { target: ['secret_table'] } }); } } } });
     const f = fixture();

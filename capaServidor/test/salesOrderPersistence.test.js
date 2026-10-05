@@ -121,6 +121,65 @@ test("reevaluacion mantiene el nuevo snapshot consistente con los items que actu
   assert.notEqual(changes[0].linea_origen, changes[1].linea_origen);
 });
 
+test("reevaluacion conserva la programacion productiva aunque la nota tenga otra fecha", async () => {
+  const assignedDate = new Date("2026-10-08T00:00:00.000Z");
+  const lineDate = new Date("2026-10-09T00:00:00.000Z");
+  const orderUpdates = [];
+  const lineUpdates = [];
+  const newLines = [];
+  const repo = new OrderRepository({ prisma: {
+    pedidos: {
+      findUnique: async () => ({ id_cliente: 2, fecha_estimada_termino: assignedDate, Detalle_pedido: [{
+        id_detalle_pedido: 10, codigo_origen: "SKU-A", producto_origen: "Producto A",
+        id_tipo_producto: 3, fecha_estimada_termino: lineDate, _count: {}, Avance_Lanyard: [],
+      }] }),
+      update: async ({ data }) => { orderUpdates.push(data); return {}; },
+    },
+    cliente: { update: async () => ({}) },
+    tipo_Producto: { findFirst: async () => ({ id_tipo_producto: 3 }) },
+    detalle_pedido: {
+      update: async ({ data }) => { lineUpdates.push(data); return {}; },
+      create: async ({ data }) => { newLines.push(data); return {}; },
+    },
+    producto_Subproceso: { findFirst: async () => null },
+    usuario: { findMany: async () => [] },
+  } });
+  repo.transitionGeneralStage = async () => ({ id_pedido: 1 });
+
+  await repo.reevaluateFromSalesNote({
+    orderId: 1, userId: 7,
+    salesNote: { ...source, fechaEntregaTentativaOrigen: "2026-11-20" },
+  });
+
+  assert.equal(Object.hasOwn(orderUpdates[0], "fecha_estimada_termino"), false);
+  assert.equal(Object.hasOwn(lineUpdates[0], "fecha_estimada_termino"), false);
+  assert.deepEqual(newLines.map((line) => line.fecha_estimada_termino), [assignedDate]);
+  assert.notEqual(newLines[0].fecha_estimada_termino, lineDate);
+});
+
+test("reevaluacion de pedido sin programar deja nuevas lineas sin fecha", async () => {
+  const newLines = [];
+  const repo = new OrderRepository({ prisma: {
+    pedidos: {
+      findUnique: async () => ({ id_cliente: 2, fecha_estimada_termino: null, Detalle_pedido: [] }),
+      update: async () => ({}),
+    },
+    cliente: { update: async () => ({}) },
+    tipo_Producto: { findFirst: async () => ({ id_tipo_producto: 3 }) },
+    detalle_pedido: { create: async ({ data }) => { newLines.push(data); return {}; } },
+    producto_Subproceso: { findFirst: async () => null },
+    usuario: { findMany: async () => [] },
+  } });
+  repo.transitionGeneralStage = async () => ({ id_pedido: 1 });
+
+  await repo.reevaluateFromSalesNote({
+    orderId: 1, userId: 7,
+    salesNote: { ...source, fechaEntregaTentativaOrigen: "2026-11-20" },
+  });
+
+  assert.deepEqual(newLines.map((line) => line.fecha_estimada_termino), [null, null]);
+});
+
 test("reevaluacion rechaza lineas duplicadas y eliminacion con progreso", async () => {
   const baseClient = {
     cliente: { update: async () => ({}) },

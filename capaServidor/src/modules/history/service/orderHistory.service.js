@@ -1,5 +1,6 @@
 import { AppError } from "../../../errors/AppError.js";
 import OrderHistoryRepository from "../repo/orderHistory.repo.js";
+import { stripLanyardProgressObservation } from '../../orders/repo/orderProductionRules.js';
 import {
     decodeCursor,
     decodeHistoryEventCursor,
@@ -80,12 +81,7 @@ function parseLanyardProgress(description) {
         };
     }
 
-    const cleanDescription = text
-        .replace(match[0], "")
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .join("\n");
+    const cleanDescription = stripLanyardProgressObservation(text);
 
     return {
         cleanDescription: cleanDescription || null,
@@ -117,6 +113,9 @@ function mapEvent(record, { includePaymentDetails = false } = {}) {
 
     if (record.Registro_Etapas) {
         const detail = record.Registro_Etapas;
+        const stageName = detail.Estado_Pedido?.nombre_etapa;
+        const isCreation = stageName === "Confirmación de Pago" &&
+            record.observacion === "Pedido registrado desde Nota de Venta.";
         const enteredAt = detail.fecha_hora_entrada;
         const exitedAt = detail.fecha_hora_salida;
         const elapsedUntil = exitedAt ?? new Date();
@@ -124,7 +123,7 @@ function mapEvent(record, { includePaymentDetails = false } = {}) {
             ...base,
             type: "stage",
             typeLabel: "Etapa general",
-            title: detail.Estado_Pedido?.nombre_etapa ?? "Cambio de etapa",
+            title: isCreation ? "Pedido creado" : stageName ?? "Cambio de etapa",
             enteredAt,
             exitedAt,
             durationSeconds: enteredAt

@@ -44,6 +44,24 @@ const row = (id) => ({
       observacion: 'Dato ajeno al detalle productivo',
       registro_subprocesos: null,
     },
+    {
+      ID_REGISTRO: 24,
+      FECHA_HORA: new Date('2026-09-05'),
+      observacion: 'Avance Lanyard: 11% (54/500 producidos)',
+      registro_subprocesos: {
+        id_detalle_pedido: 7,
+        Estado_Subprocesos: { nombre_estado: 'Impresion' },
+      },
+    },
+    {
+      ID_REGISTRO: 25,
+      FECHA_HORA: new Date('2026-09-06'),
+      observacion: 'Comentario humano\nAvance Lanyard: 20% (100/500 producidos)',
+      registro_subprocesos: {
+        id_detalle_pedido: 7,
+        Estado_Subprocesos: { nombre_estado: 'Impresion' },
+      },
+    },
   ],
   Usuario: { correo_usuario: 'interno@example.test' },
 });
@@ -83,6 +101,16 @@ test('Calendario aplica fecha y cursor antes de paginar y limita sus campos', as
   assert.doesNotMatch(JSON.stringify(rows), /12345678-9|Comentario manager|Comentario de creacion|interno@example/);
 });
 
+test('Calendario pagina pedidos sin fecha fuera del rango mensual', async () => {
+  let received;
+  const repository = { client: { pedidos: { async findMany(query) { received = query; return [row(9), row(8)]; } } } };
+  const rows = await listOrderViewsOperation(repository, { view: 'calendar', limit: 1, cursor: { id: 10 }, unscheduled: true });
+  assert.equal(received.where.fecha_estimada_termino, null);
+  assert.equal(received.where.id_pedido.lt, 10);
+  assert.equal(received.take, 2);
+  assert.equal(pageResult(rows, 1).pageInfo.hasMore, true);
+});
+
 test('detalle de Calendario tampoco lee snapshots o datos de pago', async () => {
   let received;
   const repository = { client: { pedidos: { async findUnique(query) { received = query; return { ...row(1), usuario_manager_origen: 'Ventas' }; } } } };
@@ -114,8 +142,9 @@ test('detalle de Kanban admite esquema con y sin columnas de snapshot', async ()
     assert.deepEqual(result.commentGroups.source.map(({ text }) => text), ['Comentario manager']);
     assert.deepEqual(result.commentGroups.system.map(({ text }) => text), ['Comentario de creacion']);
     assert.deepEqual(result.commentGroups.subprocesses.map(({ text }) => text), [
-      'Comentario de subproceso', 'Comentario de produccion',
+      'Comentario de subproceso', 'Comentario humano', 'Comentario de produccion',
     ]);
+    assert.doesNotMatch(JSON.stringify(result.commentGroups), /Avance Lanyard/);
     assert.doesNotMatch(JSON.stringify(result), /12345678-9|interno@example|observacion_interna|observacion_origen|Dato ajeno/);
   }
 });

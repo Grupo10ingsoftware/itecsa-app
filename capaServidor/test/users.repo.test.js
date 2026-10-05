@@ -34,6 +34,30 @@ test('updateRoleIfCurrent condiciona el cambio al rol y estado previos', async (
     assert.equal(user.rolUsuario, 'Administrador Ventas');
 });
 
+test('primer acceso usa compare-and-set; dos solicitudes concurrentes solo activan una vez', async () => {
+    let status = 'Pendiente';
+    let activations = 0;
+    const repository = new UserRepository({ prisma: { usuario: {
+        async updateMany({ where, data }) {
+            assert.equal(where.id_auth0, 'auth0|user-id');
+            assert.equal(where.rol_usuario, 'Administrador Produccion');
+            assert.equal(where.estado_usuario, 'Pendiente');
+            if (status !== where.estado_usuario) return { count: 0 };
+            status = data.estado_usuario;
+            activations += 1;
+            return { count: 1 };
+        },
+        async findUnique() { return { ...DATABASE_USER, estado_usuario: status }; },
+    } } });
+    const [first, second] = await Promise.all([
+        repository.activateOnFirstAccess('auth0|user-id', 'Administrador Produccion'),
+        repository.activateOnFirstAccess('auth0|user-id', 'Administrador Produccion'),
+    ]);
+    assert.equal(first.estadoUsuario, 'Activo');
+    assert.equal(second.estadoUsuario, 'Activo');
+    assert.equal(activations, 1);
+});
+
 test('transicion de rol usa compare-and-set y solo reactiva desde pendiente', async () => {
     const updates = [];
     const repository = new UserRepository({ prisma: { usuario: {
@@ -178,7 +202,8 @@ test('summary explicita estados visibles en una consulta', async () => {
                 { estado_usuario: 'Activo', _count: { _all: 3 } },
                 { estado_usuario: 'Vinculado', _count: { _all: 2 } },
                 { estado_usuario: 'Desvinculado', _count: { _all: 1 } },
-                { estado_usuario: 'Pendiente rol', _count: { _all: 4 } },
+                { estado_usuario: 'Pendiente', _count: { _all: 2 } },
+                { estado_usuario: 'Pendiente rol', _count: { _all: 2 } },
                 { estado_usuario: 'Estado inesperado', _count: { _all: 1 } },
                 { estado_usuario: null, _count: { _all: 1 } },
             ];
@@ -196,6 +221,7 @@ test('summary explicita estados visibles en una consulta', async () => {
         totalUsuarios: 12,
         vinculados: 5,
         desvinculados: 1,
-        pendientes: 4,
+        pendientes: 2,
+        pendientesRol: 2,
     });
 });

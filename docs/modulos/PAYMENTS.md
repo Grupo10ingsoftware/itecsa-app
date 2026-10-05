@@ -1,6 +1,6 @@
 # Modulo `payments` / Cobranzas
 
-La vista `/pagos` carga pedidos desde backend y permite gestionar su estado de pago. Cuando faltan los campos de snapshot en un detalle historico, el preview consulta el fixture local de Notas de Venta. La integracion directa con Manager aun no esta implementada.
+La vista `/pagos` carga pedidos desde backend y permite gestionar su estado de pago. Cuando faltan los campos de snapshot en un detalle histórico, el preview consulta la fuente de Notas de Venta. El fixture local requiere `SALES_NOTE_SOURCE=fixture` en desarrollo/tests; sin fuente responde 503. La integración directa con Manager aún no está implementada. Buscar una nota en Cobranzas no muestra un pedido hasta que Ventas lo registre.
 
 ## Contratos backend usados
 
@@ -54,7 +54,7 @@ El actor del PIN se toma de `req.pinActor` y se registra en `Registros.id_usuari
 
 La decisión se toma tras bloquear `Pedidos` con `SELECT ... FOR UPDATE` y releer el estado dentro de la transacción. Un destino ya alcanzado devuelve el pedido sin nueva auditoría; una decisión concurrente distinta genera 409. Estado, registro y avisos se escriben en la misma unidad transaccional real. Las pruebas con dobles no acreditan locks o rollback físico: seguir la [validación MySQL aislada](../operacion/PAYMENTS_SOLICITUD_BD.md).
 
-Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; su ciclo se verificó históricamente en navegador con datos ficticios. Las suites se retiraron para la entrega; consultar las [validaciones disponibles](../desarrollo/PRUEBAS.md).
+Los controladores propios de Payments conservan errores 4xx y devuelven 500 genéricos con referencia. El diálogo limpia el PIN tras el intento y se desmonta al cerrar o cambiar de pedido; consultar las [suites vigentes](../desarrollo/PRUEBAS.md). Las pruebas de escritura requieren una base MySQL desechable y aislada.
 
 ## Límites y pendientes
 

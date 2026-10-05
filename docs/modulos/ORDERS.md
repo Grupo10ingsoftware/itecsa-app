@@ -6,7 +6,7 @@ RF42–RF48: acceso de Ventas, consulta por número de Nota de Venta, informaci�
 
 `OrderCreatePage` utiliza `useOrderCreateFlow`, `SalesNoteStep`, `OrderCreateConfirmModal` y `OrderCreateSuccess`. El borrador se mantiene en estado React.
 
-- `GET /api/orders/sales-notes/:numeroNota`: consulta datos estructurados. Actualmente usa un fixture del backend; no una conexión externa. Tras autenticar y autorizar, registra el resultado en la auditoría de seguridad y actualiza contadores de observación. Este monitoreo no bloquea, no responde 429 y no cambia el comportamiento visible del flujo.
+- `GET /api/orders/sales-notes/:numeroNota`: consulta datos estructurados. En desarrollo/tests usa un fixture del backend solo con `SALES_NOTE_SOURCE=fixture`; sin fuente responde 503 `SALES_NOTE_SOURCE_UNAVAILABLE`. No hay conexión con Manager. Tras autenticar y autorizar, registra el resultado en la auditoría de seguridad y actualiza contadores de observación. Este monitoreo no bloquea, no responde 429 y no cambia el comportamiento visible del flujo.
 - `POST /api/orders`: recibe `numeroNota`, `priority` (`null`, `urgent` o `contract`) y `observacionInterna` (hasta 300 caracteres). El servidor recupera nuevamente la nota y valida sus datos antes de escribir. Los campos comerciales heredados del cuerpo se ignoran durante la compatibilidad; no son autoridad. El alta manual sin NV responde 400.
 - Las respuestas operacionales usan [contratos canónicos por módulo](../desarrollo/ORDERS_DTO_CANONICO.md). La fuente de Nota de Venta y el preview de Cobranzas se mantienen separados.
 - El resumen previo al registro se conserva en `OrderCreateConfirmModal` (RF48).
@@ -62,10 +62,9 @@ no se detecta. Esto no acredita integración ni versionado de Manager.
 
 Un cliente ya existente se reutiliza por RUT sin sincronizar su nombre compartido.
 El alias `observacion_interna` sigue aceptado; la prioridad vigente es una sola
-opción (`null`, `urgent` o `contract`), no un array. Las pruebas históricas
-verificaron fuente autoritativa, actor, validación, transacción y duplicados con
-datos sintéticos. Se retiraron las suites el 03-10-2026. Sus resultados anteriores
-no sustituyen validar los flujos actuales ni comprobar MySQL.
+opción (`null`, `urgent` o `contract`), no un array. Las suites actuales verifican
+fuente autoritativa, actor, validación, transacción y duplicados con datos sintéticos;
+la garantía física de MySQL exige una base desechable y aislada.
 
 ## Interfaz y pruebas
 

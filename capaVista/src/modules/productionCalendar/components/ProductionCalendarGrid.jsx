@@ -26,28 +26,24 @@ export default function ProductionCalendarGrid({
   const [pendingChange, setPendingChange] = useState(null)
   const [isCredentialStepOpen, setIsCredentialStepOpen] = useState(false)
   const [dropTargetDate, setDropTargetDate] = useState(null)
-  const [transferItemIds, setTransferItemIds] = useState([])
+  const [transferItems, setTransferItems] = useState([])
   const days = buildMonthGrid(monthDate)
   const sourceItems = Array.isArray(allItems) ? allItems : items
   const transferItemIdSet = useMemo(
-    () => new Set(transferItemIds.map((itemId) => String(itemId))),
-    [transferItemIds],
+    () => new Set(transferItems.map((item) => String(item.id))),
+    [transferItems],
   )
   const visibleItems = useMemo(
     () => items.filter((item) => !transferItemIdSet.has(String(item.id))),
     [items, transferItemIdSet],
-  )
-  const transferItems = useMemo(
-    () => sourceItems.filter((item) => transferItemIdSet.has(String(item.id))),
-    [sourceItems, transferItemIdSet],
   )
   const scheduledMonthItems = useMemo(
     () => visibleItems.filter((item) => isBusinessDateKey(item.dueDate) && isSameMonth(item.dueDate, monthDate)),
     [visibleItems, monthDate],
   )
   const pendingItems = useMemo(
-    () => visibleItems.filter((item) => !isBusinessDateKey(item.dueDate)),
-    [visibleItems],
+    () => sourceItems.filter((item) => !transferItemIdSet.has(String(item.id)) && !isBusinessDateKey(item.dueDate)),
+    [sourceItems, transferItemIdSet],
   )
   const itemsByDate = useMemo(() => groupItemsByDate(scheduledMonthItems), [scheduledMonthItems])
   const selectedDayItems = selectedDayKey ? (itemsByDate.get(selectedDayKey) ?? []) : []
@@ -60,13 +56,6 @@ export default function ProductionCalendarGrid({
     catch { setDetailError('No fue posible cargar el detalle del pedido.') }
   }
 
-  const [previousSourceItems, setPreviousSourceItems] = useState(sourceItems)
-  if (sourceItems !== previousSourceItems) {
-    const sourceItemIds = new Set(sourceItems.map((item) => String(item.id)))
-    setPreviousSourceItems(sourceItems)
-    setTransferItemIds((currentIds) => currentIds.filter((itemId) => sourceItemIds.has(String(itemId))))
-  }
-
   function handleDropTransferItem(itemId) {
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
     onDragEnd?.()
@@ -75,10 +64,10 @@ export default function ProductionCalendarGrid({
     const item = sourceItems.find((currentItem) => String(currentItem.id) === String(itemId))
     if (!item) return
 
-    setTransferItemIds((currentIds) => {
-      if (currentIds.some((currentId) => String(currentId) === String(itemId))) return currentIds
+    setTransferItems((currentItems) => {
+      if (currentItems.some((currentItem) => String(currentItem.id) === String(itemId))) return currentItems
 
-      return [...currentIds, item.id]
+      return [...currentItems, item]
     })
   }
 
@@ -86,14 +75,15 @@ export default function ProductionCalendarGrid({
     if (!hasPermission(PERMISSIONS.UPDATE_DELIVERY_DATE)) return
     onDragEnd?.()
     setDropTargetDate(null)
-    const item = sourceItems.find((currentItem) => String(currentItem.id) === String(itemId))
+    const item = sourceItems.find((currentItem) => String(currentItem.id) === String(itemId)) ??
+      transferItems.find((currentItem) => String(currentItem.id) === String(itemId))
     const isTransferItem = transferItemIdSet.has(String(itemId))
 
     if (!item || !targetDate) return
 
     if (item.dueDate === targetDate) {
       if (isTransferItem) {
-        setTransferItemIds((currentIds) => currentIds.filter((currentId) => String(currentId) !== String(itemId)))
+        setTransferItems((currentItems) => currentItems.filter((currentItem) => String(currentItem.id) !== String(itemId)))
       }
       return
     }
@@ -120,8 +110,8 @@ export default function ProductionCalendarGrid({
     if (!pendingChange) return
 
     await onChangeDeliveryDate?.(pendingChange.item.id, pendingChange.toDate, credentials)
-    setTransferItemIds((currentIds) =>
-      currentIds.filter((itemId) => String(itemId) !== String(pendingChange.item.id)),
+    setTransferItems((currentItems) =>
+      currentItems.filter((item) => String(item.id) !== String(pendingChange.item.id)),
     )
     closeDeliveryChangeFlow()
   }

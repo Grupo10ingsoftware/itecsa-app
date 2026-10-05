@@ -4,7 +4,7 @@ import CalendarHeader from '../components/CalendarHeader'
 import CalendarToolbar from '../components/CalendarToolbar'
 import ProductionCalendarGrid from '../components/ProductionCalendarGrid'
 import { useOrdersCalendarApi } from '../hooks/useOrdersCalendarApi'
-import { loadCalendarMonth } from '../api/ordersCalendarApi'
+import { loadCalendarMonth, loadUnscheduledOrders } from '../api/ordersCalendarApi'
 import { getCalendarOrderQuantity, getCalendarOrderStatus } from '../utils/calendarOrder'
 import styles from './ProductionCalendarPage.module.css'
 
@@ -72,6 +72,7 @@ function normalizeCalendarOrder(order) {
 export default function ProductionCalendarPage() {
   const ordersCalendarApi = useOrdersCalendarApi()
   const [calendarItems, setCalendarItems] = useState([])
+  const [unscheduledItems, setUnscheduledItems] = useState([])
   const [monthDate, setMonthDate] = useState(() => {
     const today = new Date()
 
@@ -110,6 +111,18 @@ export default function ProductionCalendarPage() {
       isMounted = false
     }
   }, [monthDate, ordersCalendarApi])
+
+  useEffect(() => {
+    let isMounted = true
+    loadUnscheduledOrders(ordersCalendarApi, () => isMounted)
+      .then((orders) => {
+        if (isMounted) setUnscheduledItems(orders.filter((order) => order?.salesNoteNumber).map(normalizeCalendarOrder))
+      })
+      .catch(() => {
+        if (isMounted) setLoadError('No fue posible cargar los pedidos pendientes de fecha.')
+      })
+    return () => { isMounted = false }
+  }, [ordersCalendarApi])
 
   useEffect(() => {
     if (!draggedItemId) return undefined
@@ -157,12 +170,14 @@ export default function ProductionCalendarPage() {
   }
 
   async function updateItemDeliveryDate(itemId, nextDate, credentials) {
-    await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials)
-    const normalizedOrder = normalizeCalendarOrder(await ordersCalendarApi.getOrderDetail(itemId))
+    const normalizedOrder = normalizeCalendarOrder(await ordersCalendarApi.updateDeliveryDate(itemId, nextDate, credentials))
 
     setCalendarItems((currentItems) =>
-      currentItems.map((item) => (String(item.id) === String(itemId) ? normalizedOrder : item)),
+      currentItems.some((item) => String(item.id) === String(itemId))
+        ? currentItems.map((item) => (String(item.id) === String(itemId) ? normalizedOrder : item))
+        : [...currentItems, normalizedOrder],
     )
+    setUnscheduledItems((currentItems) => currentItems.filter((item) => String(item.id) !== String(itemId)))
   }
 
   async function getOrderDetail(orderId) {
@@ -191,7 +206,7 @@ export default function ProductionCalendarPage() {
           <section className={styles.calendarPanel}>
             <ProductionCalendarGrid
               getOrderDetail={getOrderDetail}
-              allItems={calendarItems}
+              allItems={[...calendarItems, ...unscheduledItems.filter((item) => !calendarItems.some((monthItem) => String(monthItem.id) === String(item.id)))]}
               draggedItemId={draggedItemId}
               items={filteredItems}
               monthDate={monthDate}

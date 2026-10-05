@@ -21,6 +21,8 @@ export default function KanbanOffCanvas({
   canReview = false,
   canReevaluate = false,
   isOpen,
+  isLoading = false,
+  loadError = null,
   onApprovePaymentDeconfirmation,
   onClose,
   onCompleteSubprocess,
@@ -51,6 +53,22 @@ export default function KanbanOffCanvas({
 
   if (!isOpen || !order) {
     return null
+  }
+
+  if (isLoading || loadError) {
+    return (
+      <div className={styles.offcanvasLayer} role="presentation">
+        <aside aria-labelledby="kanban-detail-title" className={styles.offcanvasPanel} role="dialog">
+          <header className={styles.offcanvasHeader}>
+            <div><span className={styles.offcanvasKicker}>{order.salesNoteNumber}</span><h2 id="kanban-detail-title">Detalle del pedido</h2></div>
+            <button aria-label="Cerrar detalle" className={styles.offcanvasCloseButton} onClick={onClose} type="button"><i className="bi bi-x-lg" aria-hidden="true" /></button>
+          </header>
+          <div className={styles.offcanvasBody} role={loadError ? 'alert' : 'status'}>
+            {loadError || 'Cargando detalle del pedido…'}
+          </div>
+        </aside>
+      </div>
+    )
   }
 
   const orderItems = getOrderItems(order)

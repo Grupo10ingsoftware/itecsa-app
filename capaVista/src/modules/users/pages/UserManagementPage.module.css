@@ -101,6 +101,11 @@
   color: #059669;
 }
 
+.summaryIconpending {
+  background: #fff3db;
+  color: #b45309;
+}
+
 .summaryIconunlinked {
   background: #ffe9ed;
   color: var(--users-red);

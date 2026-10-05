@@ -1,5 +1,6 @@
 import { readSelect } from './orderReadSelect.js';
 import { toOrderSummaryDTO } from './orderMapping.js';
+import { stripLanyardProgressObservation } from './orderProductionRules.js';
 
 const client = { select: { nombre_cliente: true, razon_social: true } };
 const product = { select: { nombre_producto: true } };
@@ -85,7 +86,7 @@ function mapKanbanCommentGroups(row) {
     const subprocess = record.registro_subprocesos;
     const entry = commentEntry({
       id: `record-${record.ID_REGISTRO}`,
-      text: record.observacion,
+      text: stripLanyardProgressObservation(record.observacion),
       createdAt: record.FECHA_HORA,
       subprocessName: subprocess?.Estado_Subprocesos?.nombre_estado ?? null,
     });
@@ -148,7 +149,7 @@ async function kanbanDetailSelect(repository) {
   };
 }
 
-export async function listOrderViewsOperation(repository, { view, limit, cursor, status, search, productType, from, to }) {
+export async function listOrderViewsOperation(repository, { view, limit, cursor, status, search, productType, from, to, unscheduled = false }) {
   const where = {
     ...(cursor ? { id_pedido: { lt: cursor.id } } : {}),
     ...(view === 'kanban'
@@ -160,7 +161,9 @@ export async function listOrderViewsOperation(repository, { view, limit, cursor,
       { Cliente: { is: { razon_social: { contains: search } } } },
     ] } : {}),
     ...(productType ? { Detalle_pedido: { some: { Tipo_Producto: { is: { nombre_producto: { contains: productType } } } } } } : {}),
-    ...((from || to) ? { fecha_estimada_termino: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {}),
+    ...(unscheduled
+      ? { fecha_estimada_termino: null }
+      : (from || to) ? { fecha_estimada_termino: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {}),
   };
   const rows = await repository.client.pedidos.findMany({
     where, select: view === 'calendar' ? calendarSelect : kanbanSelect,

@@ -7,25 +7,23 @@ Aplicacion web para apoyar procesos internos de ITECSA. Integra una SPA React co
 - `capaVista/`: SPA React + Vite, con Universal Login/Logout de Auth0.
 - `capaServidor/`: API Express, con validacion JWT y endpoint de verificacion de sesion.
 - `docs/`: documentacion tecnica transversal.
-- `data/`: archivos locales de desarrollo usados por flujos documentales del backend.
+- `data/`: archivos locales de desarrollo usados por flujos documentales del servidor.
 
 Documentacion especifica:
 
-- [Frontend](capaVista/README.md)
-- [Backend](capaServidor/README.md)
 - [Arquitectura](docs/ARQUITECTURA.md)
-- [Convenciones UI Frontend](docs/CONVENCIONES_UI_FRONTEND.md)
+
 
 ## Requisitos
 
 - Node.js `20.19+`, `22.12+` o `>=24`, y npm. Prisma 7 y Vite 8 requieren esos rangos de Node.js.
 - Una SPA y una API configuradas en Auth0 para desarrollo local.
-- Una base MySQL/Aiven accesible desde el backend, con certificado CA local para SSL.
+- Una base MySQL/Aiven accesible desde el servidor, con certificado CA local para SSL.
 - Variables de entorno locales basadas en las plantillas `env.example`.
 
 ## Ejecucion Local
 
-Frontend:
+Capavista:
 
 ```bash
 cd capaVista
@@ -33,7 +31,7 @@ npm install
 npm run dev
 ```
 
-Comandos frontend disponibles:
+Comandos capavista disponibles:
 
 ```bash
 npm run dev
@@ -42,7 +40,7 @@ npm run build
 npm run preview
 ```
 
-Backend:
+Servidor:
 
 ```bash
 cd capaServidor
@@ -50,7 +48,7 @@ npm install
 npm start
 ```
 
-Comandos backend disponibles:
+Comandos servidor disponibles:
 
 ```bash
 npm start
@@ -66,15 +64,15 @@ npm run repair:payment-demo
 npm run sync:dummy-sales-notes
 ```
 
-El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000` con las plantillas actuales.
+La capavista usa `http://localhost:5173` y el servidor usa `http://localhost:3000` con las plantillas actuales.
 `prisma:migrate:dev` esta disponible por `package.json`, pero no debe ejecutarse sobre la base existente sin una decision explicita de migraciones.
 
 ## Configuracion
 
 - Copiar `capaVista/env.example` a un archivo `.env` local de la SPA y ajustar los identificadores publicos de Auth0 cuando corresponda.
-- Copiar `capaServidor/env.example` a un archivo `.env` local del backend.
+- Copiar `capaServidor/env.example` a un archivo `.env` local del servidor.
 - No registrar archivos `.env`, client secrets, access tokens ni contrasenas en Git.
-- Las variables de Auth0 Management son exclusivas del backend; la SPA nunca debe recibir esas credenciales.
+- Las variables de Auth0 Management son exclusivas del servidor; la SPA nunca debe recibir esas credenciales.
 - Los `client_id` de Auth0 son identificadores publicos. El `AUTH0_MANAGEMENT_CLIENT_SECRET` no debe documentarse ni versionarse.
 
 ## Estado Actual De Auth0
@@ -84,22 +82,22 @@ El frontend usa `http://localhost:5173` y el backend usa `http://localhost:3000`
 - La SPA muestra un mensaje controlado cuando Auth0 rechaza el login por cuenta bloqueada/desvinculada.
 - La API expone `GET /api/auth/verify`, protegido por bearer access token Auth0.
 - La API expone `POST /api/auth/password-reset/request`, publico, para validar el estado interno del correo antes de solicitar a Auth0 el correo de cambio de contrasena.
-- La validacion backend comprueba issuer y audience configurados.
+- La validacion de servidor comprueba issuer y audience configurados.
 - La SPA consume `GET /api/auth/verify` mediante `authApi.verify()` para restaurar sesion, rol y permisos visuales.
 - La API proyecta un unico rol RBAC emitido en el claim `https://itecsa.local/roles` a `rolUsuario`.
 - Los permisos visuales provienen del claim estandar `permissions` emitido por Auth0 para `ITECSA API`.
-- La creacion administrativa de usuarios se realiza desde el backend mediante Auth0 Management API; el frontend solo llama endpoints propios protegidos.
+- La creacion administrativa de usuarios se realiza desde el servidor mediante Auth0 Management API; la capavista solo llama endpoints propios protegidos.
 - La entidad interna `Usuario`, pedidos, clientes, detalles, productos, estados de pago, registros de pago y reglas Kanban se resuelven desde MySQL/Aiven mediante Prisma y el adaptador MariaDB.
-- La vista `/pagos` consume backend real para listar pedidos, consultar estados de pago, cambiar estado, previsualizar firma y abrir evidencia de firma.
-- Kanban consume pedidos y estados reales desde backend, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
-- La pantalla `/ordenes/nuevo` sigue siendo un flujo visual frontend con datos mock y `sessionStorage`; no llama todavia al `POST /api/orders` del backend.
+- La vista `/pagos` consume el servidor real para listar pedidos, consultar estados de pago, cambiar estado, previsualizar firma y abrir evidencia de firma.
+- Kanban consume pedidos y estados reales desde servidor, mueve etapas mediante `PATCH /api/orders/:orderId/move` y exige `move:kanban-to-production` para pasar a `En produccion`.
+- La pantalla `/ordenes/nuevo` sigue siendo un flujo visual con datos mock y `sessionStorage`; no llama todavia al `POST /api/orders` del servidor.
 
 Recursos Auth0 esperados/configurados para esta rama:
 
-- SPA: `ITECSA Frontend Local`.
+- SPA: `ITECSA vista Local`.
 - API: `ITECSA API`, audience `https://api.itecsa.local`.
 - API `ITECSA API`: scopes declarados `view:main-navigation`, `view:kanban-module`, `view:payments-module`, `view:own-profile`, `view:orders-module`, `create:users-visually`, `manage:users-visually`, `update:payment-status` y `move:kanban-to-production`.
-- M2M backend: `ITECSA Backend Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
+- M2M: `ITECSA server Management`, con token Management validado para `create:users`, `read:roles`, `read:users` y `update:users`.
 - Action Post Login: `ITECSA Add Claims`.
 - Conexion Database: `Username-Password-Authentication`.
 - Roles permitidos: `Administrador`, `Gerencia`, `Producción`, `Ventas` y `Cobranzas`.
@@ -112,7 +110,7 @@ El tenant usa Classic Universal Login con template personalizado. En desarrollo,
 
 - No persistir contrasenas, tokens, tickets ni enlaces de recuperacion.
 - No ejecutar migraciones destructivas, `prisma migrate dev`, `prisma migrate reset` ni `prisma db push` contra la base existente sin una decision explicita del equipo.
-- No conectar `/ordenes/nuevo` a la creacion real de pedidos hasta definir el contrato frontend-backend para archivos y Nota de Venta.
-- No exponer credenciales Auth0 Management en frontend.
+- No conectar `/ordenes/nuevo` a la creacion real de pedidos hasta definir el contrato capavista-capaservidor para archivos y Nota de Venta.
+- No exponer credenciales Auth0 Management en capavista.
 - No incluir secretos reales ni tokens en documentacion o plantillas.
 - ITECSA no recibe, almacena ni persiste contrasenas: Universal Login y los correos de establecimiento/cambio de contrasena pertenecen a Auth0.

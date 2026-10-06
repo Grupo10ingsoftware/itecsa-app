@@ -1,6 +1,6 @@
 # Docker y despliegue ITECSA
 
-Guía del flujo versionado en [docker.yml](../../.github/workflows/docker.yml). Consultar [configuración local](../desarrollo/README.md), [pruebas](../desarrollo/PRUEBAS.md) y [pendientes](../PENDIENTES.md). Los recursos externos deben verificarse en su ambiente; esta guía no acredita su activación.
+Guía del flujo versionado en [docker.yml](../../.github/workflows/docker.yml). Consultar [configuración local](../desarrollo/README.md), [pruebas](../desarrollo/PRUEBAS.md) y [pendientes](../PENDIENTES.md). Las comprobaciones del ensayo en Northflank se registran abajo; no acreditan la futura instalación en el cliente.
 
 Dos imagenes Linux/amd64: API Express con Node 22 y cliente Prisma generado,
 y SPA compilada servida por Nginx sin privilegios. Ambas incluyen `shared/`.
@@ -68,8 +68,9 @@ Workflow: `.github/workflows/docker.yml`.
 
 - PR a `dev` o `main`: enlaces documentales, pruebas backend/frontend y de scripts/despliegue, build y smoke Docker.
   No publica imagenes y no recibe credenciales de despliegue.
-- Push a `main`: mismas verificaciones, publicacion en GHCR de **las imagenes
-  probadas** y actualizacion de Northflank si todo pasa.
+- Push a `main`: mismas verificaciones y publicacion en GHCR de **las imagenes
+  probadas**. La actualizacion de Northflank requiere completar antes el
+  Environment `northflank-demo` con un token API.
 - `workflow_dispatch`, `operation=publish`: bootstrap, publica sin desplegar.
 - `workflow_dispatch`, `operation=deploy`: verifica y publica el main actual,
   despues despliega.
@@ -85,8 +86,9 @@ privadas: no cambiar la visibilidad para resolver problemas de acceso.
 El recorrido de integración previsto para la dockerización es `migration/docker` → `dev` → `main`; esa rama identifica la entrega original, no una condición de uso de la guía.
 Primero revisar la dockerizacion en un PR hacia `dev`; cuando esa integracion
 este validada, preparar el PR de `dev` hacia `main`. Integrar en `dev` verifica
-codigo, pero no publica imagenes ni despliega Northflank. La activacion externa
-se realiza al preparar la primera entrega a `main`.
+codigo, pero no publica imagenes ni despliega Northflank. El ensayo externo se
+activo manualmente desde `migration/docker`; el despliegue automatico empieza
+solo despues de configurar el token y llevar los commits a `main`.
 
 Solo hay un despliegue activo a la vez; no se cancela durante escrituras.
 Las versiones de `main` obsoletas se omiten antes de actualizar. La API se actualiza
@@ -108,51 +110,70 @@ Cada ejecucion guarda `release.json` (SHA y digests). Los despliegues guardan
 No contienen credenciales. Mantener las imagenes necesarias para rollback en GHCR.
 Guardar estas referencias junto a cada entrega al cliente.
 
-## Primera activacion de Northflank
+## Ensayo actual en Northflank (6 de octubre de 2026)
 
-1. Integrar primero esta rama en `dev` con las pruebas aprobadas. Cuando el equipo
-   autorice la entrega, integrar `dev` en `main`. El primer push a `main` puede
-   publicar imagenes aunque el job de despliegue falle por configuracion faltante.
-   Alternativamente ejecutar `operation=publish` desde `main` para bootstrap.
-2. Northflank: completar su requisito de metodo de pago y mantener el plan
-   **Sandbox**. Usar dos servicios **deployment**, una instancia cada uno, sin
-   servicios adicionales de build ni volumenes de pago. Confirmar el costo
-   mostrado antes de crearlos. El proyecto existente es `itecsa-app`.
-3. Crear una credencial de GHCR para `ghcr.io`, usuario GitHub y PAT classic con
-   `read:packages`, cuyo titular tenga acceso a ambos paquetes privados. El token
-   temporal `GITHUB_TOKEN` del workflow no sirve como credencial permanente de
-   Northflank. No ampliar a `write:packages` para descargar imagenes.
-4. Crear API y web desde los **dos digests de la misma release**. Dejar command y
-   entrypoint Docker en modo default. No configurar CI/CD desde Git en Northflank.
-5. API: puerto HTTP publico 3000, `PORT=3000`, `APP_ENV=production`, `NODE_ENV=production`, variables
-   backend actuales y CA montada en `/run/secrets/aiven-ca.pem`. Establecer
-   `DB_SSL_CA_PATH` a esa ruta, `FRONTEND_ORIGIN` al origen HTTPS de web.
-   Usar `SALES_NOTE_SOURCE=unavailable` hasta integrar Manager; el fixture
-   sintetico solo se admite en desarrollo y tests.
-   No sobreescribir `APP_VERSION`: viene grabada en la imagen.
-6. Web: puerto HTTP publico 8080 y las cuatro variables publicas. Usar como
-   `VITE_API_BASE_URL` el origen HTTPS publico de API terminado en `/api`.
-   Healthcheck web: `/version.json`; liveness API: `/api/health/live`.
-   Para readiness de BD, configurar `ENABLE_INTERNAL_READINESS=true` y
-   `INTERNAL_HEALTH_TOKEN`, restringir `/internal/ready` a red interna y probarlo
-   desde alli con `X-Health-Token`; no exponer el token ni esa ruta en el ingreso publico.
-7. En Auth0 añadir el origen HTTPS web a callbacks, logout y web origins de la
-   SPA, conservando localhost. Actualizar el enlace de recuperacion del template
-   de Universal Login a `/recuperar-contrasena` de la demo. No cambiar audience,
-   roles ni permisos por dockerizar. Verificar login/logout con una cuenta de prueba.
-8. Detras del ingreso publico de Northflank, establecer `TRUST_PROXY=1`
-   **solo si hay un unico salto y no hay acceso directo/bypass al puerto**. Verificar
-   el encabezado/IP de cliente en ese ingreso. No usar `trust proxy=true` ni confiar
-   en el primer valor arbitrario de `X-Forwarded-For`. En local usar 0.
-9. Crear token API de Northflank restringido al proyecto y los dos servicios, con
-   lectura general y actualizacion general. No necesita permisos para secretos,
-   usuarios, bases, creacion/eliminacion de servicios ni billing.
-10. En GitHub crear el Environment `northflank-demo` sin aprobacion manual para la
-    demo automatica. Guardar `NORTHFLANK_API_TOKEN` como secret. Configurar las
-    variables de la tabla siguiente (tambien se permiten variables de repositorio).
-11. Ejecutar `operation=deploy` y comprobar version y logs. Luego demostrar que un
-    merge real a `main` actualiza ambas capas. Configurar checks de PR como
-    obligatorios si el plan de GitHub permite proteger este repositorio privado.
+El proyecto `itecsa-app` del plan gratuito tiene dos servicios **deployment**,
+una instancia cada uno, sin build desde Git en Northflank. Las imagenes privadas
+de GHCR se publicaron manualmente desde `migration/docker` y estan fijadas por
+digest, ambas con version `b54ebd2e3ebf5fb907f8cf05f7c016952cfb7222`:
+
+| Servicio | Imagen | URL HTTPS |
+| --- | --- | --- |
+| API | `ghcr.io/grupo10ingsoftware/itecsa-app-api@sha256:0d5ba69891e0bec7aeb7d5f58755e7ab8850feb7c13e8cfbb9fcd02b84faac38` | `https://p01--itecsa-api--rqcl72xtx82w.code.run` |
+| Web | `ghcr.io/grupo10ingsoftware/itecsa-app-web@sha256:353e4caef7eb05063804870be33eb970df2b63c6ffa38f474d7c95f6111bab1b` | `https://p01--itecsa-web--rqcl72xtx82w.code.run` |
+
+La API usa `APP_ENV=development`, `NODE_ENV=development`,
+`SALES_NOTE_SOURCE=fixture`, `ENABLE_DEMO_ROUTES=false` y `TRUST_PROXY=0`.
+Conserva la Aiven compartida y el `PIN_SECRET` correspondiente. Sus credenciales
+se inyectan solo en la API; la CA se monta en `/run/secrets/aiven-ca.pem` con
+modo `0644`. La web recibe solo dominio, client ID, audience de Auth0 y URL de
+API mediante `/runtime-config.js`. La integracion `itecsa-ghcr-read` solo lee
+los paquetes privados. No se han ejecutado migraciones ni escrituras en Aiven
+durante esta activacion.
+
+Se comprobo por HTTPS que `/api/health/live` y `/version.json` muestran el SHA
+anterior, `/kanban` abre directamente, `/runtime-config.js` se sirve con
+`Cache-Control: no-store` y la API permite por CORS el origen web exacto. La
+consulta interna `SELECT 1` con Prisma desde el contenedor confirmo TLS con
+Aiven. Una cuenta de prueba completo login, consulta de una nota del JSON y
+logout. Northflank tiene readiness HTTP de API en `/api/health/live` (puerto
+3000) y de web en `/version.json` (puerto 8080); ambas instancias volvieron a
+estar disponibles tras guardar las pruebas. Estas comprobaciones no sustituyen
+una prueba de carga ni un periodo de observacion prolongado.
+
+Auth0 conserva localhost y admite la URL web de Northflank en callback, logout,
+Web Origins y CORS. El maximo de access token de ITECSA API, incluido el limite
+implicito, se ajusto a 3600 segundos. Falta observar su renovacion en una sesion
+de mas de una hora. No se cambio el ID token ni el enlace de recuperacion del
+template de Universal Login.
+
+**Pendientes del ensayo:** verificar como llega la IP del cliente antes de
+cambiar `TRUST_PROXY=0`; comprobar el enlace de recuperacion del template;
+observar estabilidad, memoria y latencia con uso real; demostrar rollback de
+ambas imagenes. `/api/health/db` ya no existe en el codigo actual; la ruta
+`/internal/ready` requiere habilitacion y token, y no se expuso publicamente.
+
+## Activacion posterior del despliegue automatico desde `main`
+
+El Environment de GitHub `northflank-demo` ya contiene las URLs e IDs publicos
+de la tabla siguiente. **No tiene `NORTHFLANK_API_TOKEN`**, por lo que el job de
+despliegue automatico aun no puede actualizar Northflank. No hacer merge a
+`main` esperando un despliegue exitoso hasta completar esta configuracion.
+
+1. Mantener el flujo acordado de PR a `dev` y despues a `main` cuando el equipo
+   lo apruebe. No se configuro disparador de Actions para `migration/docker`.
+2. Definir el alcance RBAC y crear un token API de Northflank para el workflow.
+   Northflank restringe roles por **proyecto**, no por servicio individual: un
+   permiso de lectura/actualizacion de servicios en `Itecsa-app` abarcaria los
+   dos actuales y cualquiera que se agregue despues. Esta ampliacion respecto
+   del plan inicial requiere decision del equipo. El token no debe poder leer
+   secretos, administrar usuarios o billing, ni crear/eliminar recursos.
+3. Guardar ese token como secret `NORTHFLANK_API_TOKEN` del Environment. No
+   pegarlo en Git, issues o chat. La credencial `read:packages` de Northflank
+   para GHCR es independiente y debe seguir vigente.
+4. Ejecutar `operation=deploy` con el SHA ya publicado y comprobar release,
+   logs y restauracion. Despues verificar un merge real a `main`. Configurar
+   checks de PR obligatorios si el plan de GitHub lo permite.
 
 | Variable GitHub | Valor |
 | --- | --- |

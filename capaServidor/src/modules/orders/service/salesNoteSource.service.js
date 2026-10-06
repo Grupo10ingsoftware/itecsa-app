@@ -2,7 +2,7 @@ import { AppError } from "../../../errors/AppError.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { isDemoFeatureEnabled } from "../../../config/environment.js";
+import { isSalesNoteFixtureEnabled } from "../../../config/environment.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,21 +107,21 @@ export class SalesNoteRepository {
 }
 
 export class FixtureSalesNoteRepository extends SalesNoteRepository {
-  constructor({ fixturePath = DEFAULT_FIXTURE_PATH, cacheTtlMs = 5 * 60 * 1000, now = Date.now, demoFeatureEnabled = isDemoFeatureEnabled } = {}) {
+  constructor({ fixturePath = DEFAULT_FIXTURE_PATH, cacheTtlMs = 5 * 60 * 1000, now = Date.now, fixtureEnabled = isSalesNoteFixtureEnabled } = {}) {
     super();
     this.fixturePath = fixturePath;
     this.cacheTtlMs = cacheTtlMs;
     this.now = now;
-    this.demoFeatureEnabled = demoFeatureEnabled;
+    this.fixtureEnabled = fixtureEnabled;
     this.cache = null;
     fixtureRepositories.add(this);
   }
 
   async getSalesNotes() {
-    if (!this.demoFeatureEnabled()) {
-      const error = new Error("La fuente demo de Notas de Venta no esta habilitada.");
+    if (!this.fixtureEnabled()) {
+      const error = new Error("La fuente de Notas de Venta no esta disponible.");
       error.statusCode = 503;
-      error.code = "DEMO_FEATURES_DISABLED";
+      error.code = "SALES_NOTE_SOURCE_UNAVAILABLE";
       throw error;
     }
 

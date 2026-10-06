@@ -5,7 +5,7 @@ export function isPaymentConfirmed(order) {
 }
 
 export function isLanyardItem(item) {
-  return String(item.product ?? item.nombre_producto ?? '').toLowerCase().includes('lanyard')
+  return String(item.product ?? '').toLowerCase().includes('lanyard')
 }
 
 export function getProductionPriority(order) {
@@ -40,7 +40,7 @@ export function hasOrderLabel(order, expectedNames = []) {
   const labels = Array.isArray(order.labels) ? order.labels : []
 
   return labels.some((label) =>
-    normalizedExpectedNames.includes(normalizeText(label?.nombre_etiqueta ?? label?.name ?? label)),
+    normalizedExpectedNames.includes(normalizeText(label?.name)),
   )
 }
 
@@ -64,38 +64,25 @@ export function getOrderCoreProductTypes(order) {
 }
 
 export function hasActiveFilters(filters = {}) {
-  return Object.values(filters).some((value) => normalizeText(value).length > 0)
+  return [filters.clientName, filters.salesNoteNumber, filters.productType]
+    .some((value) => normalizeText(value).length > 0)
 }
 
 export function orderMatchesFilters(order, filters = {}) {
   const normalizedFilters = {
     clientName: normalizeText(filters.clientName),
-    nv: normalizeText(filters.nv),
+    salesNoteNumber: normalizeText(filters.salesNoteNumber),
     productType: normalizeText(filters.productType),
-    seller: normalizeText(filters.seller),
   }
 
   if (!Object.values(normalizedFilters).some(Boolean)) return false
 
   const coreProductTypes = getOrderCoreProductTypes(order)
-  const sellerValues = [
-    order.seller,
-    order.vendedorResponsable,
-    order.vendedor_responsable,
-    ...(Array.isArray(order.items)
-      ? order.items.map((item) => item.seller ?? item.vendedorResponsable ?? item.vendedor_responsable)
-      : []),
-  ].map(normalizeText)
-
   if (normalizedFilters.clientName && !normalizeText(order.clientName).includes(normalizedFilters.clientName)) {
     return false
   }
 
-  if (normalizedFilters.nv && !normalizeText(order.salesNoteNumber).includes(normalizedFilters.nv)) {
-    return false
-  }
-
-  if (normalizedFilters.seller && !sellerValues.some((value) => value.includes(normalizedFilters.seller))) {
+  if (normalizedFilters.salesNoteNumber && !normalizeText(order.salesNoteNumber).includes(normalizedFilters.salesNoteNumber)) {
     return false
   }
 

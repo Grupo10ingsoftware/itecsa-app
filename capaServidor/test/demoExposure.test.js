@@ -9,10 +9,11 @@ import {
   ROLES,
   ROLES_CLAIM,
 } from "../../shared/authorization.js";
-import { resolveEnvironmentConfig } from "../src/config/environment.js";
+import { resolveEnvironmentConfig, isSalesNoteFixtureEnabled } from "../src/config/environment.js";
 import { createOrderRouter } from "../src/modules/orders/routes/order.routes.js";
 import SalesNoteSourceService from "../src/modules/orders/service/salesNoteSource.service.js";
 import Server from "../src/server.js";
+import { errorHandler } from "../src/errors/httpErrors.js";
 
 const productionEnvironment = {
   NODE_ENV: "production",
@@ -152,20 +153,38 @@ test("la API legacy demo permanece retirada incluso con opt-in de desarrollo", a
   );
 });
 
-test("la fixture de Notas de Venta falla cerrada sin demo habilitado", async () => {
+test("la fuente fixture de Notas de Venta requiere opt-in independiente de rutas demo", async () => {
   const disabled = new SalesNoteSourceService({
-    demoFeatureEnabled: () => false,
+    fixtureEnabled: () => false,
   });
   await assert.rejects(
     () => disabled.getByNumber("NV-2026-1001"),
-    { code: "DEMO_FEATURES_DISABLED", statusCode: 503 },
+    { code: "SALES_NOTE_SOURCE_UNAVAILABLE", statusCode: 503 },
   );
 
   const enabled = new SalesNoteSourceService({
-    demoFeatureEnabled: () => true,
+    fixtureEnabled: () => true,
   });
   const note = await enabled.getByNumber("NV-2026-22405");
   assert.equal(note.numeroNota, "22405");
+  assert.equal(isSalesNoteFixtureEnabled({ NODE_ENV: 'development', ENABLE_DEMO_ROUTES: 'false', SALES_NOTE_SOURCE: 'fixture' }), true);
+  assert.equal(isSalesNoteFixtureEnabled({ NODE_ENV: 'production', SALES_NOTE_SOURCE: 'fixture' }), false);
+  assert.throws(() => resolveEnvironmentConfig({ NODE_ENV: 'production', SALES_NOTE_SOURCE: 'fixture' }), /no puede habilitarse en production/);
+  assert.throws(() => resolveEnvironmentConfig({ NODE_ENV: 'development', SALES_NOTE_SOURCE: 'other' }), /SALES_NOTE_SOURCE/);
+});
+
+test('sin fuente de Notas de Venta la respuesta HTTP es 503 identificable', async (t) => {
+  const source = new SalesNoteSourceService({ fixtureEnabled: () => false });
+  const app = express();
+  app.get('/sales-note', async (_req, _res, next) => {
+    try { await source.getByNumber('23923'); next(new Error('unexpected success')); }
+    catch (error) { next(error); }
+  });
+  app.use(errorHandler);
+  const url = await listen(app, t);
+  const response = await fetch(`${url}/sales-note`);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, 'SALES_NOTE_SOURCE_UNAVAILABLE');
 });
 
 test("rechaza configuraciones divergentes de APP_ENV y NODE_ENV", () => {

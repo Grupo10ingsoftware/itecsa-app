@@ -20,9 +20,6 @@ export async function reevaluateFromSalesNoteOperation(repository, { orderId, sa
   });
   if (!order) return null;
 
-  const dueDate = salesNote.fechaEntregaTentativaOrigen
-    ? new Date(`${salesNote.fechaEntregaTentativaOrigen}T00:00:00.000Z`)
-    : null;
   await repository.client.cliente.update({
     where: { id_cliente: order.id_cliente },
     data: {
@@ -34,7 +31,6 @@ export async function reevaluateFromSalesNoteOperation(repository, { orderId, sa
   await repository.client.pedidos.update({
     where: { id_pedido: Number(orderId) },
     data: {
-      fecha_estimada_termino: dueDate,
       usuario_manager_origen: salesNote.origen?.usuarioManager ?? null,
       observacion_origen: salesNote.observaciones ?? null,
     },
@@ -86,7 +82,7 @@ export async function reevaluateFromSalesNoteOperation(repository, { orderId, sa
       }
       await repository.client.detalle_pedido.update({
         where: { id_detalle_pedido: existing.id_detalle_pedido },
-        data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto, fecha_estimada_termino: dueDate }, snapshotsSupported),
+        data: snapshotData({ ...snapshots[index], cantidad: Number(item.cantidad), id_tipo_producto: type.id_tipo_producto }, snapshotsSupported),
         ...snapshotOmit(snapshotsSupported),
       });
     } else {
@@ -96,7 +92,7 @@ export async function reevaluateFromSalesNoteOperation(repository, { orderId, sa
       await repository.client.detalle_pedido.create({ data: {
         ...snapshotData(snapshots[index], snapshotsSupported),
         id_pedido: Number(orderId), id_tipo_producto: type.id_tipo_producto,
-        cantidad: Number(item.cantidad), fecha_estimada_termino: dueDate,
+        cantidad: Number(item.cantidad), fecha_estimada_termino: order.fecha_estimada_termino ?? null,
         id_estado_subproceso: first?.id_estado_subproceso ?? null,
       }, ...snapshotOmit(snapshotsSupported) });
     }

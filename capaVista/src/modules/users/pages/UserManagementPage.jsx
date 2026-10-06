@@ -20,6 +20,7 @@ const EMPTY_SUMMARY = Object.freeze({
   vinculados: 0,
   desvinculados: 0,
   pendientes: 0,
+  pendientesRol: 0,
 })
 
 const DEFAULT_PAGE_SIZE = 10

@@ -8,6 +8,7 @@ services:
     environment:
       APP_ENV: development
       NODE_ENV: development
+      SALES_NOTE_SOURCE: ${SALES_NOTE_SOURCE:-fixture}
       PORT: 3000
       FRONTEND_ORIGIN: http://localhost:5173
       DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem

@@ -328,6 +328,16 @@ test("mantiene respuesta uniforme si falla Auth0", async () => {
     });
 });
 
+test("permite recuperar acceso antes del primer login sin activar la cuenta", async () => {
+    let requested = false;
+    const res = await executePasswordReset({
+        users: createUsersRepositoryMock({ user: { correoUsuario: 'usuario@example.cl', estadoUsuario: 'Pendiente' } }),
+        requestPasswordEmail: async () => { requested = true; },
+    });
+    assert.equal(res.statusCode, 202);
+    assert.equal(requested, true);
+});
+
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {
     let authCalls = 0;
     let emailRequested = false;

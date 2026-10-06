@@ -41,7 +41,7 @@ export function OrderDetailModal({ order, onClose }) {
             </div>
             <div>
               <dt>Vendedor responsable</dt>
-              <dd>{displayValue(order.seller, 'Ventas ITECSA')}</dd>
+              <dd>{displayValue(order.seller)}</dd>
             </div>
           </section>
 

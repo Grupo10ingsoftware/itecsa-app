@@ -1830,5 +1830,55 @@
         "importable": true
       }
     ]
+  },
+  {
+  "numeroNota": "67679",
+  "fechaEntregaTentativaOrigen": "2026-10-15",
+  "usuarioOrigenManager": "Usuario Demo 010",
+  "tipoNotaVentaOrigen": "Venta Normal",
+  "cliente": {
+    "RUT": "RUT-DEMO-006",
+    "CLIENTE": "Cliente Demo 006",
+    "dir": "Direccion Demo 006",
+    "comuna": "Comuna Demo 006",
+    "ciudad": "Ciudad Demo 006",
+    "TIPO_CLIENTE": "MASIVO"
+  },
+  "observaciones": "Pedido de prueba de 150 yoyos negros.",
+  "items": [
+    {
+      "codigo": "2100010010030",
+      "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+      "cantidad": 150,
+      "familia": "ACCESORIOS",
+      "subfamilia": "YOYO",
+      "importable": true
+    }
+  ]
+  },
+  {
+  "numeroNota": "69697",
+  "fechaEntregaTentativaOrigen": "2026-10-20",
+  "usuarioOrigenManager": "Usuario Demo 011",
+  "tipoNotaVentaOrigen": "Venta Normal",
+  "cliente": {
+    "RUT": "RUT-DEMO-007",
+    "CLIENTE": "Cliente Demo 007",
+    "dir": "Direccion Demo 007",
+    "comuna": "Comuna Demo 007",
+    "ciudad": "Ciudad Demo 007",
+    "TIPO_CLIENTE": "MASIVO"
+  },
+  "observaciones": "Pedido de prueba de 300 yoyos grises.",
+  "items": [
+    {
+      "codigo": "2100010010030",
+      "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+      "cantidad": 300,
+      "familia": "ACCESORIOS",
+      "subfamilia": "YOYO",
+      "importable": true
+    }
+  ]
   }
 ]

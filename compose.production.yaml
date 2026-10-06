@@ -10,6 +10,7 @@ services:
       DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem
       TRUST_PROXY: ${TRUST_PROXY:-0}
       ENABLE_DEMO_ROUTES: "false"
+      SALES_NOTE_SOURCE: unavailable
     secrets:
       - source: database_ca
         target: aiven-ca.pem

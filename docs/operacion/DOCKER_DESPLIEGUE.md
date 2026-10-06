@@ -18,7 +18,8 @@ docker compose --env-file capaServidor/.env up --build --watch
 ```
 
 Abrir `http://localhost:5173`. API: `http://localhost:3000/api`.
-Compose inyecta `APP_ENV=development`, `NODE_ENV=development`, el origen local y la ruta de CA del
+Compose inyecta `APP_ENV=development`, `NODE_ENV=development`,
+`SALES_NOTE_SOURCE=fixture` (salvo que se configure otro valor), el origen local y la ruta de CA del
 contenedor. El navegador usa URLs publicas/locales, nunca nombres internos como
 `http://api:3000`. Vite y nodemon reciben cambios de fuentes, fixture y `shared/`.
 Cambios de dependencias o schema Prisma reconstruyen la imagen correspondiente.
@@ -126,6 +127,8 @@ Guardar estas referencias junto a cada entrega al cliente.
 5. API: puerto HTTP publico 3000, `PORT=3000`, `APP_ENV=production`, `NODE_ENV=production`, variables
    backend actuales y CA montada en `/run/secrets/aiven-ca.pem`. Establecer
    `DB_SSL_CA_PATH` a esa ruta, `FRONTEND_ORIGIN` al origen HTTPS de web.
+   Usar `SALES_NOTE_SOURCE=unavailable` hasta integrar Manager; el fixture
+   sintetico solo se admite en desarrollo y tests.
    No sobreescribir `APP_VERSION`: viene grabada en la imagen.
 6. Web: puerto HTTP publico 8080 y las cuatro variables publicas. Usar como
    `VITE_API_BASE_URL` el origen HTTPS publico de API terminado en `/api`.

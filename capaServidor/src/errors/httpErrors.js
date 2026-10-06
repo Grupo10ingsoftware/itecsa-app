@@ -45,6 +45,9 @@ export function requestContext(req, res, next) {
 }
 
 function publicError(error) {
+    if (error?.code === 'SALES_NOTE_SOURCE_UNAVAILABLE' || error?.code === 'EXTERNAL_SALES_NOTE_SOURCE_UNAVAILABLE') {
+        return { status: 503, code: 'SALES_NOTE_SOURCE_UNAVAILABLE', message: 'La fuente de Notas de Venta no esta disponible.' };
+    }
     if (error instanceof SalesOrderError && error.statusCode >= 400 && error.statusCode < 500) return { status: error.statusCode, code: "ORDER_REQUEST_REJECTED", message: error.message };
     if (error instanceof SecurityAppError && error.expose !== false && error.status >= 400 && error.status < 500) return { status: error.status, code: error.code, message: error.message };
     if (error instanceof AppError && error.statusCode >= 400 && error.statusCode < 500) {

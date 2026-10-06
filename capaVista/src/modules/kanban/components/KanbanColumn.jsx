@@ -10,7 +10,7 @@ import { normalizeOrder, normalizeStatus } from '../utils/kanbanOrderMapping.js'
 import { normalizeText, isItemReadyForDelivery, isPaymentConfirmed, hasOrderLabel, sortOrdersForColumn } from '../utils/kanbanOrderRules.js';
 import { DroppableColumn } from './DroppableColumn.jsx';
 import { MoveToProductionModal } from './MoveToProductionModal.jsx';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useKanbanApi } from '../hooks/useKanbanApi';
 import { useAuth } from '../../../hooks/useAuth';
 import { applyOrderStagePatch } from '../utils/orderStagePatch';
@@ -21,6 +21,7 @@ import Toast from 'react-bootstrap/Toast';
 import { DragDropProvider } from '@dnd-kit/react';
 import KanbanCard from './KanbanCard';
 import KanbanOffCanvas from './KanbanOffCanvas';
+import KanbanDetailBoundary from './KanbanDetailBoundary.jsx';
 
 function KanbanColumn({ filters, refreshKey = 0 }) {
   const [orders, setOrders] = useState([])
@@ -28,6 +29,8 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(null)
+  const detailRequestId = useRef(0)
   const [loadError, setLoadError] = useState(null)
   const [moveError, setMoveError] = useState(null)
   const [pageInfo, setPageInfo] = useState({ nextCursor: null, hasMore: false })
@@ -44,7 +47,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         const [ordersResult, statusesResult] = await Promise.allSettled([
           kanbanApi.getOrders({
             limit: 50,
-            search: filters?.nv || filters?.clientName || '',
+            search: filters?.salesNoteNumber || filters?.clientName || '',
             productType: filters?.productType || '',
           }),
           kanbanApi.getOrderStatuses(),
@@ -86,7 +89,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
     }
 
     loadOrders()
-  }, [filters?.clientName, filters?.nv, filters?.productType, kanbanApi, refreshKey])
+  }, [filters?.clientName, filters?.salesNoteNumber, filters?.productType, kanbanApi, refreshKey])
 
   async function loadMoreOrders() {
     if (!pageInfo.hasMore || !pageInfo.nextCursor || loadingMore) return
@@ -95,7 +98,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
       const result = await kanbanApi.getOrders({
         limit: 50,
         cursor: pageInfo.nextCursor,
-        search: filters?.nv || filters?.clientName || '',
+        search: filters?.salesNoteNumber || filters?.clientName || '',
         productType: filters?.productType || '',
       })
       const nextOrders = (result.items ?? [])
@@ -187,15 +190,25 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
   }
 
   async function openOrderDetail(order) {
+    const requestId = ++detailRequestId.current
+    setSelectedOrder(order)
+    setDetailError(null)
     setDetailLoading(true)
     try {
       const detail = await kanbanApi.getOrderDetail(order.id)
-      setSelectedOrder(normalizeOrder(detail))
+      if (requestId === detailRequestId.current) setSelectedOrder(normalizeOrder(detail))
     } catch (error) {
-      setMoveError(error?.payload?.message ?? 'No fue posible cargar el detalle del pedido.')
+      if (requestId === detailRequestId.current) setDetailError(error?.payload?.message ?? 'No fue posible cargar el detalle del pedido.')
     } finally {
-      setDetailLoading(false)
+      if (requestId === detailRequestId.current) setDetailLoading(false)
     }
+  }
+
+  function closeOrderDetail() {
+    detailRequestId.current += 1
+    setSelectedOrder(null)
+    setDetailError(null)
+    setDetailLoading(false)
   }
 
   async function handleToggleIndicator(orderId, indicator) {
@@ -368,10 +381,12 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
           </button>
         </div>
       )}
-      {detailLoading && <div role="status">Cargando detalle del pedido…</div>}
+      <KanbanDetailBoundary key={selectedOrder?.id ?? 'closed'} onClose={closeOrderDetail}>
       <KanbanOffCanvas
         isOpen={selectedOrder !== null}
-        onClose={() => setSelectedOrder(null)}
+        isLoading={detailLoading}
+        loadError={detailError}
+        onClose={closeOrderDetail}
         onCompleteSubprocess={handleCompleteSubprocess}
         canCompleteSubprocess={hasPermission(PERMISSIONS.UPDATE_SUBPROCESSES)}
         canReview={hasPermission(PERMISSIONS.REVIEW_ORDERS)}
@@ -384,6 +399,7 @@ function KanbanColumn({ filters, refreshKey = 0 }) {
         onSendToReview={handleSendToReview}
         order={selectedOrder}
       />
+      </KanbanDetailBoundary>
       <MoveToProductionModal
         isOpen={Boolean(pendingProductionMove)}
         onClose={() => setPendingProductionMove(null)}

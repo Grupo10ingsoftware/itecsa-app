@@ -187,6 +187,8 @@ export class UserRepository {
             where.estado_usuario = USER_STATUS.UNLINKED;
         } else if (ACTIVE_USER_STATUSES.includes(estadoUsuario)) {
             where.estado_usuario = { in: [...ACTIVE_USER_STATUSES] };
+        } else if (estadoUsuario === USER_STATUS.PENDING_FIRST_LOGIN) {
+            where.estado_usuario = USER_STATUS.PENDING_FIRST_LOGIN;
         } else if (estadoUsuario === USER_STATUS.PENDING_ROLE) {
             where.estado_usuario = USER_STATUS.PENDING_ROLE;
         }
@@ -248,13 +250,15 @@ export class UserRepository {
                 0,
             );
             const desvinculados = counts.get(USER_STATUS.UNLINKED) ?? 0;
-            const pendientes = counts.get(USER_STATUS.PENDING_ROLE) ?? 0;
+            const pendientes = counts.get(USER_STATUS.PENDING_FIRST_LOGIN) ?? 0;
+            const pendientesRol = counts.get(USER_STATUS.PENDING_ROLE) ?? 0;
 
             return {
                 totalUsuarios,
                 vinculados,
                 desvinculados,
                 pendientes,
+                pendientesRol,
             };
         } catch (error) {
             throw mapRepositoryError(error);
@@ -433,6 +437,23 @@ export class UserRepository {
             return this.findByAuth0Id(auth0UserId);
         } catch (error) {
             if (error instanceof UserRepositoryError) throw error;
+            throw mapRepositoryError(error);
+        }
+    }
+
+    async activateOnFirstAccess(auth0UserId, role) {
+        try {
+            await this.client.usuario.updateMany({
+                where: {
+                    id_auth0: auth0UserId,
+                    rol_usuario: role,
+                    estado_usuario: USER_STATUS.PENDING_FIRST_LOGIN,
+                },
+                data: { estado_usuario: USER_STATUS.ACTIVE },
+            });
+            // La lectura posterior resuelve accesos concurrentes y revocaciones simultaneas.
+            return this.findByAuth0Id(auth0UserId);
+        } catch (error) {
             throw mapRepositoryError(error);
         }
     }

@@ -44,6 +44,7 @@ const SELF_UNLINK_ERROR_MESSAGE =
 const SELF_ROLE_UPDATE_ERROR_MESSAGE =
     "No puedes cambiar tu propio rol.";
 const ACTIVE_USER_STATUS = USER_STATUS.ACTIVE;
+const PENDING_FIRST_LOGIN_USER_STATUS = USER_STATUS.PENDING_FIRST_LOGIN;
 const PENDING_ROLE_USER_STATUS = USER_STATUS.PENDING_ROLE;
 
 function managementUserResponse(user) {
@@ -454,7 +455,9 @@ export function createPasswordSetupEmailHandler({
                 if (!target) res.status(403).json({message:"No puedes gestionar ese usuario."});
                 return;
             }
-            if (!isActiveUserStatus(target.estadoUsuario)) return res.status(403).json({message:"Usuario desvinculado."});
+            if (!isActiveUserStatus(target.estadoUsuario) && target.estadoUsuario !== PENDING_FIRST_LOGIN_USER_STATUS) {
+                return res.status(403).json({message:"Usuario desvinculado."});
+            }
             await requestPasswordEmail({
                 email: validatedRequest.correoUsuario,
             });
@@ -537,7 +540,7 @@ export function createAdminUserHandler({
                 apellidoUsuario: user.apellidoUsuario,
                 rolUsuario: user.rolUsuario,
                 estadoUsuario: createdUser.roleAssignmentCompleted
-                    ? ACTIVE_USER_STATUS
+                    ? PENDING_FIRST_LOGIN_USER_STATUS
                     : PENDING_ROLE_USER_STATUS,
             });
         } catch (error) {

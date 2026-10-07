@@ -56,8 +56,11 @@
 
     var databaseConnection = 'Username-Password-Authentication';
 
-    var passwordResetUrl = 'http://localhost:5173/recuperar-contrasena';
-    // Producción futura: cambiar a https://app.itecsa.cl/recuperar-contrasena
+    var localCallback = /^http:\/\/localhost:5173(?:\/|$)/.test(config.callbackURL || '');
+    var passwordResetOrigin = localCallback
+      ? 'http://localhost:5173'
+      : 'https://web--itecsa-web--rqcl72xtx82w.code.run';
+    var passwordResetUrl = passwordResetOrigin + '/recuperar-contrasena';
 
     languageDictionary.title = 'ITECSA';
 

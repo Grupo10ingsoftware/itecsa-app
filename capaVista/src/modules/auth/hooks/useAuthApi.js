@@ -1,20 +1,25 @@
+import { runtimeConfig } from '../../../config/runtimeConfig.js'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useMemo } from 'react'
 import { createApiClient } from '../../../services/api/apiClient'
 import { createAuthApi } from '../api/authApi'
 
 export function useAuthApi() {
-  const { getAccessTokenSilently } = useAuth0()
+  const { getAccessTokenSilently, user } = useAuth0()
 
   const getAccessToken = useCallback(
     () =>
       getAccessTokenSilently({
         authorizationParams: {
-          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+          audience: runtimeConfig.auth0Audience,
         },
       }),
     [getAccessTokenSilently],
   )
 
-  return useMemo(() => createAuthApi(createApiClient({ getAccessToken })), [getAccessToken])
+  // An in-flight read must never be reused by another authenticated subject.
+  return useMemo(
+    () => createAuthApi(createApiClient({ getAccessToken }), { subject: user?.sub }),
+    [getAccessToken, user?.sub],
+  )
 }

@@ -1,0 +1,392 @@
+.modal {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.9rem;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  max-width: min(70rem, calc(100vw - 2rem));
+  min-height: 0;
+  overflow: hidden;
+  width: 70rem;
+}
+
+.header {
+  align-items: flex-start;
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 9.25rem;
+  padding: 1.65rem 2.25rem;
+}
+
+.header > div {
+  min-width: 0;
+}
+
+.kicker {
+  color: #f97316;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  color: #fff;
+  font-size: clamp(1.8rem, 3vw, 2.45rem);
+  font-weight: 850;
+  line-height: 1;
+  margin: 0;
+}
+
+.header p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.98rem;
+  line-height: 1.4;
+  margin: 0.7rem 0 0;
+}
+
+.closeButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.6rem;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  width: 2.6rem;
+}
+
+.closeButton:hover:not(:disabled),
+.closeButton:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.7);
+  outline: none;
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1.35rem;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.5rem 2rem 1.65rem;
+  scrollbar-color: #aeb7c4 #eeeeef;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.body::-webkit-scrollbar {
+  width: 0.65rem;
+}
+
+.body::-webkit-scrollbar-track {
+  background: #eeeeef;
+}
+
+.body::-webkit-scrollbar-thumb {
+  background: #aeb7c4;
+  border: 2px solid #eeeeef;
+  border-radius: 999px;
+}
+
+.identityCard {
+  align-items: center;
+  background: #f4f4f5;
+  border: 1px solid #dfe5ec;
+  border-radius: 0.7rem;
+  display: flex;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem 1.15rem;
+}
+
+.identityAvatar {
+  align-items: center;
+  background: #e5e7eb;
+  border-radius: 0.7rem;
+  color: #111827;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.45rem;
+  height: 4.25rem;
+  justify-content: center;
+  width: 4.25rem;
+}
+
+.identityCard h3,
+.identityCard p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.identityCard h3 {
+  color: #111827;
+  font-size: 1.45rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.identityCard p {
+  color: #64748b;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+.fieldsGrid {
+  display: grid;
+  gap: 1.15rem 1.35rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.field {
+  display: grid;
+  gap: 0.48rem;
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.controlWrap {
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  display: grid;
+  grid-template-columns: 3.35rem minmax(0, 1fr);
+  min-height: 3.2rem;
+  min-width: 0;
+  overflow: hidden;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.controlWrap:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.14);
+}
+
+.controlWrap > i {
+  align-items: center;
+  background: #f1f2f4;
+  color: #111827;
+  display: inline-flex;
+  font-size: 1.1rem;
+  justify-content: center;
+}
+
+.controlWrap input,
+.controlWrap select {
+  background: #fff;
+  border: 0;
+  color: #111827;
+  font-size: 0.94rem;
+  min-height: 3.15rem;
+  min-width: 0;
+  outline: none;
+  padding: 0.65rem 0.8rem;
+  width: 100%;
+}
+
+.controlWrap input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+.controlWrap select:disabled {
+  background: #eeeeef;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.controlInvalid {
+  border-color: #dc2626;
+}
+
+.fieldHelp,
+.fieldError {
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fieldHelp {
+  color: #92400e;
+}
+
+.fieldError {
+  color: #b91c1c;
+}
+
+.saveError {
+  flex: 0 0 auto;
+  margin: 0 2rem 1rem;
+}
+
+.actions {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+}
+
+.primaryActions {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.actionButton {
+  min-height: 3rem;
+  min-width: 10rem;
+}
+
+.saveButton {
+  min-width: 13rem;
+}
+
+.unlinkButton {
+  min-width: 10rem !important;
+}
+
+@media (max-width: 767.98px) {
+  .modal {
+    height: calc(100dvh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    width: 100%;
+  }
+
+  .header {
+    min-height: auto;
+    padding: 1.25rem 1.35rem;
+  }
+
+  .body {
+    padding: 1.1rem;
+  }
+
+  .fieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldWide {
+    grid-column: auto;
+  }
+
+  .actions {
+    padding: 0.9rem 1.1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .modal {
+    border-radius: 0.7rem;
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .header {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .kicker {
+    font-size: 0.68rem;
+  }
+
+  .header h2 {
+    font-size: 1.4rem;
+    line-height: 1.1;
+  }
+
+  .header p {
+    font-size: 0.84rem;
+    margin-top: 0.5rem;
+  }
+
+  .closeButton {
+    height: 2.25rem;
+    width: 2.25rem;
+  }
+
+  .body {
+    gap: 1rem;
+    padding: 0.9rem;
+  }
+
+  .identityCard {
+    align-items: flex-start;
+    padding: 0.85rem;
+  }
+
+  .identityAvatar {
+    font-size: 1.2rem;
+    height: 3.25rem;
+    width: 3.25rem;
+  }
+
+  .identityCard h3 {
+    font-size: 1.05rem;
+  }
+
+  .identityCard p {
+    font-size: 0.88rem;
+  }
+
+  .controlWrap {
+    grid-template-columns: 2.8rem minmax(0, 1fr);
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    padding: 0.85rem;
+  }
+
+  .primaryActions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .actionButton,
+  .saveButton,
+  .unlinkButton {
+    width: 100%;
+  }
+}

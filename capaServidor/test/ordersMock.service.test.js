@@ -1,3 +1,5 @@
+import { ROLES, ROLE_PERMISSIONS } from "../../shared/authorization.js";
+const revisionActor = {role: ROLES.ADMIN_COBRANZAS, permissions: ROLE_PERMISSIONS[ROLES.ADMIN_COBRANZAS], observacion:"Correccion justificada"};
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import {
@@ -8,7 +10,7 @@ import {
     PAYMENT_STATUS,
 } from "../src/config/status.js";
 import OrderService, {
-    CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+    RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE,
 } from "../src/modules/orders/service/order.service.js";
 
 const INITIAL_ORDERS = [
@@ -34,12 +36,15 @@ const INITIAL_ORDERS = [
 
 let orders;
 let paymentRecords;
-let paymentSignatures;
+let stageTransitions;
+let productionNotifications;
+const PIN_ACTOR = { idUsuario: 10 };
 
 beforeEach(() => {
     orders = INITIAL_ORDERS.map((order) => ({ ...order }));
     paymentRecords = [];
-    paymentSignatures = [];
+    stageTransitions = [];
+    productionNotifications = [];
 });
 
 function findOrder(orderId) {
@@ -52,6 +57,20 @@ function createService(overrides = {}) {
             async get(orderId) {
                 return findOrder(orderId) ?? null;
             },
+            async getTransitionState(orderId) {
+                const order = findOrder(orderId);
+                return order ? { ...order, id_estado_pedido: order.id_etapa_general + 1 } : null;
+            },
+            async getPaymentOrder(orderId) {
+                const order = findOrder(orderId);
+                return order ? { ...order } : null;
+            },
+            async lockPaymentOrder(orderId) {
+                return Boolean(findOrder(orderId));
+            },
+            async getPaymentOrders() {
+                return orders.map((order) => ({ ...order }));
+            },
             async updatePaymentStatus(orderId, paymentStatusId, nextKanbanOrder) {
                 const order = findOrder(orderId);
 
@@ -63,21 +82,50 @@ function createService(overrides = {}) {
                     2: PAYMENT_STATUS.CONFIRMADO,
                     3: PAYMENT_STATUS.RECHAZADO,
                 }[Number(paymentStatusId)];
-                order.id_etapa_general = Number(nextKanbanOrder);
+                if (nextKanbanOrder !== null && nextKanbanOrder !== undefined) {
+                    order.id_etapa_general = Number(nextKanbanOrder);
+                }
 
                 return { ...order };
             },
-            async updateGeneralStep(orderId, stepId) {
+            async notifyProductionAdministrators(notification) {
+                productionNotifications.push(notification);
+                return notification;
+            },
+            async updateGeneralStep(orderId, stepId, audit) {
                 const order = findOrder(orderId);
 
                 if (!order) return null;
 
                 order.id_etapa_general = Number(stepId);
+                stageTransitions.push({ orderId, stepId, ...audit });
 
+                return { ...order };
+            },
+            async sendToReview(orderId, audit) {
+                const order = findOrder(orderId);
+                if (!order) return null;
+                order.id_etapa_general = 6;
+                stageTransitions.push({ orderId, review: true, ...audit });
+                return { ...order };
+            },
+            async cancelProduction(orderId, audit) {
+                const order = findOrder(orderId);
+                if (!order) return null;
+                order.id_etapa_general = 5;
+                order.nombre_etapa_general = "Cancelado";
+                stageTransitions.push({ orderId, cancelled: true, ...audit });
                 return { ...order };
             },
         },
         paymentRepo: {
+            async getAll() {
+                return [
+                    { id_estado_pago: 1, nombre_estado_pago: PAYMENT_STATUS.PENDIENTE },
+                    { id_estado_pago: 2, nombre_estado_pago: PAYMENT_STATUS.CONFIRMADO },
+                    { id_estado_pago: 3, nombre_estado_pago: PAYMENT_STATUS.RECHAZADO },
+                ];
+            },
             async get(paymentStatusId) {
                 if (Number(paymentStatusId) === 1) {
                     return { id_estado_Pago: 1, nombre_estado_pago: PAYMENT_STATUS.PENDIENTE };
@@ -100,12 +148,6 @@ function createService(overrides = {}) {
                 return paymentRecords.at(-1);
             },
         },
-        paymentSignatureService: overrides.paymentSignatureService ?? {
-            async signPaymentDocument(orderId, userId) {
-                paymentSignatures.push({ orderId, userId });
-                return paymentSignatures.at(-1);
-            },
-        },
         userRepo: {
             async findByAuth0Id(auth0UserId) {
                 if (auth0UserId === "auth0|user-10") {
@@ -118,31 +160,83 @@ function createService(overrides = {}) {
     });
 }
 
+function synchronizePaymentTransactions(service) {
+    const read = service.repo.getPaymentOrder.bind(service.repo);
+    let initialReads = 0;
+    let releaseInitialReads;
+    const bothInitialReads = new Promise((resolve) => { releaseInitialReads = resolve; });
+    service.repo.getPaymentOrder = async (orderId) => {
+        const snapshot = await read(orderId);
+        if (++initialReads <= 2) {
+            if (initialReads === 2) releaseInitialReads();
+            await bothInitialReads;
+        }
+        return snapshot;
+    };
+
+    let transactionTail = Promise.resolve();
+    service.runInTransaction = async (callback) => {
+        const previous = transactionTail;
+        let release;
+        transactionTail = new Promise((resolve) => { release = resolve; });
+        await previous;
+        try {
+            return await callback({
+                repo: service.repo,
+                paymentRecordService: service.paymentRecordService,
+            });
+        } finally {
+            release();
+        }
+    };
+}
+
+test("carga pedidos y estados del espacio de cobranzas en paralelo", async () => {
+    const service = createService();
+    const workspace = await service.getPaymentWorkspace();
+
+    assert.equal(workspace.orders.length, INITIAL_ORDERS.length);
+    assert.deepEqual(
+        workspace.paymentStatuses.map((status) => status.nombre_estado_pago),
+        [
+            PAYMENT_STATUS.PENDIENTE,
+            PAYMENT_STATUS.CONFIRMADO,
+            PAYMENT_STATUS.RECHAZADO,
+        ],
+    );
+});
+
 test("al confirmar pago mueve la orden a Listo para produccion", async () => {
     const service = createService();
     const order = await service.updPaymentState(1, 2, { id_usuario: 10 });
 
+    assert.equal(productionNotifications.length, 1);
+    assert.equal(productionNotifications[0].orderId, 1);
+    assert.match(productionNotifications[0].subject, /Pago confirmado/);
     assert.equal(order.estado_pago, "Confirmado");
     assert.equal(order.id_etapa_general, 1);
     assert.deepEqual(paymentRecords, [
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 2,
             observacion: undefined,
         },
     ]);
-    assert.deepEqual(paymentSignatures, [{ orderId: 1, userId: 10 }]);
 });
 
-test("al dejar pago pendiente desde rechazado devuelve la orden a Confirmacion de pago", async () => {
+test("bloquea volver a Pendiente desde un pago rechazado", async () => {
     const service = createService();
     await service.updPaymentState(1, 3, { id_usuario: 10 });
 
-    const order = await service.updPaymentState(1, 1, { id_usuario: 10 });
-
-    assert.equal(order.estado_pago, "Pendiente");
-    assert.equal(order.id_etapa_general, 0);
+    await assert.rejects(
+        () => service.updPaymentState(1, 1, { id_usuario: 10, ...revisionActor }),
+        {
+            statusCode: 409,
+            message: RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE,
+        },
+    );
 });
 
 test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
@@ -155,50 +249,136 @@ test("al rechazar pago usa el estado real 3 y registra auditoria", async () => {
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 3,
             observacion: undefined,
         },
     ]);
-    assert.deepEqual(paymentSignatures, []);
 });
 
 test("bloquea devolver un pago confirmado a pendiente sin crear auditoria", async () => {
     const service = createService();
 
     await assert.rejects(
-        () => service.updPaymentState(6, 1, { id_usuario: 10 }),
+        () => service.updPaymentState(6, 1, { id_usuario: 10, ...revisionActor }),
         {
             statusCode: 409,
-            message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+            message: RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE,
         },
     );
 
     assert.deepEqual(paymentRecords, []);
-    assert.deepEqual(paymentSignatures, []);
 });
 
-test("bloquea rechazar un pago confirmado sin crear auditoria", async () => {
+test("rechazar un pago confirmado y listo para produccion cancela el pedido", async () => {
+    const service = createService();
+    const order = await service.updPaymentState(6, 3, {
+        id_usuario: 10,
+        ...revisionActor,
+    });
+
+    assert.equal(order.estado_pago, PAYMENT_STATUS.RECHAZADO);
+    assert.equal(order.id_etapa_general, 5);
+    assert.equal(paymentRecords.length, 1);
+    assert.equal(paymentRecords[0].id_estado_pago_anterior, 2);
+    assert.equal(paymentRecords[0].id_estado_pago, 3);
+    assert.equal(productionNotifications.length, 1);
+    assert.equal(
+        productionNotifications[0].subject,
+        "Pedido cancelado por rechazo de pago",
+    );
+});
+
+test("rechazar un pago en produccion conserva la etapa y solicita cancelacion", async () => {
+    const service = createService();
+    const order = await service.updPaymentState(7, 3, {
+        id_usuario: 10,
+        ...revisionActor,
+    });
+
+    assert.equal(order.estado_pago, PAYMENT_STATUS.RECHAZADO);
+    assert.equal(order.id_etapa_general, 2);
+    assert.equal(productionNotifications.length, 1);
+    assert.equal(
+        productionNotifications[0].subject,
+        "Cancelación de producción requerida",
+    );
+});
+
+test("operario cobranzas no puede modificar una decision de pago", async () => {
     const service = createService();
 
     await assert.rejects(
-        () => service.updPaymentState(6, 3, { id_usuario: 10 }),
+        () => service.updPaymentState(6, 3, {
+            id_usuario: 10,
+            role: ROLES.COBRANZAS,
+            permissions: ROLE_PERMISSIONS[ROLES.COBRANZAS],
+            observacion: "Intento no autorizado",
+        }),
         {
-            statusCode: 409,
-            message: CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE,
+            statusCode: 403,
+            message: "Solo Administrador Cobranzas o Soporte puede modificar una decision de pago.",
         },
     );
 
     assert.deepEqual(paymentRecords, []);
-    assert.deepEqual(paymentSignatures, []);
 });
 
-test("no regenera firma ni auditoria si el pago ya estaba confirmado", async () => {
+test("confirmar un pago rechazado sigue el flujo normal a Listo para produccion", async () => {
+    const service = createService();
+    await service.updPaymentState(1, 3, { id_usuario: 10 });
+
+    const order = await service.updPaymentState(1, 2, {
+        id_usuario: 10,
+        ...revisionActor,
+    });
+
+    assert.equal(order.estado_pago, PAYMENT_STATUS.CONFIRMADO);
+    assert.equal(order.id_etapa_general, 1);
+    assert.equal(productionNotifications.length, 1);
+    assert.match(productionNotifications[0].subject, /Pago confirmado/);
+});
+
+test("no registra auditoria si el pago ya estaba confirmado", async () => {
     const service = createService();
     const order = await service.updPaymentState(6, 2, { id_usuario: 10 });
+    assert.deepEqual(productionNotifications, []);
 
     assert.equal(order.estado_pago, PAYMENT_STATUS.CONFIRMADO);
     assert.deepEqual(paymentRecords, []);
-    assert.deepEqual(paymentSignatures, []);
+});
+
+test("dos decisiones concurrentes sobre Pendiente dejan solo una auditoria", async () => {
+    const service = createService();
+    synchronizePaymentTransactions(service);
+
+    const [confirmed, rejected] = await Promise.allSettled([
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+        service.updPaymentState(1, 3, { id_usuario: 10 }),
+    ]);
+
+    assert.equal(confirmed.status, "fulfilled");
+    assert.equal(rejected.status, "rejected");
+    assert.equal(rejected.reason.statusCode, 409);
+    assert.equal(findOrder(1).id_estado_pago, 2);
+    assert.equal(paymentRecords.length, 1);
+    assert.equal(paymentRecords[0].id_estado_pago_anterior, 1);
+    assert.equal(productionNotifications.length, 1);
+});
+
+test("dos confirmaciones concurrentes son idempotentes", async () => {
+    const service = createService();
+    synchronizePaymentTransactions(service);
+
+    const results = await Promise.all([
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+        service.updPaymentState(1, 2, { id_usuario: 10 }),
+    ]);
+
+    assert.equal(results[0].id_estado_pago, 2);
+    assert.equal(results[1].id_estado_pago, 2);
+    assert.equal(paymentRecords.length, 1);
+    assert.equal(productionNotifications.length, 1);
 });
 
 test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
@@ -209,115 +389,11 @@ test("resuelve usuario interno desde Auth0 al registrar pago", async () => {
         {
             orderId: 1,
             id_usuario: 10,
+            id_estado_pago_anterior: 1,
             id_estado_pago: 2,
             observacion: undefined,
         },
     ]);
-    assert.deepEqual(paymentSignatures, [{ orderId: 1, userId: 10 }]);
-});
-
-test("si falla la firma no actualiza pago ni auditoria", async () => {
-    const service = createService({
-        paymentSignatureService: {
-            async signPaymentDocument() {
-                const error = new Error("No fue posible firmar la Nota de Venta.");
-                error.statusCode = 409;
-                throw error;
-            },
-        },
-    });
-
-    await assert.rejects(
-        () => service.updPaymentState(1, 2, { id_usuario: 10 }),
-        {
-            statusCode: 409,
-            message: "No fue posible firmar la Nota de Venta.",
-        },
-    );
-
-    assert.equal(findOrder(1).estado_pago, PAYMENT_STATUS.PENDIENTE);
-    assert.deepEqual(paymentRecords, []);
-    assert.deepEqual(paymentSignatures, []);
-});
-
-test("obtiene evidencia de firma de pago desde ruta segura", async () => {
-    const service = createService({
-        paymentSignatureService: {
-            async getOrderSalesNote() {
-                return {
-                    id_documento: 1,
-                    Firma_Documento: [
-                        {
-                            id_usuario: 3,
-                            Firma_Pago: { id_firma_documento: 1 },
-                        },
-                    ],
-                };
-            },
-            async getUserSignature() {
-                return {
-                    ruta_firma:
-                        "itecsa-app\\data\\Firmas\\firma-1780976763211-b5b6a56b-8f24-4bca-ab7b-0518bc2a78a6.pdf",
-                };
-            },
-        },
-    });
-
-    const evidence = await service.getPaymentSignatureEvidence(1);
-
-    assert.match(evidence.filePath, /data[\\/]Firmas[\\/]firma-.*\.pdf$/);
-});
-
-test("rechaza evidencia si el pedido no tiene firma de pago", async () => {
-    const service = createService({
-        paymentSignatureService: {
-            async getOrderSalesNote() {
-                return {
-                    id_documento: 1,
-                    Firma_Documento: [],
-                };
-            },
-        },
-    });
-
-    await assert.rejects(
-        () => service.getPaymentSignatureEvidence(1),
-        {
-            statusCode: 404,
-            message: "El pedido no tiene evidencia de firma de pago.",
-        },
-    );
-});
-
-test("rechaza evidencia si la ruta de firma sale de data/Firmas", async () => {
-    const service = createService({
-        paymentSignatureService: {
-            async getOrderSalesNote() {
-                return {
-                    id_documento: 1,
-                    Firma_Documento: [
-                        {
-                            id_usuario: 3,
-                            Firma_Pago: { id_firma_documento: 1 },
-                        },
-                    ],
-                };
-            },
-            async getUserSignature() {
-                return {
-                    ruta_firma: "itecsa-app\\data\\NVS\\Pedido1.pdf",
-                };
-            },
-        },
-    });
-
-    await assert.rejects(
-        () => service.getPaymentSignatureEvidence(1),
-        {
-            statusCode: 409,
-            message: "La evidencia de firma no tiene una ruta valida.",
-        },
-    );
 });
 
 test("bloquea mover a Listo para produccion con pago pendiente", async () => {
@@ -326,14 +402,15 @@ test("bloquea mover a Listo para produccion con pago pendiente", async () => {
     await assert.rejects(
         () => service.updGeneralStep(1, 1),
         {
-            message: PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
+            statusCode: 403,
+            message: "Esta transicion no admite movimiento manual.",
         },
     );
 });
 
 test("permite mover a Listo para produccion con pago confirmado", async () => {
     const service = createService();
-    const order = await service.updGeneralStep(6, 1);
+    const order = await service.updGeneralStep(6, 1, { actor: PIN_ACTOR });
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 1);
@@ -343,7 +420,7 @@ test("bloquea mover a En produccion sin permiso admin", async () => {
     const service = createService();
 
     await assert.rejects(
-        () => service.updGeneralStep(6, 2, { permissions: ["view:kanban-module"] }),
+        () => service.updGeneralStep(6, 2, { permissions: ["view:kanban-module"], actor: PIN_ACTOR }),
         {
             statusCode: 403,
             message: KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
@@ -354,11 +431,58 @@ test("bloquea mover a En produccion sin permiso admin", async () => {
 test("permite mover a En produccion con el permiso requerido", async () => {
     const service = createService();
     const order = await service.updGeneralStep(6, 2, {
+        role: ROLES.ADMINISTRADOR,
         permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+        actor: PIN_ACTOR,
     });
 
     assert.equal(order.id_estado_pago, 2);
     assert.equal(order.id_etapa_general, 2);
+    assert.deepEqual(stageTransitions, [{
+        orderId: 6,
+        stepId: 2,
+        userId: 10,
+        comment: undefined,
+        expectedState: { id_estado_pedido: 2, id_estado_pago: 2 },
+    }]);
+});
+
+test("envia pedido a revision con usuario y comentario", async () => {
+    const service = createService();
+    const order = await service.sendToReview(6, "Corregir diseño", {
+        auth0UserId: "auth0|user-10",
+    });
+
+    assert.equal(order.id_etapa_general, 6);
+    assert.deepEqual(stageTransitions, [{
+        orderId: 6,
+        review: true,
+        userId: 10,
+        comment: "Corregir diseño",
+    }]);
+});
+
+test("cancela produccion con actor PIN y deja observacion", async () => {
+    const service = createService();
+    const order = await service.cancelProduction(7, "Cliente cancelo el pedido", {
+        actor: PIN_ACTOR,
+    });
+
+    assert.equal(order.nombre_etapa_general, "Cancelado");
+    assert.deepEqual(stageTransitions, [{
+        orderId: 7,
+        cancelled: true,
+        userId: 10,
+        comment: "Cliente cancelo el pedido",
+    }]);
+});
+
+test("rechaza cancelacion sin observacion", async () => {
+    const service = createService();
+    await assert.rejects(
+        () => service.cancelProduction(7, "", { actor: PIN_ACTOR }),
+        { statusCode: 400 },
+    );
 });
 
 test("bloquea saltar desde Confirmacion de pago directo a En produccion", async () => {
@@ -366,7 +490,8 @@ test("bloquea saltar desde Confirmacion de pago directo a En produccion", async 
 
     await assert.rejects(
         () => service.updGeneralStep(1, 2, {
-            permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
+            role: ROLES.ADMINISTRADOR,
+        permissions: [MOVE_KANBAN_TO_PRODUCTION_PERMISSION],
         }),
         {
             statusCode: 409,
@@ -379,7 +504,7 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
     const service = createService();
 
     await assert.rejects(
-        () => service.updGeneralStep(6, 3),
+        () => service.updGeneralStep(6, 3, { actor: PIN_ACTOR }),
         {
             statusCode: 409,
             message: KANBAN_STAGE_SKIP_MESSAGE,
@@ -387,10 +512,8 @@ test("bloquea saltar desde Listo para produccion directo a Listo para entrega", 
     );
 });
 
-test("permite mover de En produccion a Listo para entrega", async () => {
+test("permite mover manualmente de producción a listo para entrega con PIN", async () => {
     const service = createService();
-    const order = await service.updGeneralStep(7, 3);
-
-    assert.equal(order.id_estado_pago, 2);
+    const order = await service.updGeneralStep(7, 3, { actor: PIN_ACTOR });
     assert.equal(order.id_etapa_general, 3);
 });

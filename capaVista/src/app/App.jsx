@@ -1,11 +1,14 @@
 import AppProviders from './providers/AppProviders'
 import AppRouter from './router'
+import AppErrorBoundary from '../shared/components/errors/AppErrorBoundary.jsx'
 
 function App() {
   return (
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <AppErrorBoundary>
+      <AppProviders>
+        <AppRouter />
+      </AppProviders>
+    </AppErrorBoundary>
   )
 }
 

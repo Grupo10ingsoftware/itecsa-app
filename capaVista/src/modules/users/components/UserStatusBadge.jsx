@@ -1,14 +1,16 @@
 import styles from '../pages/UserManagementPage.module.css'
+import { displayUserStatus } from '../../../config/userLifecycle.js'
 
 const STATUS_CLASS = Object.freeze({
   Vinculado: styles.statusLinked,
   Activo: styles.statusLinked,
   Desvinculado: styles.statusUnlinked,
+  Pendiente: styles.statusPending,
   'Pendiente rol': styles.statusPending,
 })
 
 export default function UserStatusBadge({ status }) {
-  const label = status === 'Activo' ? 'Vinculado' : status
+  const label = displayUserStatus(status)
   const statusClass = STATUS_CLASS[status] ?? styles.statusNeutral
 
   return (

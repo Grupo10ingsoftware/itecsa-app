@@ -1,0 +1,15 @@
+# Reviewed historical false positives: public Auth0 SPA client IDs.
+# Exact fingerprints only; client secrets and new findings remain blocked.
+238ca89417bd8d7a1dc8a22e084076ac1607738f:capaServidor/env.example:generic-api-key:8
+238ca89417bd8d7a1dc8a22e084076ac1607738f:docs/auth0-inicial/HANDOFF.md:generic-api-key:86
+36ca918d6be05aa38959e446f17ec606e2b6d89e:capaVista/.env:generic-api-key:2
+ccc1fa6af7a86ffaa0d2d3a4b628fb4a031cae2e:docs/auth0-inicial/HANDOFF.md:generic-api-key:71
+ce2aad5629004ca7864f00e885d944ed4d7cbc5a:capaVista/env.example:generic-api-key:2
+ce2aad5629004ca7864f00e885d944ed4d7cbc5a:docs/auth0-inicial/HANDOFF.md:generic-api-key:84
+f3a1279aec45090940b6d87e26087a962fad2990:capaServidor/capaServidor/env.example:generic-api-key:8
+ff347e6b3f4641803cbb598f4ea63648b1a0bb60:capaServidor/env.example:generic-api-key:8
+ff347e6b3f4641803cbb598f4ea63648b1a0bb60:capaVista/env.example:generic-api-key:2
+# Reviewed historical false positives: a placeholder instructing operators to
+# generate their own key and prose about a future security scan, respectively.
+d3c64f92e354ca57be8155281a34fee86cb19750:capaServidor/env.example:generic-api-key:54
+488fc51c1bebaacac37cb29a675be533aaf0fe49:PLAN_ACCION_AUDITORIA_ECSS_2026-09-30.md:generic-api-key:770

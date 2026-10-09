@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-02",
+  "method": "Comparación controlada de la implementación actual con precarga de código desactivada/activada. Vite dev, 1440 px, Chromium headless, sesión y API sintéticas. Transferencia inicial del módulo retrasada 1500 ms; segunda navegación con respuesta API retrasada 2000 ms. No mide latencia de Auth0 ni MySQL reales.",
+  "preloadingDisabled": {
+    "status": "passed",
+    "preloadingEnabled": false,
+    "simulatedColdModuleDelayMs": 1500,
+    "modulesPreparedBeforeClick": [],
+    "results": [
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 1600,
+        "submitEnabledMs": 1601,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 1617,
+        "submitEnabledMs": 1617,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 2049,
+        "submitEnabledMs": 2049,
+        "apiDurationMs": 2008,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 33,
+        "submitEnabledMs": 2023,
+        "apiDurationMs": 2007,
+        "submitBlockedWhenVisible": true
+      }
+    ],
+    "environment": "Vite dev local, Chromium headless, sesión/API sintéticas; no mide DB/Auth0 reales"
+  },
+  "preloadingEnabled": {
+    "status": "passed",
+    "preloadingEnabled": true,
+    "simulatedColdModuleDelayMs": 1500,
+    "modulesPreparedBeforeClick": [
+      {
+        "page": "Solicitudes",
+        "downloadedBeforeClick": true
+      },
+      {
+        "page": "Reportar incidente",
+        "downloadedBeforeClick": true
+      }
+    ],
+    "results": [
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 34,
+        "submitEnabledMs": 34,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 0,
+        "formVisibleMs": 35,
+        "submitEnabledMs": 35,
+        "apiDurationMs": 0,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Solicitudes",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 2050,
+        "submitEnabledMs": 2050,
+        "apiDurationMs": 2009,
+        "submitBlockedWhenVisible": false
+      },
+      {
+        "page": "Reportar incidente",
+        "simulatedApiDelayMs": 2000,
+        "formVisibleMs": 35,
+        "submitEnabledMs": 2018,
+        "apiDurationMs": 2002,
+        "submitBlockedWhenVisible": true
+      }
+    ],
+    "environment": "Vite dev local, Chromium headless, sesión/API sintéticas; no mide DB/Auth0 reales"
+  }
+}

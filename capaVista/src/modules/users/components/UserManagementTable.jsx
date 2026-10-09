@@ -1,3 +1,4 @@
+import { getRoleLabel } from '../../../config/roles'
 import UserButton from './UserButton'
 import UserManagementMobileList from './UserManagementMobileList'
 import UserStatusBadge from './UserStatusBadge'
@@ -11,7 +12,6 @@ const TABLE_COLUMNS = Object.freeze([
   'Estado',
   'Acciones',
 ])
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
 
 function buildNearbyPages(currentPage, totalPages) {
   if (totalPages <= 4) {
@@ -33,9 +33,10 @@ export default function UserManagementTable({
   currentPage,
   isLoading,
   onEditUser,
+  onViewMovements,
   onPageChange,
-  onUnlinkUser,
   totalPages,
+  totalUsers,
   users,
 }) {
   const pageItems = buildNearbyPages(currentPage, totalPages)
@@ -73,39 +74,32 @@ export default function UserManagementTable({
             {!isLoading &&
               users.map((user) => (
                 <tr key={user.id}>
-                  <td className={styles.nameCell}>{user.nombreCompleto}</td>
+                  <td className={styles.nameCell}>{user.nombreListado}</td>
                   <td>{user.rutUsuario}</td>
                   <td className={styles.emailCell}>{user.correoUsuario}</td>
-                  <td>{user.rolUsuario}</td>
+                  <td>{getRoleLabel(user.rolUsuario)}</td>
                   <td>
                     <UserStatusBadge status={user.estadoUsuario} />
                   </td>
                   <td className={styles.actionsCell}>
-                    <UserButton className={styles.actionButton} onClick={() => onEditUser(user)} variant="secondary">
+                    <div className={styles.userActions}>
+                    <UserButton
+                      className={styles.actionButton}
+                      icon="bi-pencil-fill"
+                      onClick={() => onEditUser(user)}
+                      variant="secondary"
+                    >
                       Editar
                     </UserButton>
-                    {user.isCurrentUser ? (
-                      <span
-                        aria-label={SELF_UNLINK_MESSAGE}
-                        className={styles.selfUnlinkControl}
-                        data-tooltip={SELF_UNLINK_MESSAGE}
-                        tabIndex={0}
-                        title={SELF_UNLINK_MESSAGE}
-                      >
-                        <UserButton className={styles.selfUnlinkButton} disabled variant="danger">
-                          Desvincular
-                        </UserButton>
-                      </span>
-                    ) : (
-                      <UserButton
-                        className={styles.actionButton}
-                        disabled={user.estadoUsuario === 'Desvinculado'}
-                        onClick={() => onUnlinkUser(user)}
-                        variant="danger"
-                      >
-                        Desvincular
-                      </UserButton>
-                    )}
+                    <UserButton
+                      className={styles.actionButton}
+                      icon="bi-clock-history"
+                      onClick={() => onViewMovements(user)}
+                      variant="secondary"
+                    >
+                      Movimientos
+                    </UserButton>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -116,44 +110,52 @@ export default function UserManagementTable({
       <UserManagementMobileList
         isLoading={isLoading}
         onEditUser={onEditUser}
-        onUnlinkUser={onUnlinkUser}
+        onViewMovements={onViewMovements}
         users={users}
       />
 
-      <footer className={styles.paginationFooter} aria-label="Paginacion de usuarios">
-        <UserButton disabled={!canGoPrevious} onClick={() => onPageChange(currentPage - 1)} variant="secondary">
-          Anterior
-        </UserButton>
+      <footer className={styles.paginationFooter} aria-label="Resumen y paginacion de usuarios">
+        <span className={styles.resultsSummary}>
+          Mostrando {users.length} de {totalUsers} usuarios
+        </span>
 
-        <div className={styles.paginationCenter}>
-          <span className={styles.pageSummary}>
-            Pagina {currentPage} de {totalPages}
-          </span>
-          <nav className={styles.pageButtons} aria-label="Paginas cercanas">
-            {pageItems.map((pageItem, index) =>
-              pageItem === 'ellipsis' ? (
-                <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>
-                  ...
-                </span>
-              ) : (
-                <button
-                  aria-current={pageItem === currentPage ? 'page' : undefined}
-                  className={`${styles.pageButton} ${pageItem === currentPage ? styles.pageButtonActive : ''}`}
-                  disabled={isLoading}
-                  key={pageItem}
-                  onClick={() => onPageChange(pageItem)}
-                  type="button"
-                >
-                  {pageItem}
-                </button>
-              ),
-            )}
-          </nav>
-        </div>
+        {totalPages > 1 && (
+          <div className={styles.paginationControls}>
+            <UserButton disabled={!canGoPrevious} onClick={() => onPageChange(currentPage - 1)} variant="secondary">
+              Anterior
+            </UserButton>
 
-        <UserButton disabled={!canGoNext} onClick={() => onPageChange(currentPage + 1)} variant="secondary">
-          Siguiente
-        </UserButton>
+            <div className={styles.paginationCenter}>
+              <span className={styles.pageSummary}>
+                Pagina {currentPage} de {totalPages}
+              </span>
+              <nav className={styles.pageButtons} aria-label="Paginas cercanas">
+                {pageItems.map((pageItem, index) =>
+                  pageItem === 'ellipsis' ? (
+                    <span className={styles.pageEllipsis} key={`ellipsis-${index}`}>
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      aria-current={pageItem === currentPage ? 'page' : undefined}
+                      className={`${styles.pageButton} ${pageItem === currentPage ? styles.pageButtonActive : ''}`}
+                      disabled={isLoading}
+                      key={pageItem}
+                      onClick={() => onPageChange(pageItem)}
+                      type="button"
+                    >
+                      {pageItem}
+                    </button>
+                  ),
+                )}
+              </nav>
+            </div>
+
+            <UserButton disabled={!canGoNext} onClick={() => onPageChange(currentPage + 1)} variant="secondary">
+              Siguiente
+            </UserButton>
+          </div>
+        )}
       </footer>
     </div>
   )

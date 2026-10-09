@@ -13,11 +13,12 @@ import {
     createAuthRouter,
     createPasswordResetRateLimit,
 } from "../src/modules/auth/routes/auth.routes.js";
+import { MemoryThrottleService } from "../src/modules/security/service/securityThrottle.service.js";
 
 const VALID_PAYLOAD = {
     sub: "auth0|user-id",
     "https://itecsa.local/email": "usuario.controlado@example.cl",
-    "https://itecsa.local/roles": ["Ventas"],
+    "https://itecsa.local/roles": ["Operario Ventas"],
 };
 
 function responseRecorder() {
@@ -52,7 +53,6 @@ function createUsersRepositoryMock({
     auth0User = null,
     onFindByEmail,
     onFindByAuth0Id,
-    onUpdateRoleByAuth0Id,
 } = {}) {
     return {
         async findByEmail(email) {
@@ -62,14 +62,6 @@ function createUsersRepositoryMock({
         async findByAuth0Id(auth0UserId) {
             await onFindByAuth0Id?.(auth0UserId);
             return auth0User;
-        },
-        async updateRoleByAuth0Id(auth0UserId, rolUsuario) {
-            await onUpdateRoleByAuth0Id?.(auth0UserId, rolUsuario);
-            return {
-                ...(auth0User ?? {}),
-                idAuth0: auth0UserId,
-                rolUsuario,
-            };
         },
     };
 }
@@ -84,6 +76,8 @@ async function executePasswordReset({
         users,
         requestPasswordEmail,
         logger: {},
+        minimumDelayMs: 0,
+        random: () => 0,
     });
 
     await handler({ body }, res);
@@ -106,9 +100,10 @@ test("devuelve permisos Auth0 en la verificacion de sesion", async () => {
     assert.deepEqual(res.body, {
         sub: VALID_PAYLOAD.sub,
         email: VALID_PAYLOAD["https://itecsa.local/email"],
-        rolUsuario: "Ventas",
+        rolUsuario: "Operario Ventas",
         isAdministrador: false,
         permissions: ["view:orders-module", "view:kanban-module"],
+        pinStatus: "active",
     });
 });
 
@@ -119,20 +114,32 @@ test("devuelve permisos vacios si Auth0 no incluye permissions", async () => {
     assert.deepEqual(res.body.permissions, []);
 });
 
-test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => {
+test("acepta Soporte como rol oficial sin identificarlo como Administrador Produccion", async () => {
+    const res = await executeVerify({
+        ...VALID_PAYLOAD,
+        "https://itecsa.local/roles": ["Soporte"],
+        permissions: ["manage:users-visually", "view:kanban-module"],
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.rolUsuario, "Soporte");
+    assert.equal(res.body.isAdministrador, false);
+    assert.deepEqual(res.body.permissions, [
+        "manage:users-visually",
+        "view:kanban-module",
+    ]);
+});
+
+test("no sobrescribe el rol interno desde un token", async () => {
     let receivedLookup;
-    let receivedUpdate;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Cobranzas",
+                rolUsuario: "Operario Cobranzas",
             },
             onFindByAuth0Id(auth0UserId) {
                 receivedLookup = auth0UserId;
-            },
-            onUpdateRoleByAuth0Id(auth0UserId, rolUsuario) {
-                receivedUpdate = { auth0UserId, rolUsuario };
             },
         }),
         logger: {},
@@ -144,7 +151,7 @@ test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => 
             auth: {
                 payload: {
                     ...VALID_PAYLOAD,
-                    "https://itecsa.local/roles": ["Administrador"],
+                    "https://itecsa.local/roles": ["Administrador Produccion"],
                 },
             },
         },
@@ -152,25 +159,17 @@ test("sincroniza el rol interno cuando Auth0 trae un rol distinto", async () => 
     );
 
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.rolUsuario, "Administrador");
+    assert.equal(res.body.rolUsuario, "Administrador Produccion");
     assert.equal(res.body.isAdministrador, true);
-    assert.equal(receivedLookup, VALID_PAYLOAD.sub);
-    assert.deepEqual(receivedUpdate, {
-        auth0UserId: VALID_PAYLOAD.sub,
-        rolUsuario: "Administrador",
-    });
+    assert.equal(receivedLookup, undefined);
 });
 
 test("no actualiza el rol interno si ya coincide con Auth0", async () => {
-    let updateCalls = 0;
     const handler = createVerifyAuthSessionHandler({
         users: createUsersRepositoryMock({
             auth0User: {
                 idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Ventas",
-            },
-            onUpdateRoleByAuth0Id() {
-                updateCalls += 1;
+                rolUsuario: "Operario Ventas",
             },
         }),
         logger: {},
@@ -180,41 +179,8 @@ test("no actualiza el rol interno si ya coincide con Auth0", async () => {
     await handler({ auth: { payload: VALID_PAYLOAD } }, res);
 
     assert.equal(res.statusCode, 200);
-    assert.equal(updateCalls, 0);
 });
 
-test("responde error controlado si falla la sincronizacion del rol interno", async () => {
-    const handler = createVerifyAuthSessionHandler({
-        users: createUsersRepositoryMock({
-            auth0User: {
-                idAuth0: VALID_PAYLOAD.sub,
-                rolUsuario: "Cobranzas",
-            },
-            onUpdateRoleByAuth0Id() {
-                throw new Error("database failure");
-            },
-        }),
-        logger: {},
-    });
-    const res = responseRecorder();
-
-    await handler(
-        {
-            auth: {
-                payload: {
-                    ...VALID_PAYLOAD,
-                    "https://itecsa.local/roles": ["Administrador"],
-                },
-            },
-        },
-        res,
-    );
-
-    assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, {
-        message: "No fue posible verificar la sesion autenticada.",
-    });
-});
 
 test("rechaza permissions malformado", async () => {
     const res = await executeVerify({
@@ -267,11 +233,10 @@ test("responde no registrado sin llamar Auth0", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "not_registered",
-        message:
-            "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(auth0Calls, 0);
 });
@@ -290,10 +255,10 @@ test("responde desactivado sin llamar Auth0 si el usuario esta desvinculado", as
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "disabled",
-        message: "Tu cuenta se encuentra desactivada. Comunícate con el administrador.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(auth0Calls, 0);
 });
@@ -312,8 +277,8 @@ test("responde desactivado sin llamar Auth0 si el usuario no esta activo", async
         },
     });
 
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.status, "disabled");
+    assert.equal(res.statusCode, 202);
+    assert.equal(res.body.status, "accepted");
     assert.equal(auth0Calls, 0);
 });
 
@@ -332,15 +297,15 @@ test("solicita correo Auth0 si el usuario esta activo", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        status: "sent",
-        message: "Te enviamos un enlace para cambiar tu contraseña.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
     assert.equal(requestedEmail, "usuario@example.cl");
 });
 
-test("responde error generico si falla Auth0", async () => {
+test("mantiene respuesta uniforme si falla Auth0", async () => {
     const res = await executePasswordReset({
         users: createUsersRepositoryMock({
             user: {
@@ -356,10 +321,21 @@ test("responde error generico si falla Auth0", async () => {
         },
     });
 
-    assert.equal(res.statusCode, 500);
+    assert.equal(res.statusCode, 202);
     assert.deepEqual(res.body, {
-        message: "No fue posible solicitar el correo de recuperación de contraseña.",
+        status: "accepted",
+        message: "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.",
     });
+});
+
+test("permite recuperar acceso antes del primer login sin activar la cuenta", async () => {
+    let requested = false;
+    const res = await executePasswordReset({
+        users: createUsersRepositoryMock({ user: { correoUsuario: 'usuario@example.cl', estadoUsuario: 'Pendiente' } }),
+        requestPasswordEmail: async () => { requested = true; },
+    });
+    assert.equal(res.statusCode, 202);
+    assert.equal(requested, true);
 });
 
 test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t) => {
@@ -387,6 +363,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
                 emailRequested = true;
             },
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -403,8 +381,8 @@ test("monta recuperacion de contrasena como ruta publica sin checkJwt", async (t
     );
     const body = await response.json();
 
-    assert.equal(response.status, 200);
-    assert.equal(body.status, "sent");
+    assert.equal(response.status, 202);
+    assert.equal(body.status, "accepted");
     assert.equal(authCalls, 0);
     assert.equal(emailRequested, true);
 });
@@ -416,13 +394,13 @@ test("limita intentos repetidos de recuperacion", async (t) => {
         "/api/auth",
         createAuthRouter({
             passwordResetRateLimit: createPasswordResetRateLimit({
-                attempts: new Map(),
-                maxAttempts: 2,
-                now: () => 100,
+                throttle: new MemoryThrottleService({ now: () => new Date(100) }),
             }),
             users: createUsersRepositoryMock(),
             requestPasswordEmail: async () => {},
             logger: {},
+            passwordResetMinimumDelayMs: 0,
+            passwordResetRandom: () => 0,
         }),
     );
     const server = app.listen(0);
@@ -437,14 +415,28 @@ test("limita intentos repetidos de recuperacion", async (t) => {
             body: JSON.stringify({ email: "usuario@example.cl" }),
         });
 
-    assert.equal((await request()).status, 200);
-    assert.equal((await request()).status, 200);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
+    assert.equal((await request()).status, 202);
     const limitedResponse = await request();
     const body = await limitedResponse.json();
 
     assert.equal(limitedResponse.status, 429);
-    assert.deepEqual(body, {
-        message:
-            "Demasiados intentos de recuperación. Intenta nuevamente más tarde.",
-    });
+    assert.equal(body.code, "RATE_LIMITED");
+    assert.equal(limitedResponse.headers.get("retry-after"), "900");
 });
+
+for (const role of ["Administrador Produccion", "Operario Produccion", "Operario Ventas", "Operario Cobranzas", "Gerencia", "Soporte"]) {
+    test(`verifica el rol oficial ${role}`, async () => {
+        const res = await executeVerify({ ...VALID_PAYLOAD, "https://itecsa.local/roles": [role] });
+        assert.equal(res.statusCode, 200);
+        assert.equal(res.body.rolUsuario, role);
+        assert.equal(res.body.isAdministrador, role === "Administrador Produccion");
+    });
+}
+for (const role of ["Administrador Producción", "Operario Producción", "Administrador", "Producción", "Ventas", "Cobranzas", "Administración Cobranzas"]) {
+    test(`rechaza en sesión el rol no vigente ${role}`, async () => {
+        const res = await executeVerify({ ...VALID_PAYLOAD, "https://itecsa.local/roles": [role] });
+        assert.equal(res.statusCode, 403);
+    });
+}

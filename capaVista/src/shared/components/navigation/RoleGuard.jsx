@@ -33,6 +33,8 @@ export default function RoleGuard({
     )
   }
 
+  if (authStatus !== 'authenticated') return <Navigate replace to={fallbackPath} />
+
   const matchesPermission = !requiredPermission || hasPermission(requiredPermission)
   const matchesRole = roles.length === 0 || roles.some((role) => hasRole(role))
 

@@ -1,3 +1,4 @@
+import { invoke, payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createUpdateAdminUserHandler } from "../src/modules/users/controller/adminUsers.controller.js";
@@ -10,9 +11,8 @@ const CURRENT_ADMIN_USER = {
     rutUsuario: "12.345.678-9",
     nombreUsuario: "Ana",
     apellidoUsuario: "Perez",
-    rolUsuario: "Administrador",
+    rolUsuario: "Administrador Produccion",
     estadoUsuario: "Activo",
-    rutaFirma: "itecsa-app\\data\\Firmas\\firma-test.pdf",
 };
 
 function responseRecorder() {
@@ -64,7 +64,7 @@ test("rechaza que un administrador edite su propio rol", async () => {
     });
     const res = responseRecorder();
 
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: CURRENT_ADMIN_ID } },
             params: { userId: CURRENT_ADMIN_ID },
@@ -72,8 +72,7 @@ test("rechaza que un administrador edite su propio rol", async () => {
                 nombreUsuario: "Ana",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.perez@itecsa.cl",
-                rolUsuario: "Ventas",
-                estadoUsuario: "Vinculado",
+                rolUsuario: "Operario Ventas",
             },
         },
         res,
@@ -81,10 +80,38 @@ test("rechaza que un administrador edite su propio rol", async () => {
 
     assert.equal(res.statusCode, 409);
     assert.deepEqual(res.body, {
-        message: "No puedes cambiar tu propio rol de administrador.",
+        message: "No puedes cambiar tu propio rol.",
     });
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
+});
+
+test("rechaza que un usuario de Soporte edite su propio rol", async () => {
+    const supportUser = {
+        ...CURRENT_ADMIN_USER,
+        rolUsuario: "Soporte",
+    };
+    const handler = createUpdateAdminUserHandler({
+        updateUser: async () => assert.fail("No debe actualizar Auth0"),
+        users: createUsersRepositoryMock({ existingUserByAuth0Id: supportUser }),
+    });
+    const res = responseRecorder();
+
+    await invoke(handler,
+        {
+            auth: { payload: { sub: CURRENT_ADMIN_ID } },
+            params: { userId: CURRENT_ADMIN_ID },
+            body: {
+                nombreUsuario: "Ana",
+                apellidoUsuario: "Perez",
+                correoUsuario: "ana.perez@itecsa.cl",
+                rolUsuario: "Operario Ventas",
+            },
+        },
+        res,
+    );
+
+    assert.equal(res.statusCode, 403);
 });
 
 test("permite que un administrador edite sus datos si conserva su rol", async () => {
@@ -102,7 +129,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
     });
     const res = responseRecorder();
 
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: CURRENT_ADMIN_ID } },
             params: { userId: CURRENT_ADMIN_ID },
@@ -110,8 +137,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador",
-                estadoUsuario: "Vinculado",
+                rolUsuario: "Administrador Produccion",
             },
         },
         res,
@@ -121,8 +147,8 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
     assert.deepEqual(externalPayload, {
         userId: CURRENT_ADMIN_ID,
         correoUsuario: "ana.maria@itecsa.cl",
-        rolUsuario: "Administrador",
-        estadoUsuario: "Activo",
+        rolUsuario: "Administrador Produccion",
+        rolUsuarioAnterior: "Administrador Produccion",
     });
     assert.deepEqual(internalPayload, {
         userId: CURRENT_ADMIN_ID,
@@ -130,8 +156,7 @@ test("permite que un administrador edite sus datos si conserva su rol", async ()
             nombreUsuario: "Ana Maria",
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
-            rolUsuario: "Administrador",
-            estadoUsuario: "Activo",
+            rolUsuario: "Administrador Produccion",
         },
     });
 });

@@ -1,11 +1,12 @@
+import { useAuth } from "../../../hooks/useAuth";
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { OFFICIAL_ROLES } from '../../../config/roles'
+import { getRoleLabel, manageableRoles } from '../../../config/roles'
 import UserButton from './UserButton'
+import { useModalDialog } from '../hooks/useModalDialog'
 import styles from '../pages/UserManagementPage.module.css'
+import editStyles from './UserEditModal.module.css'
 
-const USER_STATUSES = Object.freeze(['Vinculado', 'Desvinculado'])
-const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol de administrador.'
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
+const SELF_ROLE_EDIT_MESSAGE = 'No puedes cambiar tu propio rol.'
 
 function createFormState(user) {
   return {
@@ -13,37 +14,37 @@ function createFormState(user) {
     apellidoUsuario: user.apellidoUsuario ?? '',
     correoUsuario: user.correoUsuario ?? '',
     rolUsuario: user.rolUsuario ?? '',
-    estadoUsuario: user.estadoUsuario === 'Activo' ? 'Vinculado' : user.estadoUsuario,
   }
 }
 
-export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, user }) {
+export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, onSave, onUnlink, user }) {
   const [values, setValues] = useState(() => (user ? createFormState(user) : null))
+  const { user: actor } = useAuth()
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const firstInputRef = useRef(null)
+  const modalRef = useRef(null)
+
+  useModalDialog({
+    canClose: !isSubmitting,
+    containerRef: modalRef,
+    initialFocusRef: firstInputRef,
+    isOpen: Boolean(isOpen && user),
+    onClose,
+  })
 
   useEffect(() => {
     if (!isOpen || !user) {
       return undefined
     }
 
-    const previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const focusTimer = window.setTimeout(() => firstInputRef.current?.focus(), 0)
-
-    function handleEscape(event) {
-      if (event.key === 'Escape' && !isSubmitting) {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
+    const resetTimer = window.setTimeout(() => { setPin(''); setPinError('') }, 0)
     return () => {
-      window.clearTimeout(focusTimer)
-      document.body.style.overflow = previousBodyOverflow
-      document.removeEventListener('keydown', handleEscape)
+      window.clearTimeout(resetTimer)
     }
-  }, [isOpen, isSubmitting, onClose, user])
+  }, [isOpen, user])
 
   const canSubmit = useMemo(() => {
     if (!values) {
@@ -54,9 +55,10 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
 
     return (
       Object.values(values).every((value) => String(value).trim().length > 0) &&
-      !(isCurrentUser && (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== currentRole))
+      /^\d{6}$/.test(pin.trim()) &&
+      !(isCurrentUser && values.rolUsuario !== currentRole)
     )
-  }, [isCurrentUser, user?.rolUsuario, values])
+  }, [isCurrentUser, pin, user?.rolUsuario, values])
 
   if (!isOpen || !user || !values) {
     return null
@@ -79,14 +81,19 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (
-      isCurrentUser &&
-      (values.estadoUsuario === 'Desvinculado' || values.rolUsuario !== (user.rolUsuario ?? ''))
-    ) {
+    const trimmedPin = pin.trim()
+
+    if (!/^\d{6}$/.test(trimmedPin)) {
+      setPinError('Ingrese un PIN valido de 6 digitos.')
+      return
+    }
+
+    if (isCurrentUser && values.rolUsuario !== (user.rolUsuario ?? '')) {
       return
     }
 
     setIsSubmitting(true)
+    setSaveError('')
 
     try {
       await onSave({
@@ -95,31 +102,37 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
         apellidoUsuario: values.apellidoUsuario.trim(),
         correoUsuario: values.correoUsuario.trim().toLowerCase(),
         rolUsuario: values.rolUsuario,
-        estadoUsuario: values.estadoUsuario,
+        pin: trimmedPin,
       })
+    } catch (error) {
+      setSaveError(error?.message || 'No fue posible guardar los cambios. Intenta nuevamente.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className={styles.modalLayer} onMouseDown={handleBackdropMouseDown} role="presentation">
+    <div className={styles.modalLayer} data-modal-layer="true" onMouseDown={handleBackdropMouseDown} role="presentation">
       <form
+        aria-describedby="user-edit-modal-description"
         aria-labelledby="user-edit-modal-title"
         aria-modal="true"
-        className={styles.editModal}
+        className={editStyles.modal}
         noValidate
         onSubmit={handleSubmit}
+        ref={modalRef}
         role="dialog"
+        tabIndex={-1}
       >
-        <header className={styles.modalHeader}>
+        <header className={editStyles.header}>
           <div>
-            <span className={styles.modalKicker}>Usuario</span>
+            <span className={editStyles.kicker}>Usuario</span>
             <h2 id="user-edit-modal-title">Editar usuario</h2>
+            <p id="user-edit-modal-description">Modifica la informacion del usuario en el sistema.</p>
           </div>
           <button
             aria-label="Cerrar modal de edicion"
-            className={styles.modalCloseButton}
+            className={editStyles.closeButton}
             disabled={isSubmitting}
             onClick={onClose}
             type="button"
@@ -128,9 +141,9 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
           </button>
         </header>
 
-        <div className={styles.modalBody}>
-          <div className={styles.editIdentityCard}>
-            <span className={styles.editIdentityAvatar} aria-hidden="true">
+        <div className={editStyles.body}>
+          <div className={editStyles.identityCard}>
+            <span className={editStyles.identityAvatar} aria-hidden="true">
               <i className="bi bi-person-fill" />
             </span>
             <div>
@@ -139,95 +152,133 @@ export default function UserEditModal({ isCurrentUser = false, isOpen, onClose, 
             </div>
           </div>
 
-          <div className={styles.editFieldsGrid}>
-            <label className={styles.editField} htmlFor="edit-user-first-name">
-              <span>Nombre</span>
-              <input
-                className={styles.formControl}
-                id="edit-user-first-name"
-                name="nombreUsuario"
-                onChange={handleChange}
-                ref={firstInputRef}
-                required
-                type="text"
-                value={values.nombreUsuario}
-              />
+          <div className={editStyles.fieldsGrid}>
+            <label className={editStyles.field} htmlFor="edit-user-first-name">
+              <span className={editStyles.fieldLabel}>Nombre</span>
+              <span className={editStyles.controlWrap}>
+                <i className="bi bi-person" aria-hidden="true" />
+                <input
+                  autoComplete="given-name"
+                  id="edit-user-first-name"
+                  name="nombreUsuario"
+                  onChange={handleChange}
+                  ref={firstInputRef}
+                  required
+                  type="text"
+                  value={values.nombreUsuario}
+                />
+              </span>
             </label>
 
-            <label className={styles.editField} htmlFor="edit-user-last-name">
-              <span>Apellido</span>
-              <input
-                className={styles.formControl}
-                id="edit-user-last-name"
-                name="apellidoUsuario"
-                onChange={handleChange}
-                required
-                type="text"
-                value={values.apellidoUsuario}
-              />
+            <label className={editStyles.field} htmlFor="edit-user-last-name">
+              <span className={editStyles.fieldLabel}>Apellido</span>
+              <span className={editStyles.controlWrap}>
+                <i className="bi bi-person" aria-hidden="true" />
+                <input
+                  autoComplete="family-name"
+                  id="edit-user-last-name"
+                  name="apellidoUsuario"
+                  onChange={handleChange}
+                  required
+                  type="text"
+                  value={values.apellidoUsuario}
+                />
+              </span>
             </label>
 
-            <label className={styles.editField} htmlFor="edit-user-email">
-              <span>Correo electronico</span>
-              <input
-                className={styles.formControl}
-                id="edit-user-email"
-                name="correoUsuario"
-                onChange={handleChange}
-                required
-                type="email"
-                value={values.correoUsuario}
-              />
+            <label className={editStyles.field} htmlFor="edit-user-email">
+              <span className={editStyles.fieldLabel}>Correo electronico</span>
+              <span className={editStyles.controlWrap}>
+                <i className="bi bi-envelope" aria-hidden="true" />
+                <input
+                  autoComplete="email"
+                  id="edit-user-email"
+                  name="correoUsuario"
+                  onChange={handleChange}
+                  required
+                  type="email"
+                  value={values.correoUsuario}
+                />
+              </span>
             </label>
 
-            <label className={styles.editField} htmlFor="edit-user-role">
-              <span>Rol</span>
-              <select
-                className={styles.formControl}
-                disabled={isCurrentUser}
-                id="edit-user-role"
-                name="rolUsuario"
-                onChange={handleChange}
-                value={values.rolUsuario}
-              >
-                <option value="">Selecciona un rol</option>
-                {OFFICIAL_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_ROLE_EDIT_MESSAGE}</small>}
+            <label className={editStyles.field} htmlFor="edit-user-role">
+              <span className={editStyles.fieldLabel}>Rol</span>
+              <span className={editStyles.controlWrap}>
+                <i className="bi bi-people" aria-hidden="true" />
+                <select
+                  aria-describedby={isCurrentUser ? 'edit-user-role-help' : undefined}
+                  disabled={isCurrentUser}
+                  id="edit-user-role"
+                  name="rolUsuario"
+                  onChange={handleChange}
+                  value={values.rolUsuario}
+                >
+                  <option value="">Selecciona un rol</option>
+                  {manageableRoles(actor?.rolUsuario).map((role) => (
+                    <option key={role} value={role}>
+                      {getRoleLabel(role)}
+                    </option>
+                  ))}
+                </select>
+              </span>
+              {isCurrentUser && <small className={editStyles.fieldHelp} id="edit-user-role-help">{SELF_ROLE_EDIT_MESSAGE}</small>}
             </label>
 
-            <label className={styles.editField} htmlFor="edit-user-status">
-              <span>Estado</span>
-              <select
-                className={styles.formControl}
-                disabled={isCurrentUser}
-                id="edit-user-status"
-                name="estadoUsuario"
-                onChange={handleChange}
-                value={values.estadoUsuario}
-              >
-                {USER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              {isCurrentUser && <small className={styles.fieldHelpText}>{SELF_UNLINK_MESSAGE}</small>}
+            <label className={`${editStyles.field} ${editStyles.fieldWide}`} htmlFor="edit-user-pin">
+              <span className={editStyles.fieldLabel}>PIN de autorizacion</span>
+              <span className={`${editStyles.controlWrap} ${pinError ? editStyles.controlInvalid : ''}`}>
+                <i className="bi bi-lock" aria-hidden="true" />
+                <input
+                  aria-describedby={pinError ? 'edit-user-pin-error' : undefined}
+                  aria-invalid={Boolean(pinError)}
+                  autoComplete="one-time-code"
+                  id="edit-user-pin"
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(event) => {
+                    setPin(event.target.value.replace(/\D/g, '').slice(0, 6))
+                    setPinError('')
+                  }}
+                  placeholder="000000"
+                  required
+                  type="password"
+                  value={pin}
+                />
+              </span>
+              {pinError && <small className={editStyles.fieldError} id="edit-user-pin-error">{pinError}</small>}
             </label>
           </div>
         </div>
 
-        <footer className={styles.modalFooter}>
-          <UserButton disabled={isSubmitting} onClick={onClose} variant="secondary">
-            Cancelar
+        {saveError && (
+          <div className={`${styles.feedbackMessage} ${styles.feedbackdanger} ${editStyles.saveError}`} role="alert">
+            {saveError}
+          </div>
+        )}
+        <footer className={editStyles.actions}>
+          <UserButton
+            className={`${editStyles.actionButton} ${editStyles.unlinkButton}`}
+            disabled={isSubmitting || isCurrentUser || user.estadoUsuario === 'Desvinculado'}
+            onClick={() => onUnlink(user)}
+            title={isCurrentUser ? 'No puedes desvincular tu propia cuenta.' : undefined}
+            variant="danger"
+          >
+            Desvincular
           </UserButton>
-          <UserButton disabled={isSubmitting || !canSubmit} type="submit" variant="primary">
-            {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
-          </UserButton>
+          <div className={editStyles.primaryActions}>
+            <UserButton className={editStyles.actionButton} disabled={isSubmitting} onClick={onClose} variant="secondary">
+              Cancelar
+            </UserButton>
+            <UserButton
+              className={`${editStyles.actionButton} ${editStyles.saveButton}`}
+              disabled={isSubmitting || !canSubmit}
+              type="submit"
+              variant="primary"
+            >
+              {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
+            </UserButton>
+          </div>
         </footer>
       </form>
     </div>

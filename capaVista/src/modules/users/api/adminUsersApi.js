@@ -1,3 +1,5 @@
+import { USER_STATUS } from '../../../config/userLifecycle.js'
+
 function buildQueryString(params) {
   const searchParams = new URLSearchParams()
 
@@ -12,6 +14,23 @@ function buildQueryString(params) {
 }
 
 export function createAdminUsersApi(apiClient) {
+  // Deduplicate only simultaneous reads. Completed activity is never retained:
+  // each deliberate reopen must be authorized by the backend again.
+  const movementsInFlight = new Map()
+  function getMovements(userId, { page = 1, perPage = 10, search = '' } = {}) {
+    const key = JSON.stringify([userId, page, perPage, search])
+    const inFlight = movementsInFlight.get(key)
+    if (inFlight) return inFlight
+
+    const request = apiClient.get(
+      `/admin/users/${encodeURIComponent(userId)}/movements${buildQueryString({ page, perPage, search })}`,
+    ).finally(() => {
+      if (movementsInFlight.get(key) === request) movementsInFlight.delete(key)
+    })
+    movementsInFlight.set(key, request)
+    return request
+  }
+
   return {
     listUsers: ({ page = 1, perPage = 10, search = '', estadoUsuario = '', rolUsuario = '' } = {}) =>
       apiClient.get(
@@ -22,38 +41,36 @@ export function createAdminUsersApi(apiClient) {
           estadoUsuario,
           rolUsuario,
         })}`,
-      ),
+    ),
+    getMovements,
     getSummary: () => apiClient.get('/admin/users/summary'),
-    createUser: (user) => {
-      const formData = new FormData()
-
-      formData.append('nombreUsuario', user.nombreUsuario)
-      formData.append('apellidoUsuario', user.apellidoUsuario)
-      formData.append('rutUsuario', user.rutUsuario)
-      formData.append('correoUsuario', user.correoUsuario)
-      formData.append('rolUsuario', user.rolUsuario)
-      formData.append('firmaElectronica', user.firmaElectronica)
-
-      return apiClient.post('/admin/users', formData)
-    },
+    createUser: ({ nombreUsuario, apellidoUsuario, rutUsuario, correoUsuario, rolUsuario }) =>
+      apiClient.post('/admin/users', {
+        nombreUsuario,
+        apellidoUsuario,
+        rutUsuario,
+        correoUsuario,
+        rolUsuario,
+      }),
     updateUser: ({
       idUsuarioAutenticacionExterna,
       nombreUsuario,
       apellidoUsuario,
       correoUsuario,
       rolUsuario,
-      estadoUsuario,
+      pin,
     }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}`, {
         nombreUsuario,
         apellidoUsuario,
         correoUsuario,
         rolUsuario,
-        estadoUsuario,
+        pin,
       }),
-    unlinkUser: ({ idUsuarioAutenticacionExterna }) =>
+    unlinkUser: ({ idUsuarioAutenticacionExterna, pin }) =>
       apiClient.patch(`/admin/users/${encodeURIComponent(idUsuarioAutenticacionExterna)}/status`, {
-        estadoUsuario: 'Desvinculado',
+        estadoUsuario: USER_STATUS.UNLINKED,
+        pin,
       }),
     requestPasswordSetupEmail: ({ correoUsuario }) =>
       apiClient.post('/admin/users/password-setup-email', { correoUsuario }),

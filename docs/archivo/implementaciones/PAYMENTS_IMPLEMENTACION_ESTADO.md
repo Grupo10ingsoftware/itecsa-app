@@ -1,0 +1,23 @@
+> **Informe histórico archivado.** Contexto: 26-09-2026; implementación iniciada en 103eab8 sobre c60cdf9.
+> Ubicación original: `docs/PAYMENTS_IMPLEMENTACION_ESTADO.md`. El contenido y sus referencias originales se conservan como evidencia de esa revisión; no acreditan el estado actual.
+> Consultar la [referencia vigente](../../modulos/PAYMENTS.md), los [pendientes](../../PENDIENTES.md) y el [índice del archivo](../README.md).
+
+# Estado de implementación de Payments
+
+Este seguimiento complementa [la auditoría inicial](../auditorias/PAYMENTS_AUDITORIA_PLAN_ACCION.md), que describe el sistema en `0b3d83e`. Sus hallazgos y su frase "implementación no iniciada" son históricos. La implementación comenzó en `103eab8`, sobre `c60cdf9`.
+
+| Acción | Estado al 26-09-2026 | Evidencia y trabajo pendiente |
+|---|---|---|
+| PAY-ACT-001 | Código aplicado | Los cinco handlers propios de Payments devuelven un 500 genérico con referencia y conservan los 4xx. Tests de controlador cubren fallos internos; falta prueba HTTP con autenticación real. |
+| PAY-ACT-002 | Código aplicado; validación real pendiente | `updPaymentState` bloquea `Pedidos` con `SELECT ... FOR UPDATE` dentro de la transacción, relee el estado y retorna 409 ante una decisión concurrente distinta. Tests con dobles cubren dos decisiones y reintento idempotente. La copia y la prueba real de concurrencia/rollback quedan a cargo de responsables de BD según [la solicitud](../../operacion/PAYMENTS_SOLICITUD_BD.md); no usar la base compartida para escribir. |
+| PAY-ACT-003 | Código aplicado; validación real pendiente | Las nuevas transiciones pasan y guardan `id_estado_pago_anterior`. Tests de servicio/repositorio verifican `1→2` y `2→3`. El historial muestra «Estado anterior desconocido» para registros históricos NULL, sin inventar el estado. Falta comprobar el historial en MySQL aislado. |
+| PAY-ACT-004 | Espera regla de negocio | Definir la matriz pago × etapa con Cobranzas y Producción. La revisión Rechazado→Confirmado todavía puede forzar la etapa 1. |
+| PAY-ACT-005 | Código y prueba local de navegador aplicados | El modal se desmonta al cerrar/cambiar pedido, enfoca el PIN y lo limpia tras el intento. `npm run test:payments:browser` comprueba en Edge headless cerrar/reabrir, cambio de pedido, fallo, éxito, motivo y envío duplicado con datos ficticios. Falta QA en la pantalla autenticada desplegada. |
+| PAY-ACT-006 | Bloqueada | Faltan reconciliación de migraciones, copia aislada, contrato de Manager incorporado y política de identidad de líneas/históricos. No se aplicó DDL ni se cambió la fuente. |
+| PAY-ACT-007 | Corregido en código; validación de despliegue pendiente | History conserva el estado resumido para `read:orders`, pero sólo entrega actor y observación de pagos cuando el token y el rol tienen `read:payments`. Los eventos se proyectan y paginan en SQL. |
+| PAY-ACT-008 | Baseline exploratorio de lectura | En `mydb`, solo con SELECT y 41 pedidos, 10 muestras dieron workspace 15.309 bytes, p50 464,5 ms y p95 472,1 ms; preview p50 465,7 ms y p95 626,1 ms. Mide repositorio/servicio, no HTTP, Auth0 ni render. Script: `node scripts/paymentsReadBaseline.mjs` desde `capaServidor`. Faltan N representativo, tiempos de frontend y presupuesto antes de optimizar. |
+| PAY-ACT-009 | Aplicada | README y modal ya describen `req.pinActor`, el fixture y la ausencia de integración directa con Manager. |
+
+Preflight read-only del 26-09-2026: `mydb` conserva 41 pedidos, carece de las cinco columnas de snapshot y del índice único de NV, y registra tres migraciones de agosto ausentes localmente. No se ejecutó DDL. La prueba de navegador local de PAY-ACT-005 usa datos ficticios y no sustituye QA autenticada. Tras los cambios actuales pasaron 657 tests de backend, las pruebas de frontend, la prueba de Edge headless, el build y ESLint dirigido. La validación MySQL de concurrencia/rollback y la revisión legal y organizacional siguen pendientes.
+
+La [Ley 21.719](https://www.bcn.cl/leychile/navegar?idNorma=1209272) tiene vigencia diferida al 01-12-2026 según la Biblioteca del Congreso Nacional. La revisión de código no acredita por sí sola cumplimiento de la [Ley 19.628](https://www.bcn.cl/leychile/navegar?idNorma=141599), ni conformidad con [ISO/IEC 27001:2022](https://www.iso.org/standard/27001) o [ISO/IEC 27701:2025](https://committee.iso.org/standard/27701). Faltan evidencias organizacionales de finalidades/base de tratamiento, retención, derechos de titulares, gestión de incidentes, contratos y controles de seguridad operativos.

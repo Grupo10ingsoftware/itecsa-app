@@ -1,36 +1,33 @@
 import {
-  KANBAN_EN_PRODUCCION_STEP,
-  KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE,
-  KANBAN_STAGE_SKIP_MESSAGE,
-  MOVE_KANBAN_TO_PRODUCTION_PERMISSION,
-  PAYMENT_CONFIRMATION_REQUIRED_MESSAGE,
-  PAYMENT_STATUS,
-} from "../../../config/status.js";
-import fs from "node:fs/promises";
+  updGeneralStepOperation,
+  sendToReviewOperation,
+  cancelProductionOperation,
+  updateDeliveryDateOperation,
+  completeSubprocessOperation,
+  rollbackSubprocessOperation,
+} from './orderProduction.service.js';
+import { updPaymentStateOperation } from './orderPayment.service.js';
+import SalesOrderCreationService, { DUPLICATE_SALES_NOTE_MESSAGE } from './salesOrderCreation.service.js';
+import OrderRepository from '../repo/orders.repo.js';
+import ClientService from '../../clients/service/clients.service.js';
+import OrderDetailService from './orderDetail.service.js';
+import ProductTypeService from '../../products/service/product.service.js';
+import PaymentRecordService from '../../payments/service/paymentRecord.service.js';
+import PaymentStatusRepo from '../../payments/repo/paymentStatus.repo.js';
+import defaultUserRepository from '../../users/repo/users.repo.js';
+import SalesNoteSourceService, { normalizeSalesNoteNumber } from './salesNoteSource.service.js';
+import getPrismaClient from '../../../database/prisma.js';
+import ClientRepo from '../../clients/repo/clients.repo.js';
+import OrderDetailRepo from '../repo/orderDetail.repo.js';
+import ProductTypeRepo from '../../products/repo/product.repo.js';
+import PaymentRecordRepo from '../../payments/repo/paymentRecord.repo.js';
+import { parseLimit, decodeCursor, pageResult } from '../../../shared/pagination.js';
+import { AppError } from '../../../errors/AppError.js';
+import { SalesOrderError } from './salesOrder.errors.js';
+import { toSalesNotePreview } from './salesOrder.validator.js';
+import { createSalesOrderTransaction } from './salesOrder.transaction.js';
 
-import OrderRepository from "../repo/orders.repo.js";
-import ClientRepo from "../../clients/repo/clients.repo.js";
-import ClientService from "../../clients/service/clients.service.js";
-import OrderDetailRepo from "../repo/orderDetail.repo.js";
-import OrderDetailService from "./orderDetail.service.js";
-import ProductTypeRepo from "../../products/repo/product.repo.js";
-import ProductTypeService from "../../products/service/product.service.js";
-import PaymentRecordRepo from "../../payments/repo/paymentRecord.repo.js";
-import PaymentRecordService from "../../payments/service/paymentRecord.service.js";
-import PaymentStatusRepo from "../../payments/repo/paymentStatus.repo.js";
-import PaymentSignatureService from "../../documents/service/paymentSignature.service.js";
-import { resolveStoredSignaturePath } from "../../documents/service/paymentSignature.service.js";
-import defaultUserRepository from "../../users/repo/users.repo.js";
-import getPrismaClient from "../../../database/prisma.js";
-
-export const CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE =
-  "No se puede cambiar el estado de un pago confirmado.";
-
-function toPrismaDate(value) {
-  if (!value) return null;
-
-  return new Date(`${value}T00:00:00.000Z`);
-}
+export { DUPLICATE_SALES_NOTE_MESSAGE };
 
 class OrderService {
   constructor({
@@ -40,9 +37,11 @@ class OrderService {
     productTypeService,
     paymentRecordService,
     paymentRepo,
-    paymentSignatureService,
     userRepo,
+    salesNoteSourceService,
+    repoClient,
     prisma,
+    salesOrderTransaction,
   } = {}) {
     this.repo = repo ?? new OrderRepository();
     this.clientService = clientService ?? new ClientService();
@@ -50,10 +49,12 @@ class OrderService {
     this.productTypeService = productTypeService ?? new ProductTypeService();
     this.paymentRecordService = paymentRecordService ?? new PaymentRecordService();
     this.paymentRepo = paymentRepo ?? new PaymentStatusRepo();
-    this.paymentSignatureService =
-      paymentSignatureService ?? new PaymentSignatureService();
     this.userRepo = userRepo ?? defaultUserRepository;
+    this.salesNoteSourceService =
+      salesNoteSourceService ?? new SalesNoteSourceService();
+    this.repoClient = repoClient ?? null;
     this.prisma = prisma;
+    this.salesOrderTransaction = salesOrderTransaction;
     this.hasInjectedDependencies = Boolean(
       repo ||
         clientService ||
@@ -61,7 +62,7 @@ class OrderService {
         productTypeService ||
         paymentRecordService ||
         paymentRepo ||
-        paymentSignatureService,
+        salesNoteSourceService,
     );
   }
 
@@ -74,6 +75,7 @@ class OrderService {
   }
 
   async runInTransaction(callback) {
+    // Payment and production operations share this transaction boundary.
     if (this.hasInjectedDependencies) {
       return callback({
         repo: this.repo,
@@ -82,7 +84,7 @@ class OrderService {
         productTypeService: this.productTypeService,
         paymentRecordService: this.paymentRecordService,
         paymentRepo: this.paymentRepo,
-        paymentSignatureService: this.paymentSignatureService,
+        repoClient: this.repoClient,
       });
     }
 
@@ -102,7 +104,7 @@ class OrderService {
           repo: new PaymentRecordRepo({ prisma: tx }),
         }),
         paymentRepo: new PaymentStatusRepo({ prisma: tx }),
-        paymentSignatureService: new PaymentSignatureService({ prisma: tx }),
+        repoClient: tx,
       }),
       {
         timeout: 20000,
@@ -111,75 +113,156 @@ class OrderService {
     );
   }
 
-  async updGeneralStep(orderId, stepId, options = {}) {
-    if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (stepId === undefined || stepId === null) {
-      const error = new Error("La etapa destino es obligatoria");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const order = await this.repo.get(orderId);
-
-    if (!order) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const currentStep = Number(order.id_etapa_general);
-    const nextStep = Number(stepId);
-
-    if (!Number.isInteger(nextStep)) {
-      const error = new Error("Etapa no valida");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (nextStep < currentStep) {
-      const error = new Error("No puedes retroceder en las etapas del pedido");
-      error.statusCode = 409;
-      throw error;
-    }
-
-    if (nextStep === currentStep) {
-      return order;
-    }
-
-    if (nextStep !== currentStep + 1) {
-      const error = new Error(KANBAN_STAGE_SKIP_MESSAGE);
-      error.statusCode = 409;
-      throw error;
-    }
-
-    const isMoveToProduction =
-      currentStep < nextStep && nextStep === KANBAN_EN_PRODUCCION_STEP;
-    const permissions = options.permissions;
-
-    if (
-      isMoveToProduction &&
-      (!Array.isArray(permissions) ||
-        !permissions.includes(MOVE_KANBAN_TO_PRODUCTION_PERMISSION))
-    ) {
-      const error = new Error(KANBAN_MOVE_TO_PRODUCTION_PERMISSION_MESSAGE);
-      error.statusCode = 403;
-      throw error;
-    }
-
-    if (order.estado_pago !== PAYMENT_STATUS.CONFIRMADO) {
-      throw new Error(PAYMENT_CONFIRMATION_REQUIRED_MESSAGE);
-    }
-
-    return this.repo.updateGeneralStep(orderId, nextStep);
+  async updGeneralStep(...args) {
+    return updGeneralStepOperation(this, ...args);
   }
 
-  async getAllOrders() {
-    return this.repo.getAllOrders();
+  async sendToReview(...args) {
+    return sendToReviewOperation(this, ...args);
+  }
+
+  async cancelProduction(...args) {
+    return cancelProductionOperation(this, ...args);
+  }
+
+  async updateDeliveryDate(...args) {
+    return updateDeliveryDateOperation(this, ...args);
+  }
+
+  async completeSubprocess(...args) {
+    return completeSubprocessOperation(this, ...args);
+  }
+
+  async rollbackSubprocess(...args) {
+    return rollbackSubprocessOperation(this, ...args);
+  }
+
+  async getAllOrders(query = {}) {
+    return this.getOrderViews(query, 'kanban');
+  }
+
+  async getOrderViews(query = {}, view = 'kanban') {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const status = String(query.status ?? "").trim().slice(0, 100) || null;
+    const search = String(query.search ?? "").trim().slice(0, 100) || null;
+    const productType = String(query.productType ?? "").trim().slice(0, 100) || null;
+    const unscheduled = query.unscheduled === 'true';
+    if (query.unscheduled !== undefined && query.unscheduled !== 'true' && query.unscheduled !== 'false') {
+      throw new AppError(400, 'unscheduled solo admite true o false');
+    }
+    if (unscheduled && (view !== 'calendar' || query.from || query.to)) {
+      throw new AppError(400, 'La consulta de pendientes no admite rango de fechas ni otra vista');
+    }
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+        const error = new AppError(400, "Las fechas deben tener formato YYYY-MM-DD."); throw error;
+      }
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) { const error = new AppError(400, "La fecha no es valida."); throw error; }
+      return end ? new Date(date.getTime() + 24 * 60 * 60 * 1000) : date;
+    };
+    const rows = await this.repo.listOrderViews({
+      view,
+      limit,
+      cursor,
+      status,
+      search,
+      productType,
+      unscheduled,
+      from: parseDate(query.from),
+      to: parseDate(query.to, true),
+    });
+    return pageResult(rows, limit);
+  }
+
+  async getOrderViewById(orderId, view = 'kanban') {
+    if (!Number.isInteger(Number(orderId)) || Number(orderId) <= 0) throw new AppError(400, 'ID de pedido no valido');
+    const order = await this.repo.getOrderView(orderId, view);
+    if (!order) throw new AppError(404, 'Pedido no encontrado', 'ORDER_NOT_FOUND');
+    return order;
+  }
+
+  async getPaymentWorkspace() {
+    const [orders, paymentStatuses] = await Promise.all([
+      this.repo.getPaymentOrders(),
+      this.paymentRepo.getAll(),
+    ]);
+
+    return { orders, paymentStatuses };
+  }
+
+  async getPagedPaymentWorkspace(query = {}) {
+    const limit = parseLimit(query.limit);
+    const cursor = decodeCursor(query.cursor);
+    const search = String(query.search ?? '').trim().slice(0, 100) || null;
+    const status = String(query.status ?? '').trim() || null;
+    if (status && !['Pendiente', 'Rechazado', 'Confirmado'].includes(status)) throw new AppError(400, 'Estado de pago no valido');
+    const parseDate = (value, end = false) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00.000Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value)) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new AppError(400, 'Fecha no valida');
+      return end ? new Date(date.getTime() + 86400000) : date;
+    };
+    const from = parseDate(query.from);
+    const to = parseDate(query.to, true);
+    if (from && to && from >= to) throw new AppError(400, 'Rango de fechas no valido');
+    const [page, paymentStatuses] = await Promise.all([
+      this.repo.listPaymentViews({ limit, cursor, status, search, from, to }),
+      this.paymentRepo.getAll(),
+    ]);
+    return { ...pageResult(page.rows, limit), counts: page.counts, paymentStatuses };
+  }
+
+  async getSalesNoteByNumber(numeroNota) {
+    const normalizedNumber = normalizeSalesNoteNumber(numeroNota);
+    const duplicateCheck = normalizedNumber
+      ? this.repo.existsBySalesNoteNumber(normalizedNumber)
+      : Promise.resolve(false);
+    const [salesNote, isAlreadyRegistered] = await Promise.all([
+      this.salesNoteSourceService.getByNumber(numeroNota),
+      duplicateCheck,
+    ]);
+
+    if (isAlreadyRegistered) {
+      throw new SalesOrderError(DUPLICATE_SALES_NOTE_MESSAGE, 409);
+    }
+
+    return toSalesNotePreview(salesNote);
+  }
+
+  async reevaluateOrder(orderId, { auth0UserId } = {}) {
+    const order = await this.repo.get(orderId);
+    if (!order) {
+      const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND"); throw error;
+    }
+    if (Number(order.id_etapa_general) !== 6) {
+      const error = new AppError(409, "Solo se pueden reevaluar pedidos En revision."); throw error;
+    }
+    if (!order.numero_nota_venta) {
+      const error = new AppError(409, "El pedido no tiene numero de Nota de Venta."); throw error;
+    }
+    const [salesNote, userId] = await Promise.all([
+      this.salesNoteSourceService.getByNumber(order.numero_nota_venta),
+      this.resolveInternalUserId({ auth0UserId }),
+    ]);
+    return this.runInTransaction(({ repo }) => repo.reevaluateFromSalesNote({
+      orderId, salesNote, userId,
+    }));
+  }
+
+  async setOrderLabel(orderId, { label, active }, { auth0UserId } = {}) {
+    const allowed = new Set(["Urgencia", "Prioridad por contrato", "PRODUCIÉNDOSE"]);
+    if (!allowed.has(label) || typeof active !== "boolean") {
+      const error = new AppError(400, "Etiqueta o estado no valido."); throw error;
+    }
+    const userId = await this.resolveInternalUserId({ auth0UserId });
+    return this.runInTransaction(async ({ repo }) => {
+      const result = await repo.setOrderLabel({ orderId, label, active, userId });
+      if (!result) { const error = new AppError(404, "Pedido no encontrado.", "ORDER_NOT_FOUND"); throw error; }
+      return result;
+    });
   }
 
   async resolveInternalUserId({ auth0UserId, id_usuario } = {}) {
@@ -187,8 +270,7 @@ class OrderService {
       const user = await this.userRepo.findByAuth0Id(auth0UserId);
 
       if (!user?.idUsuario) {
-        const error = new Error("No existe un usuario interno vinculado a la sesion.");
-        error.statusCode = 403;
+        const error = new AppError(403, "No existe un usuario interno vinculado a la sesion.");
         throw error;
       }
 
@@ -199,268 +281,37 @@ class OrderService {
       return id_usuario;
     }
 
-    const error = new Error("El usuario autenticado es obligatorio para registrar el pago.");
-    error.statusCode = 400;
+    const error = new AppError(400, "El usuario autenticado es obligatorio para registrar el pago.");
     throw error;
   }
 
-  async previewPaymentSignature(orderId, data = {}) {
-    const resolvedUserId = await this.resolveInternalUserId(data);
-
-    return this.paymentSignatureService.previewSignedPaymentDocument(
-      orderId,
-      resolvedUserId,
-    );
+  async updPaymentState(...args) {
+    return updPaymentStateOperation(this, ...args);
   }
 
-  async getPaymentSignatureEvidence(orderId) {
-    const salesNoteDocument = await this.paymentSignatureService.getOrderSalesNote(
-      orderId,
-    );
-
-    if (!salesNoteDocument?.id_documento) {
-      const error = new Error("El pedido no tiene una Nota de Venta asociada.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const paymentSignature = salesNoteDocument.Firma_Documento?.find(
-      (signature) => signature.Firma_Pago,
-    );
-
-    if (!paymentSignature?.id_usuario) {
-      const error = new Error("El pedido no tiene evidencia de firma de pago.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const user = await this.paymentSignatureService.getUserSignature(
-      paymentSignature.id_usuario,
-    );
-    const signaturePath = resolveStoredSignaturePath(user.ruta_firma);
-
-    if (!signaturePath) {
-      const error = new Error("La evidencia de firma no tiene una ruta valida.");
-      error.statusCode = 409;
-      throw error;
-    }
-
-    try {
-      await fs.access(signaturePath);
-    } catch {
-      const error = new Error("El archivo de evidencia de firma no existe.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return {
-      filePath: signaturePath,
-    };
+  async createOrder(data, options = {}) {
+    return this.createOrderFromSalesNote(data, options);
   }
 
-  async updPaymentState(orderId, newPaymentStatusId, data = {}) {
-    const {
-      auth0UserId,
-      id_usuario,
-      observacion,
-    } = data;
-
-    const paymentStatusId = Number(newPaymentStatusId);
-
-    if (!Number.isInteger(paymentStatusId)) {
-      const error = new Error("El estado de pago no es valido.");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const paymentStatus = await this.paymentRepo.get(paymentStatusId);
-
-    if (!paymentStatus) {
-      const error = new Error("Estado de pago no encontrado.");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const currentOrder = await this.repo.get(orderId);
-
-    if (!currentOrder) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const isConfirmedPayment = currentOrder.estado_pago === PAYMENT_STATUS.CONFIRMADO;
-    const keepsConfirmedPayment =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
-
-    if (isConfirmedPayment && !keepsConfirmedPayment) {
-      const error = new Error(CONFIRMED_PAYMENT_STATUS_LOCKED_MESSAGE);
-      error.statusCode = 409;
-      throw error;
-    }
-
-    if (isConfirmedPayment && keepsConfirmedPayment) {
-      return currentOrder;
-    }
-
-    const KANBAN_CONFIRMACION_PAGO = 0;
-    const KANBAN_LISTO_PRODUCCION = 1;
-    const resolvedUserId = await this.resolveInternalUserId({
-      auth0UserId,
-      id_usuario,
+  async createOrderFromSalesNote(data, options = {}) {
+    const service = new SalesOrderCreationService({
+      source: this.salesNoteSourceService,
+      userRepo: this.userRepo,
+      runInTransaction: this.salesOrderTransaction ?? createSalesOrderTransaction(() => this.client),
     });
-
-    const nextKanbanOrder =
-      paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO
-        ? KANBAN_LISTO_PRODUCCION
-        : KANBAN_CONFIRMACION_PAGO;
-
-    // La transicion de pago es atomica: firma, mueve Kanban y registra auditoria.
-    return this.runInTransaction(async ({
-      repo,
-      paymentRecordService,
-      paymentSignatureService,
-    }) => {
-      const shouldSignPaymentDocument =
-        paymentStatus.nombre_estado_pago === PAYMENT_STATUS.CONFIRMADO;
-
-      if (shouldSignPaymentDocument) {
-        await paymentSignatureService.signPaymentDocument(
-          orderId,
-          resolvedUserId,
-        );
-      }
-
-      const updatedOrder = await repo.updatePaymentStatus(
-        orderId,
-        paymentStatusId,
-        nextKanbanOrder,
-      );
-
-      if (!updatedOrder) return null;
-
-      await paymentRecordService.createPaymentRecord(orderId, {
-        id_usuario: resolvedUserId,
-        id_estado_pago: paymentStatusId,
-        observacion,
-      });
-
-      return updatedOrder;
-    });
-  }
-
-  async createOrder(data) {
-    const {
-      rut_cliente,
-      nombre_cliente,
-      razon_social,
-      estado_cliente,
-      id_usuario,
-      id_etiqueta,
-      productos,
-    } = data;
-
-    if (
-      !id_usuario ||
-      !rut_cliente ||
-      !Array.isArray(productos) ||
-      productos.length === 0
-    ) {
-      const error = new Error("Faltan datos obligatorios para crear el pedido.");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    return this.runInTransaction(async ({
-      repo,
-      clientService,
-      orderDetailService,
-      productTypeService,
-    }) => {
-      const client = await clientService.findOrCreateClient({
-        rut_cliente,
-        nombre_cliente,
-        razon_social,
-        estado_cliente,
-      });
-
-      if (!client?.id_cliente) {
-        const error = new Error("No se pudo resolver el cliente del pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const id_estado_pago = 1;
-      const id_estado_pedido = 1;
-
-      const fecha_estimada_termino = productos.reduce((latestDate, product) => {
-        if (!product.fecha_estimada_termino) return latestDate;
-        if (!latestDate) return product.fecha_estimada_termino;
-
-        return new Date(product.fecha_estimada_termino) > new Date(latestDate)
-          ? product.fecha_estimada_termino
-          : latestDate;
-      }, null);
-
-      const order = await repo.create({
-        id_cliente: client.id_cliente,
-        id_usuario,
-        id_estado_pedido,
-        id_estado_pago,
-        id_etiqueta,
-        fecha_estimada_termino: toPrismaDate(fecha_estimada_termino),
-      });
-
-      if (!order?.id_pedido) {
-        const error = new Error("No se pudo crear el pedido.");
-        error.statusCode = 500;
-        throw error;
-      }
-
-      const details = [];
-
-      for (const product of productos) {
-        const { nombre_producto, cantidad, fecha_estimada_termino } = product;
-
-        if (!nombre_producto || cantidad === undefined) {
-          const error = new Error("Faltan datos obligatorios en un detalle del pedido.");
-          error.statusCode = 400;
-          throw error;
-        }
-
-        const productType = await productTypeService.getProductTypeByName(
-          nombre_producto,
-        );
-
-        const detail = await orderDetailService.createOrderDetail(order.id_pedido, {
-          id_tipo_producto: productType.id_tipo_producto,
-          cantidad,
-          fecha_estimada_termino: toPrismaDate(fecha_estimada_termino) ?? null,
-          fecha_real_termino: null,
-        });
-
-        details.push(detail);
-      }
-
-      return {
-        ...order,
-        detalles: details,
-      };
-    });
+    return service.create(data, options);
   }
 
   async getOrderById(orderId) {
     if (!orderId) {
-      const error = new Error("El ID del pedido es obligatorio");
-      error.statusCode = 400;
+      const error = new AppError(400, "El ID del pedido es obligatorio");
       throw error;
     }
 
     const order = await this.repo.get(orderId);
 
     if (!order) {
-      const error = new Error("Pedido no encontrado");
-      error.statusCode = 404;
+      const error = new AppError(404, "Pedido no encontrado", "ORDER_NOT_FOUND");
       throw error;
     }
 
@@ -469,3 +320,5 @@ class OrderService {
 }
 
 export default OrderService;
+
+export { RESOLVED_PAYMENT_PENDING_LOCKED_MESSAGE } from './orderPayment.service.js';

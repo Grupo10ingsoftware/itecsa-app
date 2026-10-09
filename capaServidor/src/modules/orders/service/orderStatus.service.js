@@ -1,3 +1,4 @@
+import { AppError } from "../../../errors/AppError.js";
 
 import OrderStatusRepository from "../repo/orderStatus.repo.js";
 
@@ -11,13 +12,8 @@ class OrderStatusService {
 
 
         const { nombre_etapa, orden_kanban, descripcion_estado} = data;
-        console.log(nombre_etapa);
-        console.log(orden_kanban);
-        console.log( descripcion_estado);
-
         if (!nombre_etapa || orden_kanban === undefined) {
-            const error = new Error("Faltan datos obligatorios");
-            error.statusCode = 400;
+            const error = new AppError(400, "Faltan datos obligatorios");
             throw error;
         }
         return await this.repo.create( {
@@ -29,14 +25,8 @@ class OrderStatusService {
     }
 
     async getAll() {
-        try {
-            const statuses = await this.repo.getAll()
-            return statuses || []
-
-        } catch (error) {
-            console.log( error );
-
-        }
+        const statuses = await this.repo.getAll()
+        return statuses || []
     }
 
     async getById( statusId ) {
@@ -46,7 +36,7 @@ class OrderStatusService {
 
             return status
         } catch (error) {
-
+            throw error;
         }
     }
 

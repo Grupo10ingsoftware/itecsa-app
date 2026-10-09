@@ -1,167 +1,42 @@
-import getPrismaClient from "../../../database/prisma.js";
+import {
+  getBySalesNoteNumberOperation,
+  existsBySalesNoteNumberOperation,
+  getAllOrdersOperation,
+  getPaymentOrdersOperation,
+  getPaymentOrderOperation,
+  getOperation,
+  getTransitionStateOperation,
+  getProductSubprocessesOperation,
+} from './orderReadOperations.js';
+import { lockPaymentOrderOperation, updatePaymentStatusOperation } from './orderPaymentOperations.js';
+import {
+  recordCreationOperation,
+  createOperation,
+  addLabelsOperation,
+  createUntrackedItemsOperation,
+  updateOperation,
+  setOrderLabelOperation,
+  updateDeliveryDateOperation,
+} from './orderWriteOperations.js';
+import {
+  transitionGeneralStageOperation,
+  updateGeneralStepOperation,
+  sendToReviewOperation,
+  cancelProductionOperation,
+} from './orderStageOperations.js';
+import { reevaluateFromSalesNoteOperation } from './orderSalesNoteOperations.js';
+import {
+  notifyProductionAdministratorsOperation,
+  notifyCollectionsAdministratorsOperation,
+  notifyAdministratorsByRoleOperation,
+  notifyOrderReadyOperation,
+} from './orderNotificationOperations.js';
+import { lockProductionOrderOperation, completeSubprocessOperation, rollbackSubprocessOperation } from './orderSubprocessOperations.js';
+import getPrismaClient from '../../../database/prisma.js';
+import { listOrderViewsOperation, getOrderViewOperation, listPaymentViewsOperation } from './orderViewOperations.js';
 
-const SALES_NOTE_DOCUMENT_URL_PREFIX = "/api/documents/nvs/";
-const PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX = "/api/orders";
-
-const ORDER_UPDATE_FIELDS = new Set([
-  "fecha_estimada_termino",
-  "id_usuario",
-  "id_estado_pedido",
-  "id_estado_pago",
-  "id_cliente",
-  "id_etiqueta",
-]);
-
-function uniqueProductNames(details = []) {
-  const names = details
-    .map((detail) => detail.Tipo_Producto?.nombre_producto)
-    .filter(Boolean);
-
-  return [...new Set(names)].join(", ");
-}
-
-function uniqueProductDescriptions(details = []) {
-  const descriptions = details
-    .map((detail) => detail.Tipo_Producto?.descripcion_producto)
-    .filter(Boolean);
-
-  return [...new Set(descriptions)].join(", ");
-}
-
-function totalQuantity(details = []) {
-  const quantities = details
-    .map((detail) => Number(detail.cantidad))
-    .filter((quantity) => Number.isFinite(quantity));
-
-  if (quantities.length === 0) return null;
-
-  return quantities.reduce((sum, quantity) => sum + quantity, 0);
-}
-
-function findSalesNoteDocument(documents = []) {
-  return (
-    documents.find((document) => document.Nota_Venta) ??
-    documents.find((document) => document.ruta_pdf) ??
-    null
-  );
-}
-
-function findPaymentSignature(document) {
-  return (
-    document?.Firma_Documento?.find((signature) => signature.Firma_Pago) ??
-    null
-  );
-}
-
-function getFileNameFromStoredPath(storedPath) {
-  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
-    return null;
-  }
-
-  return storedPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) ?? null;
-}
-
-function buildPaymentSignatureEvidenceUrl(orderId, paymentSignature) {
-  if (!orderId || !paymentSignature?.Firma_Pago) {
-    return null;
-  }
-
-  return `${PAYMENT_SIGNATURE_EVIDENCE_URL_PREFIX}/${encodeURIComponent(orderId)}/payment-signature-evidence`;
-}
-
-export function buildSalesNotePdfUrl(storedPath) {
-  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
-    return null;
-  }
-
-  const normalizedPath = storedPath.replace(/\\/g, "/");
-  const pathParts = normalizedPath.split("/").filter(Boolean);
-  const nvsIndex = pathParts.findIndex((part) => part.toLowerCase() === "nvs");
-  const filename = pathParts.at(-1);
-
-  if (!filename?.toLowerCase().endsWith(".pdf")) {
-    return storedPath;
-  }
-
-  if (nvsIndex === -1 || pathParts[nvsIndex + 1] !== filename) {
-    return storedPath;
-  }
-
-  return `${SALES_NOTE_DOCUMENT_URL_PREFIX}${encodeURIComponent(filename)}`;
-}
-
-function mapOrderRow(order, paymentStatusName = null) {
-  if (!order) return null;
-
-  const {
-    Cliente,
-    Documento,
-    Detalle_pedido,
-    Estado_Pedido,
-    ...orderFields
-  } = order;
-  const salesNoteDocument = findSalesNoteDocument(Documento);
-  const paymentSignature = findPaymentSignature(salesNoteDocument);
-
-  return {
-    ...orderFields,
-    nombre_cliente: Cliente?.nombre_cliente ?? null,
-    rut_cliente: Cliente?.rut_cliente ?? null,
-    razon_social: Cliente?.razon_social ?? null,
-    nombre_producto: Detalle_pedido ? uniqueProductNames(Detalle_pedido) : undefined,
-    descripcion_producto: Detalle_pedido
-      ? uniqueProductDescriptions(Detalle_pedido)
-      : undefined,
-    cantidad: Detalle_pedido ? totalQuantity(Detalle_pedido) : null,
-    id_etapa_general: Estado_Pedido?.orden_kanban ?? null,
-    nombre_etapa_general: Estado_Pedido?.nombre_etapa ?? null,
-    estado_pago: paymentStatusName,
-    ruta_pdf: buildSalesNotePdfUrl(salesNoteDocument?.ruta_pdf),
-    numero_nota_venta:
-      salesNoteDocument?.Nota_Venta?.numero_nota_venta ?? null,
-    firmado: salesNoteDocument?.Nota_Venta?.firmado ?? null,
-    firma_pago: paymentSignature
-      ? {
-          id_firma_documento: paymentSignature.id_firma_documento ?? null,
-          fecha_firma: paymentSignature.fecha_firma ?? null,
-          id_usuario: paymentSignature.id_usuario ?? null,
-          evidenceFileName: getFileNameFromStoredPath(
-            paymentSignature.Usuario?.ruta_firma,
-          ),
-          evidenceUrl: buildPaymentSignatureEvidenceUrl(
-            orderFields.id_pedido,
-            paymentSignature,
-          ),
-        }
-      : null,
-  };
-}
-
-const orderReadInclude = {
-  Cliente: true,
-  Detalle_pedido: {
-    include: {
-      Tipo_Producto: true,
-    },
-  },
-  Documento: {
-    include: {
-      Nota_Venta: true,
-      Firma_Documento: {
-        include: {
-          Firma_Pago: true,
-          Usuario: {
-            select: {
-              ruta_firma: true,
-            },
-          },
-        },
-      },
-    },
-  },
-  Estado_Pedido: true,
-};
-
+// Keep the public repository API and the injected transaction client in one place.
+// Operation modules receive this repository so cross-operation calls use that same client.
 class OrderRepository {
   constructor({ prisma } = {}) {
     this.prisma = prisma;
@@ -175,144 +50,134 @@ class OrderRepository {
     return this.prisma;
   }
 
-  async getPaymentStatusNamesByIds(ids) {
-    const uniqueIds = [...new Set(ids.filter((id) => id !== null && id !== undefined))];
-
-    if (uniqueIds.length === 0) return new Map();
-
-    const statuses = await this.client.estado_Pago.findMany({
-      where: {
-        id_estado_Pago: { in: uniqueIds.map(Number) },
-      },
-    });
-
-    return new Map(
-      statuses.map((status) => [
-        Number(status.id_estado_Pago),
-        status.nombre_estado_pago,
-      ]),
-    );
+  async getBySalesNoteNumber(...args) {
+    return getBySalesNoteNumberOperation(this, ...args);
   }
 
-  async getAllOrders() {
-    const orders = await this.client.pedidos.findMany({
-      include: orderReadInclude,
-      orderBy: { id_pedido: "desc" },
-    });
-    const paymentStatuses = await this.getPaymentStatusNamesByIds(
-      orders.map((order) => order.id_estado_pago),
-    );
-
-    return orders.map((order) =>
-      mapOrderRow(order, paymentStatuses.get(Number(order.id_estado_pago)) ?? null),
-    );
+  async existsBySalesNoteNumber(...args) {
+    return existsBySalesNoteNumberOperation(this, ...args);
   }
 
-  async get(id) {
-    const order = await this.client.pedidos.findUnique({
-      where: { id_pedido: Number(id) },
-      include: orderReadInclude,
-    });
-
-    if (!order) return null;
-
-    const paymentStatuses = await this.getPaymentStatusNamesByIds([order.id_estado_pago]);
-
-    return mapOrderRow(
-      order,
-      paymentStatuses.get(Number(order.id_estado_pago)) ?? null,
-    );
+  async getAllOrders(...args) {
+    return getAllOrdersOperation(this, ...args);
   }
 
-  async create(data) {
-    const {
-      id_cliente,
-      id_usuario,
-      id_estado_pedido,
-      id_estado_pago,
-      id_etiqueta,
-      fecha_estimada_termino,
-    } = data;
-
-    const order = await this.client.pedidos.create({
-      data: {
-        fecha_creacion: new Date(),
-        fecha_estimada_termino: fecha_estimada_termino ?? null,
-        id_usuario: Number(id_usuario),
-        id_estado_pedido: Number(id_estado_pedido),
-        id_estado_pago: Number(id_estado_pago),
-        id_cliente: Number(id_cliente),
-        id_etiqueta: id_etiqueta === undefined || id_etiqueta === null
-          ? null
-          : Number(id_etiqueta),
-      },
-    });
-
-    return this.get(order.id_pedido);
+  async listOrderViews(...args) {
+    return listOrderViewsOperation(this, ...args);
   }
 
-  async update(id, data) {
-    const entries = Object.entries(data)
-      .filter(([key, value]) => ORDER_UPDATE_FIELDS.has(key) && value !== undefined);
-
-    if (entries.length === 0) {
-      return this.get(id);
-    }
-
-    try {
-      await this.client.pedidos.update({
-        where: { id_pedido: Number(id) },
-        data: Object.fromEntries(entries),
-      });
-    } catch (error) {
-      if (error?.code === "P2025") return null;
-      throw error;
-    }
-
-    return this.get(id);
+  async getOrderView(...args) {
+    return getOrderViewOperation(this, ...args);
   }
 
-  async updateGeneralStep(id, ordenKanban) {
-    const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(ordenKanban) },
-      select: { id_estado_pedido: true },
-    });
-
-    try {
-      await this.client.pedidos.update({
-        where: { id_pedido: Number(id) },
-        data: {
-          id_estado_pedido: status?.id_estado_pedido ?? null,
-        },
-      });
-    } catch (error) {
-      if (error?.code === "P2025") return null;
-      throw error;
-    }
-
-    return this.get(id);
+  async listPaymentViews(...args) {
+    return listPaymentViewsOperation(this, ...args);
   }
 
-  async updatePaymentStatus(id, paymentStatusId, nextKanbanOrder) {
-    const status = await this.client.estado_Pedido.findFirst({
-      where: { orden_kanban: Number(nextKanbanOrder) },
-      select: { id_estado_pedido: true },
-    });
+  async getPaymentOrders(...args) {
+    return getPaymentOrdersOperation(this, ...args);
+  }
 
-    try {
-      await this.client.pedidos.update({
-        where: { id_pedido: Number(id) },
-        data: {
-          id_estado_pago: Number(paymentStatusId),
-          id_estado_pedido: status?.id_estado_pedido ?? null,
-        },
-      });
-    } catch (error) {
-      if (error?.code === "P2025") return null;
-      throw error;
-    }
+  async getPaymentOrder(...args) {
+    return getPaymentOrderOperation(this, ...args);
+  }
 
-    return this.get(id);
+  async lockPaymentOrder(...args) {
+    return lockPaymentOrderOperation(this, ...args);
+  }
+
+  async get(...args) {
+    return getOperation(this, ...args);
+  }
+
+  async getTransitionState(...args) {
+    return getTransitionStateOperation(this, ...args);
+  }
+
+  async recordCreation(...args) {
+    return recordCreationOperation(this, ...args);
+  }
+
+  async create(...args) {
+    return createOperation(this, ...args);
+  }
+
+  async addLabels(...args) {
+    return addLabelsOperation(this, ...args);
+  }
+
+  async createUntrackedItems(...args) {
+    return createUntrackedItemsOperation(this, ...args);
+  }
+
+  async getProductSubprocesses(...args) {
+    return getProductSubprocessesOperation(this, ...args);
+  }
+
+  async update(...args) {
+    return updateOperation(this, ...args);
+  }
+
+  async transitionGeneralStage(...args) {
+    return transitionGeneralStageOperation(this, ...args);
+  }
+
+  async setOrderLabel(...args) {
+    return setOrderLabelOperation(this, ...args);
+  }
+
+  async updateGeneralStep(...args) {
+    return updateGeneralStepOperation(this, ...args);
+  }
+
+  async sendToReview(...args) {
+    return sendToReviewOperation(this, ...args);
+  }
+
+  async cancelProduction(...args) {
+    return cancelProductionOperation(this, ...args);
+  }
+
+  async reevaluateFromSalesNote(...args) {
+    return reevaluateFromSalesNoteOperation(this, ...args);
+  }
+
+  async updateDeliveryDate(...args) {
+    return updateDeliveryDateOperation(this, ...args);
+  }
+
+  async updatePaymentStatus(...args) {
+    return updatePaymentStatusOperation(this, ...args);
+  }
+
+  async notifyProductionAdministrators(...args) {
+    return notifyProductionAdministratorsOperation(this, ...args);
+  }
+
+  async notifyCollectionsAdministrators(...args) {
+    return notifyCollectionsAdministratorsOperation(this, ...args);
+  }
+
+  async notifyAdministratorsByRole(...args) {
+    return notifyAdministratorsByRoleOperation(this, ...args);
+  }
+
+  async notifyOrderReady(...args) {
+    return notifyOrderReadyOperation(this, ...args);
+  }
+
+  // Se invoca dentro de la transacción del servicio, antes de leer los detalles.
+  // Serializa cierres y retrocesos del mismo pedido sin bloquear otros pedidos.
+  async lockProductionOrder(...args) {
+    return lockProductionOrderOperation(this, ...args);
+  }
+
+  async completeSubprocess(...args) {
+    return completeSubprocessOperation(this, ...args);
+  }
+
+  async rollbackSubprocess(...args) {
+    return rollbackSubprocessOperation(this, ...args);
   }
 }
 

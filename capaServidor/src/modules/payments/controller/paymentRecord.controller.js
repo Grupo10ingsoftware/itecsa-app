@@ -1,23 +1,11 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { request, response } from "express";
 import PaymentRecordService from "../service/paymentRecord.service.js";
 
 class PaymentRecordController {
-  constructor() {
-    this.service = new PaymentRecordService();
+  constructor({ service } = {}) {
+    this.service = service ?? new PaymentRecordService();
   }
-
-  postPaymentRecord = async (req = request, res = response) => {
-    try {
-      const { orderId } = req.params;
-      const record = await this.service.createPaymentRecord(orderId, req.body ?? {});
-
-      res.status(201).json(record);
-    } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al crear registro de pago",
-      });
-    }
-  };
 
   getPaymentRecord = async (req = request, res = response) => {
     try {
@@ -26,9 +14,7 @@ class PaymentRecordController {
 
       res.status(200).json(record);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registro de pago",
-      });
+        return respondError(error, req, res);
     }
   };
 
@@ -39,9 +25,18 @@ class PaymentRecordController {
 
       res.status(200).json(records);
     } catch (error) {
-      res.status(error.statusCode ?? 500).json({
-        message: error.message || "Error al obtener registros de pago",
-      });
+        return respondError(error, req, res);
+    }
+  };
+
+  getConfirmationDetails = async (req = request, res = response) => {
+    try {
+      const { orderId } = req.params;
+      const details = await this.service.getConfirmationDetails(orderId);
+
+      res.status(200).json(details);
+    } catch (error) {
+        return respondError(error, req, res);
     }
   };
 }

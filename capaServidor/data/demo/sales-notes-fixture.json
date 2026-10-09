@@ -1,0 +1,1884 @@
+[
+  {
+    "numeroNota": "22405",
+    "fechaEntregaTentativaOrigen": "2026-09-01",
+    "usuarioOrigenManager": "Usuario Demo 004",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-041",
+      "CLIENTE": "Cliente Demo 041",
+      "dir": "Direccion Demo 041",
+      "comuna": "Comuna Demo 041",
+      "ciudad": "Ciudad Demo 041",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060016",
+        "producto": "TARJETAS ID CARD IMPRESA Y FOLIADA",
+        "cantidad": 34,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "22246",
+    "fechaEntregaTentativaOrigen": "2026-09-01",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-040",
+      "CLIENTE": "Cliente Demo 040",
+      "dir": "Direccion Demo 040",
+      "comuna": "Comuna Demo 040",
+      "ciudad": "Ciudad Demo 040",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 002",
+    "items": [
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 28,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23642",
+    "fechaEntregaTentativaOrigen": "2026-09-01",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-007",
+      "CLIENTE": "Cliente Demo 007",
+      "dir": "Direccion Demo 007",
+      "comuna": "Comuna Demo 007",
+      "ciudad": "Ciudad Demo 007",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 35,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23716",
+    "fechaEntregaTentativaOrigen": "2026-09-02",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-021",
+      "CLIENTE": "Cliente Demo 021",
+      "dir": "Direccion Demo 021",
+      "comuna": "Comuna Demo 021",
+      "ciudad": "Ciudad Demo 021",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": "Observacion demo 004",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23717",
+    "fechaEntregaTentativaOrigen": "2026-09-02",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-005",
+      "CLIENTE": "Cliente Demo 005",
+      "dir": "Direccion Demo 005",
+      "comuna": "Comuna Demo 005",
+      "ciudad": "Ciudad Demo 005",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140052",
+        "producto": "LANYARD IMPRESO SUBLIMACION 15MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23751",
+    "fechaEntregaTentativaOrigen": "2026-09-03",
+    "usuarioOrigenManager": "Usuario Demo 004",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-012",
+      "CLIENTE": "Cliente Demo 012",
+      "dir": "Direccion Demo 012",
+      "comuna": "Comuna Demo 012",
+      "ciudad": "Ciudad Demo 012",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": "Observacion demo 006",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 50,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23757",
+    "fechaEntregaTentativaOrigen": "2026-09-03",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-019",
+      "CLIENTE": "Cliente Demo 019",
+      "dir": "Direccion Demo 019",
+      "comuna": "Comuna Demo 019",
+      "ciudad": "Ciudad Demo 019",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23808",
+    "fechaEntregaTentativaOrigen": "2026-09-04",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-014",
+      "CLIENTE": "Cliente Demo 014",
+      "dir": "Direccion Demo 014",
+      "comuna": "Comuna Demo 014",
+      "ciudad": "Ciudad Demo 014",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23864",
+    "fechaEntregaTentativaOrigen": "2026-09-04",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-006",
+      "CLIENTE": "Cliente Demo 006",
+      "dir": "Direccion Demo 006",
+      "comuna": "Comuna Demo 006",
+      "ciudad": "Ciudad Demo 006",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 010",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 5000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23892",
+    "fechaEntregaTentativaOrigen": "2026-09-05",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-037",
+      "CLIENTE": "Cliente Demo 037",
+      "dir": "Direccion Demo 037",
+      "comuna": "Comuna Demo 037",
+      "ciudad": "Ciudad Demo 037",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Comentario de prueba 034",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 70,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23898",
+    "fechaEntregaTentativaOrigen": "2026-09-05",
+    "usuarioOrigenManager": "Usuario Demo 006",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-031",
+      "CLIENTE": "Cliente Demo 031",
+      "dir": "Direccion Demo 031",
+      "comuna": "Comuna Demo 031",
+      "ciudad": "Ciudad Demo 031",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23907",
+    "fechaEntregaTentativaOrigen": "2026-09-06",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-038",
+      "CLIENTE": "Cliente Demo 038",
+      "dir": "Direccion Demo 038",
+      "comuna": "Comuna Demo 038",
+      "ciudad": "Ciudad Demo 038",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 012",
+    "items": [
+      {
+        "codigo": "2300030140052",
+        "producto": "LANYARD IMPRESO SUBLIMACION 15MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23923",
+    "fechaEntregaTentativaOrigen": "2026-09-06",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-026",
+      "CLIENTE": "Cliente Demo 026",
+      "dir": "Direccion Demo 026",
+      "comuna": "Comuna Demo 026",
+      "ciudad": "Ciudad Demo 026",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23950",
+    "fechaEntregaTentativaOrigen": "2026-09-07",
+    "usuarioOrigenManager": "Usuario Demo 006",
+    "tipoNotaVentaOrigen": "Traslado",
+    "cliente": {
+      "RUT": "RUT-DEMO-013",
+      "CLIENTE": "Cliente Demo 013",
+      "dir": "Direccion Demo 013",
+      "comuna": "Comuna Demo 013",
+      "ciudad": "Ciudad Demo 013",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 014",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010039",
+        "producto": "PORTA CREDENCIAL YOYO W/30 - ROYAL BLUE C/DOM",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2300040040006",
+        "producto": "DOME IMPRESO",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "DOME",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      }
+    ]
+  },
+  {
+    "numeroNota": "23971",
+    "fechaEntregaTentativaOrigen": "2026-09-07",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-028",
+      "CLIENTE": "Cliente Demo 028",
+      "dir": "Direccion Demo 028",
+      "comuna": "Comuna Demo 028",
+      "ciudad": "Ciudad Demo 028",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23973",
+    "fechaEntregaTentativaOrigen": "2026-09-08",
+    "usuarioOrigenManager": "Usuario Demo 007",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-022",
+      "CLIENTE": "Cliente Demo 022",
+      "dir": "Direccion Demo 022",
+      "comuna": "Comuna Demo 022",
+      "ciudad": "Ciudad Demo 022",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 016",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 900,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23975",
+    "fechaEntregaTentativaOrigen": "2026-09-08",
+    "usuarioOrigenManager": "Usuario Demo 006",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-032",
+      "CLIENTE": "Cliente Demo 032",
+      "dir": "Direccion Demo 032",
+      "comuna": "Comuna Demo 032",
+      "ciudad": "Ciudad Demo 032",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 017",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24029",
+    "fechaEntregaTentativaOrigen": "2026-09-09",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-018",
+      "CLIENTE": "Cliente Demo 018",
+      "dir": "Direccion Demo 018",
+      "comuna": "Comuna Demo 018",
+      "ciudad": "Ciudad Demo 018",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 018",
+    "items": [
+      {
+        "codigo": "2300030180073",
+        "producto": "TARJETAS DE PROXIMIDAD ZK IMPRIMIBLES 125 MZ",
+        "cantidad": 600,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24038",
+    "fechaEntregaTentativaOrigen": "2026-09-09",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-013",
+      "CLIENTE": "Cliente Demo 013",
+      "dir": "Direccion Demo 013",
+      "comuna": "Comuna Demo 013",
+      "ciudad": "Ciudad Demo 013",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060010",
+        "producto": "TARJETA HID ISO PROX CODIFICADA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24050",
+    "fechaEntregaTentativaOrigen": "2026-09-10",
+    "usuarioOrigenManager": "Usuario Demo 006",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-025",
+      "CLIENTE": "Cliente Demo 025",
+      "dir": "Direccion Demo 025",
+      "comuna": "Comuna Demo 025",
+      "ciudad": "Ciudad Demo 025",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030180064",
+        "producto": "TARJETA PVC CR CR80-30 ISOPROX IMPRESA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24057",
+    "fechaEntregaTentativaOrigen": "2026-09-10",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-023",
+      "CLIENTE": "Cliente Demo 023",
+      "dir": "Direccion Demo 023",
+      "comuna": "Comuna Demo 023",
+      "ciudad": "Ciudad Demo 023",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 021",
+    "items": [
+      {
+        "codigo": "2100010060008",
+        "producto": "TARJETA HID PROXCARD CODIFICADA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23790",
+    "fechaEntregaTentativaOrigen": "2026-09-11",
+    "usuarioOrigenManager": "Usuario Demo 008",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-027",
+      "CLIENTE": "Cliente Demo 027",
+      "dir": "Direccion Demo 027",
+      "comuna": "Comuna Demo 027",
+      "ciudad": "Ciudad Demo 027",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010039",
+        "producto": "PORTA CREDENCIAL YOYO W/30 - ROYAL BLUE C/DOM",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24072",
+    "fechaEntregaTentativaOrigen": "2026-09-11",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-003",
+      "CLIENTE": "Cliente Demo 003",
+      "dir": "Direccion Demo 003",
+      "comuna": "Comuna Demo 003",
+      "ciudad": "Ciudad Demo 003",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030180073",
+        "producto": "TARJETAS DE PROXIMIDAD ZK IMPRIMIBLES 125 MZ",
+        "cantidad": 400,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24073",
+    "fechaEntregaTentativaOrigen": "2026-09-12",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-004",
+      "CLIENTE": "Cliente Demo 004",
+      "dir": "Direccion Demo 004",
+      "comuna": "Comuna Demo 004",
+      "ciudad": "Ciudad Demo 004",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060012",
+        "producto": "TARJETA PVC BANDA HICO IMPRESA",
+        "cantidad": 11,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24084",
+    "fechaEntregaTentativaOrigen": "2026-09-12",
+    "usuarioOrigenManager": "Usuario Demo 005",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-016",
+      "CLIENTE": "Cliente Demo 016",
+      "dir": "Direccion Demo 016",
+      "comuna": "Comuna Demo 016",
+      "ciudad": "Ciudad Demo 016",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030180073",
+        "producto": "TARJETAS DE PROXIMIDAD ZK IMPRIMIBLES 125 MZ",
+        "cantidad": 200,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010031",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK COLOR",
+        "cantidad": 300,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24101",
+    "fechaEntregaTentativaOrigen": "2026-09-13",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-045",
+      "CLIENTE": "Cliente Demo 045",
+      "dir": "Direccion Demo 045",
+      "comuna": "Comuna Demo 045",
+      "ciudad": "Ciudad Demo 045",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 026",
+    "items": [
+      {
+        "codigo": "2100010060008",
+        "producto": "TARJETA HID PROXCARD CODIFICADA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24102",
+    "fechaEntregaTentativaOrigen": "2026-09-13",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-009",
+      "CLIENTE": "Cliente Demo 009",
+      "dir": "Direccion Demo 009",
+      "comuna": "Comuna Demo 009",
+      "ciudad": "Ciudad Demo 009",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140060",
+        "producto": "LANYARD SIN IMPRESION 15MM",
+        "cantidad": 3,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060011",
+        "producto": "TARJETA MIFARE 1K IMPRESA",
+        "cantidad": 3,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24108",
+    "fechaEntregaTentativaOrigen": "2026-09-14",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-011",
+      "CLIENTE": "Cliente Demo 011",
+      "dir": "Direccion Demo 011",
+      "comuna": "Comuna Demo 011",
+      "ciudad": "Ciudad Demo 011",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030180073",
+        "producto": "TARJETAS DE PROXIMIDAD ZK IMPRIMIBLES 125 MZ",
+        "cantidad": 300,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24117",
+    "fechaEntregaTentativaOrigen": "2026-09-14",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-002",
+      "CLIENTE": "Cliente Demo 002",
+      "dir": "Direccion Demo 002",
+      "comuna": "Comuna Demo 002",
+      "ciudad": "Ciudad Demo 002",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 120,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 400,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24118",
+    "fechaEntregaTentativaOrigen": "2026-09-15",
+    "usuarioOrigenManager": "Usuario Demo 011",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-007",
+      "CLIENTE": "Cliente Demo 007",
+      "dir": "Direccion Demo 007",
+      "comuna": "Comuna Demo 007",
+      "ciudad": "Ciudad Demo 007",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 35,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 35,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23078",
+    "fechaEntregaTentativaOrigen": "2026-09-15",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-008",
+      "CLIENTE": "Cliente Demo 008",
+      "dir": "Direccion Demo 008",
+      "comuna": "Comuna Demo 008",
+      "ciudad": "Ciudad Demo 008",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 031",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010039",
+        "producto": "PORTA CREDENCIAL YOYO W/30 - ROYAL BLUE C/DOM",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24137",
+    "fechaEntregaTentativaOrigen": "2026-09-16",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-010",
+      "CLIENTE": "Cliente Demo 010",
+      "dir": "Direccion Demo 010",
+      "comuna": "Comuna Demo 010",
+      "ciudad": "Ciudad Demo 010",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 4,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140060",
+        "producto": "LANYARD SIN IMPRESION 15MM",
+        "cantidad": 4,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24178",
+    "fechaEntregaTentativaOrigen": "2026-09-16",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-024",
+      "CLIENTE": "Cliente Demo 024",
+      "dir": "Direccion Demo 024",
+      "comuna": "Comuna Demo 024",
+      "ciudad": "Ciudad Demo 024",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010060013",
+        "producto": "TARJETA HID ISO PROX IMPRESA Y CODIFICADA",
+        "cantidad": 1,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24226",
+    "fechaEntregaTentativaOrigen": "2026-09-17",
+    "usuarioOrigenManager": "Usuario Demo 003",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-029",
+      "CLIENTE": "Cliente Demo 029",
+      "dir": "Direccion Demo 029",
+      "comuna": "Comuna Demo 029",
+      "ciudad": "Ciudad Demo 029",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010010029",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BL",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24234",
+    "fechaEntregaTentativaOrigen": "2026-09-17",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-017",
+      "CLIENTE": "Cliente Demo 017",
+      "dir": "Direccion Demo 017",
+      "comuna": "Comuna Demo 017",
+      "ciudad": "Ciudad Demo 017",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 035",
+    "items": [
+      {
+        "codigo": "2100010060011",
+        "producto": "TARJETA MIFARE 1K IMPRESA",
+        "cantidad": 600,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140060",
+        "producto": "LANYARD SIN IMPRESION 15MM",
+        "cantidad": 200,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23946",
+    "fechaEntregaTentativaOrigen": "2026-09-18",
+    "usuarioOrigenManager": "Usuario Demo 001",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-015",
+      "CLIENTE": "Cliente Demo 015",
+      "dir": "Direccion Demo 015",
+      "comuna": "Comuna Demo 015",
+      "ciudad": "Ciudad Demo 015",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 036",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 200,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060010",
+        "producto": "TARJETA HID ISO PROX CODIFICADA",
+        "cantidad": 200,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23995",
+    "fechaEntregaTentativaOrigen": "2026-09-18",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-020",
+      "CLIENTE": "Cliente Demo 020",
+      "dir": "Direccion Demo 020",
+      "comuna": "Comuna Demo 020",
+      "ciudad": "Ciudad Demo 020",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 037",
+    "items": [
+      {
+        "codigo": "2300030140061",
+        "producto": "LANYARD SIN IMPRESION 20MM",
+        "cantidad": 5,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 5,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24308",
+    "fechaEntregaTentativaOrigen": "2026-09-19",
+    "usuarioOrigenManager": "Usuario Demo 010",
+    "tipoNotaVentaOrigen": "Traslado",
+    "cliente": {
+      "RUT": "RUT-DEMO-036",
+      "CLIENTE": "Cliente Demo 036",
+      "dir": "Direccion Demo 036",
+      "comuna": "Comuna Demo 036",
+      "ciudad": "Ciudad Demo 036",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": "Observacion demo 038",
+    "items": [
+      {
+        "codigo": "2100010010029",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BL",
+        "cantidad": 50,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060011",
+        "producto": "TARJETA MIFARE 1K IMPRESA",
+        "cantidad": 50,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "23956",
+    "fechaEntregaTentativaOrigen": "2026-09-19",
+    "usuarioOrigenManager": "Usuario Demo 001",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-001",
+      "CLIENTE": "Cliente Demo 001",
+      "dir": "Direccion Demo 001",
+      "comuna": "Comuna Demo 001",
+      "ciudad": "Ciudad Demo 001",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 039",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2100010060010",
+        "producto": "TARJETA HID ISO PROX CODIFICADA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060010",
+        "producto": "TARJETA HID ISO PROX CODIFICADA",
+        "cantidad": 100,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24762",
+    "fechaEntregaTentativaOrigen": "2026-09-20",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-043",
+      "CLIENTE": "Cliente Demo 043",
+      "dir": "Direccion Demo 043",
+      "comuna": "Comuna Demo 043",
+      "ciudad": "Ciudad Demo 043",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 040",
+    "items": [
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 400,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 120,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24775",
+    "fechaEntregaTentativaOrigen": "2026-09-20",
+    "usuarioOrigenManager": "Usuario Demo 001",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-034",
+      "CLIENTE": "Cliente Demo 034",
+      "dir": "Direccion Demo 034",
+      "comuna": "Comuna Demo 034",
+      "ciudad": "Ciudad Demo 034",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 041",
+    "items": [
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 150,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24872",
+    "fechaEntregaTentativaOrigen": "2026-09-21",
+    "usuarioOrigenManager": "Usuario Demo 006",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-035",
+      "CLIENTE": "Cliente Demo 035",
+      "dir": "Direccion Demo 035",
+      "comuna": "Comuna Demo 035",
+      "ciudad": "Ciudad Demo 035",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 042",
+    "items": [
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24886",
+    "fechaEntregaTentativaOrigen": "2026-09-21",
+    "usuarioOrigenManager": "Usuario Demo 013",
+    "tipoNotaVentaOrigen": "Garantia",
+    "cliente": {
+      "RUT": "RUT-DEMO-044",
+      "CLIENTE": "Cliente Demo 044",
+      "dir": "Direccion Demo 044",
+      "comuna": "Comuna Demo 044",
+      "ciudad": "Ciudad Demo 044",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 043",
+    "items": [
+      {
+        "codigo": "2100010010035",
+        "producto": "PORTA CREDENCIAL YOYO ROJO C/DOME",
+        "cantidad": 3000,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "24956",
+    "fechaEntregaTentativaOrigen": "2026-09-22",
+    "usuarioOrigenManager": "Usuario Demo 009",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-030",
+      "CLIENTE": "Cliente Demo 030",
+      "dir": "Direccion Demo 030",
+      "comuna": "Comuna Demo 030",
+      "ciudad": "Ciudad Demo 030",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 044",
+    "items": [
+      {
+        "codigo": "2100010010031",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK COLOR",
+        "cantidad": 150,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25018",
+    "fechaEntregaTentativaOrigen": "2026-09-22",
+    "usuarioOrigenManager": "Usuario Demo 012",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-039",
+      "CLIENTE": "Cliente Demo 039",
+      "dir": "Direccion Demo 039",
+      "comuna": "Comuna Demo 039",
+      "ciudad": "Ciudad Demo 039",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": "Observacion demo 045",
+    "items": [
+      {
+        "codigo": "2100010010039",
+        "producto": "PORTA CREDENCIAL YOYO W/30 - ROYAL BLUE C/DOM",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25058",
+    "fechaEntregaTentativaOrigen": "2026-09-23",
+    "usuarioOrigenManager": "Usuario Demo 009",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-005",
+      "CLIENTE": "Cliente Demo 005",
+      "dir": "Direccion Demo 005",
+      "comuna": "Comuna Demo 005",
+      "ciudad": "Ciudad Demo 005",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 046",
+    "items": [
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25137",
+    "fechaEntregaTentativaOrigen": "2026-09-23",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-048",
+      "CLIENTE": "Cliente Demo 048",
+      "dir": "Direccion Demo 048",
+      "comuna": "Comuna Demo 048",
+      "ciudad": "Ciudad Demo 048",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25164",
+    "fechaEntregaTentativaOrigen": "2026-09-24",
+    "usuarioOrigenManager": "Usuario Demo 001",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-001",
+      "CLIENTE": "Cliente Demo 001",
+      "dir": "Direccion Demo 001",
+      "comuna": "Comuna Demo 001",
+      "ciudad": "Ciudad Demo 001",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 048",
+    "items": [
+      {
+        "codigo": "2100010060008",
+        "producto": "TARJETA HID PROXCARD CODIFICADA",
+        "cantidad": 200,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      }
+    ]
+  },
+  {
+    "numeroNota": "25168",
+    "fechaEntregaTentativaOrigen": "2026-09-24",
+    "usuarioOrigenManager": "Usuario Demo 014",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-046",
+      "CLIENTE": "Cliente Demo 046",
+      "dir": "Direccion Demo 046",
+      "comuna": "Comuna Demo 046",
+      "ciudad": "Ciudad Demo 046",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 049",
+    "items": [
+      {
+        "codigo": "2100010010029",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BL",
+        "cantidad": 45,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25272",
+    "fechaEntregaTentativaOrigen": "2026-09-25",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-047",
+      "CLIENTE": "Cliente Demo 047",
+      "dir": "Direccion Demo 047",
+      "comuna": "Comuna Demo 047",
+      "ciudad": "Ciudad Demo 047",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 050",
+    "items": [
+      {
+        "codigo": "2400090020035",
+        "producto": "GRIPPER NEGRO",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "GRIPPER",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140052",
+        "producto": "LANYARD IMPRESO SUBLIMACION 15MM",
+        "cantidad": 500,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25476",
+    "fechaEntregaTentativaOrigen": "2026-09-25",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-033",
+      "CLIENTE": "Cliente Demo 033",
+      "dir": "Direccion Demo 033",
+      "comuna": "Comuna Demo 033",
+      "ciudad": "Ciudad Demo 033",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": null,
+    "items": [
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "25587",
+    "fechaEntregaTentativaOrigen": "2026-09-26",
+    "usuarioOrigenManager": "Usuario Demo 001",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-042",
+      "CLIENTE": "Cliente Demo 042",
+      "dir": "Direccion Demo 042",
+      "comuna": "Comuna Demo 042",
+      "ciudad": "Ciudad Demo 042",
+      "TIPO_CLIENTE": "PUBLICO"
+    },
+    "observaciones": "Observacion demo 052",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010035",
+        "producto": "PORTA CREDENCIAL YOYO ROJO C/DOME",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140036",
+        "producto": "GRIPPER BLANCO",
+        "cantidad": 100,
+        "familia": "ACCESORIOS",
+        "subfamilia": "GRIPPER",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      }
+    ]
+  },
+  {
+    "numeroNota": "25928",
+    "fechaEntregaTentativaOrigen": "2026-09-26",
+    "usuarioOrigenManager": "Usuario Demo 012",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-049",
+      "CLIENTE": "Cliente Demo 049",
+      "dir": "Direccion Demo 049",
+      "comuna": "Comuna Demo 049",
+      "ciudad": "Ciudad Demo 049",
+      "TIPO_CLIENTE": null
+    },
+    "observaciones": "Observacion demo 053",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 300,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 300,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      }
+    ]
+  },
+  {
+    "numeroNota": "25946",
+    "fechaEntregaTentativaOrigen": "2026-09-27",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-013",
+      "CLIENTE": "Cliente Demo 013",
+      "dir": "Direccion Demo 013",
+      "comuna": "Comuna Demo 013",
+      "ciudad": "Ciudad Demo 013",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 054",
+    "items": [
+      {
+        "codigo": "2300030140024",
+        "producto": "CLIP CON CORREA",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "CLIPS",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 110,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "26396",
+    "fechaEntregaTentativaOrigen": "2026-09-27",
+    "usuarioOrigenManager": "Usuario Demo 015",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-050",
+      "CLIENTE": "Cliente Demo 050",
+      "dir": "Direccion Demo 050",
+      "comuna": "Comuna Demo 050",
+      "ciudad": "Ciudad Demo 050",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 055",
+    "items": [
+      {
+        "codigo": "2300030140114",
+        "producto": "MUESTRA DE LANYARD",
+        "cantidad": 1,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140102",
+        "producto": "CINTA IMPRESO SUBLIMACION 15MM (METRO)",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "CINTA SUBLIMADA",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2300030140102",
+        "producto": "CINTA IMPRESO SUBLIMACION 15MM (METRO)",
+        "cantidad": 1000,
+        "familia": "LANYARD",
+        "subfamilia": "CINTA SUBLIMADA",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      }
+    ]
+  },
+  {
+    "numeroNota": "26401",
+    "fechaEntregaTentativaOrigen": "2026-09-28",
+    "usuarioOrigenManager": "Usuario Demo 016",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-050",
+      "CLIENTE": "Cliente Demo 050",
+      "dir": "Direccion Demo 050",
+      "comuna": "Comuna Demo 050",
+      "ciudad": "Ciudad Demo 050",
+      "TIPO_CLIENTE": "MASIVO"
+    },
+    "observaciones": "Observacion demo 056",
+    "items": [
+      {
+        "codigo": "2300030140103",
+        "producto": "CINTA IMPRESO SUBLIMACION 20MM (METRO)",
+        "cantidad": 100,
+        "familia": "LANYARD",
+        "subfamilia": "CINTA SUBLIMADA",
+        "importable": false,
+        "motivoNoImportable": "Producto fuera del alcance actual del sistema"
+      },
+      {
+        "codigo": "2300030140114",
+        "producto": "MUESTRA DE LANYARD",
+        "cantidad": 1,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "28564",
+    "fechaEntregaTentativaOrigen": "2026-09-28",
+    "usuarioOrigenManager": "Usuario Demo 011",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-007",
+      "CLIENTE": "Cliente Demo 007",
+      "dir": "Direccion Demo 007",
+      "comuna": "Comuna Demo 007",
+      "ciudad": "Ciudad Demo 007",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 057",
+    "items": [
+      {
+        "codigo": "2100010060014",
+        "producto": "TARJETAS PVC BLANCAS PREMIER IMPRESA",
+        "cantidad": 300,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 300,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 300,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "29034",
+    "fechaEntregaTentativaOrigen": "2026-09-29",
+    "usuarioOrigenManager": "Usuario Demo 012",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-051",
+      "CLIENTE": "Cliente Demo 051",
+      "dir": "Direccion Demo 051",
+      "comuna": "Comuna Demo 051",
+      "ciudad": "Ciudad Demo 051",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 058",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 2000,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2300030180086",
+        "producto": "TARJETAS PVC BLANCAS PREMIER  IMPRESA D.",
+        "cantidad": 2000,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010027",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/24 - WH C/DOME",
+        "cantidad": 500,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "29049",
+    "fechaEntregaTentativaOrigen": "2026-09-29",
+    "usuarioOrigenManager": "Usuario Demo 002",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-047",
+      "CLIENTE": "Cliente Demo 047",
+      "dir": "Direccion Demo 047",
+      "comuna": "Comuna Demo 047",
+      "ciudad": "Ciudad Demo 047",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 059",
+    "items": [
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 342,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2300030140052",
+        "producto": "LANYARD IMPRESO SUBLIMACION 15MM",
+        "cantidad": 147,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060008",
+        "producto": "TARJETA HID PROXCARD CODIFICADA",
+        "cantidad": 600,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+    "numeroNota": "29407",
+    "fechaEntregaTentativaOrigen": "2026-09-30",
+    "usuarioOrigenManager": "Usuario Demo 011",
+    "tipoNotaVentaOrigen": "Venta Normal",
+    "cliente": {
+      "RUT": "RUT-DEMO-007",
+      "CLIENTE": "Cliente Demo 007",
+      "dir": "Direccion Demo 007",
+      "comuna": "Comuna Demo 007",
+      "ciudad": "Ciudad Demo 007",
+      "TIPO_CLIENTE": "GRANDES CUENTAS"
+    },
+    "observaciones": "Observacion demo 060",
+    "items": [
+      {
+        "codigo": "2300030140053",
+        "producto": "LANYARD IMPRESO SUBLIMACION 20MM",
+        "cantidad": 200,
+        "familia": "LANYARD",
+        "subfamilia": "LANYARD",
+        "importable": true
+      },
+      {
+        "codigo": "2100010010030",
+        "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+        "cantidad": 200,
+        "familia": "ACCESORIOS",
+        "subfamilia": "YOYO",
+        "importable": true
+      },
+      {
+        "codigo": "2100010060013",
+        "producto": "TARJETA HID ISO PROX IMPRESA Y CODIFICADA",
+        "cantidad": 200,
+        "familia": "TARJETAS",
+        "subfamilia": "TARJETAS",
+        "importable": true
+      }
+    ]
+  },
+  {
+  "numeroNota": "67679",
+  "fechaEntregaTentativaOrigen": "2026-10-15",
+  "usuarioOrigenManager": "Usuario Demo 010",
+  "tipoNotaVentaOrigen": "Venta Normal",
+  "cliente": {
+    "RUT": "RUT-DEMO-006",
+    "CLIENTE": "Cliente Demo 006",
+    "dir": "Direccion Demo 006",
+    "comuna": "Comuna Demo 006",
+    "ciudad": "Ciudad Demo 006",
+    "TIPO_CLIENTE": "MASIVO"
+  },
+  "observaciones": "Pedido de prueba de 150 yoyos negros.",
+  "items": [
+    {
+      "codigo": "2100010010030",
+      "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+      "cantidad": 150,
+      "familia": "ACCESORIOS",
+      "subfamilia": "YOYO",
+      "importable": true
+    }
+  ]
+  },
+  {
+  "numeroNota": "69697",
+  "fechaEntregaTentativaOrigen": "2026-10-20",
+  "usuarioOrigenManager": "Usuario Demo 011",
+  "tipoNotaVentaOrigen": "Venta Normal",
+  "cliente": {
+    "RUT": "RUT-DEMO-007",
+    "CLIENTE": "Cliente Demo 007",
+    "dir": "Direccion Demo 007",
+    "comuna": "Comuna Demo 007",
+    "ciudad": "Ciudad Demo 007",
+    "TIPO_CLIENTE": "MASIVO"
+  },
+  "observaciones": "Pedido de prueba de 300 yoyos grises.",
+  "items": [
+    {
+      "codigo": "2100010010030",
+      "producto": "PORTA CREDENCIAL TIPO YOYO W/30 - BLACK C/DOM",
+      "cantidad": 300,
+      "familia": "ACCESORIOS",
+      "subfamilia": "YOYO",
+      "importable": true
+    }
+  ]
+  }
+]

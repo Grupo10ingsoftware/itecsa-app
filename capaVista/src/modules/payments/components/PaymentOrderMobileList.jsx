@@ -1,8 +1,7 @@
 import { PAYMENT_STATUS } from '@/config/status'
-import { formatPaymentDateTime } from '../utils/paymentDocuments'
+import { formatPaymentDate } from '../utils/paymentDocuments'
 import PaymentRowActions from './PaymentRowActions'
 import PaymentStatusBadge from './PaymentStatusBadge'
-import SalesNoteButton from './SalesNoteButton'
 import styles from './PaymentOrderMobileList.module.css'
 
 const MOBILE_CARD_STATUS_CLASS = {
@@ -17,10 +16,10 @@ export default function PaymentOrderMobileList({
   isUpdatingPaymentStatus = false,
   orders,
   onCloseEditor,
-  onOpenSalesNote,
+  onPrefetchDetails,
   onSelectStatus,
   onToggleEditor,
-  onViewSignedDetail,
+  onViewDetail,
 }) {
   return (
     <section
@@ -35,23 +34,14 @@ export default function PaymentOrderMobileList({
             }`}
             key={`mobile-${order.id}`}
           >
-            <header
-              className={`${styles.mobileCardHeader} d-flex flex-column flex-sm-row align-items-start justify-content-between gap-3`}
-            >
+            <header className={styles.mobileCardHeader}>
               <div>
                 <span>Pedido</span>
                 <strong>{order.nvNumber}</strong>
               </div>
-              <div className={styles.mobileStatusBadgeWrap}>
-                <PaymentStatusBadge status={order.paymentStatus} />
-              </div>
             </header>
 
             <dl className={styles.mobileDataList}>
-              <div>
-                <dt>Fecha</dt>
-                <dd>{formatPaymentDateTime(order.createdAt)}</dd>
-              </div>
               <div>
                 <dt>Cliente</dt>
                 <dd>{order.companyName}</dd>
@@ -60,19 +50,29 @@ export default function PaymentOrderMobileList({
                 <dt>RUT</dt>
                 <dd>{order.rut}</dd>
               </div>
+              <div>
+                <dt>Fecha</dt>
+                <dd>{formatPaymentDate(order.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>Estado</dt>
+                <dd className={styles.mobileStatusBadgeWrap}>
+                  <PaymentStatusBadge status={order.paymentStatus} />
+                </dd>
+              </div>
             </dl>
 
             <div className="d-grid gap-2 mt-3">
-              <SalesNoteButton isMobile order={order} onOpen={onOpenSalesNote} />
               <PaymentRowActions
                 canUpdatePaymentStatus={canUpdatePaymentStatus}
                 editingStatus={editingStatus}
                 isUpdatingPaymentStatus={isUpdatingPaymentStatus}
                 isMobile
                 onCloseEditor={onCloseEditor}
+                onPrefetchDetails={onPrefetchDetails}
                 onSelectStatus={onSelectStatus}
                 onToggleEditor={onToggleEditor}
-                onViewSignedDetail={onViewSignedDetail}
+                onViewDetail={onViewDetail}
                 order={order}
               />
             </div>

@@ -3,12 +3,13 @@ import styles from '../pages/UserManagementPage.module.css'
 const SUMMARY_CARDS = Object.freeze([
   { key: 'totalUsuarios', label: 'Total usuarios', icon: 'bi-people', tone: 'total' },
   { key: 'vinculados', label: 'Vinculados', icon: 'bi-check-lg', tone: 'linked' },
+  { key: 'pendientes', label: 'Pendientes de acceso', icon: 'bi-clock-history', tone: 'pending' },
   { key: 'desvinculados', label: 'Desvinculados', icon: 'bi-person-x', tone: 'unlinked' },
 ])
 
-export default function UserSummaryCards({ summary }) {
+export default function UserSummaryCards({ isLoading = false, summary }) {
   return (
-    <section className={styles.summaryGrid} aria-label="Resumen de usuarios">
+    <section aria-busy={isLoading} className={styles.summaryGrid} aria-label="Resumen de usuarios">
       {SUMMARY_CARDS.map((card) => (
         <article className={styles.summaryCard} key={card.key}>
           <span className={`${styles.summaryIcon} ${styles[`summaryIcon${card.tone}`]}`} aria-hidden="true">
@@ -16,7 +17,7 @@ export default function UserSummaryCards({ summary }) {
           </span>
           <span className={styles.summaryContent}>
             <span>{card.label}</span>
-            <strong>{summary[card.key] ?? 0}</strong>
+            <strong>{summary ? (summary[card.key] ?? 0) : (isLoading ? '…' : '—')}</strong>
           </span>
         </article>
       ))}

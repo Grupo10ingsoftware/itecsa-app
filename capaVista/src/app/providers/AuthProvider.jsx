@@ -1,3 +1,4 @@
+import { can } from "../../../../shared/authorization.js";
 import { useAuth0 } from '@auth0/auth0-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthApi } from '../../modules/auth/hooks/useAuthApi'
@@ -51,6 +52,23 @@ export function AuthProvider({ children }) {
     error: null,
   })
 
+  const verifySession = useCallback(
+    () => withTimeout(authApi.verify(), VERIFY_SESSION_TIMEOUT_MS),
+    [authApi],
+  )
+
+  const refreshSession = useCallback(async () => {
+    const verifiedUser = await verifySession()
+    setVerifiedSession({
+      status: AUTH_STATUS.AUTHENTICATED,
+      subject: user?.sub ?? verifiedUser.sub ?? null,
+      user: verifiedUser,
+      error: null,
+    })
+
+    return verifiedUser
+  }, [user?.sub, verifySession])
+
   useEffect(() => {
     let isCurrent = true
 
@@ -60,7 +78,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    withTimeout(authApi.verify(), VERIFY_SESSION_TIMEOUT_MS)
+    verifySession()
       .then((verifiedUser) => {
         if (!isCurrent) {
           return
@@ -96,7 +114,7 @@ export function AuthProvider({ children }) {
     return () => {
       isCurrent = false
     }
-  }, [authApi, isAuthenticated, isLoading, user?.sub])
+  }, [isAuthenticated, isLoading, user?.sub, verifySession])
 
   const logout = useCallback(() => {
     auth0Logout({
@@ -123,7 +141,7 @@ export function AuthProvider({ children }) {
       // Control visual de experiencia: la autorizacion efectiva siempre la valida el backend.
       const permissions = verifiedUser?.permissions
 
-      return Array.isArray(permissions) && permissions.includes(permission)
+      return can(verifiedUser?.rolUsuario, permissions, permission)
     },
     [verifiedUser],
   )
@@ -153,6 +171,8 @@ export function AuthProvider({ children }) {
       logout,
       hasRole,
       hasPermission,
+      pinStatus: verifiedUser?.pinStatus ?? null,
+      refreshSession,
     }),
     [
       verifiedUser,
@@ -166,6 +186,7 @@ export function AuthProvider({ children }) {
       logout,
       hasRole,
       hasPermission,
+      refreshSession,
     ],
   )
 

@@ -1,16 +1,17 @@
+import { parsePaymentOrderDTO, parsePaymentWorkspaceDTO } from '../../orders/utils/orderDto'
+
 export function createPaymentsApi(apiClient) {
   return {
-    getPaymentOrders: () => apiClient.get('/orders'),
-    getPaymentStatuses: () => apiClient.get('/payment-status'),
+    getPaymentWorkspace: (params = {}) => {
+      const query = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
+      })
+      return apiClient.get(`/orders/payments?${query.toString()}`).then(parsePaymentWorkspaceDTO)
+    },
+    getPaymentPreview: (orderId) =>
+      apiClient.get(`/orders/${orderId}/payment-records/preview`),
     updatePaymentStatus: (orderId, payload) =>
-      apiClient.patch(`/orders/${orderId}/payment-status`, payload),
-    getPaymentSignaturePreview: (orderId) =>
-      apiClient.get(`/orders/${orderId}/payment-signature-preview`, {
-        responseType: 'blob',
-      }),
-    getPaymentSignatureEvidence: (orderId) =>
-      apiClient.get(`/orders/${orderId}/payment-signature-evidence`, {
-        responseType: 'blob',
-      }),
+      apiClient.patch(`/orders/${orderId}/payment-status`, payload).then(parsePaymentOrderDTO),
   }
 }

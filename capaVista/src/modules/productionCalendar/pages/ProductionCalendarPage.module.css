@@ -1,0 +1,65 @@
+.page {
+  --calendar-border: #e5e7eb;
+  --calendar-orange: #f97316;
+  --calendar-orange-rgb: 249, 115, 22;
+  --calendar-muted: #64748b;
+  --calendar-text: #111827;
+
+  color: var(--calendar-text);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  margin: 0 auto;
+  max-width: 1760px;
+  padding: 1.25rem;
+}
+
+.dashboardShell {
+  background: #fff;
+  border: 1px solid var(--calendar-border);
+  border-radius: 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.calendarPanel {
+  background: #fff;
+  border: 1px solid var(--calendar-border);
+  border-radius: 0.85rem;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.045);
+  overflow: hidden;
+}
+
+@media (max-width: 1199.98px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page {
+    padding: 0.65rem;
+  }
+
+  .dashboardShell {
+    border-radius: 0.75rem;
+  }
+
+  .content {
+    padding: 0.85rem;
+  }
+}

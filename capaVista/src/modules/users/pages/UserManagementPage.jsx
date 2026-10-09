@@ -7,20 +7,27 @@ import UserCreateModal from '../components/UserCreateModal'
 import UserEditModal from '../components/UserEditModal'
 import UserManagementFilters from '../components/UserManagementFilters'
 import UserManagementTable from '../components/UserManagementTable'
+import UserUnlinkConfirmModal from '../components/UserUnlinkConfirmModal'
+import UserMovementsModal from '../components/UserMovementsModal'
 import UserSummaryCards from '../components/UserSummaryCards'
+import { createLatestRequestTracker } from '../utils/latestRequestTracker'
+import { isCompletedUserCreation } from '../utils/userCreationOutcome'
+import { displayUserStatus } from '../../../config/userLifecycle.js'
 import styles from './UserManagementPage.module.css'
 
 const EMPTY_SUMMARY = Object.freeze({
   totalUsuarios: 0,
   vinculados: 0,
   desvinculados: 0,
+  pendientes: 0,
+  pendientesRol: 0,
 })
 
 const DEFAULT_PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 350
 
-function normalizeStatus(status) {
-  return status === 'Activo' ? 'Vinculado' : status
+function firstWord(value) {
+  return String(value ?? '').trim().split(/\s+/).filter(Boolean)[0] ?? ''
 }
 
 function mapApiUser(user) {
@@ -28,6 +35,8 @@ function mapApiUser(user) {
   const apellidoUsuario = user.apellidoUsuario ?? ''
   const nombreCompleto =
     user.nombreCompleto ?? (`${nombreUsuario} ${apellidoUsuario}`.trim() || 'Usuario sin nombre')
+  const nombreListado =
+    `${firstWord(nombreUsuario)} ${firstWord(apellidoUsuario)}`.trim() || nombreCompleto
 
   return {
     id: user.idUsuarioAutenticacionExterna ?? user.idAuth0 ?? user.idUsuario,
@@ -36,10 +45,11 @@ function mapApiUser(user) {
     nombreUsuario,
     apellidoUsuario,
     nombreCompleto,
+    nombreListado,
     rutUsuario: user.rutUsuario ?? 'No disponible',
     correoUsuario: user.correoUsuario ?? '',
     rolUsuario: user.rolUsuario ?? 'Sin rol asignado',
-    estadoUsuario: normalizeStatus(user.estadoUsuario ?? 'Vinculado'),
+    estadoUsuario: displayUserStatus(user.estadoUsuario ?? 'Vinculado'),
   }
 }
 
@@ -49,7 +59,7 @@ function getErrorText(error) {
   }
 
   if (error?.status === 403) {
-    return 'Acceso denegado. Solo un administrador puede gestionar usuarios.'
+    return error?.payload?.message || 'Acceso denegado. Se requiere autorizacion administrativa para gestionar usuarios.'
   }
 
   if (error?.code === API_ERROR_CODES.NETWORK_ERROR) {
@@ -83,6 +93,7 @@ export default function UserManagementPage() {
   const { auth0User, loginWithRedirect } = useAuth()
   const adminUsersApi = useAdminUsersApi()
   const latestRequestRef = useRef(0)
+  const latestSummaryRequestRef = useRef(createLatestRequestTracker())
   const [users, setUsers] = useState([])
   const [activeStatus, setActiveStatus] = useState('')
   const [activeRole, setActiveRole] = useState('')
@@ -91,11 +102,18 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [summary, setSummary] = useState(EMPTY_SUMMARY)
+  const [summaryState, setSummaryState] = useState({
+    error: '',
+    hasData: false,
+    isLoading: true,
+  })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [movementsUser, setMovementsUser] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
+  const [unlinkingUser, setUnlinkingUser] = useState(null)
   const currentAuth0UserId = auth0User?.sub ?? null
 
   useEffect(() => {
@@ -162,15 +180,30 @@ export default function UserManagementPage() {
   )
 
   const loadSummary = useCallback(async () => {
+    const tracker = latestSummaryRequestRef.current
+    const requestId = tracker.begin()
+    setSummaryState((current) => ({ ...current, error: '', isLoading: true }))
+
     try {
       const response = await adminUsersApi.getSummary()
+
+      if (!tracker.isLatest(requestId)) return
+
       setSummary({
         totalUsuarios: response.totalUsuarios ?? 0,
         vinculados: response.vinculados ?? 0,
         desvinculados: response.desvinculados ?? 0,
+        pendientes: response.pendientes ?? 0,
       })
-    } catch {
-      setSummary(EMPTY_SUMMARY)
+      setSummaryState({ error: '', hasData: true, isLoading: false })
+    } catch (error) {
+      if (!tracker.isLatest(requestId)) return
+
+      setSummaryState((current) => ({
+        ...current,
+        error: getErrorText(error),
+        isLoading: false,
+      }))
     }
   }, [adminUsersApi])
 
@@ -183,11 +216,15 @@ export default function UserManagementPage() {
   }, [loadUsers])
 
   useEffect(() => {
+    const tracker = latestSummaryRequestRef.current
     const requestTimer = window.setTimeout(() => {
       loadSummary()
     }, 0)
 
-    return () => window.clearTimeout(requestTimer)
+    return () => {
+      window.clearTimeout(requestTimer)
+      tracker.invalidate()
+    }
   }, [loadSummary])
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / DEFAULT_PAGE_SIZE))
@@ -224,30 +261,33 @@ export default function UserManagementPage() {
       await refreshAfterMutation({ type: 'success', text: 'Usuario actualizado correctamente.' })
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
+      throw new Error(getErrorText(error), { cause: error })
     }
   }
 
   async function handleUnlinkUser(user) {
-    const confirmed = window.confirm(`Desvincular a ${user.nombreCompleto}?`)
-
-    if (!confirmed) {
-      return
-    }
-
     try {
       await adminUsersApi.unlinkUser({
         idUsuarioAutenticacionExterna: user.idUsuarioAutenticacionExterna,
+        pin: user.pin,
       })
+      setUnlinkingUser(null)
       await refreshAfterMutation({ type: 'success', text: 'Usuario desvinculado correctamente.' })
     } catch (error) {
       setActionMessage({ type: 'danger', text: getErrorText(error), requiresLogin: error?.status === 401 })
     }
   }
 
-  async function handleCreatedUser() {
-    setIsCreateModalOpen(false)
+  async function handleCreatedUser(user) {
+    const completed = isCompletedUserCreation(user)
+    if (completed) setIsCreateModalOpen(false)
     setPage(1)
-    await refreshAfterMutation({ type: 'success', text: 'Usuario creado correctamente.' })
+    await refreshAfterMutation({
+      type: completed ? 'success' : 'warning',
+      text: completed
+        ? 'Usuario creado correctamente.'
+        : 'El alta quedo incompleta y requiere conciliacion. Revisa el detalle antes de cerrar.',
+    })
   }
 
   return (
@@ -261,7 +301,19 @@ export default function UserManagementPage() {
           <p className={styles.pageSubtitle}>Administra usuarios, roles y estado de vinculacion del sistema.</p>
         </header>
 
-        <UserSummaryCards summary={summary} />
+        <UserSummaryCards
+          isLoading={summaryState.isLoading}
+          summary={summaryState.hasData ? summary : null}
+        />
+
+        {summaryState.error && (
+          <div className={`${styles.feedbackMessage} ${styles.feedbackdanger}`} role="alert">
+            <span>{summaryState.error} {summaryState.hasData ? 'Se conservan los ultimos valores disponibles.' : ''}</span>
+            <UserButton disabled={summaryState.isLoading} onClick={() => { void loadSummary() }} variant="secondary">
+              Reintentar resumen
+            </UserButton>
+          </div>
+        )}
 
         <div className={styles.content}>
           {actionMessage && (
@@ -286,21 +338,30 @@ export default function UserManagementPage() {
             onStatusChange={handleStatusChange}
             onToggle={() => setIsFiltersOpen((currentValue) => !currentValue)}
             searchTerm={searchTerm}
-            summary={summary}
+            summary={summaryState.hasData ? summary : null}
           />
 
           <UserManagementTable
             currentPage={page}
             isLoading={isLoading}
             onEditUser={setEditingUser}
+            onViewMovements={setMovementsUser}
             onPageChange={setPage}
-            onUnlinkUser={handleUnlinkUser}
             totalPages={totalPages}
+            totalUsers={totalUsers}
             users={users}
           />
         </div>
       </section>
 
+      {movementsUser && (
+        <UserMovementsModal
+          key={movementsUser.id}
+          user={movementsUser}
+          api={adminUsersApi}
+          onClose={() => setMovementsUser(null)}
+        />
+      )}
       <UserCreateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -311,8 +372,18 @@ export default function UserManagementPage() {
         isOpen={Boolean(editingUser)}
         onClose={() => setEditingUser(null)}
         onSave={handleSaveUser}
+        onUnlink={(user) => {
+          setEditingUser(null)
+          setUnlinkingUser(user)
+        }}
         isCurrentUser={Boolean(editingUser?.isCurrentUser)}
         user={editingUser}
+      />
+      <UserUnlinkConfirmModal
+        isOpen={Boolean(unlinkingUser)}
+        onClose={() => setUnlinkingUser(null)}
+        onConfirm={handleUnlinkUser}
+        user={unlinkingUser}
       />
     </main>
   )

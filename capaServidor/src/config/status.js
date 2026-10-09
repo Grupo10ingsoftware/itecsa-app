@@ -11,19 +11,13 @@ export const ORDER_STATUS = Object.freeze({
     LISTO_ENTREGA: "Listo para entrega",
 });
 
-export const PAYMENT_STATUS_VALUES = Object.freeze(
-    Object.values(PAYMENT_STATUS),
-);
-
-export const ORDER_STATUS_VALUES = Object.freeze(Object.values(ORDER_STATUS));
-
 export const PAYMENT_CONFIRMATION_REQUIRED_MESSAGE =
     "Pedido en espera de confirmacion de pago";
 
 export const UPDATE_PAYMENT_STATUS_PERMISSION = "update:payment-status";
 
 export const MOVE_KANBAN_TO_PRODUCTION_PERMISSION =
-    "move:kanban-to-production";
+    "start:production";
 
 export const KANBAN_EN_PRODUCCION_STEP = 2;
 

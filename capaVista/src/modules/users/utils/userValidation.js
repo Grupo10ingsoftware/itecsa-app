@@ -2,37 +2,6 @@ import { OFFICIAL_ROLES } from '../../../config/roles'
 
 const LETTERS_AND_SPACES_PATTERN = /^[A-Za-z\u00c1\u00c9\u00cd\u00d3\u00da\u00e1\u00e9\u00ed\u00f3\u00fa\u00d1\u00f1\u00dc\u00fc\s]+$/
 const RUT_PATTERN = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/
-const SIGNATURE_TYPES_BY_EXTENSION = new Map([
-  ['.pdf', new Set(['application/pdf'])],
-  ['.xml', new Set(['application/xml', 'text/xml'])],
-  [
-    '.cms',
-    new Set([
-      'application/cms',
-      'application/pkcs7-mime',
-      'application/pkcs7-signature',
-      'application/octet-stream',
-    ]),
-  ],
-  [
-    '.p7s',
-    new Set([
-      'application/cms',
-      'application/pkcs7-mime',
-      'application/pkcs7-signature',
-      'application/octet-stream',
-    ]),
-  ],
-  [
-    '.p7m',
-    new Set([
-      'application/cms',
-      'application/pkcs7-mime',
-      'application/pkcs7-signature',
-      'application/octet-stream',
-    ]),
-  ],
-])
 
 function validateRequiredText(value, requiredMessage) {
   return value.trim() ? [] : [requiredMessage]
@@ -94,28 +63,6 @@ export function validateRut(value) {
   return errors
 }
 
-export function validateSignatureFile(file) {
-  if (!file) {
-    return ['La firma electronica es obligatoria.']
-  }
-
-  const fileName = file.name.toLowerCase()
-  const fileExtension = Array.from(SIGNATURE_TYPES_BY_EXTENSION.keys()).find((extension) =>
-    fileName.endsWith(extension),
-  )
-  const allowedMimeTypes = SIGNATURE_TYPES_BY_EXTENSION.get(fileExtension)
-
-  if (!allowedMimeTypes || (file.type && !allowedMimeTypes.has(file.type))) {
-    return ['La firma electronica debe ser XML, CMS o PDF.']
-  }
-
-  if (file.size > 10 * 1024 * 1024) {
-    return ['La firma electronica no debe superar 10 MB.']
-  }
-
-  return []
-}
-
 export function validateUserCreateForm(values) {
   return {
     nombreUsuario: validatePersonName(values.nombreUsuario, 'El nombre'),
@@ -123,7 +70,6 @@ export function validateUserCreateForm(values) {
     rutUsuario: validateRut(values.rutUsuario),
     correoUsuario: validateEmail(values.correoUsuario),
     rolUsuario: validateRole(values.rolUsuario),
-    firmaElectronica: validateSignatureFile(values.firmaElectronica),
   }
 }
 

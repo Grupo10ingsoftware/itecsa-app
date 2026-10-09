@@ -1,12 +1,23 @@
+import { getRoleLabel } from '../../../config/roles'
 import UserButton from './UserButton'
 import UserStatusBadge from './UserStatusBadge'
 import styles from '../pages/UserManagementPage.module.css'
 
-const SELF_UNLINK_MESSAGE = 'No puedes desvincular tu propia cuenta.'
+export default function UserManagementMobileList({ isLoading, onEditUser, onViewMovements, users }) {
+  if (isLoading) {
+    return (
+      <div className={styles.mobileList}>
+        <p className={styles.mobileState} role="status">Cargando usuarios...</p>
+      </div>
+    )
+  }
 
-export default function UserManagementMobileList({ isLoading, onEditUser, onUnlinkUser, users }) {
-  if (isLoading || users.length === 0) {
-    return null
+  if (users.length === 0) {
+    return (
+      <div className={styles.mobileList}>
+        <p className={styles.mobileState}>No se encontraron usuarios para los filtros seleccionados.</p>
+      </div>
+    )
   }
 
   return (
@@ -14,7 +25,7 @@ export default function UserManagementMobileList({ isLoading, onEditUser, onUnli
       {users.map((user) => (
         <article className={styles.mobileUserCard} key={user.id}>
           <header>
-            <strong>{user.nombreCompleto}</strong>
+            <strong>{user.nombreListado}</strong>
             <UserStatusBadge status={user.estadoUsuario} />
           </header>
           <dl>
@@ -28,34 +39,20 @@ export default function UserManagementMobileList({ isLoading, onEditUser, onUnli
             </div>
             <div>
               <dt>Rol</dt>
-              <dd>{user.rolUsuario}</dd>
+              <dd>{getRoleLabel(user.rolUsuario)}</dd>
             </div>
           </dl>
-          <footer>
-            <UserButton onClick={() => onEditUser(user)} variant="secondary">
+          <footer className={styles.userActions}>
+            <UserButton icon="bi-pencil-fill" onClick={() => onEditUser(user)} variant="secondary">
               Editar
             </UserButton>
-            {user.isCurrentUser ? (
-              <span
-                aria-label={SELF_UNLINK_MESSAGE}
-                className={styles.selfUnlinkControl}
-                data-tooltip={SELF_UNLINK_MESSAGE}
-                tabIndex={0}
-                title={SELF_UNLINK_MESSAGE}
-              >
-                <UserButton className={styles.selfUnlinkButton} disabled variant="danger">
-                  Desvincular
-                </UserButton>
-              </span>
-            ) : (
-              <UserButton
-                disabled={user.estadoUsuario === 'Desvinculado'}
-                onClick={() => onUnlinkUser(user)}
-                variant="danger"
-              >
-                Desvincular
-              </UserButton>
-            )}
+            <UserButton
+              icon="bi-clock-history"
+              onClick={() => onViewMovements(user)}
+              variant="secondary"
+            >
+              Movimientos
+            </UserButton>
           </footer>
         </article>
       ))}

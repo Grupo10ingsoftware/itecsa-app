@@ -1,5 +1,5 @@
+import { respondError } from "../../../errors/httpErrors.js";
 import { response, request } from "express";
-import { PAYMENT_CONFIRMATION_REQUIRED_MESSAGE } from "../../../config/status.js";
 import OrderStatusService from "../service/orderStatus.service.js";
 
 class OrderStatusController {
@@ -14,7 +14,7 @@ class OrderStatusController {
             const statuses = await this.service.getAll()
             res.status( 200 ).json( statuses )
         } catch( err  ){
-            res.status( 500 ).json({ message:'Error al obtener estados' })
+            return respondError(err, req, res);
         }
     }
 
@@ -31,14 +31,12 @@ class OrderStatusController {
                     descripcion_estado
                 }
             )
-            if ( !result ) return res.status( 500 ).json({
-                message:'Error al crear pedido'
-            })
+            if ( !result ) return respondError(new Error(), req, res)
 
             res.status( 200 ).json( result );
 
         } catch ( error ) {
-            console.log( error )
+            return respondError(error, req, res);
         }
     }
 

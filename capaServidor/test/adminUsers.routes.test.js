@@ -1,11 +1,11 @@
+import { manageableRoles, ROLES } from "../../shared/authorization.js";
+import { invoke, payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
 import { once } from "node:events";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 import express from "express";
 import { Auth0ServiceError } from "../src/modules/users/service/auth0Management.service.js";
+import { UserRepositoryError } from "../src/modules/users/repo/users.repo.js";
 import {
     createAdminUserHandler,
     createAdminUsersSummaryHandler,
@@ -16,18 +16,12 @@ import {
 } from "../src/modules/users/controller/adminUsers.controller.js";
 import { createAdminUsersRouter } from "../src/modules/users/routes/adminUsers.routes.js";
 
-const CURRENT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(CURRENT_DIRECTORY, "../..");
 const VALID_BODY = {
     nombreUsuario: "Ana",
     apellidoUsuario: "Perez",
     rutUsuario: "12.345.678-9",
     correoUsuario: "ana.perez@itecsa.cl",
-    rolUsuario: "Ventas",
-};
-const VALID_SIGNATURE_FILE = {
-    path: "firma-test.pdf",
-    storedPath: "itecsa-app\\data\\Firmas\\firma-test.pdf",
+    rolUsuario: "Operario Ventas",
 };
 const VALID_PASSWORD_EMAIL_BODY = {
     correoUsuario: "ana.perez@itecsa.cl",
@@ -41,7 +35,6 @@ const DEFAULT_INTERNAL_USER = {
     apellidoUsuario: VALID_BODY.apellidoUsuario,
     rolUsuario: VALID_BODY.rolUsuario,
     estadoUsuario: "Activo",
-    rutaFirma: VALID_SIGNATURE_FILE.storedPath,
 };
 
 function responseRecorder() {
@@ -80,6 +73,9 @@ function createUsersRepositoryMock({
     onGetSummary,
     onCreate,
     onUpdateByAuth0Id,
+    onBeginRoleTransition,
+    onCancelRoleTransition,
+    onCompleteRoleTransition,
     onUpdateStatusByAuth0Id,
 } = {}) {
     return {
@@ -111,12 +107,27 @@ function createUsersRepositoryMock({
                 ...payload,
             };
         },
-        async updateStatusByAuth0Id(userId, estadoUsuario) {
-            await onUpdateStatusByAuth0Id?.(userId, estadoUsuario);
+        async beginRoleTransition(userId, currentRole) {
+            await onBeginRoleTransition?.(userId, currentRole);
+        },
+        async completeRoleTransition(userId, currentRole, payload) {
+            await onCompleteRoleTransition?.(userId, currentRole, payload);
             return {
                 ...DEFAULT_INTERNAL_USER,
                 idAuth0: userId,
-                estadoUsuario,
+                ...payload,
+                estadoUsuario: "Activo",
+            };
+        },
+        async cancelRoleTransition(userId, currentRole) {
+            await onCancelRoleTransition?.(userId, currentRole);
+        },
+        async updateStatusIfCurrent(userId, currentStatus, nextStatus) {
+            await onUpdateStatusByAuth0Id?.(userId, nextStatus, currentStatus);
+            return {
+                ...DEFAULT_INTERNAL_USER,
+                idAuth0: userId,
+                estadoUsuario: nextStatus,
             };
         },
     };
@@ -124,19 +135,20 @@ function createUsersRepositoryMock({
 
 async function executeHandler({
     body = VALID_BODY,
-    signatureFile = VALID_SIGNATURE_FILE,
     createUser,
     requestPasswordEmail,
+    pins,
     users = createUsersRepositoryMock(),
 }) {
     const res = responseRecorder();
     const handler = createAdminUserHandler({
         createUser,
         requestPasswordEmail,
+        pins,
         users,
     });
 
-    await handler({ body, signatureFile }, res);
+    await invoke(handler, { body }, res);
 
     return res;
 }
@@ -146,9 +158,9 @@ async function executePasswordEmailHandler({
     requestPasswordEmail,
 }) {
     const res = responseRecorder();
-    const handler = createPasswordSetupEmailHandler({ requestPasswordEmail });
+    const handler = createPasswordSetupEmailHandler({ requestPasswordEmail, users: createUsersRepositoryMock({existingUser: DEFAULT_INTERNAL_USER}) });
 
-    await handler({ body }, res);
+    await invoke(handler, { body }, res);
 
     return res;
 }
@@ -157,7 +169,7 @@ async function executeListHandler({ query = {}, users = createUsersRepositoryMoc
     const res = responseRecorder();
     const handler = createListAdminUsersHandler({ users });
 
-    await handler({ query }, res);
+    await invoke(handler, { query }, res);
 
     return res;
 }
@@ -166,7 +178,7 @@ async function executeSummaryHandler({ users = createUsersRepositoryMock() } = {
     const res = responseRecorder();
     const handler = createAdminUsersSummaryHandler({ users });
 
-    await handler({}, res);
+    await invoke(handler, {}, res);
 
     return res;
 }
@@ -177,7 +189,6 @@ async function executeUpdateHandler({
         apellidoUsuario: "Perez",
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Gerencia",
-        estadoUsuario: "Vinculado",
     },
     params = { userId: "auth0|created-user" },
     updateUser,
@@ -186,7 +197,7 @@ async function executeUpdateHandler({
     const res = responseRecorder();
     const handler = createUpdateAdminUserHandler({ updateUser, users });
 
-    await handler({ auth: { payload: {} }, body, params }, res);
+    await invoke(handler, { auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -195,12 +206,13 @@ async function executeStatusHandler({
     body = { estadoUsuario: "Desvinculado" },
     params = { userId: "auth0|created-user" },
     updateStatus,
+    pins,
     users = createUsersRepositoryMock(),
 } = {}) {
     const res = responseRecorder();
-    const handler = createUpdateAdminUserStatusHandler({ updateStatus, users });
+    const handler = createUpdateAdminUserStatusHandler({ updateStatus, users, pins });
 
-    await handler({ auth: { payload: {} }, body, params }, res);
+    await invoke(handler, { auth: { payload: {} }, body, params }, res);
 
     return res;
 }
@@ -235,6 +247,7 @@ test("responde 200 con listado interno y filtros normalizados", async () => {
         search: "ana",
         estadoUsuario: "Vinculado",
         rolUsuario: "Gerencia",
+        allowedRoles: manageableRoles(ROLES.SOPORTE),
     });
     assert.deepEqual(res.body.usuarios[0], {
         idUsuario: DEFAULT_INTERNAL_USER.idUsuario,
@@ -246,7 +259,6 @@ test("responde 200 con listado interno y filtros normalizados", async () => {
         correoUsuario: DEFAULT_INTERNAL_USER.correoUsuario,
         rolUsuario: DEFAULT_INTERNAL_USER.rolUsuario,
         estadoUsuario: DEFAULT_INTERNAL_USER.estadoUsuario,
-        rutaFirma: DEFAULT_INTERNAL_USER.rutaFirma,
     });
 });
 
@@ -282,13 +294,18 @@ test("responde 200 con resumen interno de usuarios", async () => {
 test("actualiza usuario en Auth0 y tabla interna con contrato final", async () => {
     let externalPayload;
     let internalPayload;
+    const transitionCalls = [];
     const res = await executeUpdateHandler({
         updateUser: async (payload) => {
             externalPayload = payload;
         },
         users: createUsersRepositoryMock({
-            onUpdateByAuth0Id: (userId, payload) => {
+            onBeginRoleTransition: (userId, currentRole) => {
+                transitionCalls.push({ phase: "begin", userId, currentRole });
+            },
+            onCompleteRoleTransition: (userId, currentRole, payload) => {
                 internalPayload = { userId, payload };
+                transitionCalls.push({ phase: "complete", userId, currentRole });
             },
         }),
     });
@@ -298,7 +315,7 @@ test("actualiza usuario en Auth0 y tabla interna con contrato final", async () =
         userId: "auth0|created-user",
         correoUsuario: "ana.maria@itecsa.cl",
         rolUsuario: "Gerencia",
-        estadoUsuario: "Activo",
+        rolUsuarioAnterior: "Operario Ventas",
     });
     assert.deepEqual(internalPayload, {
         userId: "auth0|created-user",
@@ -307,11 +324,97 @@ test("actualiza usuario en Auth0 y tabla interna con contrato final", async () =
             apellidoUsuario: "Perez",
             correoUsuario: "ana.maria@itecsa.cl",
             rolUsuario: "Gerencia",
-            estadoUsuario: "Activo",
         },
     });
     assert.equal(res.body.nombreUsuario, "Ana Maria");
     assert.equal(res.body.estadoUsuario, "Activo");
+    assert.deepEqual(transitionCalls, [
+        {
+            phase: "begin",
+            userId: "auth0|created-user",
+            currentRole: "Operario Ventas",
+        },
+        {
+            phase: "complete",
+            userId: "auth0|created-user",
+            currentRole: "Operario Ventas",
+        },
+    ]);
+});
+
+test("un fallo externo durante cambio de rol deja la identidad local pendiente", async () => {
+    const calls = [];
+    const res = await executeUpdateHandler({
+        updateUser: async () => {
+            calls.push("auth0:update");
+            throw new Error("auth0 unavailable");
+        },
+        users: createUsersRepositoryMock({
+            onBeginRoleTransition: () => { calls.push("local:pending"); },
+            onCompleteRoleTransition: () => { calls.push("local:active"); },
+        }),
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(calls, ["local:pending", "auth0:update"]);
+});
+
+test("correo duplicado externo revierte la marca pendiente antes de responder 409", async () => {
+    const calls = [];
+    const res = await executeUpdateHandler({
+        updateUser: async () => {
+            calls.push("auth0:update");
+            throw new Auth0ServiceError(
+                "USER_EMAIL_ALREADY_EXISTS",
+                "duplicate",
+            );
+        },
+        users: createUsersRepositoryMock({
+            onBeginRoleTransition: () => { calls.push("local:pending"); },
+            onCancelRoleTransition: () => { calls.push("local:active"); },
+        }),
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(calls, ["local:pending", "auth0:update", "local:active"]);
+});
+
+test("conflicto local despues de Auth0 informa conciliacion pendiente", async () => {
+    const res = await executeUpdateHandler({
+        updateUser: async () => {},
+        users: createUsersRepositoryMock({
+            onCompleteRoleTransition: () => {
+                throw new UserRepositoryError("USER_ALREADY_EXISTS", "duplicate");
+            },
+        }),
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.body, {
+        code: "USER_UPDATE_PENDING_RECONCILIATION",
+        recoverable: true,
+        message: "Auth0 fue actualizado, pero el usuario interno quedo pendiente de conciliacion.",
+    });
+});
+
+test("editar sin cambiar rol no abre una transicion pendiente", async () => {
+    const calls = [];
+    const res = await executeUpdateHandler({
+        body: {
+            nombreUsuario: "Ana Maria",
+            apellidoUsuario: "Perez",
+            correoUsuario: "ana.maria@itecsa.cl",
+            rolUsuario: DEFAULT_INTERNAL_USER.rolUsuario,
+        },
+        updateUser: async () => { calls.push("auth0:update"); },
+        users: createUsersRepositoryMock({
+            onBeginRoleTransition: () => { calls.push("local:pending"); },
+            onUpdateByAuth0Id: () => { calls.push("local:update"); },
+        }),
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(calls, ["auth0:update", "local:update"]);
 });
 
 test("rechaza actualizacion con campos legacy", async () => {
@@ -321,8 +424,7 @@ test("rechaza actualizacion con campos legacy", async () => {
             primerNombre: "Ana",
             apellidoPaterno: "Perez",
             correoUsuario: "ana@itecsa.cl",
-            rolUsuario: "Ventas",
-            estadoUsuario: "Vinculado",
+            rolUsuario: "Operario Ventas",
         },
         updateUser: async () => {
             calls += 1;
@@ -336,12 +438,19 @@ test("rechaza actualizacion con campos legacy", async () => {
 test("desvincula usuario actualizando Auth0 y tabla interna", async () => {
     let externalPayload;
     let internalPayload;
+    const calls = [];
     const res = await executeStatusHandler({
         updateStatus: async (payload) => {
+            calls.push("auth0:block");
             externalPayload = payload;
+        },
+        pins: {
+            async invalidateByAuth0Id() { calls.push("pin:invalidate"); },
+            async ensureProvisioned() {},
         },
         users: createUsersRepositoryMock({
             onUpdateStatusByAuth0Id: (userId, estadoUsuario) => {
+                calls.push("local:unlink");
                 internalPayload = { userId, estadoUsuario };
             },
         }),
@@ -357,6 +466,133 @@ test("desvincula usuario actualizando Auth0 y tabla interna", async () => {
         estadoUsuario: "Desvinculado",
     });
     assert.equal(res.body.estadoUsuario, "Desvinculado");
+    assert.deepEqual(calls, ["local:unlink", "pin:invalidate", "auth0:block"]);
+});
+
+test('permite desvincular una cuenta pendiente de primer acceso', async () => {
+    let previousStatus;
+    const res = await executeStatusHandler({
+        updateStatus: async () => {},
+        pins: { async invalidateByAuth0Id() {} },
+        users: createUsersRepositoryMock({
+            existingUserByAuth0Id: { ...DEFAULT_INTERNAL_USER, estadoUsuario: 'Pendiente' },
+            onUpdateStatusByAuth0Id: (_userId, _nextStatus, currentStatus) => { previousStatus = currentStatus; },
+        }),
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(previousStatus, 'Pendiente');
+    assert.equal(res.body.estadoUsuario, 'Desvinculado');
+});
+
+test("un fallo de Auth0 al desvincular conserva la denegacion local y el PIN invalidado", async () => {
+    const calls = [];
+    const res = await executeStatusHandler({
+        updateStatus: async () => {
+            calls.push("auth0:block");
+            throw new Error("auth0 offline");
+        },
+        pins: {
+            async invalidateByAuth0Id() { calls.push("pin:invalidate"); },
+            async ensureProvisioned() {},
+        },
+        users: createUsersRepositoryMock({
+            onUpdateStatusByAuth0Id: () => { calls.push("local:unlink"); },
+        }),
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(calls, ["local:unlink", "pin:invalidate", "auth0:block"]);
+});
+
+test("reactiva desde desvinculado con PIN nuevo y compensa si el aprovisionamiento falla", async () => {
+    const calls = [];
+    const users = createUsersRepositoryMock({
+        existingUserByAuth0Id: {
+            ...DEFAULT_INTERNAL_USER,
+            estadoUsuario: "Desvinculado",
+        },
+        onUpdateStatusByAuth0Id: (_userId, estadoUsuario) => {
+            calls.push(`local:${estadoUsuario}`);
+        },
+    });
+    const res = await executeStatusHandler({
+        body: { estadoUsuario: "Activo" },
+        users,
+        updateStatus: async ({ estadoUsuario }) => {
+            calls.push(`auth0:${estadoUsuario}`);
+        },
+        pins: {
+            async invalidateByAuth0Id() { calls.push("pin:invalidate"); },
+            async ensureProvisioned() {
+                calls.push("pin:provision");
+                throw new Error("pin unavailable");
+            },
+        },
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(calls, [
+        "pin:invalidate",
+        "auth0:Activo",
+        "local:Activo",
+        "pin:provision",
+        "local:Desvinculado",
+        "auth0:Desvinculado",
+    ]);
+});
+
+test("reactiva desde desvinculado sin reutilizar el PIN anterior", async () => {
+    const calls = [];
+    const res = await executeStatusHandler({
+        body: { estadoUsuario: "Activo" },
+        users: createUsersRepositoryMock({
+            existingUserByAuth0Id: {
+                ...DEFAULT_INTERNAL_USER,
+                estadoUsuario: "Desvinculado",
+            },
+            onUpdateStatusByAuth0Id: (_userId, estadoUsuario) => {
+                calls.push(`local:${estadoUsuario}`);
+            },
+        }),
+        updateStatus: async ({ estadoUsuario }) => {
+            calls.push(`auth0:${estadoUsuario}`);
+        },
+        pins: {
+            async invalidateByAuth0Id() { calls.push("pin:invalidate"); },
+            async ensureProvisioned() { calls.push("pin:provision"); },
+        },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.estadoUsuario, "Activo");
+    assert.deepEqual(calls, [
+        "pin:invalidate",
+        "auth0:Activo",
+        "local:Activo",
+        "pin:provision",
+    ]);
+});
+
+test("no permite activar directamente un usuario pendiente de rol", async () => {
+    let writes = 0;
+    const res = await executeStatusHandler({
+        body: { estadoUsuario: "Activo" },
+        updateStatus: async () => { writes += 1; },
+        users: createUsersRepositoryMock({
+            existingUserByAuth0Id: {
+                ...DEFAULT_INTERNAL_USER,
+                estadoUsuario: "Pendiente rol",
+            },
+            onUpdateStatusByAuth0Id: () => { writes += 1; },
+        }),
+        pins: {
+            async invalidateByAuth0Id() { writes += 1; },
+            async ensureProvisioned() { writes += 1; },
+        },
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.equal(writes, 0);
 });
 
 test("rechaza autodesvinculacion por endpoint de estado", async () => {
@@ -373,7 +609,7 @@ test("rechaza autodesvinculacion por endpoint de estado", async () => {
         }),
     });
     const selfRes = responseRecorder();
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: "auth0|created-user" } },
             body: { estadoUsuario: "Desvinculado" },
@@ -384,13 +620,13 @@ test("rechaza autodesvinculacion por endpoint de estado", async () => {
 
     assert.equal(selfRes.statusCode, 409);
     assert.deepEqual(selfRes.body, {
-        message: "No puedes desvincular tu propio usuario administrador.",
+        message: "No puedes desvincular tu propio usuario.",
     });
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
 });
 
-test("rechaza autodesvinculacion desde edicion completa", async () => {
+test("rechaza cambio de estado desde edicion completa", async () => {
     let externalCalls = 0;
     let internalCalls = 0;
     const handler = createUpdateAdminUserHandler({
@@ -404,14 +640,14 @@ test("rechaza autodesvinculacion desde edicion completa", async () => {
         }),
     });
     const selfRes = responseRecorder();
-    await handler(
+    await invoke(handler,
         {
             auth: { payload: { sub: "auth0|created-user" } },
             body: {
                 nombreUsuario: "Ana Maria",
                 apellidoUsuario: "Perez",
                 correoUsuario: "ana.maria@itecsa.cl",
-                rolUsuario: "Administrador",
+                rolUsuario: "Administrador Produccion",
                 estadoUsuario: "Desvinculado",
             },
             params: { userId: "auth0|created-user" },
@@ -419,10 +655,7 @@ test("rechaza autodesvinculacion desde edicion completa", async () => {
         selfRes,
     );
 
-    assert.equal(selfRes.statusCode, 409);
-    assert.deepEqual(selfRes.body, {
-        message: "No puedes desvincular tu propio usuario administrador.",
-    });
+    assert.equal(selfRes.statusCode, 400);
     assert.equal(externalCalls, 0);
     assert.equal(internalCalls, 0);
 });
@@ -449,7 +682,11 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
         rutUsuario: VALID_BODY.rutUsuario,
         correoUsuario: VALID_BODY.correoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
-        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
+        outcome: "completed",
+        recoverable: false,
+        internalUserPersisted: true,
+        roleAssignmentCompleted: true,
+        pinProvisioned: true,
         passwordSetupEmailRequested: true,
     });
     assert.deepEqual(createUserPayload, {
@@ -458,7 +695,7 @@ test("responde 201 cuando asigna rol y solicita correo", async () => {
     });
 });
 
-test("persiste el usuario interno activo antes de solicitar correo", async () => {
+test("persiste el usuario interno pendiente antes de solicitar correo", async () => {
     let persistedPayload;
     let emailRequested = false;
 
@@ -486,26 +723,33 @@ test("persiste el usuario interno activo antes de solicitar correo", async () =>
         nombreUsuario: VALID_BODY.nombreUsuario,
         apellidoUsuario: VALID_BODY.apellidoUsuario,
         rolUsuario: VALID_BODY.rolUsuario,
-        estadoUsuario: "Activo",
-        rutaFirma: VALID_SIGNATURE_FILE.storedPath,
+        estadoUsuario: "Pendiente",
     });
 });
 
-test("responde 400 si falta la firma electronica", async () => {
+test("crea usuario sin firma electronica", async () => {
     let auth0Called = false;
+    let persistedPayload;
 
     const res = await executeHandler({
-        signatureFile: null,
         createUser: async () => {
             auth0Called = true;
+            return {
+                userId: "auth0|created-user",
+                roleAssignmentCompleted: true,
+            };
         },
+        requestPasswordEmail: async () => {},
+        users: createUsersRepositoryMock({
+            onCreate: (payload) => {
+                persistedPayload = payload;
+            },
+        }),
     });
 
-    assert.equal(res.statusCode, 400);
-    assert.deepEqual(res.body, {
-        message: "El campo firmaElectronica es obligatorio.",
-    });
-    assert.equal(auth0Called, false);
+    assert.equal(res.statusCode, 201);
+    assert.equal(auth0Called, true);
+    assert.equal("rutaFirma" in persistedPayload, false);
 });
 
 test("responde 409 si el correo ya existe internamente sin llamar Auth0", async () => {
@@ -581,7 +825,9 @@ test("responde 500 generico si falla el reenvio de correo", async () => {
 
     assert.equal(res.statusCode, 500);
     assert.deepEqual(res.body, {
-        message: "No fue posible solicitar el correo de establecimiento de contrasena.",
+        code: "INTERNAL_ERROR",
+        message: "Ocurrio un error interno.",
+        requestId: res.body.requestId,
     });
     assert.equal(JSON.stringify(res.body).includes("Auth0"), false);
 });
@@ -601,6 +847,9 @@ test("responde 201 recuperable si falla el correo tras crear y asignar rol", asy
     assert.equal(res.body.idUsuario, DEFAULT_INTERNAL_USER.idUsuario);
     assert.equal(res.body.passwordSetupEmailRequested, false);
     assert.equal(res.body.recoverable, true);
+    assert.equal(res.body.outcome, "failed_recoverable");
+    assert.equal(res.body.internalUserPersisted, true);
+    assert.equal(res.body.pinProvisioned, true);
     assert.equal(
         res.body.message,
         "La cuenta fue creada, pero no se pudo solicitar el correo de establecimiento de contrasena.",
@@ -632,6 +881,8 @@ test("responde 201 recuperable y no solicita correo si falla la asignacion RBAC"
     assert.equal(res.statusCode, 201);
     assert.equal(res.body.idUsuario, DEFAULT_INTERNAL_USER.idUsuario);
     assert.equal(res.body.roleAssignmentCompleted, false);
+    assert.equal(res.body.internalUserPersisted, true);
+    assert.equal(res.body.pinProvisioned, false);
     assert.equal(res.body.passwordSetupEmailRequested, false);
     assert.equal(res.body.recoverable, true);
     assert.equal(emailRequested, false);
@@ -658,6 +909,9 @@ test("responde 201 recuperable si falla la persistencia interna tras crear Auth0
 
     assert.equal(res.statusCode, 201);
     assert.equal(res.body.idUsuario, undefined);
+    assert.equal(res.body.internalUserPersisted, false);
+    assert.equal(res.body.roleAssignmentCompleted, true);
+    assert.equal(res.body.pinProvisioned, false);
     assert.equal(res.body.passwordSetupEmailRequested, false);
     assert.equal(res.body.recoverable, true);
     assert.equal(emailRequested, false);
@@ -665,6 +919,32 @@ test("responde 201 recuperable si falla la persistencia interna tras crear Auth0
         res.body.message,
         "La cuenta fue creada, pero no se pudo registrar el usuario interno. No se solicito el correo de establecimiento de contrasena.",
     );
+});
+
+test("responde 201 recuperable y no solicita correo si falla el PIN", async () => {
+    let emailRequested = false;
+    const res = await executeHandler({
+        createUser: async () => ({
+            userId: "auth0|created-user",
+            roleAssignmentCompleted: true,
+        }),
+        requestPasswordEmail: async () => {
+            emailRequested = true;
+        },
+        pins: {
+            async provisionByUserId() {
+                throw new Error("pin failure");
+            },
+        },
+    });
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.outcome, "failed_recoverable");
+    assert.equal(res.body.internalUserPersisted, true);
+    assert.equal(res.body.roleAssignmentCompleted, true);
+    assert.equal(res.body.pinProvisioned, false);
+    assert.equal(res.body.passwordSetupEmailRequested, false);
+    assert.equal(emailRequested, false);
 });
 
 test("responde 400 para payload incompleto, correo invalido, rol no permitido o campo extra", async () => {
@@ -728,7 +1008,31 @@ test("responde 500 generico sin exponer fallos internos de Auth0", async () => {
     });
 
     assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, { message: "No fue posible crear el usuario." });
+    assert.deepEqual(res.body, {
+        code: "INTERNAL_ERROR",
+        message: "Ocurrio un error interno.",
+        requestId: res.body.requestId,
+    });
+    assert.equal(JSON.stringify(res.body).includes("tenant"), false);
+});
+
+test("clasifica indisponibilidad temporal de Auth0 como 503 sin filtrar detalles", async () => {
+    const res = await executeHandler({
+        createUser: async () => {
+            throw new Auth0ServiceError(
+                "AUTH0_CREATE_USER_FAILED",
+                "detalle privado del tenant",
+                { category: "timeout" },
+            );
+        },
+    });
+
+    assert.equal(res.statusCode, 503);
+    assert.deepEqual(res.body, {
+        code: "IDENTITY_PROVIDER_UNAVAILABLE",
+        message: "No fue posible crear el usuario.",
+        requestId: undefined,
+    });
     assert.equal(JSON.stringify(res.body).includes("tenant"), false);
 });
 
@@ -740,11 +1044,12 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
         "/api/admin",
         createAdminUsersRouter({
             authenticate(req, res, next) {
+                req.auth={payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
             authorize(req, res, next) {
-                calls.push("requireAdministrador");
+                calls.push("requireAdministrativeRole");
                 next();
             },
             createUser: async () => {
@@ -757,15 +1062,14 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
             requestPasswordEmail: async () => {
                 calls.push("requestPasswordEmail");
             },
-            uploadSignature(req, res, next) {
-                req.signatureFile = VALID_SIGNATURE_FILE;
-                next();
-            },
             users: createUsersRepositoryMock({
                 onCreate: () => {
                     calls.push("createInternalUser");
                 },
             }),
+            pins: {
+                provisionByUserId: async () => "pending_acknowledgement",
+            },
         }),
     );
     const server = app.listen(0);
@@ -784,7 +1088,7 @@ test("monta autenticacion y autorizacion antes de crear el usuario", async (t) =
     assert.equal(response.status, 201);
     assert.deepEqual(calls, [
         "checkJwt",
-        "requireAdministrador",
+        "requireAdministrativeRole",
         "createUser",
         "createInternalUser",
         "requestPasswordEmail",
@@ -798,12 +1102,14 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
     app.use(
         "/api/admin",
         createAdminUsersRouter({
+            users: createUsersRepositoryMock({existingUser: DEFAULT_INTERNAL_USER}),
             authenticate(req, res, next) {
+                req.auth={payload:payloadFor()};
                 calls.push("checkJwt");
                 next();
             },
             authorize(req, res, next) {
-                calls.push("requireAdministrador");
+                calls.push("requireAdministrativeRole");
                 next();
             },
             requestPasswordEmail: async () => {
@@ -827,161 +1133,7 @@ test("monta autenticacion y autorizacion antes de reenviar correo", async (t) =>
     assert.equal(response.status, 200);
     assert.deepEqual(calls, [
         "checkJwt",
-        "requireAdministrador",
+        "requireAdministrativeRole",
         "requestPasswordEmail",
     ]);
-});
-
-test("acepta firma electronica XML, CMS y PDF al crear usuario", async (t) => {
-    const acceptedSignatures = [
-        {
-            fileName: "firma.pdf",
-            mimeType: "application/pdf",
-            content: "%PDF-1.7\n%test\n",
-        },
-        {
-            fileName: "firma.xml",
-            mimeType: "application/xml",
-            content: "<Signature>test</Signature>",
-        },
-        {
-            fileName: "firma.cms",
-            mimeType: "application/octet-stream",
-            content: "cms-test",
-        },
-        {
-            fileName: "firma.p7s",
-            mimeType: "application/pkcs7-signature",
-            content: "p7s-test",
-        },
-        {
-            fileName: "firma.p7m",
-            mimeType: "application/pkcs7-mime",
-            content: "p7m-test",
-        },
-    ];
-    const storedPaths = [];
-    const app = express();
-    app.use(
-        "/api/admin",
-        createAdminUsersRouter({
-            authenticate(req, res, next) {
-                next();
-            },
-            authorize(req, res, next) {
-                next();
-            },
-            createUser: async ({ email }) => ({
-                userId: `auth0|${email}`,
-                roleAssignmentCompleted: true,
-            }),
-            requestPasswordEmail: async () => {},
-            users: {
-                async findByEmail() {
-                    return null;
-                },
-                async create(payload) {
-                    return {
-                        ...DEFAULT_INTERNAL_USER,
-                        idAuth0: payload.auth0UserId,
-                        correoUsuario: payload.correoUsuario,
-                        rutaFirma: payload.rutaFirma,
-                    };
-                },
-            },
-        }),
-    );
-    const server = app.listen(0);
-    t.after(async () => {
-        server.close();
-
-        await Promise.all(
-            storedPaths.map((storedPath) =>
-                fs.rm(
-                    path.resolve(
-                        PROJECT_ROOT,
-                        storedPath.replace(/^itecsa-app[\\/]/, ""),
-                    ),
-                    { force: true },
-                ),
-            ),
-        );
-    });
-    await once(server, "listening");
-
-    for (const [index, signature] of acceptedSignatures.entries()) {
-        const formData = new FormData();
-        const body = {
-            ...VALID_BODY,
-            correoUsuario: `ana.perez.${index}@itecsa.cl`,
-        };
-        for (const [field, value] of Object.entries(body)) {
-            formData.append(field, value);
-        }
-        formData.append(
-            "firmaElectronica",
-            new Blob([signature.content], { type: signature.mimeType }),
-            signature.fileName,
-        );
-
-        const response = await fetch(
-            `http://127.0.0.1:${server.address().port}/api/admin/users`,
-            {
-                method: "POST",
-                body: formData,
-            },
-        );
-        const responseBody = await response.json();
-
-        assert.equal(response.status, 201);
-        assert.match(responseBody.rutaFirma, /data[\\/]Firmas[\\/]firma-/);
-        storedPaths.push(responseBody.rutaFirma);
-    }
-});
-
-test("rechaza firma electronica con tipo de archivo no permitido", async (t) => {
-    let auth0Called = false;
-    const app = express();
-    app.use(
-        "/api/admin",
-        createAdminUsersRouter({
-            authenticate(req, res, next) {
-                next();
-            },
-            authorize(req, res, next) {
-                next();
-            },
-            createUser: async () => {
-                auth0Called = true;
-            },
-        }),
-    );
-    const server = app.listen(0);
-    t.after(() => server.close());
-    await once(server, "listening");
-
-    const formData = new FormData();
-    for (const [field, value] of Object.entries(VALID_BODY)) {
-        formData.append(field, value);
-    }
-    formData.append(
-        "firmaElectronica",
-        new Blob(["contenido invalido"], { type: "text/plain" }),
-        "firma.txt",
-    );
-
-    const response = await fetch(
-        `http://127.0.0.1:${server.address().port}/api/admin/users`,
-        {
-            method: "POST",
-            body: formData,
-        },
-    );
-    const body = await response.json();
-
-    assert.equal(response.status, 400);
-    assert.deepEqual(body, {
-        message: "La firma electronica debe ser XML, CMS o PDF.",
-    });
-    assert.equal(auth0Called, false);
 });

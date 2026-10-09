@@ -1,5 +1,6 @@
 import { useAuth } from '../../../hooks/useAuth'
 import RoleBadge from '../../../shared/components/data/RoleBadge'
+import styles from './ProfileSummary.module.css'
 
 export default function ProfileSummary() {
   const { user } = useAuth()
@@ -12,24 +13,22 @@ export default function ProfileSummary() {
     )
   }
 
-  // Perfil desde la sesion verificada por backend; una vista de perfil dedicada puede ampliarlo despues.
+  // Datos internos entregados por la sesión verificada.
   const firstName = user.primerNombre ?? user.firstName ?? 'Usuario'
   const lastName = user.apellidoPaterno ?? user.lastName ?? ''
   const email = user.correoUsuario ?? user.email ?? 'Correo no disponible'
   const role = user.rolUsuario ?? user.role
 
   return (
-    <section aria-label="Perfil de usuario autenticado" className="w-100">
-      <div className="d-flex align-items-center gap-2 mb-2">
-        <i className="bi bi-person-circle fs-4 text-white" aria-hidden="true" />
-        <div className="min-w-0">
-          <p className="fw-semibold text-white mb-0">
+    <section aria-label="Perfil de usuario autenticado" className={styles.summary}>
+        <i className={`bi bi-person-circle ${styles.avatar}`} aria-hidden="true" />
+        <div className={styles.copy}>
+          <p className={styles.name} title={`${firstName} ${lastName}`.trim()}>
             {firstName} {lastName}
           </p>
-          <p className="small text-white-50 text-break mb-0">{email}</p>
+          <p className={styles.email} title={email}>{email}</p>
+          <div className={styles.role}><RoleBadge role={role} /></div>
         </div>
-      </div>
-      <RoleBadge role={role} />
     </section>
   )
 }

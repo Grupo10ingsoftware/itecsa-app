@@ -2,28 +2,31 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { APP_ROUTES } from '../config/routes'
 import { PERMISSIONS } from '../config/permissions'
-import { ROLES } from '../config/roles'
+import { ADMINISTRATIVE_ROLES, ROLES } from '../config/roles'
 import { useAuth } from '../hooks/useAuth'
 import AccessDeniedPage from '../modules/auth/pages/AccessDeniedPage'
 import LoginPage from '../modules/auth/pages/LoginPage'
 import AppLayout from '../shared/components/layout/AppLayout'
 import ProtectedRoute from '../shared/components/navigation/ProtectedRoute'
 import RoleGuard from '../shared/components/navigation/RoleGuard'
+import ModuleLoadingState from '../shared/components/navigation/ModuleLoadingState'
+import { informationPageLoaders } from './informationPageLoaders'
 
 const KanbanBoardPage = lazy(() => import('../modules/kanban/pages/KanbanBoardPage'))
+const ProfilePage = lazy(informationPageLoaders[APP_ROUTES.PROFILE])
 const PaymentConfirmationPage = lazy(() => import('../modules/payments/pages/PaymentConfirmationPage'))
 const UserManagementPage = lazy(() => import('../modules/users/pages/UserManagementPage'))
 const OrderCreatePage = lazy(() => import('../modules/orders/pages/OrderCreatePage'))
 const PasswordResetPage = lazy(() => import('../modules/auth/pages/PasswordResetPage'))
-
-function RouteLoadingState() {
-  return (
-    <div className="d-flex align-items-center justify-content-center py-5" role="status">
-      <span className="spinner-border text-warning" aria-hidden="true" />
-      <span className="visually-hidden">Cargando modulo...</span>
-    </div>
-  )
-}
+const OrderHistoryPage = lazy(() => import('../modules/orderHistory/pages/OrderHistoryPage'))
+const OrderHistoryDetailPage = lazy(() => import('../modules/orderHistory/pages/OrderHistoryDetailPage'))
+const ProductionCalendarPage = lazy(() => import('../modules/productionCalendar/pages/ProductionCalendarPage'))
+const MessageInboxPage = lazy(() => import('../modules/messages/pages/MessageInboxPage'))
+const MessageDetailPage = lazy(() => import('../modules/messages/pages/MessageDetailPage'))
+const MetricsPage = lazy(() => import('../modules/metrics/pages/MetricsPage'))
+const DocumentsPage = lazy(informationPageLoaders[APP_ROUTES.DOCUMENTS])
+const DataRequestsPage = lazy(informationPageLoaders[APP_ROUTES.DATA_REQUESTS])
+const IncidentReportPage = lazy(informationPageLoaders[APP_ROUTES.INCIDENT_REPORT])
 
 function UnknownRouteRedirect() {
   const { isAuthenticated } = useAuth()
@@ -34,7 +37,7 @@ function UnknownRouteRedirect() {
 
 export default function AppRouter() {
   return (
-    <Suspense fallback={<RouteLoadingState />}>
+    <Suspense fallback={<ModuleLoadingState />}>
       <Routes>
         <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={APP_ROUTES.PASSWORD_RESET} element={<PasswordResetPage />} />
@@ -42,6 +45,9 @@ export default function AppRouter() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<AppLayout />}>
+            <Route path="documentos" element={<DocumentsPage />} />
+            <Route path="solicitudes" element={<DataRequestsPage />} />
+            <Route path="reportar-incidente" element={<IncidentReportPage />} />
             <Route index element={<Navigate to={APP_ROUTES.KANBAN} replace />} />
             <Route
               path="kanban"
@@ -51,6 +57,9 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
+            <Route path="perfil" element={<RoleGuard requiredPermission={PERMISSIONS.READ_PROFILE}><ProfilePage /></RoleGuard>} />
+            <Route path="mensajes" element={<RoleGuard requiredPermission={PERMISSIONS.READ_MESSAGES}><MessageInboxPage /></RoleGuard>} />
+            <Route path="mensajes/:messageId" element={<RoleGuard requiredPermission={PERMISSIONS.READ_MESSAGES}><MessageDetailPage /></RoleGuard>} />
             <Route
               path="pagos"
               element={
@@ -67,19 +76,40 @@ export default function AppRouter() {
                 </RoleGuard>
               }
             />
+            <Route path="historial-pedidos" element={<RoleGuard requiredPermission={PERMISSIONS.READ_ORDERS}><OrderHistoryPage /></RoleGuard>} />
+            <Route path="historial-pedidos/:orderId" element={<RoleGuard requiredPermission={PERMISSIONS.READ_ORDERS}><OrderHistoryDetailPage /></RoleGuard>} />
+            <Route
+              path="calendario-produccion"
+              element={
+                <RoleGuard requiredPermission={PERMISSIONS.READ_CALENDAR}>
+                  <ProductionCalendarPage />
+                </RoleGuard>
+              }
+            />
             <Route path="admin" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS} />} />
             <Route
               path="admin/usuarios"
               element={
                 <RoleGuard
                   requiredPermission={PERMISSIONS.MANAGE_USERS_VISUALLY}
-                  requiredRole={ROLES.ADMINISTRADOR}
+                  requiredRoles={ADMINISTRATIVE_ROLES}
                 >
                   <UserManagementPage />
                 </RoleGuard>
               }
             />
             <Route path="admin/usuarios/nuevo" element={<Navigate replace to={APP_ROUTES.ADMIN_USERS} />} />
+            <Route
+              path="metricas"
+              element={
+                <RoleGuard
+                  requiredPermission={PERMISSIONS.VIEW_METRICS}
+                  requiredRoles={[ROLES.ADMINISTRADOR, ROLES.GERENCIA, ROLES.SOPORTE]}
+                >
+                  <MetricsPage />
+                </RoleGuard>
+              }
+            />
           </Route>
         </Route>
 

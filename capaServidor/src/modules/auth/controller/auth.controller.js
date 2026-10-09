@@ -1,32 +1,22 @@
-import { createHash } from "node:crypto";
+import { respondError } from "../../../errors/httpErrors.js";
+import { createHmac } from "node:crypto";
 import {
     Auth0ServiceError,
     requestPasswordSetupEmail,
 } from "../../users/service/auth0Management.service.js";
 import userRepository from "../../users/repo/users.repo.js";
+import { OFFICIAL_ROLES, ROLES } from "../../../config/roles.js";
+import pinService from "../service/pin.service.js";
+import { safeLogger } from "../../../shared/safeLogger.js";
+import { isActiveUserStatus, USER_STATUS } from "../../../config/userLifecycle.js";
+import { validateUserMovementsQuery } from "../../users/validators/adminUsers.validator.js";
 
 const EMAIL_CLAIM = "https://itecsa.local/email";
 const ROLES_CLAIM = "https://itecsa.local/roles";
 const PERMISSIONS_CLAIM = "permissions";
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ACTIVE_USER_STATUSES = new Set(["Activo", "Vinculado"]);
-const PASSWORD_RESET_NOT_REGISTERED_MESSAGE =
-    "No encontramos una cuenta asociada a este correo. Si crees que esto es un error, comunícate con el administrador.";
-const PASSWORD_RESET_DISABLED_MESSAGE =
-    "Tu cuenta se encuentra desactivada. Comunícate con el administrador.";
-const PASSWORD_RESET_SENT_MESSAGE =
-    "Te enviamos un enlace para cambiar tu contraseña.";
-const PASSWORD_RESET_ERROR_MESSAGE =
-    "No fue posible solicitar el correo de recuperación de contraseña.";
-const VERIFY_SESSION_ERROR_MESSAGE =
-    "No fue posible verificar la sesion autenticada.";
-const OFFICIAL_ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Producción",
-    "Ventas",
-    "Cobranzas",
-]);
+const PASSWORD_RESET_ACCEPTED_MESSAGE =
+    "Si la cuenta está activa, enviaremos las instrucciones de recuperación al correo indicado.";
 
 function invalidPasswordResetRequest(message) {
     return { valid: false, message };
@@ -55,27 +45,26 @@ function validatePasswordResetRequest(body) {
 }
 
 function hashEmail(email) {
-    return createHash("sha256").update(email).digest("hex");
+    const key = process.env.SECURITY_LOG_HMAC_KEY ?? process.env.RATE_LIMIT_SECRET;
+    if (!key) return "unavailable";
+    return createHmac("sha256", key).update(email).digest("hex");
 }
 
 function logPasswordResetAttempt(logger, { email, status }) {
-    logger.info?.("password_reset_request", {
-        emailHash: hashEmail(email),
-        status,
-    });
-}
-
-async function syncInternalRole({ users, auth0UserId, rolUsuario }) {
-    const internalUser = await users.findByAuth0Id(auth0UserId);
-
-    if (internalUser && internalUser.rolUsuario !== rolUsuario) {
-        await users.updateRoleByAuth0Id(auth0UserId, rolUsuario);
+    // Un fallo de telemetría tampoco debe revelar el resultado privado al cliente.
+    try {
+        logger.info?.("password_reset_request", {
+            correlationId: hashEmail(email),
+            outcome: status,
+        });
+    } catch {
+        // El sink se supervisa fuera del canal público de recuperación.
     }
 }
 
 export function createVerifyAuthSessionHandler({
-    users = userRepository,
-    logger = console,
+    pins = { async ensureProvisioned() { return "active"; } },
+    logger = safeLogger,
 } = {}) {
     return async function verifyAuthSessionHandler(req, res) {
         const payload = req.auth?.payload;
@@ -109,39 +98,99 @@ export function createVerifyAuthSessionHandler({
         );
 
         try {
-            await syncInternalRole({
-                users,
-                auth0UserId: payload.sub,
+            const pinStatus = await pins.ensureProvisioned(payload.sub);
+
+            return res.status(200).json({
+                sub: payload.sub,
+                ...(req.currentUser ? {
+                    primerNombre: req.currentUser.nombreUsuario,
+                    apellidoPaterno: req.currentUser.apellidoUsuario,
+                    rutUsuario: req.currentUser.rutUsuario,
+                    estadoUsuario: req.currentUser.estadoUsuario,
+                } : {}),
+                email,
                 rolUsuario,
+                isAdministrador: rolUsuario === ROLES.ADMINISTRADOR,
+                permissions,
+                pinStatus,
             });
         } catch (error) {
-            logger.error?.("auth_verify_role_sync_error", {
-                auth0UserId: payload.sub,
-                rolUsuario,
-                code: error?.code,
-            });
-
-            return res.status(500).json({ message: VERIFY_SESSION_ERROR_MESSAGE });
+            return respondError(error, req, res, { logger });
         }
-
-        return res.status(200).json({
-            sub: payload.sub,
-            email,
-            rolUsuario,
-            isAdministrador: rolUsuario === "Administrador",
-            permissions,
-        });
     };
 }
 
-export const verifyAuthSessionHandler = createVerifyAuthSessionHandler();
+export function createRevealPinHandler({ pins = pinService } = {}) {
+    return async function revealPinHandler(req, res) {
+        res.set("Cache-Control", "no-store");
+        try {
+            return res.status(200).json({
+                pin: await pins.reveal(req.auth?.payload?.sub),
+            });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createDebugResetPinHandler({ pins = pinService } = {}) {
+    return async function debugResetPinHandler(req, res) {
+        res.set("Cache-Control", "no-store");
+        try {
+            return res.status(200).json({ pinStatus: await pins.debugReset(req.auth?.payload) });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createAcknowledgePinHandler({ pins = pinService } = {}) {
+    return async function acknowledgePinHandler(req, res) {
+        try {
+            await pins.acknowledge(req.auth?.payload?.sub);
+            return res.status(204).end();
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createRequestPinRecoveryHandler({ pins = pinService } = {}) {
+    return async function requestPinRecoveryHandler(req, res) {
+        try {
+            await pins.requestRecovery(req.auth?.payload?.sub);
+            return res.status(202).json({ status: "sent" });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createConfirmPinRecoveryHandler({ pins = pinService } = {}) {
+    return async function confirmPinRecoveryHandler(req, res) {
+        try {
+            const pinStatus = await pins.confirmRecovery(
+                req.auth?.payload?.sub,
+                req.body?.code,
+            );
+            return res.status(200).json({ pinStatus });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
 
 export function createPasswordResetRequestHandler({
     users = userRepository,
     requestPasswordEmail = requestPasswordSetupEmail,
-    logger = console,
+    logger = safeLogger,
+    sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    minimumDelayMs = 600,
+    random = Math.random,
+    now = () => performance.now(),
 } = {}) {
     return async function passwordResetRequestHandler(req, res) {
+        const startedAt = now();
         const validatedRequest = validatePasswordResetRequest(req.body);
 
         if (!validatedRequest.valid) {
@@ -149,42 +198,80 @@ export function createPasswordResetRequestHandler({
         }
 
         const { email } = validatedRequest;
+        let outcome = "lookup_error";
 
         try {
             const user = await users.findByEmail(email);
 
             if (!user) {
-                logPasswordResetAttempt(logger, { email, status: "not_registered" });
-                return res.status(200).json({
-                    status: "not_registered",
-                    message: PASSWORD_RESET_NOT_REGISTERED_MESSAGE,
-                });
+                outcome = "not_registered";
+            } else if (!isActiveUserStatus(user.estadoUsuario) && user.estadoUsuario !== USER_STATUS.PENDING_FIRST_LOGIN) {
+                outcome = "disabled";
+            } else {
+                outcome = "delivery_error";
+                await requestPasswordEmail({ email });
+                outcome = "sent";
             }
-
-            if (!ACTIVE_USER_STATUSES.has(user.estadoUsuario)) {
-                logPasswordResetAttempt(logger, { email, status: "disabled" });
-                return res.status(200).json({
-                    status: "disabled",
-                    message: PASSWORD_RESET_DISABLED_MESSAGE,
-                });
-            }
-
-            await requestPasswordEmail({ email });
-            logPasswordResetAttempt(logger, { email, status: "sent" });
-
-            return res.status(200).json({
-                status: "sent",
-                message: PASSWORD_RESET_SENT_MESSAGE,
-            });
         } catch (error) {
             if (error instanceof Auth0ServiceError) {
-                logger.error?.("password_reset_auth0_error", {
-                    code: error.code,
-                    status: error.status,
-                });
+                try {
+                    logger.error?.("password_reset_auth0_error", {
+                        code: error.code,
+                        outcome: "error",
+                    });
+                } catch {
+                    // Mantener el mismo contrato si el sink está indisponible.
+                }
             }
+        }
 
-            return res.status(500).json({ message: PASSWORD_RESET_ERROR_MESSAGE });
+        logPasswordResetAttempt(logger, { email, status: outcome });
+        const targetDelay = minimumDelayMs + Math.floor(random() * 200);
+        const remaining = targetDelay - (now() - startedAt);
+        if (remaining > 0) await sleep(remaining);
+
+        return res.status(202).json({
+            status: "accepted",
+            message: PASSWORD_RESET_ACCEPTED_MESSAGE,
+        });
+    };
+}
+
+export function createGetProfileHandler({ users = userRepository } = {}) {
+    return async function getProfileHandler(req, res) {
+        const user = req.currentUser;
+        if (!user || user.idAuth0 !== req.auth?.payload?.sub) {
+            return res.status(401).json({ message: "Sesión no válida." });
+        }
+        try {
+            const records = await users.listRecentRecords(user.idUsuario);
+            return res.status(200).json({
+                primerNombre: user.nombreUsuario,
+                apellidoPaterno: user.apellidoUsuario,
+                email: user.correoUsuario,
+                rolUsuario: user.rolUsuario,
+                rutUsuario: user.rutUsuario,
+                estadoUsuario: user.estadoUsuario,
+                records,
+            });
+        } catch (error) {
+            return respondError(error, req, res);
+        }
+    };
+}
+
+export function createGetProfileMovementsHandler({ users = userRepository } = {}) {
+    return async function getProfileMovementsHandler(req, res) {
+        const user = req.currentUser;
+        if (!user || typeof req.auth?.payload?.sub !== 'string' || user.idAuth0 !== req.auth.payload.sub) {
+            return res.status(401).json({ message: "Sesión no válida." });
+        }
+        const query = validateUserMovementsQuery(req.query ?? {});
+        if (!query.valid) return res.status(400).json({ message: query.message });
+        try {
+            return res.status(200).json(await users.listMovements(user.idUsuario, query.filters));
+        } catch (error) {
+            return respondError(error, req, res);
         }
     };
 }

@@ -1,9 +1,5 @@
-# Data
+# Datos de desarrollo
 
-Durante el desarrollo, esta carpeta contiene archivos generados o subidos localmente por flujos del backend.
+Los PDF de notas de venta y firmas del módulo documental retirado ya no forman parte del árbol de trabajo. Su eliminación no purga el historial Git.
 
-`data/Firmas` almacena firmas electronicas subidas por `POST /api/admin/users` mientras no exista un repositorio documental definitivo.
-
-`data/NVS` almacena Notas de Venta dummy asociadas a pedidos durante el desarrollo. Cuando Cobranzas confirma un pago, el backend sobrescribe el PDF vigente referenciado por `Documento.ruta_pdf` con la version firmada.
-
-No versionar documentos reales, datos personales sensibles, certificados, contrasenas ni tokens. Los archivos de usuario deben tratarse como datos locales de desarrollo o de ambiente.
+La consulta temporal de notas de venta utiliza `capaServidor/data/demo/sales-notes-fixture.json`. No sustituye la integración futura con la base del cliente. Usar datos sintéticos; no versionar documentos reales, credenciales ni datos personales de producción.

@@ -1,6 +1,7 @@
+import { payloadFor } from "./authorization.fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import requireAdministrador from "../src/middlewares/requireAdministrador.js";
+import requireAdministrativeRole from "../src/middlewares/requireAdministrativeRole.js";
 
 const ROLES_CLAIM = "https://itecsa.local/roles";
 
@@ -8,7 +9,7 @@ function executeMiddleware(payload) {
     let statusCode;
     let body;
     let nextCalled = false;
-    const req = { auth: { payload } };
+    const req = { auth: { payload: { ...payloadFor(), [ROLES_CLAIM]: undefined, ...payload } } };
     const res = {
         status(code) {
             statusCode = code;
@@ -20,15 +21,22 @@ function executeMiddleware(payload) {
         },
     };
 
-    requireAdministrador(req, res, () => {
+    requireAdministrativeRole(req, res, () => {
         nextCalled = true;
     });
 
     return { statusCode, body, nextCalled };
 }
 
-test("permite un usuario con solo el rol Administrador", () => {
-    const result = executeMiddleware({ [ROLES_CLAIM]: ["Administrador"] });
+test("permite un usuario con solo el rol Administrador Produccion", () => {
+    const result = executeMiddleware({ [ROLES_CLAIM]: ["Administrador Produccion"] });
+
+    assert.equal(result.nextCalled, true);
+    assert.equal(result.statusCode, undefined);
+});
+
+test("permite un usuario con solo el rol Soporte", () => {
+    const result = executeMiddleware({ [ROLES_CLAIM]: ["Soporte"] });
 
     assert.equal(result.nextCalled, true);
     assert.equal(result.statusCode, undefined);
@@ -55,9 +63,9 @@ test("rechaza un usuario sin claim de roles", () => {
     assert.equal(result.statusCode, 403);
 });
 
-test("rechaza multiples roles aunque incluyan Administrador", () => {
+test("rechaza multiples roles aunque incluyan Administrador Produccion", () => {
     const result = executeMiddleware({
-        [ROLES_CLAIM]: ["Administrador", "Gerencia"],
+        [ROLES_CLAIM]: ["Administrador Produccion", "Gerencia"],
     });
 
     assert.equal(result.nextCalled, false);

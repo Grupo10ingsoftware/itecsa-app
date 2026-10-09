@@ -1,0 +1,618 @@
+.page {
+  color: var(--itexsa-text);
+  margin: 0 auto;
+  max-width: 1760px;
+  padding: 1.25rem;
+}
+
+.dashboardShell {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 1rem;
+  box-shadow: var(--itexsa-shadow);
+  overflow: hidden;
+}
+
+.hero {
+  align-items: center;
+  background: #000;
+  color: #fff;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding: 2rem 2.25rem;
+}
+
+.generateButton {
+  align-items: center;
+  background: #050505;
+  border: 1px solid rgba(17, 24, 39, 0.18);
+  border-radius: 0.55rem;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 2.35rem;
+  overflow: hidden;
+  padding: 0.5rem 0.7rem;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.generateButton:hover {
+  background: var(--itexsa-orange);
+  border-color: var(--itexsa-orange);
+  color: #111827;
+  transform: translateY(-1px);
+}
+
+.sectionLabel,
+.panelEyebrow {
+  color: var(--itexsa-orange);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  color: #fff;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  margin: 0.35rem 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.pageSubtitle {
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding: 0.65rem;
+  }
+
+  .dashboardShell {
+    border-radius: 0.75rem;
+  }
+
+  .hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1.35rem;
+  }
+
+  .content {
+    padding: 0.85rem;
+  }
+}
+
+.productionSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.dwellSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 0;
+}
+
+.dwellToggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--itexsa-text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.25rem;
+  text-align: left;
+  width: 100%;
+}
+
+.dwellToggle:hover {
+  background: #fffaf5;
+}
+
+.dwellToggle > span {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dwellToggle strong {
+  font-size: 1.2rem;
+}
+
+.dwellToggle small {
+  color: var(--itexsa-muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.dwellToggle > i {
+  color: var(--itexsa-orange);
+  font-size: 1.2rem;
+}
+
+.periodFilters {
+  align-items: end;
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.periodModes {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.periodModes button,
+.periodFilters label input {
+  border: 1px solid #dbe1e8;
+  border-radius: 0.65rem;
+  min-height: 2.55rem;
+}
+
+.periodModes button {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.5rem 0.8rem;
+}
+
+.periodModes button.activeMode {
+  background: var(--itexsa-text);
+  border-color: var(--itexsa-text);
+  color: #fff;
+}
+
+.periodFilters label {
+  color: #475569;
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.3rem;
+}
+
+.periodFilters label input {
+  background: #fff;
+  color: var(--itexsa-text);
+  padding: 0 0.7rem;
+}
+
+.dwellChart {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.dwellPanels {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 1.25rem 1.25rem;
+}
+
+.dwellPanel {
+  background: #f8fafc;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.65rem;
+  padding: 1rem;
+}
+
+.dwellPanelHeader {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.dwellPanelHeader h3 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.dwellPanelHeader span {
+  color: var(--itexsa-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.productSelector select {
+  background: #fff;
+  border: 1px solid #dbe1e8;
+  border-radius: 0.55rem;
+  color: var(--itexsa-text);
+  font-size: 0.78rem;
+  min-height: 2.1rem;
+  padding: 0 0.5rem;
+}
+
+.visuallyHidden {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dwellRow {
+  align-items: center;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(8rem, 11rem) minmax(5rem, 1fr) 4rem;
+}
+
+.dwellLabel {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dwellLabel span {
+  color: var(--itexsa-text);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.dwellLabel small {
+  color: var(--itexsa-muted);
+  font-size: 0.8rem;
+}
+
+.dwellTrack {
+  background: #f1f5f9;
+  border-radius: 999px;
+  height: 0.8rem;
+  overflow: hidden;
+}
+
+.dwellBar {
+  background: var(--itexsa-orange);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  min-width: 0.4rem;
+}
+
+.dwellRow > strong {
+  color: var(--itexsa-text);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.productionHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.productionHeader h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0.25rem 0 0.35rem;
+}
+
+.productionHeader p {
+  color: var(--itexsa-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.productionChart {
+  align-items: center;
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+}
+
+.pieChart {
+  align-items: center;
+  background: var(--pie-gradient);
+  border-radius: 50%;
+  display: flex;
+  height: 14rem;
+  justify-content: center;
+  position: relative;
+  width: 14rem;
+}
+
+.pieChart::after {
+  background: #fff;
+  border-radius: 50%;
+  content: '';
+  height: 8rem;
+  position: absolute;
+  width: 8rem;
+}
+
+.pieChartCenter {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.pieChartCenter strong {
+  font-size: 1.5rem;
+}
+
+.pieChartCenter span,
+.legendItem span:last-child {
+  color: var(--itexsa-muted);
+  font-size: 0.78rem;
+}
+
+.chartLegend {
+  display: grid;
+  gap: 1rem;
+  min-width: 15rem;
+}
+
+.legendItem {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.legendItem > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.legendItem strong {
+  color: var(--itexsa-text);
+  font-size: 0.9rem;
+}
+
+.legendColor {
+  border-radius: 50%;
+  flex: 0 0 0.8rem;
+  height: 0.8rem;
+  width: 0.8rem;
+}
+
+.emptyState {
+  color: var(--itexsa-muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.sellerSection {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  padding: 1.25rem;
+}
+
+.sellerSection {
+  padding: 0;
+}
+
+.sellerContent {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.sellerHeader {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+}
+
+.sellerActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.exportMenu {
+  position: relative;
+}
+
+.exportOptions {
+  background: #fff;
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.55rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 0.2rem;
+  min-width: 8rem;
+  padding: 0.35rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 2;
+}
+
+.exportOptions button {
+  background: #fff;
+  border: 0;
+  border-radius: 0.35rem;
+  color: var(--itexsa-text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+}
+
+.exportOptions button:hover {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.sellerHeader h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0.25rem 0 0.35rem;
+}
+
+.sellerHeader p {
+  color: var(--itexsa-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.generateButton {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.sellerTableWrapper {
+  overflow-x: auto;
+}
+
+.sellerTable {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+
+.sellerTable th {
+  background: #f8fafc;
+  color: var(--itexsa-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  padding: 0.75rem;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.sellerTable td {
+  border-top: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+  padding: 0.8rem 0.75rem;
+}
+
+.sellerTable td strong {
+  color: var(--itexsa-text);
+}
+
+@media (max-width: 620px) {
+  .productionHeader,
+  .productionChart {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pieChart {
+    height: 12rem;
+    margin: 0 auto;
+    width: 12rem;
+  }
+
+  .periodFilters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sellerHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sellerActions {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .sellerActions .generateButton {
+    flex: 1;
+  }
+
+  .generateButton {
+    justify-content: center;
+  }
+
+  .periodModes,
+  .periodModes button,
+  .periodFilters label,
+  .periodFilters label input {
+    width: 100%;
+  }
+
+  .periodModes button {
+    flex: 1;
+  }
+
+  .dwellRow {
+    gap: 0.45rem;
+    grid-template-columns: 1fr auto;
+  }
+
+  .dwellPanels {
+    grid-template-columns: 1fr;
+  }
+
+  .dwellTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+.performanceCounts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.performanceCounts > div {
+  border: 1px solid var(--itexsa-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.performanceCounts dd {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.generateButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dwellToggle:focus-visible,
+.generateButton:focus-visible {
+  outline: 3px solid var(--itexsa-orange);
+  outline-offset: 3px;
+}

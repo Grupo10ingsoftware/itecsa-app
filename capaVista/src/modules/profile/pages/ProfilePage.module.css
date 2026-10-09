@@ -1,0 +1,49 @@
+.page { color: var(--itexsa-text); background: #f8fafc; min-height: calc(100vh - 4.5rem); padding: 1.25rem clamp(.8rem, 2vw, 1.5rem) 2rem; }
+.shell { display: grid; gap: 1rem; max-width: 90rem; margin: 0 auto; }
+.header { background: #080808; border: 1px solid #27272a; border-radius: .9rem; padding: 1.4rem 1.8rem; color: #fff; }
+.sectionLabel { color: var(--itexsa-orange); font-size: .8rem; font-weight: 850; text-transform: uppercase; letter-spacing: .1em; }
+.pageTitle { color: #fff; font-size: clamp(2rem, 3.6vw, 3rem); font-weight: 850; text-transform: uppercase; margin: .3rem 0 .4rem; line-height: 1.1; }
+.header p { margin: 0; font-size: 1rem; color: #e5e7eb; }
+.profileGrid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr); }
+.photoPanel, .infoPanel, .pinPanel, .movementsPanel { background: #fff; border: 1px solid #e2e8f0; border-radius: .85rem; padding: 1.1rem; min-width: 0; }
+.photoPanel { display: flex; flex-direction: column; padding: 1.5rem 1.1rem 0; }
+.identityBlock { display: flex; align-items: center; flex-direction: column; width: 100%; }
+.profilePhoto, .profilePhotoFallback { aspect-ratio: 1; border-radius: 50%; width: min(100%, 9.5rem); height: auto; }
+.profilePhoto { object-fit: cover; }
+.profilePhotoFallback { display: grid; place-items: center; background: #080808; color: #fff; font-size: 5.5rem; }
+.photoPanel h2 { text-align: center; font-size: clamp(1.3rem, 2vw, 1.8rem); font-weight: 850; margin: 1rem 0 1.3rem; overflow-wrap: anywhere; }
+.roleBlock { display: flex; align-items: center; justify-content: center; border-top: 1px solid #e2e8f0; width: 100%; flex: 1; min-height: 7.5rem; padding: 1.25rem 0; }
+.roleContent { display: flex; align-items: center; justify-content: center; gap: 1rem; }
+.roleBlock h3 { font-weight: 800; font-size: 1rem; margin: 0 0 .3rem; }
+.cardHeader { display: flex; align-items: flex-start; gap: .85rem; }
+.cardHeader > div { min-width: 0; }
+.cardHeader h2 { font-weight: 850; font-size: 1.1rem; margin: .2rem 0 .3rem; }
+.cardHeader p { color: var(--itexsa-muted); font-size: .85rem; line-height: 1.5; margin: 0; }
+.cardIcon { display: grid; place-items: center; background: #fff1e8; color: var(--itexsa-orange); width: 3.5rem; height: 3.5rem; border-radius: 50%; flex-shrink: 0; font-size: 1.7rem; }
+.infoPanel { display: flex; flex-direction: column; gap: 1rem; }
+.infoList { border: 1px solid #e5eaf0; border-radius: .65rem; margin: 0; overflow: hidden; font-size: .85rem; }
+.infoList > div { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr); gap: .6rem; padding: .6rem .8rem; border-top: 1px solid #edf0f3; align-items: center; }
+.infoList > div:first-child { border-top: 0; }
+.infoList > div:nth-child(odd) { background: #f8fafc; }
+.infoList dt { color: var(--itexsa-muted); font-weight: 700; }
+.infoList dd { margin: 0; overflow-wrap: anywhere; }
+.statusBadge { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; font-size: .8rem; font-weight: 750; padding: .35rem .7rem; }
+.statusBadge i { font-size: .5rem; }
+.accepted { background: #dcfce7; color: #15803d; }
+.pending { background: #fff7ed; color: #9a3412; }
+.neutral { background: #f1f5f9; color: #475569; }
+.pinPanel { display: flex; flex-direction: column; gap: 1rem; }
+.pinState { display: flex; flex-direction: column; align-items: center; gap: .6rem; padding: .7rem 0; flex: 1; justify-content: center; }
+.pinIcon { height: 7rem; width: 7rem; display: grid; place-items: center; border-radius: 50%; font-size: 3rem; }
+.outlineButton { align-items: center; display: inline-flex; justify-content: center; gap: .6rem; min-height: 2.75rem; background: #fff; border: 1px solid #cbd5e1; border-radius: .6rem; color: var(--itexsa-text); padding: .6rem 1rem; font-size: .85rem; font-weight: 750; }
+.outlineButton:hover:not(:disabled) { background: #fff7ed; border-color: var(--itexsa-orange); }
+.outlineButton:focus-visible { outline: 2px solid var(--itexsa-orange); outline-offset: 3px; }
+.outlineButton:disabled { opacity: .5; cursor: not-allowed; }
+.debugHint { font-size: .75rem; color: var(--itexsa-muted); margin: .4rem 0 0; }
+.movementsPanel { display: grid; gap: 1rem; }
+.movementsHeader { display: flex; gap: 1rem; justify-content: space-between; align-items: center; }
+.movementsHeader .outlineButton { flex-shrink: 0; }
+.movementsHeader .cardIcon { width: 3rem; height: 3rem; font-size: 1.4rem; }
+@media (max-width: 1199.98px) { .profileGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); } .pinPanel { grid-column: 1 / -1; } .pinIcon { height: 5rem; width: 5rem; font-size: 2.2rem; } }
+@media (max-width: 767.98px) { .profileGrid { grid-template-columns: minmax(0, 1fr); } .pinPanel { grid-column: auto; } .movementsHeader { align-items: stretch; flex-direction: column; } .header { padding: 1.25rem; } }
+@media (max-width: 399.98px) { .infoList > div { grid-template-columns: 1fr; gap: .2rem; } .cardIcon { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; } }

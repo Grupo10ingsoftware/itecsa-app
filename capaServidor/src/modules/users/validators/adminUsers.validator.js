@@ -1,3 +1,10 @@
+import { FUNCTIONAL_ROLES } from "../../../config/roles.js";
+import {
+    MUTABLE_USER_STATUSES,
+    USER_STATUS_FILTERS,
+    normalizeUserStatusForStorage,
+} from "../../../config/userLifecycle.js";
+
 const USER_FIELDS = new Set([
     "nombreUsuario",
     "apellidoUsuario",
@@ -11,17 +18,10 @@ const USER_UPDATE_FIELDS = new Set([
     "apellidoUsuario",
     "correoUsuario",
     "rolUsuario",
-    "estadoUsuario",
 ]);
 const USER_STATUS_FIELDS = new Set(["estadoUsuario"]);
-const ROLES = new Set([
-    "Administrador",
-    "Gerencia",
-    "Producción",
-    "Ventas",
-    "Cobranzas",
-]);
-const USER_STATUSES = new Set(["Activo", "Vinculado", "Desvinculado"]);
+const LIST_USER_STATUSES = new Set(USER_STATUS_FILTERS);
+const USER_STATUSES = new Set(MUTABLE_USER_STATUSES);
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RUT_FORMAT = /^(\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])$/;
 const LETTERS_AND_SPACES_FORMAT =
@@ -29,10 +29,6 @@ const LETTERS_AND_SPACES_FORMAT =
 
 function invalidRequest(message) {
     return { valid: false, message };
-}
-
-function normalizeUserStatus(value) {
-    return value === "Vinculado" ? "Activo" : value;
 }
 
 function parseIntegerQuery(value, fallback, { min, max }) {
@@ -81,7 +77,7 @@ export function validateAdminUserRequest(body) {
         return invalidRequest("El rutUsuario no tiene un formato valido.");
     }
 
-    if (!ROLES.has(user.rolUsuario)) {
+    if (!FUNCTIONAL_ROLES.includes(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -131,11 +127,11 @@ export function validateListUsersQuery(query = {}) {
     const rolUsuario =
         typeof query.rolUsuario === "string" ? query.rolUsuario.trim() : "";
 
-    if (estadoUsuario && !USER_STATUSES.has(estadoUsuario)) {
+    if (estadoUsuario && !LIST_USER_STATUSES.has(estadoUsuario)) {
         return invalidRequest("El estadoUsuario no es valido.");
     }
 
-    if (rolUsuario && !ROLES.has(rolUsuario)) {
+    if (rolUsuario && !FUNCTIONAL_ROLES.includes(rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
@@ -183,16 +179,11 @@ export function validateAdminUserUpdateRequest(body) {
         );
     }
 
-    if (!ROLES.has(user.rolUsuario)) {
+    if (!FUNCTIONAL_ROLES.includes(user.rolUsuario)) {
         return invalidRequest("El rolUsuario no es valido.");
     }
 
-    if (!USER_STATUSES.has(user.estadoUsuario)) {
-        return invalidRequest("El estadoUsuario no es valido.");
-    }
-
     user.correoUsuario = user.correoUsuario.toLowerCase();
-    user.estadoUsuario = normalizeUserStatus(user.estadoUsuario);
 
     return { valid: true, user };
 }
@@ -219,5 +210,25 @@ export function validateAdminUserStatusRequest(body) {
         return invalidRequest("El estadoUsuario no es valido.");
     }
 
-    return { valid: true, estadoUsuario: normalizeUserStatus(estadoUsuario) };
+    return {
+        valid: true,
+        estadoUsuario: normalizeUserStatusForStorage(estadoUsuario),
+    };
+}
+
+export function validateUserMovementsQuery(query = {}) {
+    const page = Number(query.page ?? 1);
+    const perPage = Number(query.perPage ?? 10);
+    if (
+        !Number.isSafeInteger(page) || page < 1 ||
+        !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 50 ||
+        !Number.isSafeInteger(page * perPage) ||
+        (query.page !== undefined && typeof query.page !== "string") ||
+        (query.perPage !== undefined && typeof query.perPage !== "string")
+    ) return invalidRequest("La paginación de movimientos no es válida.");
+    if (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim().length > 120)) {
+        return invalidRequest("La búsqueda de movimientos no es válida.");
+    }
+    const search = query.search?.trim();
+    return { valid: true, filters: { page, perPage, ...(search ? { search } : {}) } };
 }

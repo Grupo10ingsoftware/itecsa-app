@@ -1,25 +1,28 @@
 import { Router } from "express";
 import checkJwt from "../../../middlewares/checkJwt.js";
-import requireAdministrador from "../../../middlewares/requireAdministrador.js";
+import requireAdministrativeRole from "../../../middlewares/requireAdministrativeRole.js";
+import requirePin from "../../../middlewares/requirePin.js";
+import pinService from "../../auth/service/pin.service.js";
 import {
     createAdminUserHandler,
+    createAdminUserMovementsHandler,
     createAdminUsersSummaryHandler,
     createListAdminUsersHandler,
     createPasswordSetupEmailHandler,
     createUpdateAdminUserHandler,
     createUpdateAdminUserStatusHandler,
 } from "../controller/adminUsers.controller.js";
-import { uploadSignatureFile } from "../middleware/signatureUpload.js";
 
 export function createAdminUsersRouter({
     authenticate = checkJwt,
-    authorize = requireAdministrador,
+    authorize = requireAdministrativeRole,
     createUser,
     requestPasswordEmail,
     updateUser,
     updateStatus,
     users,
-    uploadSignature = uploadSignatureFile,
+    pins = pinService,
+    validatePin = requirePin,
 } = {}) {
     const router = Router();
     router.get(
@@ -34,30 +37,37 @@ export function createAdminUsersRouter({
         authorize,
         createAdminUsersSummaryHandler({ users }),
     );
+    router.get(
+        "/users/:userId/movements",
+        authenticate,
+        authorize,
+        createAdminUserMovementsHandler({ users }),
+    );
     router.post(
         "/users",
         authenticate,
         authorize,
-        uploadSignature,
-        createAdminUserHandler({ createUser, requestPasswordEmail, users }),
+        createAdminUserHandler({ createUser, requestPasswordEmail, users, pins }),
     );
     router.post(
         "/users/password-setup-email",
         authenticate,
         authorize,
-        createPasswordSetupEmailHandler({ requestPasswordEmail }),
+        createPasswordSetupEmailHandler({ requestPasswordEmail, users }),
     );
     router.patch(
         "/users/:userId",
         authenticate,
         authorize,
+        validatePin,
         createUpdateAdminUserHandler({ updateUser, users }),
     );
     router.patch(
         "/users/:userId/status",
         authenticate,
         authorize,
-        createUpdateAdminUserStatusHandler({ updateStatus, users }),
+        validatePin,
+        createUpdateAdminUserStatusHandler({ updateStatus, users, pins }),
     );
     return router;
 }

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { APP_ROUTES } from '../../../config/routes'
 import { useAuth } from '../../../hooks/useAuth'
 
 const AUTH_LOADING_TIMEOUT_MS = 10000
 
 export default function ProtectedRoute({ children, fallback }) {
-  const { authStatus, error, isAuthenticated, isLoading } = useAuth()
+  const { authStatus, error, isAuthenticated, isLoading, pinStatus } = useAuth()
   const location = useLocation()
   const fromPath = `${location.pathname}${location.search}${location.hash}`
   const [authLoadingExpired, setAuthLoadingExpired] = useState(false)
@@ -47,6 +48,8 @@ export default function ProtectedRoute({ children, fallback }) {
     )
   }
 
+  if (authStatus === 'access-denied') return <Navigate replace to={APP_ROUTES.ACCESS_DENIED} />
+
   if (authStatus === 'error') {
     return (
       <div className="alert alert-danger m-4" role="alert">
@@ -56,5 +59,10 @@ export default function ProtectedRoute({ children, fallback }) {
     )
   }
 
+  if (pinStatus === 'pending_acknowledgement' && ![APP_ROUTES.PROFILE, APP_ROUTES.DOCUMENTS, APP_ROUTES.DATA_REQUESTS, APP_ROUTES.INCIDENT_REPORT].includes(location.pathname)) {
+    return <Navigate replace to={APP_ROUTES.PROFILE} />
+  }
+
+  if (authStatus !== 'authenticated') return <Navigate replace to={APP_ROUTES.ACCESS_DENIED} />
   return children ?? <Outlet />
 }

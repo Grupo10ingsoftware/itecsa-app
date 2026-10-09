@@ -39,10 +39,15 @@ export function snapshotDeployment(data) {
     throw new Error('El servicio previo debe usar una imagen externa fijada por digest. Completar bootstrap antes de automatizar.');
   }
   if (!data.external.credentials) throw new Error('El servicio debe tener una credencial de lectura GHCR configurada.');
-  if (!data.docker?.configType) throw new Error('Falta configuracion Docker del servicio.');
+  const docker = data.docker == null || (
+    typeof data.docker === 'object' && !Array.isArray(data.docker) && Object.keys(data.docker).length === 0
+  ) ? { configType: 'default' } : data.docker;
+  if (typeof docker !== 'object' || Array.isArray(docker) || !docker.configType) {
+    throw new Error('Falta configuracion Docker del servicio.');
+  }
   return {
     external: { imagePath: data.external.imagePath, credentials: data.external.credentials },
-    docker: Object.fromEntries(['configType', 'customCommand', 'customEntrypoint'].filter(key => data.docker[key] !== undefined).map(key => [key, data.docker[key]])),
+    docker: Object.fromEntries(['configType', 'customCommand', 'customEntrypoint'].filter(key => docker[key] !== undefined).map(key => [key, docker[key]])),
   };
 }
 

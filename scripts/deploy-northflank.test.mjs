@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { deployRelease, deploymentConfig, waitForVersion, createNorthflankClient, createProbe } from './deploy-northflank.mjs';
+import { deployRelease, deploymentConfig, waitForVersion, createNorthflankClient, createProbe, snapshotDeployment } from './deploy-northflank.mjs';
 
 const newVersion = 'a'.repeat(40);
 const oldVersion = 'b'.repeat(40);
@@ -36,6 +36,32 @@ test('despliega API primero, despues WEB, conservando credencial de registro', a
   assert.equal((await deployRelease(config, f.options)).status, 'deployed');
   assert.deepEqual(f.calls.map(c => c.id), ['api', 'web']);
   assert.ok(f.calls.every(c => c.payload.external.credentials === 'registry-credential'));
+});
+
+test('Docker ausente o vacio usa la configuracion predeterminada', async () => {
+  const f = fixture();
+  const previous = { external: { imagePath: image('api', 'b'), credentials: 'registry-credential' } };
+  assert.deepEqual(snapshotDeployment(previous).docker, { configType: 'default' });
+  assert.deepEqual(snapshotDeployment({ ...previous, docker: {} }).docker, { configType: 'default' });
+  const request = async (id, method = 'GET', payload) => {
+    if (method === 'GET') return { external: { imagePath: f.deployed[id], credentials: 'registry-credential' } };
+    return f.options.request(id, method, payload);
+  };
+  assert.equal((await deployRelease(config, { ...f.options, request })).status, 'deployed');
+  assert.ok(f.calls.every(({ payload }) => payload.docker.configType === 'default'));
+});
+
+test('conserva opciones Docker explicitas y rechaza una configuracion parcial sin escribir', async () => {
+  const previous = { external: { imagePath: image('api', 'b'), credentials: 'registry-credential' } };
+  const docker = { configType: 'custom', customCommand: 'node app.js', customEntrypoint: '/start.sh' };
+  assert.deepEqual(snapshotDeployment({ ...previous, docker }).docker, docker);
+
+  const f = fixture();
+  await assert.rejects(deployRelease(config, {
+    ...f.options,
+    request: async () => ({ ...previous, docker: { customCommand: 'node app.js' } }),
+  }), /Falta configuracion Docker/);
+  assert.equal(f.calls.length, 0);
 });
 
 test('una ejecucion obsoleta no modifica servicios', async () => {

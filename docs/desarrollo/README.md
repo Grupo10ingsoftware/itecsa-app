@@ -1,6 +1,6 @@
 # Desarrollo local y configuración
 
-Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [contratos canónicos de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../security/P14_BUSQUEDA_NOTAS_VENTA.md), [privacidad P18](../modulos/PRIVACY.md), [reporte de incidentes P19](../modulos/INCIDENT_REPORTS.md) y [pruebas](PRUEBAS.md).
+Referencia para instalar y arrancar el código versionado. Consultar también [arquitectura](../arquitectura/ARQUITECTURA.md), [API](API.md), [contratos canónicos de pedidos](ORDERS_DTO_CANONICO.md), [decisión de seguridad P14](../security/P14_BUSQUEDA_NOTAS_VENTA.md), [privacidad P18](../modulos/PRIVACY.md), [reporte de incidentes P19](../modulos/INCIDENT_REPORTS.md), [pruebas](PRUEBAS.md) y [Docker](../operacion/DOCKER_DESPLIEGUE.md).
 
 ## Requisitos e instalación
 
@@ -32,7 +32,7 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 | Capa / variables | Uso |
 | --- | --- |
 | SPA: `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE`, `VITE_API_BASE_URL` | Configuración pública de login y API; visible en navegador |
-| API: `PORT`, `FRONTEND_ORIGIN` | Puerto HTTP y origen permitido por CORS |
+| API: `PORT`, `FRONTEND_ORIGIN`, `TRUST_PROXY` | Puerto HTTP, origen permitido por CORS y proxies confiables; en local usar `0` |
 | API: `AUTH0_DOMAIN`, `AUTH0_AUDIENCE` | Issuer y audience del JWT; obligatorios en el arranque |
 | API: `AUTH0_MANAGEMENT_CLIENT_ID`, `AUTH0_MANAGEMENT_CLIENT_SECRET`, `AUTH0_DATABASE_CONNECTION`, `AUTH0_PASSWORD_RESET_CLIENT_ID` | Gestión de identidades y solicitud de correos; exclusivos del servidor |
 | API: `APP_ENV`, `NODE_ENV` | Deben coincidir. Entorno obligatorio: `development`, `test` o `production`; las cuotas son persistentes en producción |
@@ -45,9 +45,11 @@ SPA: `http://localhost:5173`; API: `http://localhost:3000/api`. Auth0 debe permi
 
 Guardar la CA local, por ejemplo, en `capaServidor/certs/aiven-ca.pem`. El runtime resuelve rutas relativas de `DB_SSL_CA_PATH` respecto de `capaServidor`; usar una ruta válida para el entorno.
 
+La CLI de Prisma vive en `tooling/prisma`; `npm ci --prefix tooling/prisma` debe ejecutarse antes de `prisma:generate` o `prisma:validate`. La generación no conecta a la base ni aplica migraciones.
+
 Conservar el mismo `PIN_SECRET` al usar la misma base, incluidos reinicios y rollback. Generar uno con `openssl rand -base64 32` solo al preparar un entorno nuevo e independiente. No rotarlo como parte de una instalación rutinaria.
 
-La SPA toma la configuración desde `import.meta.env.VITE_*`. Estos valores se incorporan al compilar con Vite; cambiar la configuración de una build requiere recompilarla. Ningún valor de Management, base o PIN debe pasar al frontend.
+La SPA local toma los valores públicos de `import.meta.env.VITE_*`. La imagen Docker de producción los recibe al arrancar mediante `runtime-config.js`; cambiarlos no requiere recompilar. Ningún valor de Management, base o PIN debe pasar al frontend.
 
 ### PIN y demo
 

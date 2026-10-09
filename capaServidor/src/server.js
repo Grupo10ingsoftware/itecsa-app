@@ -37,7 +37,10 @@ class Server {
   constructor({ env = process.env, appEnvironment = currentAppEnvironment(), logger = safeLogger } = {}) {
     // Creamos como propiedad misma de la clase servidor
     this.app = express();
-    this.port = env.PORT; // definido en .env
+    this.port = Number(env.PORT || 3000);
+    if (!Number.isInteger(this.port) || this.port < 1 || this.port > 65535) {
+      throw new Error('PORT debe ser un puerto TCP valido.');
+    }
     this.appEnvironment = appEnvironment;
     this.logger = logger;
     this.app.locals.errorLogger = logger;
@@ -142,13 +145,16 @@ class Server {
   }
 
   listen() {
-    const httpServer = this.app.listen(this.port, () => {
-      this.logger.info("server.started", { outcome: "ok" });
+    return new Promise((resolve, reject) => {
+      this.httpServer = this.app.listen(this.port, '0.0.0.0', () => {
+        this.logger.info("server.started", { outcome: "ok" });
+        resolve(this.httpServer);
+      });
+      this.httpServer.requestTimeout = Number(this.env.HTTP_REQUEST_TIMEOUT_MS ?? 15000);
+      this.httpServer.headersTimeout = Number(this.env.HTTP_HEADERS_TIMEOUT_MS ?? 10000);
+      this.httpServer.keepAliveTimeout = Number(this.env.HTTP_KEEP_ALIVE_TIMEOUT_MS ?? 5000);
+      this.httpServer.once('error', reject);
     });
-    httpServer.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS ?? 15000);
-    httpServer.headersTimeout = Number(process.env.HTTP_HEADERS_TIMEOUT_MS ?? 10000);
-    httpServer.keepAliveTimeout = Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS ?? 5000);
-    return httpServer;
   }
 }
 

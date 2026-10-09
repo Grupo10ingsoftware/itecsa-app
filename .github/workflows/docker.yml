@@ -1,0 +1,220 @@
+name: Docker CI and Northflank CD
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'deploy: publicar y desplegar main; publish: bootstrap; rollback: version anterior'
+        type: choice
+        options: [deploy, publish, rollback]
+        default: deploy
+      release_sha:
+        description: 'SHA completo de una pareja ya publicada (solo rollback)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            tooling/prisma/package-lock.json
+            capaServidor/package-lock.json
+            capaVista/package-lock.json
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Verify sources and images without publishing credentials
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          node scripts/check-docs.mjs
+          npm ci --prefix tooling/prisma
+          npm ci --prefix capaServidor
+          npm run prisma:generate --prefix capaServidor
+          npm test --prefix capaServidor
+          npm ci --prefix capaVista
+          npm test --prefix capaVista
+          npm run build --prefix capaVista
+          node --test scripts/*.test.mjs
+          docker buildx build --load --platform linux/amd64 --target production --build-arg APP_VERSION="$RELEASE_SHA" -f capaServidor/Dockerfile -t itecsa-api:ci .
+          docker buildx build --load --platform linux/amd64 --target production --build-arg APP_VERSION="$RELEASE_SHA" -f capaVista/Dockerfile -t itecsa-web:ci .
+          node scripts/docker-smoke.mjs
+  images:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Keep both SHA tags coherent if a release is rerun while another run publishes it.
+    concurrency:
+      group: images-${{ github.repository }}-${{ inputs.operation == 'rollback' && inputs.release_sha || github.sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api_image: ${{ steps.release.outputs.api_image }}
+      web_image: ${{ steps.release.outputs.web_image }}
+      release_sha: ${{ steps.version.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            tooling/prisma/package-lock.json
+            capaServidor/package-lock.json
+            capaVista/package-lock.json
+      - name: Select release
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          OPERATION: ${{ inputs.operation }}
+          INPUT_SHA: ${{ inputs.release_sha }}
+          COMMIT_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] && [ "$REF_NAME" != main ]; then
+            echo 'Las operaciones manuales se ejecutan desde main.' >&2
+            exit 1
+          fi
+          RELEASE_SHA="$COMMIT_SHA"
+          if [ "$OPERATION" = rollback ]; then RELEASE_SHA="$INPUT_SHA"; fi
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo 'SHA no valido.' >&2; exit 1; }
+          image_prefix="ghcr.io/${REPOSITORY,,}"
+          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "API_REPO=$image_prefix-api" >> "$GITHUB_ENV"
+          echo "WEB_REPO=$image_prefix-web" >> "$GITHUB_ENV"
+          echo "RELEASE_SHA=$RELEASE_SHA" >> "$GITHUB_ENV"
+      - name: Dependencies and tests
+        if: inputs.operation != 'rollback'
+        run: |
+          node scripts/check-docs.mjs
+          npm ci --prefix tooling/prisma
+          npm ci --prefix capaServidor
+          npm run prisma:generate --prefix capaServidor
+          npm test --prefix capaServidor
+          npm ci --prefix capaVista
+          npm test --prefix capaVista
+          npm run build --prefix capaVista
+          node --test scripts/*.test.mjs
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build API
+        if: inputs.operation != 'rollback'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: capaServidor/Dockerfile
+          target: production
+          platforms: linux/amd64
+          load: true
+          tags: itecsa-api:ci
+          build-args: APP_VERSION=${{ env.RELEASE_SHA }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Build web
+        if: inputs.operation != 'rollback'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: capaVista/Dockerfile
+          target: production
+          platforms: linux/amd64
+          load: true
+          tags: itecsa-web:ci
+          build-args: APP_VERSION=${{ env.RELEASE_SHA }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Smoke test production images
+        if: inputs.operation != 'rollback'
+        env:
+          API_IMAGE: itecsa-api:ci
+          WEB_IMAGE: itecsa-web:ci
+        run: node scripts/docker-smoke.mjs
+      - name: Login GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested images
+        if: github.event_name != 'pull_request' && inputs.operation != 'rollback'
+        run: |
+          docker tag itecsa-api:ci "$API_REPO:sha-$RELEASE_SHA"
+          docker tag itecsa-web:ci "$WEB_REPO:sha-$RELEASE_SHA"
+          docker push "$API_REPO:sha-$RELEASE_SHA"
+          docker push "$WEB_REPO:sha-$RELEASE_SHA"
+      - name: Resolve immutable release
+        id: release
+        if: github.event_name != 'pull_request'
+        run: |
+          api_digest="$(docker buildx imagetools inspect "$API_REPO:sha-$RELEASE_SHA" --format '{{json .Manifest}}' | jq -r .digest)"
+          web_digest="$(docker buildx imagetools inspect "$WEB_REPO:sha-$RELEASE_SHA" --format '{{json .Manifest}}' | jq -r .digest)"
+          [[ "$api_digest" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
+          [[ "$web_digest" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
+          echo "api_image=$API_REPO@$api_digest" >> "$GITHUB_OUTPUT"
+          echo "web_image=$WEB_REPO@$web_digest" >> "$GITHUB_OUTPUT"
+          jq -n --arg version "$RELEASE_SHA" --arg api "$API_REPO@$api_digest" --arg web "$WEB_REPO@$web_digest" '{version:$version,api:$api,web:$web}' > release.json
+          printf '\nCommit: `%s`\n\nAPI: `%s@%s`\n\nWeb: `%s@%s`\n' "$RELEASE_SHA" "$API_REPO" "$api_digest" "$WEB_REPO" "$web_digest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Save image references
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-${{ env.RELEASE_SHA }}
+          path: release.json
+          retention-days: 90
+          overwrite: true
+
+  deploy:
+    needs: images
+    if: github.event_name != 'pull_request' && inputs.operation != 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    environment: northflank-demo
+    concurrency:
+      group: northflank-demo
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Deploy and verify release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_MODE: ${{ inputs.operation }}
+          RELEASE_SHA: ${{ needs.images.outputs.release_sha }}
+          API_IMAGE: ${{ needs.images.outputs.api_image }}
+          WEB_IMAGE: ${{ needs.images.outputs.web_image }}
+          API_URL: ${{ vars.API_URL }}
+          WEB_URL: ${{ vars.WEB_URL }}
+          NORTHFLANK_PROJECT_ID: ${{ vars.NORTHFLANK_PROJECT_ID }}
+          NORTHFLANK_API_SERVICE_ID: ${{ vars.NORTHFLANK_API_SERVICE_ID }}
+          NORTHFLANK_WEB_SERVICE_ID: ${{ vars.NORTHFLANK_WEB_SERVICE_ID }}
+          NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
+          DEPLOY_METADATA_DIR: ${{ runner.temp }}/itecsa-deployment
+        run: node scripts/deploy-northflank.mjs
+      - name: Save deployment and rollback references
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deployment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/itecsa-deployment/*.json
+          if-no-files-found: ignore
+          retention-days: 90

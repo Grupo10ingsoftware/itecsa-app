@@ -42,7 +42,7 @@ El reset debug requiere `APP_ENV=NODE_ENV=development`, `ENABLE_DEMO_ROUTES=true
 
 ## Recuperación de contraseña y plantillas
 
-[universal-login.html](universal-login.html) es la referencia de Classic Universal Login. Deshabilita signup y dirige la recuperación a la ruta propia `/recuperar-contrasena`; ajustar el dominio HTTPS al ambiente antes de configurar el template.
+[universal-login.html](universal-login.html) es la referencia de Classic Universal Login. Deshabilita signup y dirige la recuperación a la ruta propia `/recuperar-contrasena`: usa `localhost:5173` para el callback local y el origen HTTPS de Northflank para los demás callbacks. Al cambiar el dominio público, actualizar el template versionado y la página activa en Auth0; editar este archivo no actualiza el tenant.
 
 La SPA envía el correo a `POST /api/auth/password-reset/request`. Una solicitud válida recibe siempre HTTP `202`, `status: "accepted"` y el mismo mensaje condicional; un usuario interno activo o `Pendiente` puede provocar la solicitud de correo Auth0. Fallos de consulta y entrega conservan esa respuesta. No devuelve tickets, enlaces, tokens ni contraseñas. El resultado real queda en telemetría con correlación HMAC cuando se configura su clave, sin correo ni mensajes de excepción. La espera mínima de 600 ms más jitter de 0–199 ms reduce diferencias temporales; una consulta/envío más lento puede excederla. Las cuotas son por IP (10/15 min) y correo normalizado (3/15 min), persistentes en producción y en memoria en desarrollo/test.
 

@@ -2,11 +2,13 @@ import { Router } from "express";
 import { checkDatabaseConnection } from "../../../database/prisma.js";
 import { timingSafeEqual } from "node:crypto";
 
-export function createHealthRouter({
-} = {}) {
+export function createHealthRouter({ version = process.env.APP_VERSION || "development" } = {}) {
   const router = Router();
 
-  router.get("/live", (_req, res) => res.status(200).json({ status: "ok" }));
+  router.get("/live", (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json({ status: "ok", version });
+  });
 
   return router;
 }

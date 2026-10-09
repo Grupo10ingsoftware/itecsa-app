@@ -26,7 +26,7 @@ Estado documental: 03-10-2026. Este documento prepara una prueba futura; no acre
 | Reconstrucción de aplicación y Auth0 | Código y configuración esperada versionados. | Artefacto desplegado, configuración externa exportable, secretos recuperables y prueba funcional integral. |
 | Registro y repetición | No se encontró registro de ejercicio integral. | Operadores, versión, fecha, pasos, resultados, incidencias, correcciones y próximo ejercicio. |
 
-La [Ley 21.719 incluida en el proyecto](../../../leyes%20y%20normas/Ley21719.docx), art. 14 quinquies, trata disponibilidad, integridad, resiliencia, restauración y evaluación regular de medidas según riesgo. La NCh-ISO/IEC 27002:2022 incluida en el proyecto relaciona objetivos de continuidad con RPO/RTO (5.30) y recomienda mantener y probar respaldos según política (8.13). Estas fuentes no fijan valores empresariales para Itecsa.
+La Ley 21.719, art. 14 quinquies, trata disponibilidad, integridad, resiliencia, restauración y evaluación regular de medidas según riesgo. La NCh-ISO/IEC 27002:2022 incluida en el proyecto relaciona objetivos de continuidad con RPO/RTO (5.30) y recomienda mantener y probar respaldos según política (8.13). Estas fuentes no fijan valores empresariales para Itecsa.
 
 ## Dos horizontes de continuidad de la BD
 

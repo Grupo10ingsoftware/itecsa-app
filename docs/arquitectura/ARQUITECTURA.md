@@ -46,7 +46,7 @@ La autorización de pagos no sustituye las reglas de producción. Algunas revisi
 
 ## Ejecución y operación
 
-La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. La SPA incorpora sus variables públicas al compilar con Vite; el servidor consume su configuración de entorno. Auth0 es externo y Aiven aloja temporalmente MySQL. Los procedimientos de base se mantienen en [migración de Orders](../operacion/ORDERS_MIGRACION.md) y [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md). El [inventario de proveedores](../security/data-processors.md) y el [procedimiento de continuidad](../operacion/BACKUP_RESTORE.md) distinguen el estado actual de las decisiones pendientes.
+La [guía de desarrollo](../desarrollo/README.md) concentra variables y comandos locales. Vite usa variables públicas en desarrollo; la imagen Docker de producción carga esas cuatro variables al arrancar mediante `runtime-config.js`, sin recompilar. API y SPA usan imágenes separadas. Auth0 es externo y Aiven aloja temporalmente MySQL. Consultar [Docker y Northflank](../operacion/DOCKER_DESPLIEGUE.md), [migración de Orders](../operacion/ORDERS_MIGRACION.md), [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md), [inventario de proveedores](../security/data-processors.md) y [continuidad](../operacion/BACKUP_RESTORE.md).
 
 Arrancar la API no aplica migraciones. Los tests locales no acreditan por sí solos configuración del tenant, protección de infraestructura, restauración de backups o cumplimiento legal; esas evidencias se registran con su entorno y fecha.
 

@@ -2,7 +2,7 @@
 
 Revisión de coherencia documental del código: 03-10-2026. La evidencia externa conserva su fecha original. Esta lista consolida el seguimiento disponible; no constituye una nueva auditoría de seguridad ni una consulta a la base, Auth0 o infraestructura. **Implementado** se refiere al repositorio; **validación pendiente** requiere evidencia del entorno; **decisión pendiente** requiere definición funcional u organizacional. No se asignan responsables ni fechas que no estén acordados.
 
-Las suites automatizadas se retiraron el 03-10-2026 por decisión de entrega. Las menciones a pruebas locales describen evidencia histórica; ver [comprobaciones disponibles](desarrollo/PRUEBAS.md).
+La evidencia de pruebas anteriores conserva la fecha de cada revisión; para los comandos automatizados vigentes, consultar [comprobaciones disponibles](desarrollo/PRUEBAS.md).
 
 ## Orders e integración de notas de venta
 
@@ -41,8 +41,8 @@ Evidencia: [guía Payments](modulos/PAYMENTS.md), [auditoría inicial](archivo/a
 
 - **Sesiones y permisos efectivos:** probar una sesión nueva representativa de cada rol y revisar usuarios con permisos directos, sin rol o con varios roles. La [auditoría del 25-09](archivo/auditorias/AUDITORIA-2026-09-25.md) cubrió asociaciones de roles; el snapshot JSON del 06-09 es anterior e incompleto. Cierre: evidencia fechada y sin tokens de claims, capacidades permitidas/denegadas y correspondencia con el catálogo.
 - **Correos:** la lectura del tenant de desarrollo mostró desactivado el proveedor de correo propio. Confirmar la entrega efectiva y las plantillas que se usan antes de depender de correos de alta o recuperación; el HTML en Git no acredita que Auth0 lo use. Referencia: [Auth0](auth0/README.md).
-- **Despliegue:** Docker/Northflank y CI/CD se trabajan por separado en [migration/docker](https://github.com/Grupo10ingsoftware/itecsa-app/tree/migration/docker); no están integrados en esta base de `dev`. Revisar esa integración y comprobar el entorno, publicación y rollback antes de documentarlos como operación vigente. La restauración de datos requiere su propia evidencia.
-- **P26 / proveedores:** el [inventario](security/data-processors.md) distingue integraciones de servicios habilitados y contratos verificados. Auth0 usa un tenant de desarrollo revisado en solo lectura. Aiven apoya temporalmente el desarrollo; Itecsa decidió eliminar todos los registros de esa BD al desplegar y conservar sólo la estructura. Ese borrado no se ha ejecutado y requiere verificar qué ocurre con copias y logs. Aún no existe hosting para SPA/API ni se ha elegido la BD definitiva. Revisar región, subencargados, retención, incidentes y salida según los proveedores y datos que efectivamente se utilicen.
+- **Despliegue:** el [ensayo Northflank](operacion/DOCKER_DESPLIEGUE.md) ya ejecuta web y API desde los digests de `migration/docker`, con login/logout, lectura del fixture y consulta TLS de Aiven comprobados. Faltan token RBAC para Actions, prueba de merge a `main`, renovacion de sesion tras una hora, revision de IP detras del proxy, observacion prolongada y demostracion de rollback. La restauracion de datos requiere su propia evidencia.
+- **P26 / proveedores:** el [inventario](security/data-processors.md) distingue integraciones de servicios habilitados y contratos verificados. Auth0 y Aiven siguen siendo recursos temporales de desarrollo; Northflank aloja ahora un ensayo accesible por HTTPS, no la entrega al cliente. Itecsa decidio eliminar los registros de la BD temporal al desplegar al cliente y conservar solo la estructura. Ese borrado no se ha ejecutado y requiere verificar copias y logs. Aun no se ha elegido la BD ni el hosting definitivos dentro de la red del cliente. Revisar region, subencargados, retencion, incidentes y salida segun los proveedores y datos que efectivamente se utilicen.
 
 ## Seguimiento de la auditoría de protección de datos
 

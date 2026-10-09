@@ -1,5 +1,7 @@
 import "dotenv/config";
 import Server from "../server.js";
+import { disconnectPrismaClient } from "../database/prisma.js";
+import { registerShutdown } from './shutdown.js';
 import pinService from "../modules/auth/service/pin.service.js";
 import { resolveEnvironmentConfig } from "../config/environment.js";
 import { currentAppEnvironment } from "../config/environment.js";
@@ -41,8 +43,12 @@ function validateEnvironment() {
         validateEnvironment();
         const appEnvironment = currentAppEnvironment({ required: true });
         const server = new Server({ appEnvironment });
-        await server.listen();
-        if (appEnvironment === "production") startTemporaryDataCleanup();
+        const httpServer = await server.listen();
+        const stopCleanup = appEnvironment === "production" ? startTemporaryDataCleanup() : () => {};
+        registerShutdown(httpServer, async () => {
+            stopCleanup();
+            await disconnectPrismaClient();
+        });
     } catch ( err ){
         safeLogger.error("server.start_failed", { code: err?.code ?? "START_FAILED", outcome: "error" });
         process.exit(1);

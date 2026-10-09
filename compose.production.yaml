@@ -1,0 +1,30 @@
+services:
+  api:
+    image: ${API_IMAGE:?Definir API_IMAGE con digest en el archivo de despliegue}
+    env_file: ${API_ENV_FILE:-./capaServidor/.env}
+    environment:
+      APP_ENV: production
+      NODE_ENV: production
+      PORT: 3000
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080}
+      DB_SSL_CA_PATH: /run/secrets/aiven-ca.pem
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      ENABLE_DEMO_ROUTES: "false"
+      SALES_NOTE_SOURCE: unavailable
+    secrets:
+      - source: database_ca
+        target: aiven-ca.pem
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${API_PORT:-3000}:3000"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+  web:
+    image: ${WEB_IMAGE:?Definir WEB_IMAGE con digest en el archivo de despliegue}
+    env_file: ${WEB_ENV_FILE:-./capaVista/.env}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    restart: unless-stopped
+secrets:
+  database_ca:
+    file: ${DB_CA_FILE:-./capaServidor/certs/aiven-ca.pem}

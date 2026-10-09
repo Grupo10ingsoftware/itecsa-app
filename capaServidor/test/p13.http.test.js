@@ -38,7 +38,7 @@ test('P13: headers, CORS and health on the real server', async (t) => {
   const base = await listen(createServer().app, t);
   const valid = await fetch(`${base}/api/health/live`, { headers: { Origin: origin } });
   assert.equal(valid.status, 200);
-  assert.deepEqual(await valid.json(), { status: 'ok' });
+  assert.deepEqual(await valid.json(), { status: 'ok', version: process.env.APP_VERSION || 'development' });
   assertHeaders(valid);
   assert.equal(valid.headers.get('access-control-allow-origin'), origin);
 

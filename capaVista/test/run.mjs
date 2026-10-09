@@ -1,6 +1,8 @@
 import { createServer } from 'vite'
 
 const server = await createServer({
+  // SSR assertions use fixtures and must not depend on a developer's .env.
+  envDir: false,
   server: { middlewareMode: true, ws: false, hmr: false },
   appType: 'custom',
   define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://localhost:3000/api') },

@@ -108,7 +108,7 @@ El PATCH recibe `paymentStatusId`, `observacion` y `pin`. El frontend resuelve e
 | GET `/messages`, `/messages/notifications`, `/messages/:messageId` | `read:own-messages`; destinatario autenticado |
 | PATCH `/messages/notifications`, `/messages/notifications/:messageId`, `/messages/:messageId/read` | `update:own-messages`; destinatario autenticado |
 | GET `/metrics/summary` | `view:metrics` |
-| GET `/health/live` | Público; comprueba el proceso sin consultar la base |
+| GET `/health/live` | Público; informa estado y versión del commit sin consultar la base |
 
 `GET /internal/ready` queda fuera del prefijo `/api`: está deshabilitado por defecto, requiere `X-Health-Token` y debe restringirse a la red interna. `/api/health/db` fue retirado.
 

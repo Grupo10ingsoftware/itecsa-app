@@ -17,14 +17,14 @@ async function listen(app, t) {
   return server;
 }
 
-test("GET /api/health/live responde sin consultar base de datos", async (t) => {
-  let calls = 0;
-  const app = createTestApp(createHealthRouter());
+test("GET /api/health/live informa version sin cache y sin consultar base de datos", async (t) => {
+  const app = createTestApp(createHealthRouter({ version: "a".repeat(40) }));
   const server = await listen(app, t);
   const response = await fetch(`http://127.0.0.1:${server.address().port}/api/health/live`);
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { status: "ok" });
-  assert.equal(calls, 0);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), { status: "ok", version: "a".repeat(40) });
+  assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/api/health/db`)).status, 404);
 });
 
 test("GET /internal/ready responde ok con configuracion y token", async (t) => {
@@ -47,6 +47,7 @@ test("GET /internal/ready responde ok con configuracion y token", async (t) => {
     status: "ok",
     database: "mysql",
   });
+  assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/internal/ready`)).status, 404);
 });
 
 test("GET /internal/ready no expone detalles si falla la conexion", async (t) => {
@@ -57,7 +58,6 @@ test("GET /internal/ready no expone detalles si falla la conexion", async (t) =>
       checkDatabase: async () => {
         throw new Error("Access denied for user secreto");
       },
-      logError: () => {},
     }));
   const server = await listen(app, t);
 

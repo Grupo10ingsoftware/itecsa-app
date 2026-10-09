@@ -14,6 +14,7 @@ npm run dev --prefix capaVista
 ```
 
 SPA: `http://localhost:5173`. API: `http://localhost:3000/api`.
+Para trabajar con contenedores, seguir la [guía Docker y despliegue](docs/operacion/DOCKER_DESPLIEGUE.md).
 
 ## Documentación
 
@@ -30,7 +31,7 @@ SPA: `http://localhost:5173`. API: `http://localhost:3000/api`.
 | `capaServidor/` | API, servicios, repositorios, schema y migraciones preparadas |
 | `shared/` | Catálogo compartido de roles y permisos |
 | `docs/` | Referencias vigentes e informes archivados |
-| `scripts/` | Utilidad de configuración y comparación RBAC |
+| `deploy/`, `scripts/`, `.github/` | Configuración de contenedores, utilidades y CI/CD |
 
 Orders registra pedidos por API y Payments gestiona pagos con PIN. Mi perfil y la bandeja muestran información propia; Documentos/Solicitudes (P18) y Reportar incidente (P19) remiten comunicaciones al contacto configurado por Itecsa. En desarrollo y tests, las notas de venta sintéticas requieren `SALES_NOTE_SOURCE=fixture`; sin esa opción la fuente responde 503. Manager no está integrado. La compatibilidad con el esquema antiguo permite omitir snapshots, pero no sustituye la [migración pendiente](docs/operacion/ORDERS_MIGRACION.md) ni el índice único de NV.
 

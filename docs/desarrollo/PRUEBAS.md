@@ -34,4 +34,4 @@ La [validación aislada de Payments](../operacion/PAYMENTS_SOLICITUD_BD.md), la 
 
 ## Documentación
 
-Al mover o actualizar guías, revisar los enlaces locales y la navegación desde el índice principal y el archivo histórico. Las instrucciones operativas vigentes deben reflejar los comandos disponibles.
+[check-docs.mjs](../../scripts/check-docs.mjs) comprueba enlaces e imágenes Markdown locales. No consulta la red ni valida URLs externas. El [workflow Docker](../../.github/workflows/docker.yml) ejecuta controles, construye imágenes y las comprueba antes de publicar; solo despliega desde `main` cuando esté configurado el entorno.

@@ -15,6 +15,7 @@ Punto de entrada para el equipo técnico. Las guías describen el código del re
 | Registrar pedidos y consultar notas de venta | [Orders / Ventas](modulos/ORDERS.md) |
 | Gestionar pagos y su historial | [Payments / Cobranzas](modulos/PAYMENTS.md) |
 | Configurar autenticación y autorización | [Auth0](auth0/README.md) y [matriz generada de permisos](auth0/RBAC-PERMISOS-POR-ROL.md) |
+| Usar Docker, publicar o desplegar | [Docker y Northflank](operacion/DOCKER_DESPLIEGUE.md) |
 | Preparar el esquema de Orders | [Migración de Orders](operacion/ORDERS_MIGRACION.md) |
 | Validar Payments en una copia MySQL | [Pruebas aisladas de Payments](operacion/PAYMENTS_SOLICITUD_BD.md) |
 | Preparar continuidad y restauración | [P25: respaldos y restauración](operacion/BACKUP_RESTORE.md) |
@@ -37,5 +38,5 @@ Entradas de código: [frontend](../capaVista/README.md), [backend](../capaServid
 - Registrar pendientes con evidencia, identificador existente y condición de cierre. No marcar una integración o validación externa como terminada por tener código o pruebas con dobles.
 - Archivar auditorías en `archivo/auditorias/` e informes de implementación en `archivo/implementaciones/`. Conservar el cuerpo original y anteponer fecha/commit disponibles, ubicación original y enlaces vigentes. Añadirlos al índice histórico.
 - Generar la matriz RBAC mediante `node scripts/rbac.mjs --generate`; no editar manualmente sus listas. Generar no consulta ni modifica Auth0.
-- Usar enlaces relativos Markdown a documentación y archivos. Revisar sus destinos y el recorrido desde este índice al mover o actualizar guías.
-- Los informes archivados conservan referencias al código de su revisión original. Mantener vigentes el índice histórico y los avisos de contexto; no reescribir la evidencia. Evitar referencias absolutas al equipo, secretos y ejemplos con datos reales.
+- Usar enlaces relativos Markdown a documentación y archivos. Ejecutar `node scripts/check-docs.mjs` antes de entregar cambios. Comprueba destinos locales; no verifica URLs externas ni encabezados.
+- Los informes archivados conservan referencias a código de su revisión original y se excluyen del control de enlaces. Sus índices sí se comprueban. Evitar referencias absolutas al equipo, secretos y ejemplos con datos reales.
